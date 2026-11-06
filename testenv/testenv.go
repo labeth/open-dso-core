@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 )
@@ -88,12 +89,21 @@ func ScopeDir(tb testing.TB) string {
 	return ""
 }
 
-// WebDir returns the scope's web UI directory, which holds the JS twins of
-// the core's Go packages.
+// CoreDir returns the open-dso-core checkout this package was built from, so
+// a scope's tests can read the core's test data (decode/testdata captures).
+// TRLC-LINKS: REQ-SDS-179
+func CoreDir() string {
+	_, file, _, _ := runtime.Caller(0)
+	return filepath.Dir(filepath.Dir(file))
+}
+
+// WebDir returns the shared web client's directory (webclient/), which holds
+// the JS twins of the core's Go packages.
 // TRLC-LINKS: REQ-SDS-179
 func WebDir(tb testing.TB) string {
 	tb.Helper()
-	return filepath.Join(ScopeDir(tb), "app", "internal", "web")
+	_, file, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(file), "..", "webclient")
 }
 
 // RTLDir returns a directory holding every FPGA source file flat, with the

@@ -1,0 +1,140 @@
+schemaVersion: 2
+decisions:
+- id: ADR-CORE-IS-THE-PRODUCT
+  title: The core is the product; a scope repository is a board-support package
+  status: accepted
+  date: '2026-11-06'
+  context: One open firmware is meant to run on several oscilloscope families (SDS1000CML+, SDS800X HD, DHO1000
+    and later ones) with the same features, look and feel. The SDS1000CML+ firmware grew as one app, with the
+    product (engine, UI model, rendering, web, SCPI, analysis) and the board (acquisition, front end, FPGA,
+    display and panel devices) in one tree.
+  decision: Share by default. open-dso-core holds everything that is not explicitly board-specific - the engine,
+    the UI model, display rendering, the web server, API and client, the SCPI core, VXI-11, decode, analysis,
+    measurement, sound, super-resolution, the design system, the supervisor, the diagnostics framework and the
+    test environment. Each open-<model> repository implements the HAL for its board and holds its specs, profile,
+    FPGA images, SCPI dialect tables, stick or installer and simulator device model. Code stays per scope only
+    when an explicit need is written down.
+  consequences:
+  - A second scope gets every feature the first has, through the HAL, instead of a copy.
+  - The core's interfaces must be drawn from more than one data path (raw records, played-back windows,
+    hardware-drawn displays), so the HAL is designed against the SDS800X HD port as well as the CML.
+  - Per-scope differences are data (profile, capabilities), not branches in core code.
+
+- id: ADR-FOUR-REPOSITORIES
+  title: One core repository and one repository per scope
+  status: accepted
+  date: '2026-11-06'
+  context: Two of the scopes cannot be public yet, and each scope releases at its own pace.
+  decision: open-dso-core, open-sds1000cml, open-sds800xhd, open-dho1000, and open-<model> for each new scope,
+    all under labeth. Unpublished scopes stay private until they run on a unit and their specs pass review.
+  consequences:
+  - Scopes pin a core version; local work uses a go.work-style replace of a sibling checkout.
+  - Core changes that break a scope are made together with that scope's change.
+
+- id: ADR-PURE-SPLIT-FIRST
+  title: The first migration is a pure split with no new functions
+  status: accepted
+  date: '2026-11-06'
+  context: The SDS1000CML+ is released and in use. Moving code and adding features at once makes regressions
+    impossible to attribute.
+  decision: Moving code into the core changes where it lives, not what it does - same protocol, stick layout,
+    settings format and behaviour, gated by the unit tests, the LCD goldens, the parity suites and the bench.
+    Generalisation for other scopes follows as separate steps.
+  consequences:
+  - Tests that check core code against a scope's sources (RTL top-level simulations) find the scope checkout
+    through testenv.ScopeDir.
+
+- id: ADR-NO-AUTHENTICATION
+  title: No authentication or security functions in the agent, web or SCPI interfaces
+  status: accepted
+  date: '2026-11-06'
+  context: The update agent accepts commands on TCP 5900 without authentication, NATS credentials are optional,
+    and the web server serves /debug/pprof. Keys, enrolment and authenticated RPC were weighed.
+  decision: An explicit trade-off - the overhead is not wanted. The interfaces move into the core as they are;
+    the instruments are meant for a trusted bench network.
+  consequences:
+  - Each scope's README states that the instrument belongs on a trusted network.
+
+- id: ADR-APP-AND-AGENT-MODULES
+  title: Each scope keeps its app and its update agent as two Go modules
+  status: accepted
+  date: '2026-11-06'
+  context: The scope app uses only the Go standard library and the core; the update agent links NATS. The agent is
+    the supervisor that rolls back a bad app and changes rarely.
+  decision: app/ and ota/ stay separate modules in every scope repository, each pinning the same core version.
+  consequences:
+  - The app's dependency list and licence list stay short on a 128 MB unit.
+
+- id: ADR-SHARED-DESIGN-SYSTEM
+  title: One design system for every scope's web UI and display
+  status: accepted
+  date: '2026-11-06'
+  context: The families should look and feel the same. The SDS1000CML+ already generated its web and LCD palettes
+    from one tokens file.
+  decision: open-dso-core/design holds the colour tokens (one source, generating the web's tokens.css and the
+    displays' Tokens), the shared stylesheets and the 5x7 display font. open-dso-core/webclient holds the whole web
+    client. A scope's display maps its colour names onto the tokens.
+  consequences:
+  - A palette or stylesheet change reaches every scope at once.
+
+- id: ADR-SHARED-WEB-SERVER
+  title: One web server and HTTP API for every scope
+  status: accepted
+  date: '2026-11-06'
+  context: The web UI is the same on every scope, so the API it speaks should be too. The SDS1000CML+ server was
+    CML-shaped (two channels, 8-bit codes, DAC codes, detent indexes).
+  decision: open-dso-core/webserver serves the shared client over one API; a scope implements webserver.Scope
+    (capabilities, status, frames, settings, and optional parts by typed accessor). The page reads a capabilities
+    document (/api/caps) and adapts to the scope. Frames gain a self-describing v2 wire format; the v1 formats
+    stay for one release. Steps are in WEB-API-DESIGN.md (M0-M10).
+  consequences:
+  - M0-M3 move the server without changing a byte the CML serves.
+
+- id: ADR-REMOTE-SCOPE-NEUTRAL
+  title: The phone remote is driven by the shared workspaces and sheets
+  status: proposed
+  date: '2026-11-06'
+  context: The SDS1000CML+'s phone remote mirrors its LCD. Other scopes have other screens and touch.
+  decision: Default taken without the owner - the remote is scope-neutral, built from the shared workspaces and
+    sheets, so it looks the same on every scope.
+  consequences:
+  - To review with the owner; reversible by giving a scope its own remote layout.
+
+- id: ADR-SHARED-SETTINGS-ROWS
+  title: Every scope's display UI runs on the shared settings rows
+  status: proposed
+  date: '2026-11-06'
+  context: The UI model (workspaces, sheets, settings semantics) drives both the LCD and the web on the SDS1000CML+.
+  decision: Default taken without the owner - the UI model moves to the core with per-scope data, and every
+    scope's on-device UI draws the same rows; only drawing and input differ per scope.
+  consequences:
+  - To review with the owner; reversible by letting a scope keep its own settings model.
+
+- id: ADR-LIVE-PAGE-BUDGET
+  title: The one-live-page limit becomes a per-scope budget
+  status: proposed
+  date: '2026-11-06'
+  context: The SDS1000CML+ serves one live page at a time to protect its single core's CPU.
+  decision: Default taken without the owner - the number of live pages is a profile budget; the CML keeps one.
+  consequences:
+  - To review with the owner.
+
+- id: ADR-SCREEN-NATIVE-SIZE
+  title: The device-screen view is served at each scope's native size
+  status: proposed
+  date: '2026-11-06'
+  context: /api/screen.png returns the CML's 800x480 LCD.
+  decision: Default taken without the owner - each scope serves its own native size; the page scales it.
+  consequences:
+  - To review with the owner.
+
+- id: ADR-NO-SHARED-RTL-YET
+  title: FPGA sources stay in the scope repositories until a second design uses them
+  status: proposed
+  date: '2026-11-06'
+  context: The SDS1000CML+ RTL is mostly board-bound (GPMC, AD9288 lanes, interleave, panel scan). The SDS800X HD
+    starts on its vendor PL design and the DHO's open RTL cannot be published.
+  decision: Default taken - no RTL moves to the core until a second open FPGA design consumes it and passes timing.
+    This is the one exception to share-by-default, for lack of a second consumer.
+  consequences:
+  - To review with the owner if a second open FPGA design starts.
