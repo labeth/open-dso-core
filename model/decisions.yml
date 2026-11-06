@@ -138,3 +138,16 @@ decisions:
     This is the one exception to share-by-default, for lack of a second consumer.
   consequences:
   - To review with the owner if a second open FPGA design starts.
+
+- id: ADR-CORE-PUBLIC
+  title: open-dso-core is public
+  status: proposed
+  date: '2026-11-06'
+  context: The SDS1000CML+ repository is public and its CI must fetch the core. Everything in the core is MIT code
+    that was already public in the SDS1000CML+ repository, or new design written for the family. Making it public
+    needs the owner's action.
+  decision: open-dso-core becomes public. Until then scope CI needs a DSO_CORE_TOKEN secret to fetch it.
+  consequences:
+  - Scope CI fetches the core without a token once public.
+  - Nothing derived from vendor material may enter the core; scope-specific knowledge enters it only as
+    spec-derived, scope-neutral code.
