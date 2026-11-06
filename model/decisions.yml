@@ -141,7 +141,7 @@ decisions:
 
 - id: ADR-CORE-PUBLIC
   title: open-dso-core is public
-  status: proposed
+  status: accepted
   date: '2026-11-06'
   context: The SDS1000CML+ repository is public and its CI must fetch the core. Everything in the core is MIT code
     that was already public in the SDS1000CML+ repository, or new design written for the family. Making it public
