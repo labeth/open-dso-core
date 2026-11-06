@@ -7,6 +7,10 @@ this core; today that is [open-sds1000cml](https://github.com/labeth/open-sds100
 
 | Package | What it holds |
 |---|---|
+| `hal/` | the board interface: what a scope implements so the core runs on it; `hal/halfake` is a fake board for tests |
+| `sample/` | the published frame: traces of 8- or 16-bit codes with their code format, content kind and scale |
+| `profile/` | reads a scope's `profile.yaml` into a `hal.Profile`, variant by unit identity |
+| `engine/fanout/` | hands the engine's newest frame to every reader (display, web) |
 | `decode/` | the protocol decoders and their autodetect |
 | `dsp/` | sample kernels: min/max, the precision FIR that conditions decimated records, rounding (ARM assembly with Go fallbacks) |
 | `measure/` | the automatic measurements |
