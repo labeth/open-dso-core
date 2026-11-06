@@ -44,7 +44,7 @@ type SoundBinHeader struct {
 	MarkV    float64      `json:"mark_v"` // the marks' level, volts at the tip
 	ServerMS int64        `json:"server_ms"`
 	Err      string       `json:"err,omitempty"`
-	Paused   bool         `json:"paused,omitempty"` // the LCD holds the acquisition: no samples until the page takes the scope
+	Paused   bool         `json:"paused,omitempty"` // the display holds the acquisition: no samples until the page takes the scope
 }
 
 // SoundTakeHeader is the JSON header of a /api/sound/take.bin reply.

@@ -137,7 +137,7 @@ type FrameReply struct {
 	M2 *measure.Result `json:"m2,omitempty"` // CH2
 	// MeasSeq is the frame M1 and M2 were measured on (reused for the frames
 	// of the next 100 ms while running), EdgeRead that frame's edge-window
-	// read (engine.Frame.EdgeRead): statistics count each reading once.
+	// read: statistics count each reading once.
 	MeasSeq  uint64 `json:"meas_seq,omitempty"`
 	EdgeRead uint64 `json:"edge_read,omitempty"`
 

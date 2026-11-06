@@ -50,3 +50,12 @@ func TestLEBytes(t *testing.T) {
 		t.Fatalf("% x", b)
 	}
 }
+
+// TRLC-LINKS: REQ-SDS-265
+func BenchmarkEncodeSoundBin(b *testing.B) {
+	q1, q2 := make([]uint16, 4096), make([]uint16, 4096)
+	h := map[string]int{"n": 4096}
+	for b.Loop() {
+		EncodeSoundBin(h, q1, q2, 4096)
+	}
+}

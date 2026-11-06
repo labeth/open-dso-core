@@ -3,6 +3,7 @@
 package wire
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 )
@@ -54,4 +55,27 @@ func (h WordsHeader) MarshalJSON() ([]byte, error) {
 	}
 	out := append(info[:len(info)-1:len(info)-1], ',')
 	return append(out, tail[1:]...), nil
+}
+
+// AppendWordChunkHeads appends the chunks' heads as /api/stream/words.bin
+// carries them before their words: each the index (low and high words),
+// the word count, the flags (bit0 a break, bit1 a check) and the coding's
+// length, little-endian uint32s.
+// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+func AppendWordChunkHeads(dst []byte, chunks []WordChunk) []byte {
+	for _, c := range chunks {
+		flags := uint32(0)
+		if c.Break {
+			flags |= 1
+		}
+		if c.Check {
+			flags |= 2
+		}
+		dst = binary.LittleEndian.AppendUint32(dst, uint32(c.Index)) //nolint:gosec // G115: the index's low word; the high one follows
+		dst = binary.LittleEndian.AppendUint32(dst, uint32(c.Index>>32))
+		dst = binary.LittleEndian.AppendUint32(dst, uint32(c.Words)) //nolint:gosec // G115: a chunk's word count
+		dst = binary.LittleEndian.AppendUint32(dst, flags)
+		dst = binary.LittleEndian.AppendUint32(dst, uint32(len(c.Enc))) //nolint:gosec // G115: a chunk's encoding, a few kilobytes
+	}
+	return dst
 }
