@@ -151,3 +151,147 @@ decisions:
   - Scope CI fetches the core without a token once public.
   - Nothing derived from vendor material may enter the core; scope-specific knowledge enters it only as
     spec-derived, scope-neutral code.
+
+- id: ADR-HAL-CORE-OWNS-LOOP
+  title: 'The core engine owns the acquisition loop'
+  status: accepted
+  date: '2026-11-06'
+  context: 'share by default: scheduling, publish gate, pacing and governor are the product. Alternative: a board-owned loop that emits frames — lower CML risk, but every scope re-implements the gate'
+  decision: 'The core engine owns the acquisition loop (§2.1 cycle); boards implement step interfaces, not their own loop'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-STAGE-AND-COMMIT
+  title: 'HAL setters stage'
+  status: accepted
+  date: '2026-11-06'
+  context: 'the CML writes plan and trigger in one struct; the DHO and SDS800X HD reprogram only while stopped; trigger levels depend on the vertical setting'
+  decision: 'HAL setters stage; `Acquirer.Arm` is the one hardware commit, in the order FrontEnd → Plan → Trigger'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-FRAME-NOT-GENERIC
+  title: '`sample.Frame` is not generic'
+  status: accepted
+  date: '2026-11-06'
+  context: 'the CML frame carries u8 codes and Q8.8 words at once; a type parameter would thread through engine, UI, renderer and web. Alternative: `Frame[S]` per PROPOSAL §4.5'
+  decision: '`sample.Frame` is not generic; a trace holds `Codes8` or `Codes16` (+ optional precision words) with a `CodeFormat`; kernels are generic internally and picked per frame'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-MULTI-WINDOW-READ
+  title: '`Readout.Read` takes several windows and a segment range per call'
+  status: accepted
+  date: '2026-11-06'
+  context: 'CML edge/view-detail reads, DHO main+zoom in one play'
+  decision: '`Readout.Read` takes several windows and a segment range per call'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-VOLTS-AT-THE-BOUNDARY
+  title: 'Controllers'
+  status: accepted
+  date: '2026-11-06'
+  context: 'three scopes encode levels three ways (DAC code, record code, screen pixels)'
+  decision: 'Controllers (UI model, SCPI, web, settings) speak volts and seconds; DAC codes, detent indexes and pixel levels exist only in the board; knob steps come from `LevelGrid`/`OffsetGrid`'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-SETTINGS-FORMAT-KEPT
+  title: 'The CML settings file stays byte-identical'
+  status: accepted
+  date: '2026-11-06'
+  context: 'pure split; a format change is a later, separate step'
+  decision: 'The CML settings file stays byte-identical; its `level_code` is written by the board''s settings extension'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-REGISTER-PATH
+  title: 'The CML''s register-path loop'
+  status: proposed
+  date: '2026-11-06'
+  context: 'the device never runs it (`engine_loop.go:58`, `app/run.go:294`)'
+  decision: 'The CML''s register-path loop (no SRAM, ~1.9k lines, test-only) stays in the CML board as test infrastructure and is not moved; retiring it needs the owner'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family). Needs the owner.'
+
+- id: ADR-HAL-SERVICE-HOOK
+  title: 'Boards get an owner `Service'
+  status: accepted
+  date: '2026-11-06'
+  context: 'the CML key matrix and lamp word share the acquisition bus with the owner'
+  decision: 'Boards get an owner `Service()` hook and a readout `yield` instead of their own goroutines touching the bus'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-IMAGES-AS-FEATURES
+  title: 'FPGA images are selected by feature set with parts needed and reload cost'
+  status: accepted
+  date: '2026-11-06'
+  context: 'CML has nine images; the SDS800X HD reload resets the PL'
+  decision: 'FPGA images are selected by feature set with parts needed and reload cost; `Images` absent on the SDS800X HD stage 1'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-RENDER-METRICS
+  title: 'The renderer becomes resolution-independent through a per-screen `Metrics` table'
+  status: accepted
+  date: '2026-11-06'
+  context: '27 goldens must stay pixel-identical; the 5×7 bitmap font does not scale freely'
+  decision: 'The renderer becomes resolution-independent through a per-screen `Metrics` table (the 800×480 table equals today''s constants) and a pixel-format `Canvas`, not continuous scaling'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-UI-OVER-HW-RENDERER
+  title: 'On a scope with a hardware waveform renderer the core draws the UI into an alpha framebuffer and leaves `Renderer.Area'
+  status: accepted
+  date: '2026-11-06'
+  context: 'SDS800X HD composes fb0 ARGB over the PL waveform plane (07 §3.2)'
+  decision: 'On a scope with a hardware waveform renderer the core draws the UI into an alpha framebuffer and leaves `Renderer.Area()` transparent; waveforms follow `Renderer.Configure(View)`'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-WEB-ON-CORE
+  title: '`webserver.Scope` is implemented once in core'
+  status: accepted
+  date: '2026-11-06'
+  context: 'share by default; the CML `webscope` adapter is temporary until the engine moves'
+  decision: '`webserver.Scope` is implemented once in core (`scopeweb`) over the engine, `uimodel` and the HAL; scope-only routes come from `Board.Extensions()`'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-SUPERVISOR-MODULE
+  title: 'The supervisor'
+  status: accepted
+  date: '2026-11-06'
+  context: 'the app module must not list NATS; `app/` and `ota/` stay two modules per scope'
+  decision: 'The supervisor (agent, slots, RPC, otactl) and diagnostics framework move to core as a separate Go module (`open-dso-core/supervisor`) with NATS; boards implement `SupervisorBoard` and `Census` in their `ota/` module'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-SCPI-DIALECTS
+  title: 'One core SCPI engine'
+  status: accepted
+  date: '2026-11-06'
+  context: 'CML speaks the legacy Siglent headers, the SDS800X HD the current tree (`appendix/scpi-commands.tsv`)'
+  decision: 'One core SCPI engine (parser, IEEE 488.2, state binding, waveform and measurement engines, VXI-11/raw/telnet transports); each scope supplies a dialect table and waveform format'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-INSTRUMENT-STATE
+  title: 'A core `instrument` state model replaces `panel.Engine`, `scpi.Scope`, `settings.Engine` and `web.Scope` as the one place settings are written and staged'
+  status: accepted
+  date: '2026-11-06'
+  context: 'four overlapping controller interfaces today (§1.4)'
+  decision: 'A core `instrument` state model replaces `panel.Engine`, `scpi.Scope`, `settings.Engine` and `web.Scope` as the one place settings are written and staged'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-OPTIONAL-REFUSED
+  title: 'A missing optional capability'
+  status: accepted
+  date: '2026-11-06'
+  context: 'principle 6; the SDS800X HD lacks gap-free decode and stacking'
+  decision: 'A missing optional capability (`Streamer` kind, `Stacker`, `Images`, `LogicProbe`) refuses every feature that needs it with the profile''s reason; the simulator does the same for parts it does not model'
+  consequences:
+  - 'Designed in HAL v1 (the HAL and move plan for the family).'
