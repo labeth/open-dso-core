@@ -13,9 +13,9 @@ import (
 //
 // The subset: block mappings and sequences indented with spaces, "- key:
 // value" items, comments, plain, 'single' and "double" quoted scalars, and
-// one-line flow collections ([a, b], {k: v}). Anchors, aliases, tags,
-// block scalars (| and >), multi-line scalars and several documents are
-// refused with the line they appear on.
+// flow collections ([a, b], {k: v}), which may continue over lines.
+// Anchors, aliases, tags, block scalars (| and >), multi-line scalars and
+// several documents are refused with the line they appear on.
 
 type kind uint8
 
@@ -85,6 +85,29 @@ type line struct {
 	indent int
 	text   string // without indentation and comment
 	no     int
+	open   int // flow collections still open at the line's end
+}
+
+// flowDepth counts the [ and { left open in s, outside quotes.
+func flowDepth(s string) int {
+	depth := 0
+	var q byte
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case q == '"' && c == '\\':
+			i++
+		case q != 0 && c == q:
+			q = 0
+		case q == 0 && (c == '"' || c == '\'') && (i == 0 || strings.ContainsRune(" :[{,", rune(s[i-1]))):
+			q = c
+		case q == 0 && (c == '[' || c == '{'):
+			depth++
+		case q == 0 && (c == ']' || c == '}'):
+			depth--
+		}
+	}
+	return depth
 }
 
 type parser struct {
@@ -114,7 +137,17 @@ func parseYAML(src []byte) (*node, error) {
 		if text == "---" || text == "..." {
 			return nil, fmt.Errorf("line %d: one document only", i+1)
 		}
-		p.lines = append(p.lines, line{indent: len(raw) - len(body), text: text, no: i + 1})
+		if n := len(p.lines); n > 0 && p.lines[n-1].open > 0 {
+			// A flow collection continues: join the line to its start.
+			prev := &p.lines[n-1]
+			prev.text += " " + text
+			prev.open = flowDepth(prev.text)
+			continue
+		}
+		p.lines = append(p.lines, line{indent: len(raw) - len(body), text: text, no: i + 1, open: flowDepth(text)})
+	}
+	if n := len(p.lines); n > 0 && p.lines[n-1].open > 0 {
+		return nil, fmt.Errorf("line %d: unclosed flow collection", p.lines[n-1].no)
 	}
 	if len(p.lines) == 0 {
 		return &node{kind: nullNode}, nil
@@ -324,7 +357,8 @@ func inlineValue(s string, no int) (*node, error) {
 	return n, nil
 }
 
-// flow parses one-line values: scalars and flow collections.
+// flow parses a value written on one (joined) line: a scalar or a flow
+// collection.
 type flow struct {
 	s  string
 	i  int

@@ -211,6 +211,7 @@ func TestParseErrors(t *testing.T) {
 		{"duplicate key", "channels: 1\nchannels: 2\n", "duplicate key"},
 		{"bad indentation", "channels: 1\n  max_depth: 2\n", "unexpected indentation"},
 		{"two documents", base + "---\n", "one document"},
+		{"unclosed flow", "a: [1, 2\n", "unclosed"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -264,6 +265,9 @@ c:
 d: ~
 e:
 f: {}
+g: [1, 2,
+  3, {k: "a]"},
+  4]
 `))
 	if err != nil {
 		t.Fatal(err)
@@ -288,6 +292,9 @@ f: {}
 	}
 	if v := c.items[2].m["plain words"]; v.value != "with colon:inside" {
 		t.Errorf("c[2] = %+v", c.items[2])
+	}
+	if g := n.m["g"]; len(g.items) != 5 || g.items[3].m["k"].value != "a]" || g.items[4].value != "4" {
+		t.Errorf("g = %+v", g)
 	}
 	if n.m["d"].kind != nullNode || n.m["e"].kind != nullNode || n.m["f"].kind != mapNode {
 		t.Errorf("d, e, f = %v %v %v", n.m["d"].kind, n.m["e"].kind, n.m["f"].kind)
