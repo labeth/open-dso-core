@@ -19,9 +19,9 @@ var (
 	Pack565           = pack565
 )
 
-// The saver box's size.
+// The saver box's size on the 800×480 screen.
 const (
-	SaverW    = saverW
-	SaverH    = saverH
-	SaverBoxH = saverBoxH
+	SaverW    = 240
+	SaverH    = 144
+	SaverBoxH = SaverH + saverLinesH
 )

@@ -61,7 +61,7 @@ func TestRenderINVSFlipsTrace(t *testing.T) {
 	}
 
 	render := func(h HUD) *Image565 {
-		sf := NewImage565()
+		sf := NewImage565(m800)
 		Render(sf, f, h, true)
 		return sf
 	}
@@ -116,7 +116,7 @@ func TestRenderINVSFlipsEnvelope(t *testing.T) {
 		C1VdivV: 1, C2VdivV: 1, TdivS: 0.1, TrigPosFrac: 0.5,
 		TwoChan: true, ShowC1: true, ShowC2: true, Running: true,
 	}
-	sf := NewImage565()
+	sf := NewImage565(m800)
 	Render(sf, f, hud, true)
 	lo, hi, ok := traceRows(sf, colC1)
 	if !ok || lo != sampleToY(150) || hi != sampleToY(100) {
@@ -125,7 +125,7 @@ func TestRenderINVSFlipsEnvelope(t *testing.T) {
 	}
 
 	hud.Inv1 = true
-	sf = NewImage565()
+	sf = NewImage565(m800)
 	Render(sf, f, hud, true)
 	lo, hi, ok = traceRows(sf, colC1)
 	if !ok || lo != sampleToY(255-100) || hi != sampleToY(255-150) {
@@ -144,7 +144,7 @@ func TestTriggerPositionMarkerEndpoints(t *testing.T) {
 		pos float64
 		x   int
 	}{{0, 0}, {.5, W / 2}, {1, W - 1}} {
-		sf := NewImage565()
+		sf := NewImage565(m800)
 		drawMarkers(sf, fullPlot, nil, HUD{TrigPosFrac: tc.pos})
 		if at565(sf, tc.x, 9) != pack565(colTrig) {
 			t.Errorf("position %g: missing pointer tip at %d", tc.pos, tc.x)
@@ -166,7 +166,7 @@ func TestLeftEdgeTraceDecodeAndZoneAlignment(t *testing.T) {
 		{"zone", func(sf Canvas, xc, pf float64) { drawZoneMask(sf, fullPlot, f, hud, n, xc, pf) }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			a, b := NewImage565(), NewImage565()
+			a, b := NewImage565(m800), NewImage565(m800)
 			tc.draw(a, 0, 0)
 			tc.draw(b, n/2, .5)
 			if !bytes.Equal(a.Pix, b.Pix) {
@@ -191,7 +191,7 @@ func TestMaskOverlayThroughTime(t *testing.T) {
 	hud := HUD{MaskMode: 1, MaskLo: lo, MaskHi: hi, MaskWin: 1000, MaskTdivS: 100e-9, MaskSampleS: 1e-9, TrigPosFrac: .5}
 	draw := func(n int, sampleS float64) *Image565 {
 		f := &sample.Frame{WinPoints: n, TriggerAt: float64(n) / 2, SampleS: sampleS, Snapshot: sample.Settings{TdivS: 100e-9}, Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Valid: n}}}
-		sf := NewImage565()
+		sf := NewImage565(m800)
 		drawZoneMask(sf, fullPlot, f, hud, n, float64(n)/2, .5)
 		return sf
 	}

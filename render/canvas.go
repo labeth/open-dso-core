@@ -11,13 +11,6 @@ import (
 	"github.com/labeth/open-dso-core/hal"
 )
 
-const (
-	// W is the panel's width in pixels.
-	W = 800
-	// H is the panel's height in pixels.
-	H = 480
-)
-
 // Color is a colour as the renderer names it, 0xAARRGGBB: 8 bits each of
 // alpha, red, green and blue. A canvas converts it to its pixel format; an
 // RGB565 canvas keeps each channel's top bits.
@@ -61,6 +54,7 @@ func pack565(c Color) uint16 {
 // TRLC-LINKS: REQ-SDS-021
 type Canvas interface {
 	Format() hal.PixelFormat
+	Metrics() *Metrics          // the screen's layout table; its W and H are the canvas's size
 	SetPixel(x, y int, c Color) // out-of-range ignored
 	Fill(c Color)
 	At(x, y int) Color // out-of-range returns Transparent
@@ -79,53 +73,55 @@ type Layer interface {
 // TRLC-LINKS: REQ-SDS-021
 type Image565 struct {
 	Pix []byte // RGB565 little-endian, W*H*2 bytes
+	pix []uint16
+	m   *Metrics
 }
 
-// NewImage565 returns a blank (black) RGB565 page.
+// NewImage565 returns a blank (black) RGB565 page of screen m's size.
 // TRLC-LINKS: REQ-SDS-021
-func NewImage565() *Image565 { return &Image565{Pix: make([]byte, W*H*2)} }
+func NewImage565(m *Metrics) *Image565 {
+	pix := make([]uint16, m.W*m.H)
+	return &Image565{Pix: unsafe.Slice((*byte)(unsafe.Pointer(&pix[0])), 2*len(pix)), pix: pix, m: m} //nolint:gosec // the words' own bytes, little-endian as the panel takes them
+}
 
 // Format is RGB565.
 func (m *Image565) Format() hal.PixelFormat { return hal.RGB565 }
 
+// Metrics is the canvas's screen.
+func (m *Image565) Metrics() *Metrics { return m.m }
+
 // SetPixel sets one pixel; one off the page is ignored.
 // TRLC-LINKS: REQ-SDS-021
 func (m *Image565) SetPixel(x, y int, c Color) {
-	if x < 0 || x >= W || y < 0 || y >= H {
+	if uint(x) >= uint(m.m.W) || uint(y) >= uint(m.m.H) {
 		return
 	}
-	m.px()[y*W+x] = pack565(c)
+	m.pix[y*m.m.W+x] = pack565(c)
 }
 
 // px is the page's pixels as RGB565 words (little-endian, native on ARM and
 // amd64).
 // TRLC-LINKS: REQ-SDS-021
-//
-// An array-pointer conversion, not unsafe.Slice: the latter's size check is a
-// runtime division on this ARM, and px is taken per drawn column.
-func (m *Image565) px() []uint16 {
-	_ = m.Pix[W*H*2-1]
-	return (*[W * H]uint16)(unsafe.Pointer(&m.Pix[0]))[:] //nolint:gosec // Pix is W*H RGB565 words, length checked above
-}
+func (m *Image565) px() []uint16 { return m.pix }
 
 // Fill sets every pixel of the page to c.
 // TRLC-LINKS: REQ-SDS-021
 func (m *Image565) Fill(c Color) {
 	p := pack565(c)
 	if p == 0 { // black: a memclr, not the row copies
-		clear(m.Pix)
+		clear(m.pix)
 		return
 	}
-	fillPx(m.px(), W, H, 0, 0, W, H, p)
+	fillPx(m.pix, m.m.W, m.m.H, 0, 0, m.m.W, m.m.H, p)
 }
 
 // At reads one pixel (Transparent off the page).
 // TRLC-LINKS: REQ-SDS-021
 func (m *Image565) At(x, y int) Color {
-	if x < 0 || x >= W || y < 0 || y >= H {
+	if uint(x) >= uint(m.m.W) || uint(y) >= uint(m.m.H) {
 		return Transparent
 	}
-	return c565(m.px()[y*W+x])
+	return c565(m.pix[y*m.m.W+x])
 }
 
 // FadeToBlack dims every pixel toward black by 1/4 (the persistence decay
@@ -171,7 +167,7 @@ func (m *Image565) BlitBright(src Canvas) {
 // screen grab the browser decodes to the same pixels.
 // TRLC-LINKS: REQ-SDS-021
 func EncodePNG(m *Image565) []byte {
-	img := image.NewRGBA(image.Rect(0, 0, W, H))
+	img := image.NewRGBA(image.Rect(0, 0, m.m.W, m.m.H))
 	d := img.Pix
 	for i, c := range m.px() {
 		o := i * 4
@@ -234,7 +230,7 @@ func vlinePx[P pixel](px []P, w, x, y0, y1 int, c P) {
 func fillSpan(sf Canvas, x0, y0, x1, y1 int, c Color) bool {
 	switch m := sf.(type) {
 	case *Image565:
-		fillPx(m.px(), W, H, x0, y0, x1, y1, pack565(c))
+		fillPx(m.pix, m.m.W, m.m.H, x0, y0, x1, y1, pack565(c))
 		return true
 	}
 	return false
@@ -252,14 +248,15 @@ func vline(sf Canvas, x, y0, y1 int, c Color) {
 		}
 		return
 	}
-	if x < 0 || x >= W {
+	w, h := m.m.W, m.m.H
+	if x < 0 || x >= w {
 		return
 	}
-	y0, y1 = max(y0, 0), min(y1, H-1)
+	y0, y1 = max(y0, 0), min(y1, h-1)
 	if y0 > y1 {
 		return
 	}
-	vlinePx(m.px(), W, x, y0, y1, pack565(c))
+	vlinePx(m.pix, w, x, y0, y1, pack565(c))
 }
 
 // atPrecision is c as a canvas of format f holds it, its low bits clear: the

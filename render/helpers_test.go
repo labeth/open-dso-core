@@ -4,6 +4,17 @@ package render
 
 import "github.com/labeth/open-dso-core/uimodel/wsview"
 
+// The SDS1000CML+'s screen, which the package's tests draw on.
+const (
+	W = 800
+	H = 480
+)
+
+var (
+	m800     = &Metrics800x480
+	fullPlot = fullPlotOf(m800)
+)
+
 // uartWave is n 8-bit codes of a UART line sending bytes LSB first, spb
 // samples a bit, idle high around them (rendertest.UARTWave's).
 // TRLC-LINKS: REQ-SDS-021

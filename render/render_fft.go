@@ -100,14 +100,14 @@ func drawSpecMarker(sf Canvas, p plotArea, m *wsview.SpecPane, fLo, fHi float64)
 	xOf := func(hz float64) int { return int((hz - fLo) / (fHi - fLo) * float64(p.w-1)) }
 	if m.HasRef {
 		if x := xOf(m.RefHz); x >= 0 && x < p.w {
-			vdash(sf, x, p.y0+2, H-3, colDim)
+			vdash(sf, x, p.y0+2, p.m.H-3, colDim)
 		}
 	}
 	x := xOf(m.MarkHz)
 	if x < 0 || x >= p.w {
 		return
 	}
-	vdash(sf, x, p.y0+2, H-3, colTrig)
+	vdash(sf, x, p.y0+2, p.m.H-3, colTrig)
 	rel := math.Max(-80, math.Min(0, m.MarkRel))
 	y := max(p.top+int(-rel/80*float64(p.bot-p.top)), p.y0+16) // the top peak's triangle stays in the plot
 	for dy := range 5 {                                        // a triangle pointing down onto the level

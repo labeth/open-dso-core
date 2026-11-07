@@ -61,7 +61,7 @@ func TestSpectrogramPeakColumn(t *testing.T) {
 		return int((pack565(c)>>11)&0x1f)*2 + int((pack565(c)>>5)&0x3f) + int(pack565(c)&0x1f)
 	}
 	for x := range sgCols {
-		l := lum(sg.img.At(sgX0+x, sg.imgRow(0)))
+		l := lum(sg.img[sg.imgRow(0)*sgCols+x])
 		if l > bestLum {
 			bestLum, best = l, x
 		}
@@ -86,7 +86,7 @@ func TestSpectrogramTracksSteppedFrequency(t *testing.T) {
 			return int((pack565(c)>>11)&0x1f)*2 + int((pack565(c)>>5)&0x3f) + int(pack565(c)&0x1f)
 		}
 		for x := range sgCols {
-			l := lum(sg.img.At(sgX0+x, sg.imgRow(row)))
+			l := lum(sg.img[sg.imgRow(row)*sgCols+x])
 			if l > bestLum {
 				bestLum, best = l, x
 			}
@@ -136,7 +136,7 @@ func TestSpectrogramRowsPerStretch(t *testing.T) {
 	hz := func(row int) float64 {
 		best, bestLum := 0, -1
 		for x := range sgCols {
-			if l := lum(sg.img.At(sgX0+x, sg.imgRow(row))); l > bestLum {
+			if l := lum(sg.img[sg.imgRow(row)*sgCols+x]); l > bestLum {
 				bestLum, best = l, x
 			}
 		}
@@ -176,14 +176,14 @@ func TestRenderSpectrogramView(t *testing.T) {
 	hud := defaultHUD()
 	hud.ViewMode = 4
 	hud.Spect = sg
-	m := NewImage565()
+	m := NewImage565(m800)
 	Render(m, noise(), hud, true)
 	// count painted (non-background, non-black) pixels inside the heatmap rect —
 	// proves the ViewMode==4 dispatch ran and the blit loop drew the waterfall.
 	painted := 0
 	bg := at565(m, 0, 0) // corner is background/graticule
-	for y := sgY0; y < sgY1; y++ {
-		for x := sgX0; x < sgX1; x++ {
+	for y := sgY0; y < H-sgBottom; y++ {
+		for x := sgX0; x < W-sgRight; x++ {
 			if c := at565(m, x, y); c != bg && c != pack565(rgb(0, 0, 0)) {
 				painted++
 			}
@@ -196,11 +196,11 @@ func TestRenderSpectrogramView(t *testing.T) {
 	hud2 := defaultHUD()
 	hud2.ViewMode = 4
 	hud2.Spect = NewSpectrogram()
-	Render(NewImage565(), nil, hud2, true)
+	Render(NewImage565(m800), nil, hud2, true)
 	// nil Spect must also be safe
 	hud3 := defaultHUD()
 	hud3.ViewMode = 4
-	Render(NewImage565(), nil, hud3, true)
+	Render(NewImage565(m800), nil, hud3, true)
 }
 
 // heatStops is the inferno ramp both heat() (Go) and sgHeat() (JS) hardcode.
@@ -246,7 +246,7 @@ func TestSpectrumColumnsShowNarrowTones(t *testing.T) {
 		mags[k] = 1
 		tones = append(tones, k)
 	}
-	sf := NewImage565()
+	sf := NewImage565(m800)
 	p := fullPlot
 	drawSpectrum(sf, p, mags, 1, colC1, 83.3e6, 1, half-1)
 	span := half - 2
@@ -275,7 +275,7 @@ func TestSpectrumColumnsShowNarrowTones(t *testing.T) {
 		for x+1 < sgCols && (x+1)*half/sgCols <= k { // the pixel whose bins hold k
 			x++
 		}
-		if l := lum(sg.img.At(sgX0+x, sg.imgRow(0))); l != white {
+		if l := lum(sg.img[sg.imgRow(0)*sgCols+x]); l != white {
 			t.Fatalf("waterfall pixel %d holding the tone at bin %d is not the peak colour (lum %d, want %d)", x, k, l, white)
 		}
 	}
@@ -291,8 +291,8 @@ func TestSpectrogramBlitMatchesPixels(t *testing.T) {
 			sg.Push(sgSine(4096, 10e6+15e6*float64(s), 2e-9), 0, 0.5/2e-9)
 		}
 	}
-	for _, p := range []plotArea{fullPlot, plotOf(paneLayout(136)), plotOf(wsview.Layout{MenuW: 116})} {
-		fast, slow := NewImage565(), NewImage565()
+	for _, p := range []plotArea{fullPlot, plotOf(m800, paneLayout(136)), plotOf(m800, wsview.Layout{MenuW: 116})} {
+		fast, slow := NewImage565(m800), NewImage565(m800)
 		drawSpectrogram(fast, p, sg, false)
 		drawSpectrogram(pixelSurface{slow}, p, sg, false)
 		if !bytes.Equal(fast.Pix, slow.Pix) {

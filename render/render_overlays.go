@@ -231,7 +231,7 @@ func drawDecode(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, po
 	name := protoNames[hud.DecProto%len(protoNames)]
 	// Decode lane: a dark band that sits ABOVE the bottom Vpp/freq readout row
 	// (drawn later by drawHUD at H-9), so the two never overwrite each other.
-	yLbl, yTxt, yBar := decodeStripTop+2, H-26, H-14 // label / byte hex / span bars, top→bottom
+	yLbl, yTxt, yBar := p.m.decodeStripTop()+2, p.m.H-26, p.m.H-14 // label / byte hex / span bars, top→bottom
 	fillRect(sf, 0, yLbl-2, p.w, 27, colBoxBg)
 	if !res.OK {
 		DrawText(sf, 10, yLbl, name+": "+res.Error, colStale, 1)
@@ -499,7 +499,8 @@ func drawMaskHUD(sf Canvas, hud HUD) {
 	if t := hud.UI.Layout.PlotTop; t > 0 {
 		y = t + 14
 	}
-	DrawTextRight(sf, min(664, plotOf(hud.UI.Layout).w-4), y, line, col, 1)
+	sm := metricsOf(sf)
+	DrawTextRight(sf, min(sm.StatusSlotX, plotOf(sm, hud.UI.Layout).w-4), y, line, col, 1)
 }
 
 // enclosingSpans marks the spans that enclose a labelled other (longer,

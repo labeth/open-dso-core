@@ -24,7 +24,7 @@ func drawBode(sf Canvas, p plotArea, hud HUD) {
 	magH := (p.h - padTop - padB) * 56 / 100
 	gap := 18
 	phY0 := padT + magH + gap
-	phH := H - padB - phY0
+	phH := p.m.H - padB - phY0
 	plotL, plotR := padL, p.w-padR
 	plotW := plotR - plotL
 
@@ -69,9 +69,9 @@ func drawBode(sf Canvas, p plotArea, hud HUD) {
 			if m == 1 {
 				lbl := fmtFreq(f)
 				if x-10+TextWidth(lbl, 1) > p.w-2 { // the last decade: inside the plot
-					DrawTextRight(sf, p.w-2, H-padB+6, lbl, colDim, 1)
+					DrawTextRight(sf, p.w-2, p.m.H-padB+6, lbl, colDim, 1)
 				} else {
-					DrawText(sf, x-10, H-padB+6, lbl, colDim, 1)
+					DrawText(sf, x-10, p.m.H-padB+6, lbl, colDim, 1)
 				}
 			}
 		}
@@ -124,11 +124,11 @@ func drawBode(sf Canvas, p plotArea, hud HUD) {
 	// SPECTRUM's marker on a sweep point, and its delta reference.
 	if m := hud.UI.Spec; m != nil && m.Bode {
 		if m.BodeRef >= 0 && m.BodeRef < n {
-			vdash(sf, xOf(hud.BodeFreq[m.BodeRef]), padT, H-padB, colDim)
+			vdash(sf, xOf(hud.BodeFreq[m.BodeRef]), padT, p.m.H-padB, colDim)
 		}
 		if m.BodeIdx >= 0 && m.BodeIdx < n {
 			x := xOf(hud.BodeFreq[m.BodeIdx])
-			vdash(sf, x, padT, H-padB, colTrig)
+			vdash(sf, x, padT, p.m.H-padB, colTrig)
 			lw := TextWidth(m.MarkText, 1) + 4
 			lx := min(max(x+4, 2), p.w-lw-2)
 			fillRect(sf, lx, padT+2, lw, 10, colBG)

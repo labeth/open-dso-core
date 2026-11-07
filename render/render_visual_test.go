@@ -41,7 +41,7 @@ func TestVisualPictures(t *testing.T) {
 		{"uart", data(0, 'H', 'i', '\n'), "text"},
 	}
 	for _, k := range cases {
-		sf := NewImage565()
+		sf := NewImage565(m800)
 		a := visArea{x0: 0, y0: 30, w: 770, h: 380, n: 1000, dt: 1e-5}
 		title, sub := visDrawBus(sf, a, decode.Result{OK: true, Proto: k.proto, Spans: k.spans})
 		if title == "" || !strings.Contains(sub, k.want) {
@@ -76,7 +76,7 @@ func TestVisualPicturesNeverBreak(t *testing.T) {
 		for k, n := 0, rnd(400); k < n; k++ {
 			spans = append(spans, decode.Span{Kind: kinds[rnd(len(kinds))], Text: texts[rnd(len(texts))], I0: rnd(5000), I1: rnd(5000), Val: rnd(1 << 20)})
 		}
-		sf := NewImage565()
+		sf := NewImage565(m800)
 		// Visual's plots (the rail's menu, a sheet's; from the top) must hold
 		// the picture; any other size of plot only must not break it
 		isReal := rnd(2) == 0
@@ -84,7 +84,7 @@ func TestVisualPicturesNeverBreak(t *testing.T) {
 		if !isReal {
 			l = wsview.Layout{MenuW: rnd(W), PlotTop: rnd(320)}
 		}
-		p := plotOf(l)
+		p := plotOf(m800, l)
 		a := visArea{x0: 0, y0: p.y0 + 16, w: p.w, h: p.h - 18, n: rnd(3) * rnd(10000), dt: float64(rnd(3)) * 1e-6}
 		proto := protos[rnd(len(protos))]
 		visDrawBus(sf, a, decode.Result{OK: true, Proto: proto, Spans: spans})
@@ -110,9 +110,9 @@ func TestVisualLongFrameFits(t *testing.T) {
 	}
 	spans = append(spans, decode.Span{Kind: "sof"})
 	for _, menu := range []int{30, 116} {
-		p := plotOf(wsview.Layout{MenuW: menu})
+		p := plotOf(m800, wsview.Layout{MenuW: menu})
 		a := visArea{x0: 0, y0: p.y0 + 16, w: p.w, h: p.h - 18, n: 1000, dt: 1e-6}
-		sf := NewImage565()
+		sf := NewImage565(m800)
 		visDrawBus(sf, a, decode.Result{OK: true, Proto: "canfd", Spans: spans})
 		// the frame's row: nothing past the area, and a gap before the count
 		y0 := a.y0 + 4

@@ -56,7 +56,7 @@ var rateUnits = []siUnit{{1e6, "M"}, {1e3, "k"}, {1, ""}}
 // TRLC-LINKS: REQ-SDS-018
 func drawStream(sf Canvas, p plotArea, hud HUD) {
 	v, pg := hud.Stream, hud.StreamPage
-	fillRect(sf, 0, p.y0+14, p.w, H-28-p.y0, colBoxBg)
+	fillRect(sf, 0, p.y0+14, p.w, p.m.H-28-p.y0, colBoxBg)
 	col := colInfo
 	if v.State == streamwire.Failed {
 		col = colStale
@@ -66,7 +66,7 @@ func drawStream(sf Canvas, p plotArea, hud HUD) {
 	const lineH = 10
 	for i, l := range pg.Lines {
 		y := p.y0 + 42 + i*lineH
-		if y > H-36 {
+		if y > p.m.H-36 {
 			break
 		}
 		c := colC1
@@ -78,9 +78,9 @@ func drawStream(sf Canvas, p plotArea, hud HUD) {
 	last := pg.Top + len(pg.Lines)
 	switch {
 	case v.State == streamwire.Streaming && last < pg.Total: // scrolled back: held there
-		DrawText(sf, 6, H-24, fmt.Sprintf("lines %d-%d of %d   push Position: follow the newest", pg.Top+1, last, pg.Total), colDim, 1)
+		DrawText(sf, 6, p.m.H-24, fmt.Sprintf("lines %d-%d of %d   push Position: follow the newest", pg.Top+1, last, pg.Total), colDim, 1)
 	case v.State != streamwire.Streaming && v.State != streamwire.Failed:
-		DrawText(sf, 6, H-24, fmt.Sprintf("lines %d-%d of %d   Position pushed: scroll   Zoom: wave   Run/Stop: stream again",
+		DrawText(sf, 6, p.m.H-24, fmt.Sprintf("lines %d-%d of %d   Position pushed: scroll   Zoom: wave   Run/Stop: stream again",
 			pg.Top+1, last, pg.Total), colDim, 1)
 	}
 }

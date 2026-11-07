@@ -5,6 +5,7 @@ package render
 import (
 	"fmt"
 	"math"
+	"sync"
 
 	"github.com/labeth/open-dso-core/framecalc"
 	"github.com/labeth/open-dso-core/sample"
@@ -17,14 +18,16 @@ import (
 // loop owns it and feeds fresh frames; Render blits its image so Render stays
 // pure (screenshot-safe).
 
-// spectrogram plot geometry on the 800×480 panel
+// The waterfall's place in the plot (margins for the dB key, the status
+// line and the frequency axis), and its heatmap's resolution: the plot it
+// fills on the 800×480 panel, scaled to any other plot.
 const (
-	sgX0   = 56     // left of the heatmap (room for dB axis on the left key)
-	sgY0   = 22     // top
-	sgX1   = W - 18 // right
-	sgY1   = H - 26 // bottom (room for the frequency axis)
-	sgCols = sgX1 - sgX0
-	sgRows = sgY1 - sgY0
+	sgX0     = 56 // left of the heatmap (room for dB axis on the left key)
+	sgY0     = 22 // top
+	sgRight  = 18 // right margin
+	sgBottom = 26 // bottom margin (room for the frequency axis)
+	sgCols   = 800 - sgRight - sgX0
+	sgRows   = 480 - sgBottom - sgY0
 )
 
 // Spectrogram is the scrolling image plus the last effective Nyquist (for the
@@ -32,17 +35,20 @@ const (
 // writer.
 // TRLC-LINKS: REQ-SDS-068
 type Spectrogram struct {
-	img     *Image565
-	top     int     // the image row (from sgY0) the newest row is on (imgRow)
-	effNyq  float64 // Hz at the right edge of the heatmap
-	rows    int     // rows painted so far (for the "warming up" hint)
-	floorDB float64 // colour-map floor (dB below the row peak)
+	img     []Color    // sgRows rows of sgCols, a ring (imgRow)
+	mu565   sync.Mutex // the RGB565 rows: a screen grab blits beside the display
+	img565  []uint16   // img in RGB565, a row converted when an RGB565 canvas first shows it
+	ok565   []bool     // the rows of img565 that hold their img row
+	top     int        // the image row the newest row is on (imgRow)
+	effNyq  float64    // Hz at the right edge of the heatmap
+	rows    int        // rows painted so far (for the "warming up" hint)
+	floorDB float64    // colour-map floor (dB below the row peak)
 }
 
 // NewSpectrogram allocates the waterfall image.
 // TRLC-LINKS: REQ-SDS-068
 func NewSpectrogram() *Spectrogram {
-	return &Spectrogram{img: NewImage565(), floorDB: -60}
+	return &Spectrogram{img: make([]Color, sgCols*sgRows), img565: make([]uint16, sgCols*sgRows), ok565: make([]bool, sgRows), floorDB: -60}
 }
 
 // heat maps t∈[0,1] to a perceptual black→blue→cyan→green→yellow→red→white
@@ -128,14 +134,18 @@ func (sg *Spectrogram) imgRow(r int) int {
 	if r >= sgRows {
 		r -= sgRows
 	}
-	return sgY0 + r
+	return r
 }
 
 // paintRow paints the half spectrum mags (peak its largest) on heatmap row
 // y (sgY0 the newest): column x is a frequency bin, dB a colour.
 // TRLC-LINKS: REQ-SDS-068
 func (sg *Spectrogram) paintRow(y int, mags []float64, peak float64) {
-	y = sg.imgRow(y - sgY0)
+	r := sg.imgRow(y - sgY0)
+	row := sg.img[r*sgCols : (r+1)*sgCols]
+	sg.mu565.Lock()
+	sg.ok565[r] = false
+	sg.mu565.Unlock()
 	half := len(mags)
 	floor := sg.floorDB
 	if !(floor < 0) { // NaN or >=0 would make invFloor Inf/NaN → poison the paint
@@ -147,16 +157,17 @@ func (sg *Spectrogram) paintRow(y int, mags []float64, peak float64) {
 		k1 := min((x+1)*half/sgCols-1, half-1) // a pixel shows the largest of its bins
 		db := 20 * framecalc.Log10(binMax(mags, k0, k1)/peak+1e-12)
 		t := 1 + db*invFloor // db=0 → 1, db=floorDB → 0
-		sg.img.SetPixel(sgX0+x, y, heat(t))
+		row[x] = heat(t)
 	}
 }
 
 // Clear blanks the waterfall.
 // TRLC-LINKS: REQ-SDS-068
 func (sg *Spectrogram) Clear() {
-	for i := range sg.img.Pix {
-		sg.img.Pix[i] = 0
-	}
+	clear(sg.img)
+	sg.mu565.Lock()
+	clear(sg.ok565)
+	sg.mu565.Unlock()
 	sg.rows, sg.top = 0, 0
 }
 
@@ -170,30 +181,33 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 		DrawText(sf, (p.w-TextWidth(msg, 1))/2, p.y0+p.h/2, msg, colDim, 1)
 		return
 	}
-	x0, x1 := sgX0, p.w-(W-sgX1)
-	y0, y1 := p.y0+sgY0, p.y0+p.h-(H-sgY1)
+	x0, x1 := sgX0, p.w-sgRight
+	y0, y1 := p.y0+sgY0, p.y0+p.h-sgBottom
 	cols, rows := x1-x0, y1-y0
 	if cols < 8 || rows < 8 {
 		return
 	}
 	// blit the heatmap region, nearest neighbour when the plot is smaller
-	if m, ok := sf.(*Image565); ok && x0 >= 0 && x1 <= W && y0 >= 0 && y1 <= H {
+	if m, ok := sf.(*Image565); ok && x0 >= 0 && x1 <= m.m.W && y0 >= 0 && y1 <= m.m.H {
+		sg.mu565.Lock()
+		defer sg.mu565.Unlock()
 		// Row by row from the image's pixels: the full-screen plot is a
 		// straight copy, a smaller one maps its columns once.
-		dst, src := m.px(), sg.img.px()
+		w := m.m.W
+		dst := m.pix
 		var xmap []int
 		if cols != sgCols {
 			xmap = make([]int, cols)
 			for x := range xmap {
-				xmap[x] = sgX0 + x*sgCols/cols
+				xmap[x] = x * sgCols / cols
 			}
 		}
-		var line [W]uint16
+		var line [MaxW]uint16
 		for y := range rows {
-			srow := src[sg.imgRow(y*sgRows/rows)*W:]
-			drow := dst[(y0+y)*W+x0 : (y0+y)*W+x0+cols]
+			srow := sg.row565(sg.imgRow(y * sgRows / rows))
+			drow := dst[(y0+y)*w+x0 : (y0+y)*w+x0+cols]
 			if xmap == nil {
-				copy(drow, srow[sgX0:sgX0+cols])
+				copy(drow, srow[:cols])
 				continue
 			}
 			// The row is put together in a buffer the cache holds and copied
@@ -204,9 +218,9 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 		}
 	} else {
 		for y := range rows {
-			sy := sg.imgRow(y * sgRows / rows)
+			sr := sg.imgRow(y * sgRows / rows)
 			for x := range cols {
-				sf.SetPixel(x0+x, y0+y, sg.img.At(sgX0+x*sgCols/cols, sy))
+				sf.SetPixel(x0+x, y0+y, sg.img[sr*sgCols+x*sgCols/cols])
 			}
 		}
 	}
@@ -249,6 +263,20 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 	}
 	DrawText(sf, x1-64, ky, "dB", colDim, 1)
 	DrawText(sf, x0+2, ky, fmt.Sprintf("spgm %.0fdB floor", sg.floorDB), colDim, 1)
+}
+
+// row565 is heatmap image row r in RGB565, converted once after its paint;
+// the caller holds mu565.
+// TRLC-LINKS: REQ-SDS-068
+func (sg *Spectrogram) row565(r int) []uint16 {
+	row := sg.img565[r*sgCols : (r+1)*sgCols]
+	if !sg.ok565[r] {
+		for x, c := range sg.img[r*sgCols : (r+1)*sgCols] {
+			row[x] = pack565(c)
+		}
+		sg.ok565[r] = true
+	}
+	return row
 }
 
 // scaleRow fills out with the pixels of src the columns xmap name.

@@ -60,7 +60,7 @@ func TestSuperresFFTAboveRawNyquist(t *testing.T) {
 	if samples == nil {
 		t.Fatal("resample returned nil")
 	}
-	peak := fftCore(NewImage565(), samples, colC1, effNyq, kLo, kHi)
+	peak := fftCore(NewImage565(m800), samples, colC1, effNyq, kLo, kHi)
 	if math.Abs(peak-F) > 0.03*F {
 		t.Errorf("SR FFT peak %.3g Hz, want ~%.3g Hz (fine Nyq %.3g)", peak, F, effNyq)
 	}
@@ -95,7 +95,7 @@ func TestSuperresFFTTiledWindowKeepsFineNyquist(t *testing.T) {
 		t.Errorf("effNyq %.3g should stay at the fine Nyquist %.3g regardless of the tiled window", effNyq, fineNyq)
 	}
 	samples, _ := srResampleArray(h.SRMean, n)
-	peak := fftCore(NewImage565(), samples, colC1, effNyq, kLo, kHi)
+	peak := fftCore(NewImage565(m800), samples, colC1, effNyq, kLo, kHi)
 	if math.Abs(peak-F) > 0.03*F {
 		t.Errorf("tiled-window SR FFT peak %.3g Hz, want ~%.3g Hz (raw Nyq %.3g) — window must not alias it", peak, F, 0.5/sampleS)
 	}
@@ -214,7 +214,7 @@ func TestSuperresReviewRoutesByViewMode(t *testing.T) {
 	h.ShowC1, h.ShowC2, h.TwoChan = true, true, true
 	var f *sample.Frame // review ignores the live frame; nil must be safe
 
-	yt := NewImage565()
+	yt := NewImage565(m800)
 	hyt := h
 	hyt.ViewMode = 0
 	Render(yt, f, hyt, true)
@@ -226,7 +226,7 @@ func TestSuperresReviewRoutesByViewMode(t *testing.T) {
 		t.Error("Y-T review drew no super-res trace")
 	}
 
-	xy := NewImage565()
+	xy := NewImage565(m800)
 	hxy := h
 	hxy.ViewMode = 1
 	Render(xy, f, hxy, true)
@@ -237,7 +237,7 @@ func TestSuperresReviewRoutesByViewMode(t *testing.T) {
 		t.Error("stacked X-Y should NOT draw the Y-T super-res trace")
 	}
 
-	fft := NewImage565()
+	fft := NewImage565(m800)
 	hf := h
 	hf.ViewMode = 2
 	Render(fft, f, hf, true)
@@ -260,7 +260,7 @@ func TestSuperresXYNeedsCH2(t *testing.T) {
 	h := srHUD(nb, K, 2e-9, func(b int) float64 { return 128 + 50*math.Sin(float64(b)*0.05) }, nil)
 	h.TwoChan = false
 	h.ViewMode = 1
-	sf := NewImage565()
+	sf := NewImage565(m800)
 	Render(sf, nil, h, true) // must not panic
 	if countColor(sf, colMath) != 0 {
 		t.Error("X-Y without CH2 should not draw a figure")

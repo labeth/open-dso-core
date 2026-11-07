@@ -20,10 +20,7 @@ import (
 // fills, the 5x7 font and the palette only.
 
 // Rail geometry (REQ-SDS-211): one 28x34 tab per F-key row.
-const (
-	railW = 30
-	railX = W - railW
-)
+const railW = 30
 
 // drawUI draws the UI over the base render.
 // TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
@@ -124,9 +121,11 @@ func drawPicto(sf Canvas, ws wsview.WS, x, y int, fg, fg2 Color) {
 // inverted in amber.
 // TRLC-LINKS: REQ-SDS-211
 func drawRail(sf Canvas, active wsview.WS) {
-	fillRect(sf, railX, 12, railW, H-12, colBG)
+	sm := metricsOf(sf)
+	railX := sm.W - railW
+	fillRect(sf, railX, 12, railW, sm.H-12, colBG)
 	for i := range wsview.Count {
-		x0, w, y0, h := railX+1, railW-2, softkeyY[i]-17, 34
+		x0, w, y0, h := railX+1, railW-2, sm.SoftkeyY[i]-17, 34
 		fg, fg2, tag := colInfo, colDim, colDim
 		if wsview.WS(i) == active {
 			fillRect(sf, x0, y0, w, h, colTrig)
@@ -144,8 +143,9 @@ func drawRail(sf Canvas, active wsview.WS) {
 // "F3 SPECTRUM   again: FFT / Spectrogram / Bode".
 // TRLC-LINKS: REQ-SDS-211
 func drawRailNote(sf Canvas, n *wsview.Note) {
+	sm := metricsOf(sf)
 	w := TextWidth(n.Head, 1) + TextWidth(n.Text, 1) + 26
-	x, y := railX-3-w, softkeyY[clampI(int(n.WS), 0, 4)]-8
+	x, y := sm.W-railW-3-w, sm.SoftkeyY[clampI(int(n.WS), 0, 4)]-8
 	fillRect(sf, x, y, w, 17, colMenuBg)
 	strokeRect(sf, x, y, w, 17, colTrig)
 	DrawText(sf, x+7, y+5, n.Head, colTrig, 1)
@@ -163,10 +163,11 @@ func clampI(v, lo, hi int) int { return min(max(v, lo), hi) }
 // filled amber.
 // TRLC-LINKS: REQ-SDS-212
 func drawKeys(sf Canvas, k *wsview.Keys) {
+	sm := metricsOf(sf)
 	const mw = 116
-	x0 := W - mw
-	fillRect(sf, x0, k.Top, mw, H-2-k.Top, colMenuBg)
-	vline(sf, x0, k.Top, H-3, colTrig)
+	x0 := sm.W - mw
+	fillRect(sf, x0, k.Top, mw, sm.H-2-k.Top, colMenuBg)
+	vline(sf, x0, k.Top, sm.H-3, colTrig)
 	maxC := (mw - 9) / 6
 	fit := func(s string) string {
 		if len(s) > maxC {
@@ -179,7 +180,7 @@ func drawKeys(sf Canvas, k *wsview.Keys) {
 		if it.Label == "" && it.Value == "" {
 			continue
 		}
-		sy := softkeyY[i] - 7
+		sy := sm.SoftkeyY[i] - 7
 		lc, vc := colInfo, colTrig
 		if it.Dim {
 			lc, vc = colDim, colDim
@@ -268,9 +269,9 @@ func drawScopeChrome(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	if sp.Hot {
 		col = colTrig
 	}
-	y := H - 9
+	y := p.m.H - 9
 	if hud.DecProto != 0 { // above the decode strip's label
-		y = H - 47
+		y = p.m.H - 47
 	}
 	fillRect(sf, 158, y-2, TextWidth(sp.AdjustTag, 1)+4, 11, colBG)
 	DrawText(sf, 160, y, sp.AdjustTag, col, 1)
@@ -522,7 +523,7 @@ func drawEyePlot(sf Canvas, p plotArea, e *wsview.EyePane) {
 	}
 	quarter := cols / 2 // 0.5 UI in pixels (2 px per cell)
 	x0 := (p.w - 2*cols) / 2
-	y1, eh := p.y0, H-p.y0-12
+	y1, eh := p.y0, p.m.H-p.y0-12
 	for k := range 5 {
 		col := colGrid
 		if k == 2 {
@@ -541,11 +542,11 @@ func drawEyePlot(sf Canvas, p plotArea, e *wsview.EyePane) {
 		xc := x0 + k*quarter
 		switch k {
 		case 0:
-			DrawText(sf, xc+2, H-10, t, colDim, 1)
+			DrawText(sf, xc+2, p.m.H-10, t, colDim, 1)
 		case 4:
-			DrawTextRight(sf, xc-1, H-10, t, colDim, 1)
+			DrawTextRight(sf, xc-1, p.m.H-10, t, colDim, 1)
 		default:
-			DrawText(sf, xc-TextWidth(t, 1)/2, H-10, t, colDim, 1)
+			DrawText(sf, xc-TextWidth(t, 1)/2, p.m.H-10, t, colDim, 1)
 		}
 	}
 	if e.Why != "" || len(e.Grid) < e.Cols*e.Rows || e.Rows == 0 {
@@ -569,9 +570,9 @@ func drawEyePlot(sf Canvas, p plotArea, e *wsview.EyePane) {
 		for i, c := range sh {
 			n[i] = pack565(c)
 		}
-		eyeCells(sf, m.px(), W, H, e, x0, y1, sh, n, i1, i2, i3)
+		eyeCells(sf, m.px(), p.m.W, p.m.H, e, x0, y1, sh, n, i1, i2, i3)
 	} else {
-		eyeCells[uint16](sf, nil, W, H, e, x0, y1, sh, [4]uint16{}, i1, i2, i3)
+		eyeCells[uint16](sf, nil, p.m.W, p.m.H, e, x0, y1, sh, [4]uint16{}, i1, i2, i3)
 	}
 	if e.HasBox {
 		xa, xb := x0+2*e.Box[0], x0+2*e.Box[2]
@@ -923,28 +924,29 @@ func miniScopeChan(sf Canvas, f *sample.Frame, hud HUD, ch, x0, w int, yOf func(
 
 // Sheet geometry (hud/sheet.js): the tab strip, the rows, the side panel
 // with the mini view, the hint line.
+// The sheet's geometry: the rows left of the side panel, which sits left of
+// the F-key column (116 px and a 4 px gap); the hint on the bottom row.
 const (
-	tabY       = 12
-	tabH       = 17
-	rowY0      = 34
-	rowH       = 17
-	hdrH       = 13
-	xLbl       = 12
-	xOpt       = 110
-	xEnd       = 470
-	sideX      = 478
-	sideW      = 202
-	thumbY     = 34
-	thumbH     = 158
-	hintY      = 469
-	rowsBottom = 458
+	tabY   = 12
+	tabH   = 17
+	rowY0  = 34
+	rowH   = 17
+	hdrH   = 13
+	xLbl   = 12
+	xOpt   = 110
+	sideW  = 202
+	thumbY = 34
+	thumbH = 158
 )
 
 // drawSheet draws a full-screen settings sheet.
 // TRLC-LINKS: REQ-SDS-212
 func drawSheet(sf Canvas, f *sample.Frame, hud HUD) {
+	sm := metricsOf(sf)
+	hintY := sm.H - 11
+	rowsBottom := sm.H - 22
 	sh := hud.UI.Sheet
-	fillRect(sf, 0, 12, W, H-12, colBG)
+	fillRect(sf, 0, 12, sm.W, sm.H-12, colBG)
 	drawTabs(sf, sh)
 	bottom, matchY := drawRows(sf, sh)
 	y := bottom + 8
@@ -979,8 +981,9 @@ func drawSheet(sf Canvas, f *sample.Frame, hud HUD) {
 // bar, the other tabs dim; the open tab filled amber.
 // TRLC-LINKS: REQ-SDS-212
 func drawTabs(sf Canvas, sh *wsview.Sheet) {
-	fillRect(sf, 0, tabY, W, tabH, colMenuBg)
-	hline(sf, 0, W-1, tabY+tabH, colAxis)
+	sm := metricsOf(sf)
+	fillRect(sf, 0, tabY, sm.W, tabH, colMenuBg)
+	hline(sf, 0, sm.W-1, tabY+tabH, colAxis)
 	x := 4
 	DrawText(sf, x, tabY+5, sh.WSName, colTrig, 1)
 	x += TextWidth(sh.WSName, 1) + 6
@@ -1015,6 +1018,8 @@ func drawTabs(sf Canvas, sh *wsview.Sheet) {
 // Match bytes row (-1 when the tab has none).
 // TRLC-LINKS: REQ-SDS-212
 func drawRows(sf Canvas, sh *wsview.Sheet) (bottom, matchY int) {
+	sm := metricsOf(sf)
+	xEnd := sm.W - 116 - 4 - sideW - 8
 	y, matchY := rowY0, -1
 	for _, r := range sh.Rows {
 		if r.Kind == wsview.Header {
@@ -1036,6 +1041,8 @@ func drawRows(sf Canvas, sh *wsview.Sheet) (bottom, matchY int) {
 // drawRow draws one row at y.
 // TRLC-LINKS: REQ-SDS-212
 func drawRow(sf Canvas, r wsview.Row, y int) {
+	sm := metricsOf(sf)
+	xEnd := sm.W - 116 - 4 - sideW - 8
 	if r.Focus {
 		bg := colGrid
 		if r.Edit {
@@ -1217,6 +1224,9 @@ func drawGauge(sf Canvas, x0, x1, y int, pos float64, rel bool) {
 // drawSheetSub draws the sheet's byte picker under the Match bytes row.
 // TRLC-LINKS: REQ-SDS-214
 func drawSheetSub(sf Canvas, s *wsview.Sub, rowY int) {
+	sm := metricsOf(sf)
+	xEnd := sm.W - 116 - 4 - sideW - 8
+	rowsBottom := sm.H - 22
 	const bh = 120
 	by := rowY + rowH + 2
 	if by+bh > rowsBottom {
@@ -1234,6 +1244,9 @@ func drawSheetSub(sf Canvas, s *wsview.Sub, rowY int) {
 // drawSide draws the panel explaining the highlighted row.
 // TRLC-LINKS: REQ-SDS-212
 func drawSide(sf Canvas, sh *wsview.Sheet) {
+	sm := metricsOf(sf)
+	sideX := sm.W - 116 - 4 - sideW
+	rowsBottom := sm.H - 22
 	y0 := thumbY + thumbH + 6
 	h := rowsBottom - y0
 	fillRect(sf, sideX, y0, sideW, h, colBoxBg)
@@ -1276,6 +1289,8 @@ func drawSide(sf Canvas, sh *wsview.Sheet) {
 // STOP.
 // TRLC-LINKS: REQ-SDS-212
 func drawThumb(sf Canvas, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
+	sm := metricsOf(sf)
+	sideX := sm.W - 116 - 4 - sideW
 	x0, y0, w, h := sideX, thumbY, sideW, thumbH
 	tag, tagCol := "LIVE", colOK
 	switch {
@@ -1312,7 +1327,7 @@ func drawThumb(sf Canvas, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
 			for y := 1; y < h-1; y++ {
 				sy := sg.imgRow((y - 1) * sgRows / (h - 2))
 				for x := 1; x < w-1; x++ {
-					sf.SetPixel(x0+x, y0+y, sg.img.At(sgX0+(x-1)*sgCols/(w-2), sy))
+					sf.SetPixel(x0+x, y0+y, sg.img[sy*sgCols+(x-1)*sgCols/(w-2)])
 				}
 			}
 		} else {

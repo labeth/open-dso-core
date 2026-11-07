@@ -48,8 +48,8 @@ func drawSuperresHUD(sf Canvas, p plotArea, hud HUD) {
 func drawSRLine(sf Canvas, p plotArea, msg string) {
 	// Bottom-left, one row above the Vpp/f quick readout (at H-12 it covers
 	// the C1 readout); a thin backing bar keeps it legible over the trace.
-	y := H - 21
-	for by := y - 1; by < y+9 && by < H; by++ {
+	y := p.m.H - 21
+	for by := y - 1; by < y+9 && by < p.m.H; by++ {
 		for bx := 0; bx < TextWidth(msg, 1)+8 && bx < p.w; bx++ {
 			sf.SetPixel(bx, by, colBG)
 		}

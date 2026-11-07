@@ -16,8 +16,8 @@ import (
 // TRLC-LINKS: REQ-SDS-021
 func TestRenderFuzzNoPanic(t *testing.T) {
 	rng := rand.New(rand.NewSource(31337))
-	sf := NewImage565()
-	persist := NewImage565()
+	sf := NewImage565(m800)
+	persist := NewImage565(m800)
 
 	mkFrame := func() *sample.Frame {
 		switch rng.Intn(8) {

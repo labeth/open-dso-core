@@ -27,7 +27,9 @@ func drawMatchEditor(sf Canvas, m MatchView) {
 	if !m.Open {
 		return
 	}
-	const areaW = W - 116 // left of the softkey column
+	sm := metricsOf(sf)
+	H := sm.H
+	areaW := sm.W - 116 // left of the softkey column
 	fillRect(sf, 0, 12, areaW, H-12, colBG)
 	DrawText(sf, 6, 16, "SERIAL MATCH  "+m.Proto+"  keys: "+m.Set+"  "+strconv.Itoa(len(m.Toks))+"/32 units", colTrig, 1)
 
@@ -97,7 +99,7 @@ func drawMatchEditor(sf Canvas, m MatchView) {
 	}
 
 	// Key grid.
-	const gy0, gy1 = 80, H - 44
+	gy0, gy1 := 80, H-44
 	rows := len(m.Keys)
 	cols := 0
 	for _, r := range m.Keys {

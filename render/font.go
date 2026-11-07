@@ -23,7 +23,7 @@ func TextWidth(s string, scale int) int {
 // TRLC-LINKS: REQ-SDS-021
 func DrawText(sf Canvas, x, y int, s string, c Color, scale int) {
 	if m, ok := sf.(*Image565); ok {
-		textPx(sf, m.px(), W, H, x, y, s, pack565(c), c, scale)
+		textPx(sf, m.pix, m.m.W, m.m.H, x, y, s, pack565(c), c, scale)
 		return
 	}
 	textPx[uint16](sf, nil, 0, 0, x, y, s, 0, c, scale)

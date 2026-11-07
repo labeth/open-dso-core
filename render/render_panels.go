@@ -315,7 +315,7 @@ func drawCursors(sf Canvas, p plotArea, hud HUD) {
 			edgeArrow(sf, x, p.y0, 0, -1, col)
 			DrawText(sf, x+8, p.y0+2, lab, col, 1)
 		case !vertical && f > 1:
-			x, y := p.w/2+60+20*k, min(p.last(), H-12) // above the bottom readout row
+			x, y := p.w/2+60+20*k, min(p.last(), p.m.H-12) // above the bottom readout row
 			edgeArrow(sf, x, y, 0, 1, col)
 			DrawText(sf, x+8, y-8, lab, col, 1)
 		default:
@@ -394,7 +394,7 @@ func drawAutosetBanner(sf Canvas, p plotArea, msg string) {
 		msg = "AUTOSET..."
 	}
 	const bw, bh = 300, 44
-	x0, y0 := (p.w-bw)/2, (H-bh)/2
+	x0, y0 := (p.w-bw)/2, (p.m.H-bh)/2
 	fillRect(sf, x0, y0, bw, bh, colMenuBg)
 	strokeRect(sf, x0, y0, bw, bh, colTrig)
 	DrawText(sf, x0+(bw-TextWidth(msg, 2))/2, y0+6, msg, colTrig, 2)
@@ -416,7 +416,7 @@ func drawNotice(sf Canvas, p plotArea, msg string) {
 		msg = msg[:maxC-2] + ".."
 	}
 	bw, bh := TextWidth(msg, 1)+16, 20
-	x0, y0 := (p.w-bw)/2, (H-bh)/2
+	x0, y0 := (p.w-bw)/2, (p.m.H-bh)/2
 	fillRect(sf, x0, y0, bw, bh, colMenuBg)
 	strokeRect(sf, x0, y0, bw, bh, colInfo)
 	DrawText(sf, x0+8, y0+6, msg, colInfo, 1)
@@ -437,23 +437,19 @@ func drawRemote(sf Canvas, p plotArea, msg string) {
 	DrawText(sf, x0+6, y0+4, msg, colSR, 1)
 }
 
-// softkeyY is the on-screen Y (slot centre) of each physical F1..F5 button,
-// measured on the unit against the bezel (F1..F4 an 80 px pitch, F5 +90).
-var softkeyY = [5]int{80, 160, 240, 320, 410}
-
 // drawMarkers overlays the trigger level (horizontal line + right handle), the
 // trigger position (top pointer), and the per-channel ground/offset arrows on
 // the left edge — the same references the web canvas shows (spec 07 §6).
 // TRLC-LINKS: REQ-SDS-021
 func drawMarkers(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	px := func(x, y int, c Color) {
-		if x >= 0 && x < p.w && y >= p.y0 && y < H {
+		if x >= 0 && x < p.w && y >= p.y0 && y < p.m.H {
 			sf.SetPixel(x, y, c)
 		}
 	}
 	// Trigger LEVEL: dashed horizontal line + right-edge arrow at the level code.
 	ly := p.sy(128 + hud.TrigLvlDiv*25)
-	if ly >= p.y0+2 && ly < H {
+	if ly >= p.y0+2 && ly < p.m.H {
 		for x := 0; x < p.w; x += 7 {
 			px(x, ly, colTrig)
 			px(x+1, ly, colTrig)
@@ -525,16 +521,22 @@ func trigFrac(f *sample.Frame, hud HUD) (float64, bool) {
 
 // TRLC-LINKS: REQ-SDS-021
 func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
+	sm := metricsOf(sf)
+	// The top bar: the channels' labels a ChanLabelDX apart, then the
+	// timebase (x tx), its zoom tag and the math legend, the trigger
+	// readout right-aligned.
+	c2x := 4 + sm.ChanLabelDX
+	tx := 4 + 2*sm.ChanLabelDX + 12
 	if f != nil && f.Cond.NoiseGain > 1 {
 		label := fmt.Sprintf("Ideal +%.2f bits (not ENOB)", math.Log2(f.Cond.NoiseGain))
 		if f.Cond.PassbandHz > 0 {
 			label += "  pass " + fmtFreq(f.Cond.PassbandHz) + fmt.Sprintf("  FPGA /%d", uint32(f.AcqDecim))
 		}
-		DrawText(sf, 200, 14, label, colInfo, 1)
+		DrawText(sf, tx, 14, label, colInfo, 1)
 	}
 	DrawText(sf, 4, 2, "C1 "+vdivLabel(hud.C1VdivV, hud.Probe1)+cplTag(hud.Cpl1), colC1, 1)
 	if hud.TwoChan {
-		DrawText(sf, 96, 2, "C2 "+vdivLabel(hud.C2VdivV, hud.Probe2)+cplTag(hud.Cpl2), colC2, 1)
+		DrawText(sf, c2x, 2, "C2 "+vdivLabel(hud.C2VdivV, hud.Probe2)+cplTag(hud.Cpl2), colC2, 1)
 	}
 	if f != nil && f.Len() > 0 { // clipping warning — railed traces make readings suspect
 		clip := frameClipped(f)
@@ -542,7 +544,7 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 			DrawText(sf, 4, 14, "CLIP", colTrig, 1)
 		}
 		if hud.TwoChan && clip[1] {
-			DrawText(sf, 96, 14, "CLIP", colTrig, 1)
+			DrawText(sf, c2x, 14, "CLIP", colTrig, 1)
 		}
 	}
 	// The horizontal axis is time only in Y-T; in FFT it's frequency and in X-Y
@@ -552,28 +554,28 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	altView := f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0
 	switch {
 	case hud.ViewMode == 1 && altView:
-		DrawText(sf, 200, 2, "X-Y", colMath, 1)
+		DrawText(sf, tx, 2, "X-Y", colMath, 1)
 	case hud.ViewMode == 2 && altView:
-		DrawText(sf, 200, 2, "FFT", colMath, 1)
+		DrawText(sf, tx, 2, "FFT", colMath, 1)
 	case hud.ViewMode == 3:
-		DrawText(sf, 200, 2, "BODE", colMath, 1)
+		DrawText(sf, tx, 2, "BODE", colMath, 1)
 	case hud.ViewMode == 4:
-		DrawText(sf, 200, 2, "SPGM", colMath, 1)
+		DrawText(sf, tx, 2, "SPGM", colMath, 1)
 	default:
-		DrawText(sf, 200, 2, "M "+fmtTdiv(hud.TdivS), colInfo, 1)
+		DrawText(sf, tx, 2, "M "+fmtTdiv(hud.TdivS), colInfo, 1)
 		if hud.Zoom > 1 { // horizontal magnification tag
-			DrawText(sf, 262, 2, fmt.Sprintf("x%d", hud.Zoom), colTrig, 1) // "Z50x" read as 250x
+			DrawText(sf, tx+62, 2, fmt.Sprintf("x%d", hud.Zoom), colTrig, 1) // "Z50x" read as 250x
 		}
 	}
 	// Math legend so the purple trace is identified (and not confused with a ref).
 	if hud.MathMode != 0 && hud.ViewMode == 0 {
 		names := []string{"", "C1+C2", "C1-C2", "C2-C1", "C1xC2"} // ASCII font has no '×'
 		if m := hud.MathMode; m >= 1 && m < len(names) {
-			DrawText(sf, 300, 2, "M:"+names[m], colMath, 1)
+			DrawText(sf, tx+100, 2, "M:"+names[m], colMath, 1)
 		}
 	}
 
-	DrawTextRight(sf, 796, 2, trigReadout(hud), colTrig, 1)
+	DrawTextRight(sf, sm.W-4, 2, trigReadout(hud), colTrig, 1)
 
 	// Device URL (post-takeover support: "what do I browse to?"). Right-aligned
 	// on the top bar in the dead zone between the math legend (ends ≤ ~345) and
@@ -598,13 +600,13 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 		}
 		col, name, x := colC1, "C1", 4
 		if ch == 1 {
-			col, name, x = colC2, "C2", 410
+			col, name, x = colC2, "C2", 4+sm.ReadoutDX
 		}
 		s := name + " Vpp " + fmtVolt(m.Vpp)
 		if m.HasTiming {
 			s += "  f " + fmtFreq(m.Freq)
 		}
-		DrawText(sf, x, H-9, s, col, 1)
+		DrawText(sf, x, sm.H-9, s, col, 1)
 	}
 }
 
@@ -701,7 +703,7 @@ func DrawStatusSlot(sf Canvas, hud HUD) {
 		if hud.Busy != "" {
 			c = colTrig
 		}
-		DrawTextRight(sf, 664, 2, txt, c, 1)
+		DrawTextRight(sf, metricsOf(sf).StatusSlotX, 2, txt, c, 1)
 	}
 }
 
@@ -715,7 +717,7 @@ func RedrawStatusSlot(sf Canvas, hud HUD) {
 	busy := hud
 	busy.Busy, busy.BusyPct = "x", 100
 	w := max(TextWidth(statusSlotText(idle), 1), TextWidth(statusSlotText(busy), 1))
-	fillRect(sf, 664-w, 0, w, 11, colBG)
+	fillRect(sf, metricsOf(sf).StatusSlotX-w, 0, w, StatusSlotRows, colBG)
 	DrawStatusSlot(sf, hud)
 }
 

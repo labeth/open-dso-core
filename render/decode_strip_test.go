@@ -38,14 +38,14 @@ func TestDecodeStripClearsTrace(t *testing.T) {
 		if top > 0 {
 			h.UI.Layout = wsview.Layout{MenuW: 30, PlotTop: top}
 		}
-		p := plotOf(h.UI.Layout).aboveStrip()
-		if p.sy(28) >= decodeStripTop || p.last() >= decodeStripTop {
-			t.Fatalf("plot top %d: -4 div at row %d, plot ends %d: in the strip from %d", top, p.sy(28), p.last(), decodeStripTop)
+		p := plotOf(m800, h.UI.Layout).aboveStrip()
+		if p.sy(28) >= m800.decodeStripTop() || p.last() >= m800.decodeStripTop() {
+			t.Fatalf("plot top %d: -4 div at row %d, plot ends %d: in the strip from %d", top, p.sy(28), p.last(), m800.decodeStripTop())
 		}
-		sf := NewImage565()
+		sf := NewImage565(m800)
 		Render(sf, f, h, true)
 		x, found := 300, -1
-		for y := 12; y < decodeStripTop; y++ {
+		for y := 12; y < m800.decodeStripTop(); y++ {
 			if at565(sf, x, y) == pack565(colC1) {
 				found = y
 			}
@@ -54,7 +54,7 @@ func TestDecodeStripClearsTrace(t *testing.T) {
 			t.Errorf("plot top %d: the trace at -3.5 div is not above the decode strip (column %d)", top, x)
 		}
 		h.DecProto = 0
-		if q := plotOf(h.UI.Layout); decodeStrip(h) || q.last() != H-1 {
+		if q := plotOf(m800, h.UI.Layout); decodeStrip(h) || q.last() != H-1 {
 			t.Errorf("plot top %d: no decode, yet the plot ends at %d", top, q.last())
 		}
 	}

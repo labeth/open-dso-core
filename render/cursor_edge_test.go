@@ -13,10 +13,10 @@ import (
 func TestCursorOffScreenArrows(t *testing.T) {
 	h := defaultHUD()
 	h.UI.Layout = wsview.Layout{MenuW: 30, PlotTop: 142}
-	p := plotOf(h.UI.Layout)
+	p := plotOf(m800, h.UI.Layout)
 	h.CurOn, h.CurType, h.CurSel = true, 0, 0
 	h.CurX = [2]float64{-0.4, 1.7} // A left of the screen, B right of it
-	sf := NewImage565()
+	sf := NewImage565(m800)
 	drawCursors(sf, p, h)
 	if at565(sf, 0, p.top+30) != pack565(colTrig) || at565(sf, p.w-1, p.top+44) != pack565(colDim) {
 		t.Fatalf("time cursors off the screen: arrow tips %#x (A, left) and %#x (B, right)", at565(sf, 0, p.top+30), at565(sf, p.w-1, p.top+44))
@@ -33,7 +33,7 @@ func TestCursorOffScreenArrows(t *testing.T) {
 		}
 	}
 	h.CurType, h.CurY = 1, [2]float64{-0.1, 0.5} // A above, B on the screen
-	sf = NewImage565()
+	sf = NewImage565(m800)
 	drawCursors(sf, p, h)
 	if x := p.w/2 + 60; at565(sf, x, p.y0) != pack565(colTrig) {
 		t.Fatalf("volts cursor A above the screen: no arrow at the top (%#x)", at565(sf, x, p.y0))

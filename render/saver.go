@@ -15,19 +15,15 @@ import (
 // SaverStep is how often the saver moves one pixel each way (5 px/s).
 const SaverStep = 200 * time.Millisecond
 
-// The saver box: the mini scope and its two lines under it.
-const (
-	saverW    = 240
-	saverH    = 144
-	saverBoxH = saverH + 36
-)
+// saverLinesH is the saver box's two lines under its mini scope.
+const saverLinesH = 36
 
 // SaverPos is the box's top-left corner after step steps: it bounces off the
 // screen's edges one pixel each way per step, on a path that repeats only
 // after hours.
 // TRLC-LINKS: REQ-SDS-221
-func SaverPos(step int) (x, y int) {
-	return bounce(step, W-saverW), bounce(step, H-saverBoxH)
+func SaverPos(m *Metrics, step int) (x, y int) {
+	return bounce(step, m.W-m.SaverW), bounce(step, m.H-m.SaverH-saverLinesH)
 }
 
 // bounce runs 0..span and back.
@@ -48,8 +44,10 @@ func bounce(t, span int) int {
 // TRLC-LINKS: REQ-SDS-221
 func DrawSaver(sf Canvas, f *sample.Frame, hud HUD, step int) {
 	sf.Fill(RGB(0, 0, 0)) // black: a memclr on a memory canvas
-	x, y := SaverPos(step)
-	drawMiniScope(sf, f, hud, x, y, saverW, saverH)
+	sm := metricsOf(sf)
+	x, y := SaverPos(sm, step)
+	saverH := sm.SaverH
+	drawMiniScope(sf, f, hud, x, y, sm.SaverW, saverH)
 	state, col := "RUN", colOK
 	switch {
 	case !hud.Running:

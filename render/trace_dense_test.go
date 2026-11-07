@@ -20,7 +20,7 @@ func TestDenseTraceKeepsSpikes(t *testing.T) {
 	}
 	spike := 123457 // one sample, between two columns' sample points
 	sig[spike] = 228
-	sf := NewImage565()
+	sf := NewImage565(m800)
 	win := len(sig)
 	drawTrace(sf, sig, win, float64(win)/2, false, c565(0xffff), .5)
 	x := spike * W / win
@@ -44,7 +44,7 @@ func TestStaleTimebaseFrameNotDrawn(t *testing.T) {
 		f.Codes8(0)[i], f.Codes8(1)[i] = 200, 200
 	}
 	count := func(hud HUD) int {
-		sf := NewImage565()
+		sf := NewImage565(m800)
 		Render(sf, f, hud, true)
 		n := 0
 		for x := range W {
@@ -80,6 +80,9 @@ func (s pixelSurface) At(x, y int) Color { return s.m.At(x, y) }
 // TRLC-LINKS: REQ-SDS-021
 func (s pixelSurface) Format() hal.PixelFormat { return s.m.Format() }
 
+// TRLC-LINKS: REQ-SDS-021
+func (s pixelSurface) Metrics() *Metrics { return s.m.Metrics() }
+
 // A dense trace filled in blocks (the rows all of a block's columns cover a
 // row at a time) sets the same pixels as each column drawn down its span: held
 // stretches, quiet and full-height columns, zoom and the plot's width included.
@@ -101,8 +104,8 @@ func TestDenseTraceBlockFillMatchesColumns(t *testing.T) {
 		z    float64
 		held []bool
 		left float64
-	}{{fullPlot, 1, nil, 0}, {plotOf(wsview.Layout{MenuW: 116, PlotTop: 120}), 2, held, -500}, {plotOf(wsview.Layout{MenuW: 116, PlotTop: 120}), 0.5, held, 1200}} {
-		rows, cols := NewImage565(), NewImage565()
+	}{{fullPlot, 1, nil, 0}, {plotOf(m800, wsview.Layout{MenuW: 116, PlotTop: 120}), 2, held, -500}, {plotOf(m800, wsview.Layout{MenuW: 116, PlotTop: 120}), 0.5, held, 1200}} {
+		rows, cols := NewImage565(m800), NewImage565(m800)
 		drawDenseTrace(rows, c.p, traceID{1, 1, 0, false}, sig, c.held, c.left, len(sig), colC1, c.z)
 		drawDenseTrace(pixelSurface{cols}, c.p, traceID{1, 1, 0, false}, sig, c.held, c.left, len(sig), colC1, c.z)
 		drawn := 0
@@ -135,7 +138,7 @@ func TestEnvelopeBlockFillMatchesColumns(t *testing.T) {
 		}
 	}
 	for _, cols := range []int{700, 800} { // 800: the last columns have no data
-		rows, each := NewImage565(), NewImage565()
+		rows, each := NewImage565(m800), NewImage565(m800)
 		drawEnvelope(rows, fullPlot, mn, mx, cols, colC2, 1)
 		drawEnvelope(pixelSurface{each}, fullPlot, mn, mx, cols, colC2, 1)
 		drawn := 0

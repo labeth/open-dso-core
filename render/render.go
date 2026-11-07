@@ -192,11 +192,6 @@ type Zone struct {
 	Ch             int  // 0 = C1, 1 = C2
 }
 
-const (
-	traceTop = 8
-	traceBot = H - 4 // 476
-)
-
 // drawGraticule draws the plot's 10 x 8 divisions, centre axes brighter.
 // TRLC-LINKS: REQ-SDS-021
 func drawGraticule(sf Canvas, p plotArea) {
@@ -248,10 +243,10 @@ func drawLine(sf Canvas, x0, y0, x1, y1 int, c Color) {
 		sy = -1
 	}
 	err := dx - dy
-	if m, ok := sf.(*Image565); ok && uint(x0) < W && uint(x1) < W && uint(y0) < H && uint(y1) < H {
+	if m, ok := sf.(*Image565); ok && uint(x0) < uint(m.m.W) && uint(x1) < uint(m.m.W) && uint(y0) < uint(m.m.H) && uint(y1) < uint(m.m.H) {
 		// On screen end to end: write the pixels without the interface call
 		// and per-pixel clip (a sparse trace is one segment per column).
-		linePx(m.px(), W, x0, y0, x1, y1, pack565(c))
+		linePx(m.pix, m.m.W, x0, y0, x1, y1, pack565(c))
 		return
 	}
 	for {
@@ -474,9 +469,9 @@ func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool,
 	cols := denseColumns(id, sig, left, win, p.w)
 	rows := p.codeRows(z)
 	y := func(v uint8) int { return int(rows[v]) }
-	var top, bot [W]int16
-	var cc [W]Color
-	w := min(p.w, W)
+	var top, bot [MaxW]int16
+	var cc [MaxW]Color
+	w := min(p.w, MaxW)
 	prevY := -1
 	for x := range w {
 		yTop, yBot := y(cols.mx[x]), y(cols.mn[x])
@@ -487,7 +482,7 @@ func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool,
 		if held != nil && columnHeld(held, left, win, p.w, x) {
 			c = heldColor(sf.Format(), col)
 		}
-		yTop, yBot = max(yTop, 0), min(yBot, H-1)
+		yTop, yBot = max(yTop, 0), min(yBot, p.m.H-1)
 		top[x], bot[x], cc[x] = int16(yTop), int16(yBot), c
 		prevY = y(cols.last[x])
 	}
@@ -512,11 +507,11 @@ func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
 		}
 		return
 	}
-	var nc [W]uint16
-	for i, c := range cc[:min(len(cc), W)] {
+	var nc [MaxW]uint16
+	for i, c := range cc[:min(len(cc), MaxW)] {
 		nc[i] = pack565(c)
 	}
-	fillSpansPx(m.px(), W, H, top, bot, nc[:len(cc)])
+	fillSpansPx(m.pix, m.m.W, m.m.H, top, bot, nc[:len(cc)])
 }
 
 // fillSpansPx is fillSpans on a w×h page of pixels px, the colours in its
@@ -646,7 +641,7 @@ func columnHeld(held []bool, left float64, win, w, x int) bool {
 // denseCols are a dense trace's per-column extremes and last sample.
 type denseCols struct {
 	key          denseKey
-	mn, mx, last [W]uint8
+	mn, mx, last [MaxW]uint8
 }
 
 type denseKey struct {
@@ -668,7 +663,7 @@ var denseCache struct {
 
 // TRLC-LINKS: REQ-SDS-021
 func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseCols {
-	ncols = min(max(ncols, 1), W)
+	ncols = min(max(ncols, 1), MaxW)
 	key := denseKey{id: id, n: len(sig), win: win, cols: ncols, left: left, ptr: &sig[0]}
 	for i := range key.probe {
 		key.probe[i] = sig[i*(len(sig)-1)/(len(key.probe)-1)]
@@ -724,9 +719,9 @@ func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseC
 // TRLC-LINKS: REQ-SDS-021
 func drawEnvelope(sf Canvas, p plotArea, mn, mx []uint8, cols int, col Color, zoom int) {
 	z := float64(max(zoom, 1))
-	var top, bot [W]int16
-	var cc [W]Color
-	w := min(p.w, W)
+	var top, bot [MaxW]int16
+	var cc [MaxW]Color
+	w := min(p.w, MaxW)
 	rows := p.codeRows(z)
 	for x := range w {
 		top[x], bot[x], cc[x] = 1, 0, col // nothing drawn
@@ -825,7 +820,8 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	sf.Fill(colBG)
 	ui := &hud.UI
 	sheet := ui.Sheet != nil
-	p := plotOf(ui.Layout)
+	sm := metricsOf(sf)
+	p := plotOf(sm, ui.Layout)
 	traces := !sheet && !ui.Layout.HideTraces
 	if traces && decodeStrip(hud) {
 		p = p.aboveStrip()
@@ -874,8 +870,8 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	if live && f != nil && f.SourcePtp >= 8 {
 		strip = colOK
 	}
-	hline(sf, 0, W-1, 0, strip)
-	hline(sf, 0, W-1, 1, strip)
+	hline(sf, 0, sm.W-1, 0, strip)
+	hline(sf, 0, sm.W-1, 1, strip)
 
 	// Trigger/ground markers, the MEASURE readouts and cursors are time-domain
 	// concepts — only overlay them in Y-T, not on the X-Y/FFT plots.

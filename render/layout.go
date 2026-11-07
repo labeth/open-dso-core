@@ -16,30 +16,34 @@ import (
 type plotArea struct {
 	w, y0, h int // x runs 0..w-1, y y0..y0+h-1
 	top, bot int // the trace's +4 and -4 division rows
+	m        *Metrics
 }
 
 // plotOf is the plot area a layout leaves. With no pane the trace keeps the
-// full-screen mapping (rows 8..476, clear of the status bar); under a pane
-// the eight divisions span the plot exactly, aligned with its graticule.
+// full-screen mapping (TraceTop..TraceBot, clear of the status bar); under
+// a pane the eight divisions span the plot exactly, aligned with its
+// graticule.
 // TRLC-LINKS: REQ-SDS-211
-func plotOf(l wsview.Layout) plotArea {
-	p := plotArea{w: W - max(0, min(l.MenuW, W-200)), y0: max(0, min(l.PlotTop, 300))}
-	p.h = H - p.y0
+func plotOf(m *Metrics, l wsview.Layout) plotArea {
+	p := plotArea{w: m.W - max(0, min(l.MenuW, m.W-m.MinPlotW)), y0: max(0, min(l.PlotTop, m.MaxPlotTop)), m: m}
+	p.h = m.H - p.y0
 	if p.y0 == 0 {
-		p.top, p.bot = traceTop, traceBot
+		p.top, p.bot = m.TraceTop, m.TraceBot
 	} else {
-		p.top, p.bot = p.y0, H-1
+		p.top, p.bot = p.y0, m.H-1
 	}
 	return p
 }
 
-// PlotColumns is how many columns wide the waveform views draw under layout l.
+// PlotColumns is how many columns wide the waveform views draw on screen m
+// under layout l.
 // TRLC-LINKS: REQ-SDS-211
-func PlotColumns(l wsview.Layout) int { return plotOf(l).w }
+func PlotColumns(m *Metrics, l wsview.Layout) int { return plotOf(m, l).w }
 
 // decodeStripTop is the first row of the decode strip (drawDecode): the
 // label, byte and span rows, above the bottom readout row.
-const decodeStripTop = H - 38
+// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+func (m *Metrics) decodeStripTop() int { return m.H - m.DecodeStripH }
 
 // decodeStrip reports whether the Y-T plot shows the decode strip under the
 // trace: a protocol is decoded, in every workspace, while the plot draws the
@@ -55,7 +59,7 @@ func decodeStrip(hud HUD) bool {
 // lies under the decoded bytes.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
 func (p plotArea) aboveStrip() plotArea {
-	cut := p.y0 + p.h - decodeStripTop
+	cut := p.y0 + p.h - p.m.decodeStripTop()
 	if cut <= 0 || p.h-cut < 80 {
 		return p
 	}
@@ -68,8 +72,11 @@ func (p plotArea) aboveStrip() plotArea {
 // TRLC-LINKS: REQ-SDS-021
 func (p plotArea) last() int { return p.y0 + p.h - 1 }
 
-// fullPlot is the whole screen (thumbnails and tests).
-var fullPlot = plotArea{w: W, y0: 0, h: H, top: traceTop, bot: traceBot}
+// fullPlotOf is screen m's whole area (thumbnails and tests).
+// TRLC-LINKS: REQ-SDS-021
+func fullPlotOf(m *Metrics) plotArea {
+	return plotArea{w: m.W, y0: 0, h: m.H, top: m.TraceTop, bot: m.TraceBot, m: m}
+}
 
 // sy maps a display code to a row: higher code = higher on screen; 25
 // codes/div, code 128 at the centre (spec 07 §3.4, spec 10 §7.1).
