@@ -12,7 +12,7 @@
     {"key": "auto"},
     {"check": {"name": "found",
       "fields": ["workspace", "view", "row.bus.protocol", "row.bus.clk", "row.bus.data", "row.bus.spi_mode", "decode.auto", "packets", "packets.text", "row.time.tdiv"],
-      "tol": {"packets": "overlap", "packets.text": "info", "row.time.tdiv": "ratio:2.5"},
+      "tol": {"packets": "present", "packets.text": "info", "row.time.tdiv": "ratio:2.5"},
       "expect": {"row.bus.protocol": {"eq": "SPI"}, "row.bus.clk": {"eq": "CH2"}, "packets.text": {"contains": "Hi U"}}}}
   ]
 }

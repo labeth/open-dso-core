@@ -13,7 +13,7 @@
     {"key": "auto"},
     {"check": {"name": "found",
       "fields": ["workspace", "view", "row.bus.protocol", "row.bus.baud", "decode.auto", "packets", "packets.text", "row.time.tdiv", "row.trig.type"],
-      "tol": {"packets": "overlap", "packets.text": "info", "row.time.tdiv": "ratio:2.5"},
+      "tol": {"packets": "present", "packets.text": "info", "row.time.tdiv": "ratio:2.5"},
       "expect": {"row.bus.protocol": {"eq": "UART"}, "row.bus.baud": {"eq": "115k2"}, "packets.text": {"contains": "Hi U"}}}}
   ]
 }

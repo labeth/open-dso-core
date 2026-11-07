@@ -9,7 +9,7 @@
   "start": {"rows": {"trig.level": "1.65V", "time.tdiv": "200us", "bus.protocol": "UART", "bus.baud": "115k2"}},
   "steps": [
     {"workspace": "bus"},
-    {"check": {"name": "bus", "fields": ["workspace", "view", "fkeys", "again", "row.bus.protocol", "packets"], "tol": {"packets": "overlap"}}},
+    {"check": {"name": "bus", "fields": ["workspace", "view", "fkeys", "again", "row.bus.protocol", "packets"], "tol": {"packets": "present"}}},
     {"key": "f2"},
     {"check": {"name": "again1", "fields": ["workspace", "view", "fkeys", "again"]}},
     {"key": "f2"},

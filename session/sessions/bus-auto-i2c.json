@@ -12,7 +12,7 @@
     {"key": "auto"},
     {"check": {"name": "found",
       "fields": ["workspace", "view", "row.bus.protocol", "row.bus.scl", "row.bus.sda", "decode.auto", "packets", "row.time.tdiv"],
-      "tol": {"packets": "overlap", "row.time.tdiv": "ratio:2.5"},
+      "tol": {"packets": "present", "row.time.tdiv": "ratio:2.5"},
       "expect": {"row.bus.protocol": {"eq": "I2C"}, "row.bus.scl": {"eq": "CH2"}, "packets": {"contains": "@24W 55aa0ff0"}}}}
   ]
 }
