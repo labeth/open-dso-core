@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ import (
 
 // sigmaDelta is a 1-bit sigma-delta tone switching every few samples (an
 // audio bench source sampled at the full rate): a busy line that is no bus.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func sigmaDelta(n int, f float64) []uint8 {
 	out := make([]uint8, n)
 	acc, v := 0.0, uint8(30)
@@ -29,7 +29,7 @@ func sigmaDelta(n int, f float64) []uint8 {
 // sparse one whole: a sigma-delta line 1M samples long (200 k crossings) is
 // cut to its first budget, where a fast SPI bus over the whole record is
 // still named, and a UART record keeps every sample.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestAutodetectEdgeBudget(t *testing.T) {
 	a, b := sigmaDelta(1000000, 440), sigmaDelta(1000000, 110)
 	if n := budgetEnd(a, b, autoEdgeBudget); n >= len(a)/2 {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestStackTileTransferRTL(t *testing.T) {
 	rng := rand.New(rand.NewSource(1414))
 	var input strings.Builder
@@ -109,7 +109,7 @@ func TestStackTileTransferRTL(t *testing.T) {
 	t.Logf("%d host transfers: exact 20-halfword round trips, padding rejection, bounds, stalls and partial-upload resets passed", n)
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestStackTileAccessRTL(t *testing.T) {
 	dir := t.TempDir()
 	image := compileStackRTL(t, dir, "tb_stack_tile_access", "stack_tile_access.v", "stack_tile_transfer.v", "stack_state_tile.v", "sim/tb_stack_tile_access.v")

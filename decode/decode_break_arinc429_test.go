@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -26,7 +26,7 @@ import (
 //
 // The false-negative and edge classes PASS: the round-trip is exact across the
 // whole legal bit-rate range and single-bit corruption is always flagged.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakArinc429(t *testing.T) {
 	frameErrs := func(r Result) int {
 		c := 0

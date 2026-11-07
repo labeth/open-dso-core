@@ -19,6 +19,7 @@ func square(n, period, phase int) []uint8 {
 }
 
 // Delays between two squares 10 samples apart.
+// TRLC-LINKS: REQ-DSO-024
 func TestDelay(t *testing.T) {
 	a, b := square(1000, 100, 0), square(1000, 100, 10)
 	for name, want := range map[string]float64{"LRR": 10e-9, "LFF": 10e-9, "SKEW": 10e-9, "PHA": 36} {
@@ -36,6 +37,7 @@ func TestDelay(t *testing.T) {
 }
 
 // A reading needs what its parameter needs.
+// TRLC-LINKS: REQ-DSO-024
 func TestReadings(t *testing.T) {
 	r := &measure.Result{Vpp: 2, Freq: 1e6, RiseS: 1e-9}
 	pk, _ := Lookup("PKPK")

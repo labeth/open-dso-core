@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-VISUAL
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // midi_synth.js — the BUS Visual view's MIDI sound: the decoded notes played
 // in the browser by a small synthesizer (Web Audio's oscillators, filters and
 // gains: no AudioWorklet, so it plays on the scope's plain-http pages too).
@@ -15,7 +15,7 @@ const SYNTH_VOICES = 32;
 const SYNTH_LATENCY = 0.12;
 
 // synthNew is a synthesizer, silent until synthStart (a click must start audio).
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthNew() {
   return { ctx: null, out: null, voices: new Map(), order: [], vol: new Float32Array(16).fill(100 / 127), expr: new Float32Array(16).fill(1),
     sustain: new Uint8Array(16), held: new Set(), prog: new Uint8Array(16), bend: new Float32Array(16), offset: NaN, lead: 0, gain: 0.5, played: 0, noise: null };
@@ -23,7 +23,7 @@ function synthNew() {
 
 // synthStart makes (or resumes) the audio graph: master gain into a limiter
 // into the speakers. It resolves to whether it plays.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 async function synthStart(sy) {
   if (!sy.ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -45,14 +45,14 @@ async function synthStart(sy) {
 }
 
 // synthStop silences every note and suspends the audio.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthStop(sy) {
   synthPanic(sy);
   if (sy.ctx) sy.ctx.suspend();
 }
 
 // synthPanic ends every note at once (a note-off lost to a capture's gap).
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthPanic(sy) {
   if (!sy.ctx) return;
   const now = sy.ctx.currentTime;
@@ -65,7 +65,7 @@ function synthPanic(sy) {
 // that long after its time on the page's clock, as the picture shows it.
 // Without, the first event sets the offset a latency ahead; one that falls
 // behind (a pause, a gap) sets it again; one far ahead (the clocks drift) too.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthWhen(sy, t) {
   const now = sy.ctx.currentTime;
   if (sy.lead > 0) return Math.max(now + 0.005, now + t + sy.lead - performance.now() / 1000);
@@ -77,7 +77,7 @@ function synthWhen(sy, t) {
 
 // synthEvents plays a MIDI state's queued events (visual.js midiMsg), and
 // empties the queue.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthEvents(sy, events) {
   if (!sy.ctx || sy.ctx.state !== "running") { events.length = 0; return; }
   for (const e of events) {
@@ -93,7 +93,7 @@ function synthEvents(sy, events) {
 
 // synthCC acts on a controller: volume (7), expression (11), sustain (64,
 // held notes end on its release), all sound or notes off (120, 123).
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthCC(sy, ch, cc, val, at) {
   if (cc === 7) sy.vol[ch] = val / 127;
   else if (cc === 11) sy.expr[ch] = val / 127;
@@ -106,7 +106,7 @@ function synthCC(sy, ch, cc, val, at) {
 }
 
 // synthBend bends a channel's notes (±2 semitones).
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthBend(sy, ch, val, at) {
   sy.bend[ch] = val;
   for (const [k, v] of sy.voices) if (Math.floor(k / 128) === ch && v.osc) v.osc.detune.setValueAtTime(val * 200, at);
@@ -127,7 +127,7 @@ const SYNTH_FAMILIES = [
 // synthNoteOn starts a note at the audio time at: an oscillator through a
 // low-pass and an envelope (a drum on channel 10); a note already sounding
 // on the key ends first, and past SYNTH_VOICES the oldest gives way.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthNoteOn(sy, ch, note, vel, at) {
   const key = ch * 128 + note, old = sy.voices.get(key);
   if (old) { synthRelease(sy, old, at, 0.01); synthForget(sy, key); }
@@ -161,7 +161,7 @@ function synthNoteOn(sy, ch, note, vel, at) {
 // synthDrum plays a drum: the kick (35, 36) a falling sine, the snares and
 // claps noise through a band-pass, the cymbals and hats high-passed noise,
 // the toms a falling sine pitched by the note.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthDrum(sy, note, amp, at, g) {
   const c = sy.ctx;
   const tom = [41, 43, 45, 47, 48, 50].includes(note);
@@ -188,7 +188,7 @@ function synthDrum(sy, note, amp, at, g) {
 }
 
 // synthNoteOff ends a note (held on while the channel's sustain is down).
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthNoteOff(sy, ch, note, at) {
   const key = ch * 128 + note, v = sy.voices.get(key);
   if (!v) return;
@@ -199,7 +199,7 @@ function synthNoteOff(sy, ch, note, at) {
 
 // synthForget drops a voice ended from the voices and their order (a key is
 // in the order once, as long as its voice sounds).
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthForget(sy, key) {
   sy.voices.delete(key);
   const i = sy.order.indexOf(key);
@@ -207,7 +207,7 @@ function synthForget(sy, key) {
 }
 
 // synthRelease fades a voice out from at over rel seconds and stops it.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthRelease(sy, v, at, rel) {
   const t = Math.max(at, sy.ctx.currentTime);
   v.g.gain.cancelScheduledValues(t);
@@ -216,7 +216,7 @@ function synthRelease(sy, v, at, rel) {
 }
 
 // synthVolume sets the master gain (0..1).
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function synthVolume(sy, g) {
   sy.gain = g;
   if (sy.out) sy.out.gain.value = g;

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -193,7 +193,7 @@ var edgeThrDecs = map[string]func(thr, thrB float64) (edgeDec, sampleDec){
 // and apart, on each protocol's dense traffic and windows cut anywhere in
 // it: the decoders read digital lines' edges by their samples (roundUps,
 // nthNear) where they lie a share of a sample from them.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestEdgeDecodersMatchSamplesAtThresholds(t *testing.T) {
 	names := make([]string, 0, len(edgeThrDecs))
 	for n := range edgeThrDecs {

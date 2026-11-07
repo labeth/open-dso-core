@@ -12,7 +12,7 @@
 //   - taken over: the vendor app has been stopped at an idle landing and
 //     killed; the agent pets the watchdog and supervises the app slots.
 //
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 package agent
 
 import (
@@ -39,7 +39,7 @@ const (
 
 // Agent is the supervisor process: one per device, created by New and
 // driven by Run until Stop.
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 type Agent struct {
 	cfg     *config.Config
 	board   Board
@@ -85,7 +85,7 @@ type Agent struct {
 	tcpAddr string
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 type appState struct {
 	Running   bool   `json:"running"`
 	Adopted   bool   `json:"adopted"` // orphan from a previous agent generation
@@ -98,7 +98,7 @@ type appState struct {
 }
 
 // ctlOp is a control request to the supervisor.
-// TRLC-LINKS: REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-117
 type ctlOp string
 
 // The supervisor's control requests: stop pauses it (terminating the app),
@@ -109,7 +109,7 @@ const (
 	opRestart ctlOp = "restart"
 )
 
-// TRLC-LINKS: REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-117
 type ctlMsg struct {
 	op    ctlOp
 	reply chan error
@@ -119,7 +119,7 @@ type ctlMsg struct {
 // state; the app slots are the board's SlotsDir. version is the build's
 // identity line, reported in status, discovery and the online event. It
 // starts nothing; Run does.
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func New(cfg *config.Config, board Board, version string) *Agent {
 	a := &Agent{
 		cfg:     cfg,
@@ -141,7 +141,7 @@ func New(cfg *config.Config, board Board, version string) *Agent {
 }
 
 // Run starts everything and blocks until Stop.
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func (a *Agent) Run() error {
 	if err := a.store.Init(); err != nil {
 		a.log.Printf("slot store init: %v (continuing)", err)
@@ -200,7 +200,7 @@ func (a *Agent) Run() error {
 // Stop performs the clean-shutdown path: disarm the watchdog with the magic
 // byte so the driver doesn't reset while the respawn loop restarts us. The
 // app (if any) is left running — the next agent generation adopts it.
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func (a *Agent) Stop() {
 	select {
 	case <-a.stopped:
@@ -212,7 +212,7 @@ func (a *Agent) Stop() {
 }
 
 // newKeeper is the keeper of the board's watchdog, if it has one.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func newKeeper(b hal.SupervisorBoard) *watchdog.Keeper {
 	if wd, ok := b.Watchdog(); ok {
 		return watchdog.NewKeeper(wd)
@@ -221,20 +221,20 @@ func newKeeper(b hal.SupervisorBoard) *watchdog.Keeper {
 }
 
 // TakenOver reports the persisted taken_over state.
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 func (a *Agent) TakenOver() bool { return a.st.get().TakenOver }
 
 // Watchdog reports the watchdog keeper's state.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (a *Agent) Watchdog() watchdog.Status { return a.wd.Status() }
 
 // DisarmWatchdog stops petting and disarms the watchdog.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (a *Agent) DisarmWatchdog() { a.wd.Disarm() }
 
 // boardHeartbeat calls the board's Heartbeat every heartbeat interval, for a
 // board whose platform expects one; a failure is logged when it changes.
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func (a *Agent) boardHeartbeat() {
 	t := time.NewTicker(a.cfg.HBInterval)
 	defer t.Stop()
@@ -256,19 +256,19 @@ func (a *Agent) boardHeartbeat() {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func (a *Agent) pidPath(name string) string {
 	return filepath.Join(a.cfg.HealthDir, name)
 }
 
 // AgentSlot reports which A/B agent binary this process is (or "?" off-slot).
-// TRLC-LINKS: REQ-SDS-114
+// TRLC-LINKS: REQ-DSO-114
 func (a *Agent) AgentSlot() string {
 	a.slotOnce.Do(func() { a.slot = a.findSlot() })
 	return a.slot
 }
 
-// TRLC-LINKS: REQ-SDS-114
+// TRLC-LINKS: REQ-DSO-114
 func (a *Agent) findSlot() string {
 	exe, err := os.Executable()
 	if err != nil {
@@ -283,7 +283,7 @@ func (a *Agent) findSlot() string {
 	return "?"
 }
 
-// TRLC-LINKS: REQ-SDS-123
+// TRLC-LINKS: REQ-DSO-123
 func (a *Agent) event(kind string, detail map[string]any) {
 	a.log.Printf("event %s: %v", kind, detail)
 	a.eventMu.Lock()
@@ -294,7 +294,7 @@ func (a *Agent) event(kind string, detail map[string]any) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-123
+// TRLC-LINKS: REQ-DSO-123
 func (a *Agent) setEventFn(fn func(string, map[string]any)) {
 	a.eventMu.Lock()
 	a.eventFn = fn
@@ -303,7 +303,7 @@ func (a *Agent) setEventFn(fn func(string, map[string]any)) {
 
 // keepWatchdog runs acquireWatchdogForever and logs why it gave up (only an
 // agent stop ends it).
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func (a *Agent) keepWatchdog() {
 	if err := a.acquireWatchdogForever(); err != nil {
 		a.log.Printf("watchdog: %v", err)
@@ -314,7 +314,7 @@ func (a *Agent) keepWatchdog() {
 // takeover (or on restart in the taken-over state). Failure to acquire while
 // the vendor app is dead means a warm reset in ~60 s on a scope with a
 // watchdog, so never give up; a board without one has nothing to acquire.
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func (a *Agent) acquireWatchdogForever() error {
 	for i := 0; ; i++ {
 		err := a.wd.Acquire(15*time.Second, a.cfg.WdPet)
@@ -336,7 +336,7 @@ func (a *Agent) acquireWatchdogForever() error {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-114
+// TRLC-LINKS: REQ-DSO-114
 type statusDoc struct {
 	Device       string          `json:"device"`
 	Version      string          `json:"version"`
@@ -353,7 +353,7 @@ type statusDoc struct {
 	TimeUnix     int64           `json:"time_unix"`
 }
 
-// TRLC-LINKS: REQ-SDS-114
+// TRLC-LINKS: REQ-DSO-114
 func (a *Agent) status() statusDoc {
 	st := a.st.get()
 	a.appMu.Lock()

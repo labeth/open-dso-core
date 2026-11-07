@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -8,7 +8,7 @@ package decode
 // most of the time is cut to its bursts first (activeBlocks). It keeps
 // about ten samples on the shortest real pulse of either channel and returns
 // the result with the sample time it was decoded at (colTimeS × stride).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func AutodetectFast(c1, c2 []uint8, colTimeS float64, format string) (Result, float64) {
 	c1, c2 = quietFlat(c1), quietFlat(c2)
 	if keep := activeBlocks(c1, c2); keep != nil {
@@ -34,7 +34,7 @@ func AutodetectFast(c1, c2 []uint8, colTimeS float64, format string) (Result, fl
 // noise spikes, a sample or two a burst, picked by the stride or kept by the
 // cut to bursts, read as a level of their own and made a quiet probe beside
 // a 1-Wire line the data of an SPI bus.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func quietFlat(c []uint8) []uint8 {
 	if c == nil {
 		return nil
@@ -62,7 +62,7 @@ const autoEdgeBudget = 20000
 // budgetEnd is the length of the record from its start in which no channel
 // has more than budget crossings (shortestPulse's), the whole record when
 // none has.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func budgetEnd(c1, c2 []uint8, budget int) int {
 	n := len(c1)
 	for _, c := range [][]uint8{c1, c2} {
@@ -78,7 +78,7 @@ func budgetEnd(c1, c2 []uint8, budget int) int {
 // crossingsEnd is the index at which channel c makes its budget-th crossing
 // of its mid level (hysteresis a tenth of its swing, the new level held
 // three samples, as shortestPulse), or len(c).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func crossingsEnd(c []uint8, budget int) int {
 	if len(c) < 64 {
 		return len(c)
@@ -145,7 +145,7 @@ func crossingsEnd(c []uint8, budget int) int {
 
 // autodetectStrided is AutodetectFast on the record as given, from its start
 // to where its busiest channel spends autoEdgeBudget crossings.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func autodetectStrided(c1, c2 []uint8, colTimeS float64, format string) (Result, float64) {
 	if n := budgetEnd(c1, c2, autoEdgeBudget); n < len(c1) {
 		c1 = c1[:n]
@@ -184,7 +184,7 @@ const (
 // millisecond at 2 ns holds its low level on a tenth of a percent of the
 // samples, under the decoders' histogram noise floor (no active signal).
 // It returns the kept blocks' starts, nil to keep the whole record.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func activeBlocks(c1, c2 []uint8) []int {
 	n := len(c1)
 	if n < 32*activeBlock || (c2 != nil && len(c2) != n) {
@@ -239,7 +239,7 @@ func activeBlocks(c1, c2 []uint8) []int {
 }
 
 // compact is the record's kept blocks (activeBlocks) end to end.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func compact(c []uint8, keep []int) []uint8 {
 	if c == nil {
 		return nil
@@ -252,7 +252,7 @@ func compact(c []uint8, keep []int) []uint8 {
 }
 
 // uncompact maps a sample index of a compacted record back to the record's.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func uncompact(i int, keep []int) int {
 	b := min(max(i/activeBlock, 0), len(keep)-1)
 	return keep[b] + i - b*activeBlock
@@ -260,7 +260,7 @@ func uncompact(i int, keep []int) int {
 
 // autoStride is how many samples AutodetectFast may skip: a tenth of the
 // shortest pulse on either channel, ignoring glitches of two samples or less.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func autoStride(c1, c2 []uint8) int {
 	minRun := 0
 	for _, c := range [][]uint8{c1, c2} {
@@ -274,7 +274,7 @@ func autoStride(c1, c2 []uint8) int {
 // shortestPulse is the shortest run between threshold crossings of a
 // two-level signal (hysteresis a tenth of its swing, crossings held three
 // samples), or 0 when the channel has no swing or too few crossings.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func shortestPulse(c []uint8) int {
 	if len(c) < 64 {
 		return 0

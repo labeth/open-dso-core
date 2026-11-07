@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-UI
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_ui.js — the workspace layout's UI primitives: segmented controls that
 // behave like a <select>, mirrors (a second live view of one control, so the
 // strip, a pane and All settings can show the same setting without a second
@@ -12,16 +12,16 @@
 // an option set it and fire a bubbling "change", so `el.onchange = …` handlers
 // written for a <select> keep working. Left/Right move the choice like a radio
 // group. The options are radio buttons inside a radiogroup for assistive tech.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function segInit(el) {
   if (!el || el._seg) return;
   el._seg = true;
   if (!el.getAttribute("role")) el.setAttribute("role", "radiogroup");
   let cur = el.dataset.value != null ? String(el.dataset.value) : null;
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const opts = () => el.querySelectorAll(":scope > button[data-value]");
   for (const b of opts()) { b.type = "button"; b.setAttribute("role", "radio"); }
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const paint = () => {
     for (const b of opts()) {
       const on = b.dataset.value === cur;
@@ -32,12 +32,12 @@ function segInit(el) {
   };
   Object.defineProperty(el, "value", {
     configurable: true,
-    // TRLC-LINKS: REQ-SDS-219
+    // TRLC-LINKS: REQ-DSO-219
     get() { return cur; },
-    // TRLC-LINKS: REQ-SDS-219
+    // TRLC-LINKS: REQ-DSO-219
     set(v) { cur = v == null ? null : String(v); paint(); },
   });
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const pick = (b) => {
     if (!b || b.disabled) return;
     const changed = b.dataset.value !== cur;
@@ -62,7 +62,7 @@ function segInit(el) {
 
 // segNext moves a seg to its next option (wrapping) as a user choice — the
 // keyboard shortcuts that toggle a two-way setting (AUTO/NORM, C1/C2, slope).
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function segNext(el) {
   const list = [...el.querySelectorAll(":scope > button[data-value]")].filter((b) => !b.disabled);
   if (!list.length) return;
@@ -73,7 +73,7 @@ function segNext(el) {
 // setFromStatus writes an instrument-status value into a control unless the
 // user is editing it (focused select/input) or changed it in the last 1.5 s: a
 // status reply that left the device before the change would flip it back.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function setFromStatus(el, v) {
   if (!el || v === undefined || v === null) return;
   if (document.activeElement === el) return;
@@ -91,7 +91,7 @@ function setFromStatus(el, v) {
 const MIRRORS = [];
 let mirrorRaf = 0;
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function mirrorOf(src, opts) {
   opts = opts || {};
   if (typeof src === "string") src = document.getElementById(src);
@@ -167,7 +167,7 @@ function mirrorOf(src, opts) {
   return m;
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function mirrorSync(r) {
   const { m, src, kind } = r;
   if (!src.isConnected) return;
@@ -207,14 +207,14 @@ function mirrorSync(r) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function syncMirrors() { mirrorRaf = 0; for (const r of MIRRORS) mirrorSync(r); }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function kickMirrors() { if (!mirrorRaf) mirrorRaf = requestAnimationFrame(syncMirrors); }
 
 // mirrorInit replaces every <span class="mirror" data-src="id" [data-label]>
 // placeholder in the page with a mirror of that control.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function mirrorInit(root) {
   for (const ph of (root || document).querySelectorAll("span.mirror[data-src]")) {
     const m = mirrorOf(ph.dataset.src, { label: ph.dataset.label, ariaLabel: ph.dataset.aria });
@@ -228,7 +228,7 @@ for (const t of ["click", "change", "input", "keyup"]) document.addEventListener
 
 // ---- popovers -------------------------------------------------------------------
 let popOpenEl = null, popAnchor = null;
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function popClose() {
   if (!popOpenEl) return;
   popOpenEl.hidden = true;
@@ -237,7 +237,7 @@ function popClose() {
   popOpenEl = null; popAnchor = null;
   return back;
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function popToggle(pop, anchor) {
   if (popOpenEl === pop) { popClose(); return; }
   popClose();
@@ -259,7 +259,7 @@ document.addEventListener("pointerdown", (ev) => {
 let toastT = 0;
 // toast shows a one-line notice at the bottom of the workspace for a few seconds
 // (kind "warn" or "err" tints it). It is also an aria-live announcement.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function toast(msg, kind) {
   const el = $("toast");
   if (!el) return;
@@ -274,7 +274,7 @@ function toast(msg, kind) {
 // fitCanvas sizes a card canvas's backing store to its CSS box × devicePixelRatio
 // (pane resizes change the box). Returns false while it is not laid out (hidden),
 // so the caller skips drawing instead of rendering into a 0×0 store.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function fitCanvas(cv) {
   if (!cv) return false;
   const r = cv.getBoundingClientRect();
@@ -288,7 +288,7 @@ function fitCanvas(cv) {
 
 // The time/div and V/div selects step like the scope's knobs and the plot's
 // wheel: wheel up = a bigger trace (faster timebase, more sensitive scale).
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function knobWheel(el, step) {
   el.addEventListener("wheel", (ev) => {
     const d = ev.deltaY || ev.deltaX;
@@ -298,7 +298,7 @@ function knobWheel(el, step) {
   }, { passive: false });
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function stepSelect(sel, dir, control) {
   if (!sel || !sel.options.length) return;
   const i = Math.max(0, Math.min(sel.options.length - 1, sel.selectedIndex + dir));

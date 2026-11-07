@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestOracleSDCard(t *testing.T) {
 	const sr = 4000000
 	const per = 4e-6
@@ -77,7 +77,7 @@ func TestOracleSDCard(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestOraclePDI(t *testing.T) {
 	const sr = 2000000
 	const per = 4e-6
@@ -166,7 +166,7 @@ func TestOraclePDI(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestOracleCJTAG(t *testing.T) {
 	needSigrokPD(t, "cjtag")
 	const sr = 2000000
@@ -208,7 +208,7 @@ func TestOracleCJTAG(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestOracleMaple(t *testing.T) {
 	const sr = 20000000
 	m := &mapleLine{l: newTwoLine(sr), st: 250e-9}
@@ -254,7 +254,7 @@ func TestOracleMaple(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestOracleCaliper(t *testing.T) {
 	needSigrokPD(t, "caliper")
 	const sr = 1000000

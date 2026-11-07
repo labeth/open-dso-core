@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 // ejparity.cjs - replays the eye/jitter parity vectors through the web engine
 // (internal/web/eyejitter.js) for TestEyeJitterJSParity in eyejitter_node_test.go.
 // Usage: node ejparity.cjs <vectors.json> <web dir>. Prints one JSON result per
@@ -16,10 +16,10 @@ if (!vecPath || !webDir) {
 const EJ = require(path.resolve(webDir, "eyejitter.js"));
 const vecs = JSON.parse(fs.readFileSync(vecPath, "utf8"));
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 const num = (v) => (v === undefined || !Number.isFinite(v) ? null : v);
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 function run(v) {
   const st = EJ.ejNew(v.opts || {});
   const status = v.records.map((r) => EJ.ejFeed(st, Float64Array.from(r), r.length, v.sampleS));

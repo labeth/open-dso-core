@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -10,30 +10,30 @@ import "math"
 // optional ringing, sampled at integer sample times.
 
 // rng is a 64-bit LCG with a Box-Muller Gaussian (deterministic per seed).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type rng struct{ s uint64 }
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (r *rng) uniform() float64 {
 	r.s = r.s*6364136223846793005 + 1442695040888963407
 	return float64(r.s>>11) / (1 << 53)
 }
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (r *rng) gauss() float64 {
 	u := math.Max(r.uniform(), 1e-300)
 	return math.Sqrt(-2*math.Log(u)) * math.Cos(2*math.Pi*r.uniform())
 }
 
 // edgeAt is one transition of a waveform at sample time t; up is its direction.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type edgeAt struct {
 	t  float64
 	up bool
 }
 
 // wave describes how edges become samples.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type wave struct {
 	n         int     // samples
 	lo, hi    float64 // levels (codes)
@@ -49,7 +49,7 @@ type wave struct {
 }
 
 // render samples the waveform for an edge list.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (w wave) render(edges []edgeAt) []float64 {
 	r := rng{s: w.seed*0x9e3779b97f4a7c15 + 1}
 	k := w.rise / 4.394 // a logistic's 10-90 % time is 2 ln 9 k
@@ -98,7 +98,7 @@ func (w wave) render(edges []edgeAt) []float64 {
 }
 
 // prbs7 is the PRBS7 bit stream (x^7 + x^6 + 1) from the all-ones state.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func prbs7(nbits int) []int {
 	s := 0x7f
 	bits := make([]int, nbits)
@@ -112,7 +112,7 @@ func prbs7(nbits int) []int {
 
 // nrzEdges places the transitions of a bit stream on a grid of ui samples
 // starting at phase, each moved by tie(k) samples (k = the bit it starts).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func nrzEdges(bits []int, ui, phase float64, tie func(k int) float64) []edgeAt {
 	var out []edgeAt
 	for k := 1; k < len(bits); k++ {
@@ -129,7 +129,7 @@ func nrzEdges(bits []int, ui, phase float64, tie func(k int) float64) []edgeAt {
 
 // uartBits is the 8N1 bit stream of bytes, LSB first, each frame followed by
 // idle[f % len(idle)] stop-level bits (none when idle is empty).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func uartBits(bytes []byte, idle []int) []int {
 	bits := []int{1, 1}
 	for f, b := range bytes {
@@ -150,7 +150,7 @@ func uartBits(bytes []byte, idle []int) []int {
 // asyncUART places messages of back-to-back 8N1 frames at arbitrary
 // (non-integer) times: each message starts gap[m] samples after the last one
 // ended, so the bit grid restarts with every message, as on a real UART.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func asyncUART(msgs [][]byte, ui, start float64, gaps []float64) []edgeAt {
 	var out []edgeAt
 	t := start

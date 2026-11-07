@@ -1,8 +1,8 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
-// The COMPARE workspace's figures (REQ-SDS-218): the live trace against a
+// The COMPARE workspace's figures (REQ-DSO-218): the live trace against a
 // stored reference, and the repeat test that refuses a master from a trigger
 // source that does not repeat. Records are in divisions and aligned sample by
 // sample (the same time from the trigger at the same index); NaN marks a gap,
@@ -14,7 +14,7 @@ import "math"
 // skipping gaps: the largest |live - ref|, the RMS difference, and the share
 // of samples within +-tolDiv, in percent. All three are NaN when no sample
 // pair is comparable.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func RefDiff(live, ref []float64, tolDiv float64) (maxAbs, rms, pctWithin float64) {
 	if !(tolDiv >= 0) {
 		tolDiv = 0
@@ -55,7 +55,7 @@ func RefDiff(live, ref []float64, tolDiv float64) (maxAbs, rms, pctWithin float6
 // one whose band window touches a gap, is not judged (a transition may hide
 // there); captures of different lengths or without a judged column do not
 // repeat. A master averaged from captures that fail this is a smear.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func RepeatsBand(prevLo, prevHi, curLo, curHi []float64, tolDiv float64, slack int) bool {
 	n := len(curLo)
 	if n == 0 || len(curHi) != n || len(prevLo) != n || len(prevHi) != n || !(tolDiv >= 0) {
@@ -77,7 +77,7 @@ func RepeatsBand(prevLo, prevHi, curLo, curHi []float64, tolDiv float64, slack i
 // within tests every sample of x against the sliding min of envLo and max of
 // envHi over +-slack samples, dilated by tol. It returns the number of samples
 // tested, or -1 at the first one outside.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func within(x, envLo, envHi []float64, tol float64, slack int) int {
 	n := len(envLo)
 	// monotonic deques of indices into the envelopes: front = the window's min / max

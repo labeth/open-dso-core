@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-FRAMECALC
 
 package framecalc
 
@@ -9,7 +9,7 @@ import (
 )
 
 // fftRef is FFT as first written: the oracle the faster one matches bit for bit.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func fftRef(re, im []float64) {
 	n := len(re)
 	for i, j := 1, 0; i < n; i++ {
@@ -42,7 +42,7 @@ func fftRef(re, im []float64) {
 }
 
 // FFT gives exactly the first version's results.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func TestFFTIsTheReference(t *testing.T) {
 	r := rand.New(rand.NewSource(9))
 	for _, n := range []int{2, 4, 16, 256, 4096} {
@@ -61,7 +61,7 @@ func TestFFTIsTheReference(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func BenchmarkMags8192(b *testing.B) {
 	r := rand.New(rand.NewSource(1))
 	s := make([]float64, 8192)
@@ -73,7 +73,7 @@ func BenchmarkMags8192(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func benchFFT(b *testing.B, fft func(re, im []float64)) {
 	b.Helper()
 	r := rand.New(rand.NewSource(1))
@@ -89,15 +89,15 @@ func benchFFT(b *testing.B, fft func(re, im []float64)) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func BenchmarkFFT4096(b *testing.B) { benchFFT(b, FFT) }
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func BenchmarkFFT4096Ref(b *testing.B) { benchFFT(b, fftRef) }
 
 // Log10 is math.Log10 to a few units in the last place over the spectrum's
 // range of levels, and math.Log10 itself where it is not a positive normal.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func TestLog10(t *testing.T) {
 	r := rand.New(rand.NewSource(10))
 	worst := 0.0
@@ -121,7 +121,7 @@ func TestLog10(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func BenchmarkLog10(b *testing.B) {
 	x := make([]float64, 4096)
 	for i := range x {
@@ -136,7 +136,7 @@ func BenchmarkLog10(b *testing.B) {
 	sinkLog = s
 }
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func BenchmarkMathLog10(b *testing.B) {
 	x := make([]float64, 4096)
 	for i := range x {

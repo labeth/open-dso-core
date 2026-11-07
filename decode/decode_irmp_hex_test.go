@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -8,7 +8,7 @@ import (
 )
 
 // labelHex reads as fmt's "%s%X", negative values included.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func TestLabelHexMatchesFmt(t *testing.T) {
 	for _, v := range []int{0, 1, 0xa, 0xff, 0x1fff, 0xabcdef, -1, -0x2b, 1<<31 - 1} {
 		for _, l := range []string{"", "A", "@", "CMD "} {
@@ -21,7 +21,7 @@ func TestLabelHexMatchesFmt(t *testing.T) {
 
 // A Denon pair's length moves with its bits: the longest (every bit a 1)
 // still lies within MessageMaxS, which only the pair protocol names.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func TestDenonMessageMax(t *testing.T) {
 	const sr = 200000
 	w := irOracleLine(sr, func(l irLine) {

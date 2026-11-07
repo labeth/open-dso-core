@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -42,11 +42,11 @@ var colChans = func() (cs []Color) {
 
 // chanColor is channel ch's trace colour; past the palette's channel
 // tokens the colours repeat.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func chanColor(ch int) Color { return colChans[ch%len(colChans)] }
 
 // chanName is channel ch's name, C1 first.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func chanName(ch int) string {
 	if ch >= 0 && ch < MaxChans {
 		return chanNames[ch]
@@ -65,7 +65,7 @@ var chanNames = func() (n [MaxChans]string) {
 
 // tok is the shared palette's colour of that name. A name the
 // palette lacks is a programming error, caught at start and by the tests.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func tok(name string) Color {
 	c, ok := design.Tokens[name]
 	if !ok {

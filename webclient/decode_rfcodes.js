@@ -1,11 +1,11 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // decode_rfcodes.js — remote-control encoders, Oregon Scientific OOK, Miller
 // coding, Morse code and DCF77, a classic script mirroring decode_rfcodes.go
 // step for step. Uses sliceChannel, hex2 and fail from decode.js and
 // levelRuns/pspan from decode_pulsewire.js.
 
 // activeMarks mirrors decode_rfcodes.go activeMarks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function activeMarks(S) {
   const runs = levelRuns(S);
   let longest = -1, idle = 0;
@@ -21,11 +21,11 @@ function activeMarks(S) {
 }
 
 // markLead mirrors decode_rfcodes.go lead.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function markLead(m, i) { return i === 0 ? m[0].x0 : m[i - 1].gap; }
 
 // quantile mirrors decode_rfcodes.go quantile.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function quantile(v, q) {
   if (!v.length) return 0;
   const c = Float64Array.from(v).sort(); // numeric without a comparator call
@@ -33,11 +33,11 @@ function quantile(v, q) {
 }
 
 // rcTrit mirrors decode_rfcodes.go rcTrit.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function rcTrit(e) {
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
   const long = (l, s) => l >= 2 * s && l <= 5 * s;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
   const eq = (a, b) => a >= 0.5 * b && a <= 1.5 * b;
   if (long(e[1], e[0]) && eq(e[2], e[0]) && long(e[3], e[0])) return 0;
   if (long(e[0], e[1]) && eq(e[0], e[2]) && long(e[0], e[3])) return 1;
@@ -46,7 +46,7 @@ function rcTrit(e) {
 }
 
 // rcBit mirrors decode_rfcodes.go rcBit.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function rcBit(h, l) {
   if (l >= 1.5 * h && l <= 5 * h) return 0;
   if (h >= 1.5 * l && h <= 5 * l) return 1;
@@ -54,7 +54,7 @@ function rcBit(h, l) {
 }
 
 // decodeRCEncode mirrors decode_rfcodes.go DecodeRCEncode.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function decodeRCEncode(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -123,7 +123,7 @@ function decodeRCEncode(codes, colTimeS, cfg) {
 }
 
 // manchesterHalves mirrors decode_rfcodes.go manchesterHalves.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function manchesterHalves(runs, k, hp) {
   const lv = [], xs = [];
   for (; k < runs.length; k++) {
@@ -137,7 +137,7 @@ function manchesterHalves(runs, k, hp) {
 }
 
 // shortestRunCluster mirrors decode_rfcodes.go shortestRunCluster.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function shortestRunCluster(runs) {
   let minR = Infinity;
   for (const r of runs) if (!r.open && r.x1 - r.x0 < minR) minR = r.x1 - r.x0;
@@ -147,7 +147,7 @@ function shortestRunCluster(runs) {
 }
 
 // oregonChecksum mirrors decode_rfcodes.go oregonChecksum.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function oregonChecksum(nib, ver) {
   for (const at of [nib.length - 2, nib.length - 4]) {
     if (at < 8) continue;
@@ -160,7 +160,7 @@ function oregonChecksum(nib, ver) {
 }
 
 // decodeOOK mirrors decode_rfcodes.go DecodeOOK.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function decodeOOK(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -242,7 +242,7 @@ function decodeOOK(codes, colTimeS, cfg) {
 }
 
 // decodeMiller mirrors decode_rfcodes.go DecodeMiller.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function decodeMiller(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -336,7 +336,7 @@ const MORSE_CODE = { ".-": "A", "-...": "B", "-.-.": "C", "-..": "D", ".": "E", 
   "-.--.-": ")", "-...-": "=", ".-.-.": "+", ".--.-.": "@" };
 
 // decodeMorse mirrors decode_rfcodes.go DecodeMorse.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function decodeMorse(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -384,7 +384,7 @@ const DCF77_FIELDS = [{ at: 21, w: 7, name: "MIN" }, { at: 29, w: 6, name: "HR" 
   { at: 42, w: 3, name: "DOW" }, { at: 45, w: 5, name: "MON" }, { at: 50, w: 8, name: "YR" }];
 
 // dcf77Second mirrors decode_rfcodes.go dcf77Second.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function dcf77Second(m, colTimeS) {
   const sp = [];
   for (let i = 1; i < m.length; i++) sp.push((m[i].x0 - m[i - 1].x0) * colTimeS);
@@ -394,7 +394,7 @@ function dcf77Second(m, colTimeS) {
 }
 
 // decodeDCF77 mirrors decode_rfcodes.go DecodeDCF77.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 function decodeDCF77(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -402,12 +402,12 @@ function decodeDCF77(codes, colTimeS, cfg) {
   if (!(colTimeS > 0)) return fail("dcf77", "no sample time");
   const { marks: m, high } = activeMarks(S);
   const sec = (cfg.baud | 0) > 0 ? 1 / (cfg.baud | 0) : dcf77Second(m, colTimeS) || 1;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
   const ms = (d) => d * colTimeS * 1e3 / sec;
   const n = S.n, spans = [], toks = [], units = [];
   let good = false, c = -1;
   const bits = new Array(59).fill(0), bx = new Array(60).fill(0);
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
   const unit = (f, par) => {
     const d = DCF77_FIELDS[f];
     let v = 0;
@@ -417,7 +417,7 @@ function decodeDCF77(codes, colTimeS, cfg) {
     spans.push(pspan(bx[d.at], bx[d.at + d.w], n, txt, kind, v));
     toks.push(txt); units.push(v);
   };
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
   const odd = (from, to) => {
     let p = 0;
     for (let q = from; q <= to; q++) p ^= bits[q];

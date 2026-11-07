@@ -56,6 +56,7 @@ type Desc struct {
 }
 
 // Encode is d's 346 descriptor bytes, little-endian.
+// TRLC-LINKS: REQ-DSO-024
 func (d *Desc) Encode() []byte {
 	b := make([]byte, DescSize)
 	le := binary.LittleEndian
@@ -108,6 +109,7 @@ func (d *Desc) Encode() []byte {
 
 // Block9 is payload as an IEEE 488.2 definite block with a nine-digit
 // length: "#9<len>"+payload.
+// TRLC-LINKS: REQ-DSO-024
 func Block9(prefix string, payload []byte) []byte {
 	n := strconv.Itoa(len(payload))
 	out := make([]byte, 0, len(prefix)+11+len(payload))
@@ -122,6 +124,7 @@ func Block9(prefix string, payload []byte) []byte {
 
 // Block is payload as a definite block with the shortest length field:
 // "#<digits><len>"+payload.
+// TRLC-LINKS: REQ-DSO-024
 func Block(prefix string, payload []byte) []byte {
 	n := strconv.Itoa(len(payload))
 	out := make([]byte, 0, len(prefix)+2+len(n)+len(payload))
@@ -140,6 +143,7 @@ type Window struct {
 
 // Span is the window over a record of n points: the first index, the step
 // and the count. ok is false when First is past the record.
+// TRLC-LINKS: REQ-DSO-024
 func (w Window) Span(n int) (first, step, count int, ok bool) {
 	if w.First < 0 || w.First >= n {
 		return 0, 0, 0, false
@@ -158,6 +162,7 @@ func (w Window) Span(n int) (first, step, count int, ok bool) {
 
 // Signed8 writes count codes of src from first, every step-th, as signed
 // bytes about the 8-bit centre 128 (the code XOR 0x80).
+// TRLC-LINKS: REQ-DSO-024
 func Signed8(src []uint8, first, step, count int) []byte {
 	out := make([]byte, count)
 	for i := range out {
@@ -168,6 +173,7 @@ func Signed8(src []uint8, first, step, count int) []byte {
 
 // Signed16 writes count words of src from first, every step-th, as signed
 // 16-bit values about the centre 0x8000, in the byte order given.
+// TRLC-LINKS: REQ-DSO-024
 func Signed16(src []uint16, first, step, count int, msbFirst bool) []byte {
 	out := make([]byte, 2*count)
 	for i := range count {
@@ -183,6 +189,7 @@ func Signed16(src []uint16, first, step, count int, msbFirst bool) []byte {
 
 // High8 writes count words of src from first, every step-th, as the signed
 // byte of their high half about 0x80.
+// TRLC-LINKS: REQ-DSO-024
 func High8(src []uint16, first, step, count int) []byte {
 	out := make([]byte, count)
 	for i := range out {

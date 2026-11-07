@@ -22,6 +22,7 @@ type Pattern struct {
 
 // CompilePattern compiles a libscpi-style pattern: "[...]" optional nodes, '#' numeric
 // suffix, short form = the upper-case prefix (plus trailing digits) of each node.
+// TRLC-LINKS: REQ-DSO-024
 func CompilePattern(p string) Pattern {
 	cp := Pattern{Text: p}
 	s := p
@@ -62,6 +63,7 @@ func CompilePattern(p string) Pattern {
 	return cp
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func makeNode(m string, optional bool) node {
 	n := node{optional: optional}
 	if strings.HasSuffix(m, "#") {
@@ -88,6 +90,7 @@ func makeNode(m string, optional bool) node {
 
 // Match matches an input header (without parameters) against the pattern. It returns the
 // numeric suffixes found (one per '#' node, default 1) and whether it matched.
+// TRLC-LINKS: REQ-DSO-024
 func (p *Pattern) Match(header string) ([]int, bool) {
 	h := header
 	q := strings.HasSuffix(h, "?")
@@ -112,6 +115,7 @@ func (p *Pattern) Match(header string) ([]int, bool) {
 	return nil, false
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func matchNodes(nodes []node, parts []string, suf *[]int) bool {
 	if len(nodes) == 0 {
 		return len(parts) == 0
@@ -142,6 +146,7 @@ func matchNodes(nodes []node, parts []string, suf *[]int) bool {
 	return false
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func matchNode(n node, tok string) (int, bool) {
 	if !n.suffix {
 		return 0, tok == n.long || tok == n.short
@@ -166,6 +171,7 @@ func matchNode(n node, tok string) (int, bool) {
 
 // MatchChoice matches a character-data token against a choice pattern such as "ONEMeg"
 // (short form = upper-case prefix, long form = whole word), case-insensitive.
+// TRLC-LINKS: REQ-DSO-024
 func MatchChoice(pattern, tok string) bool {
 	n := makeNode(pattern, false)
 	t := strings.ToUpper(tok)

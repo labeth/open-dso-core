@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -56,7 +56,7 @@ var protoDecoders = []struct {
 // ramp, a bursty walk, a two-level random line), degenerate sample times
 // and a missing second line, and truncated and spliced copies of their own
 // frames: none may panic or take over two seconds.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeFuzzBeyondTen(t *testing.T) {
 	rng := rand.New(rand.NewSource(int64(1618 + fuzzKnob("DECODE_FUZZ_SEED", 0))))
 	frames := protoDetectCases()
@@ -122,7 +122,7 @@ func TestDecodeFuzzBeyondTen(t *testing.T) {
 // TestBreakProtoNoFalseFrames: the checked protocols name no frame on lines
 // that carry none (noise, a square wave, a random two-level line at many
 // rates): a frame is OK only on its CRC, checksum, parities or inverse.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakProtoNoFalseFrames(t *testing.T) {
 	rng := rand.New(rand.NewSource(99))
 	checked := map[string]bool{
@@ -159,7 +159,7 @@ func TestBreakProtoNoFalseFrames(t *testing.T) {
 
 // TestBreakProtoChecksFlagged: each check flags its broken frame, and the
 // decode is not OK on that frame alone.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakProtoChecksFlagged(t *testing.T) {
 	type tc struct {
 		name string
@@ -244,7 +244,7 @@ func TestBreakProtoChecksFlagged(t *testing.T) {
 // TestBreakProtoRecordEnds: a frame cut by the record's end at every point
 // never decodes to more units than the whole frame holds, nor to units the
 // frame does not hold.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakProtoRecordEnds(t *testing.T) {
 	for _, c := range protoDetectCases() {
 		if c.chA != 0 || c.c2 != nil && c.name != "" && strings.HasSuffix(c.name, "swapped") {

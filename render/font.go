@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -8,7 +8,7 @@ import "github.com/labeth/open-dso-core/design"
 var glyphs = design.Glyphs
 
 // TextWidth is len(runes) × 6 × scale.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TextWidth(s string, scale int) int {
 	n := 0
 	for range s {
@@ -20,7 +20,7 @@ func TextWidth(s string, scale int) int {
 // DrawText renders each set bit as a scale×scale block; advance 6·scale.
 // Bit 7 is a descender row: g, j, p, q and y drop below the baseline, so g
 // does not read as 9 ("Sp9m", "phase de9").
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func DrawText(sf Canvas, x, y int, s string, c Color, scale int) {
 	switch m := sf.(type) {
 	case *Image565:
@@ -34,7 +34,7 @@ func DrawText(sf Canvas, x, y int, s string, c Color, scale int) {
 
 // textPx is DrawText on a w×h page of pixels px, n being c in its format;
 // glyphs off the page, or every glyph without pixels, go through sf.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func textPx[P pixel](sf Canvas, px []P, w, h, x, y int, s string, n P, c Color, scale int) {
 	mem := px != nil
 	for _, r := range s {
@@ -63,7 +63,7 @@ func textPx[P pixel](sf Canvas, px []P, w, h, x, y int, s string, n P, c Color, 
 
 // glyphPx writes a glyph at scale 1 into a page w pixels wide from offset o
 // (its top-left pixel): one pixel a set bit, a column at a time.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func glyphPx[P pixel](px []P, w, o int, g *[5]byte, c P) {
 	for col := range 5 {
 		p := o + col
@@ -78,7 +78,7 @@ func glyphPx[P pixel](px []P, w, o int, g *[5]byte, c P) {
 
 // glyphPix writes a scaled glyph whose box is on a page w pixels wide
 // straight into its pixels, as SetPixel would write them.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func glyphPix[P pixel](px []P, w, x, y int, g *[5]byte, scale int, c P) {
 	for col := range 5 {
 		bits := g[col]
@@ -97,7 +97,7 @@ func glyphPix[P pixel](px []P, w, x, y int, g *[5]byte, scale int, c P) {
 }
 
 // glyphAt draws a glyph pixel by pixel through the surface, clipped by it.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func glyphAt(sf Canvas, x, y int, g *[5]byte, scale int, c Color) {
 	for col := range 5 {
 		bits := g[col]
@@ -126,7 +126,7 @@ var asciiGlyphs, asciiHave = func() (g [128][5]byte, have [128]bool) {
 }()
 
 // DrawTextRight right-aligns: draws ending at xr.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func DrawTextRight(sf Canvas, xr, y int, s string, c Color, scale int) {
 	DrawText(sf, xr-TextWidth(s, scale), y, s, c, scale)
 }

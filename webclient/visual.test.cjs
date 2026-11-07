@@ -1,5 +1,5 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
-// TRLC-LINKS: REQ-SDS-278, REQ-SDS-279, REQ-SDS-280
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
+// TRLC-LINKS: REQ-DSO-278, REQ-DSO-279, REQ-DSO-280
 // The BUS Visual view's state (visual.js) and digital audio (audio_decode.js)
 // from the page's own decoders: MIDI and DMX512 as UART waveforms, the scope's
 // recorded PS/2, IR NEC, Wiegand, caliper and USB PD captures, PWM and a
@@ -18,15 +18,15 @@ vm.runInContext(files.map((f) => fs.readFileSync(f, "utf8")).join("\n;\n") + "\n
 const made = [];
 {
   const orig = c.visNew;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   c.visNew = (p) => { const st = orig(p); made.push(st); return st; };
 }
 
 // deq compares by value across the vm's realm (its arrays are not this one's).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function deq(a, b, m) { assert.equal(JSON.stringify(a), JSON.stringify(b), m); }
 
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function capture(name) {
   const d = JSON.parse(zlib.gunzipSync(fs.readFileSync("../decode/testdata/" + name)));
   return { c1: d.C1 || d.c1, c2: d.C2 || d.c2, dt: d.sample_s };
@@ -34,10 +34,10 @@ function capture(name) {
 
 // uartWave is 8N1 (or 8N2) characters at baud sampled every dt, idle high, a
 // break of breakS before each packet when breaks are asked for.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function uartWave(packets, baud, dt, stop, breakS) {
   const out = [], spb = 1 / (baud * dt);
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const level = (v, bits) => { for (let i = 0; i < Math.round(bits * spb); i++) out.push(v ? 230 : 25); };
   level(1, 30);
   for (const p of packets) {
@@ -83,7 +83,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
   assert.equal(s.sc, 0, "start code 0: levels");
   // the rate is the bus's: packets 4.3 ms apart within a capture, captures 80 ms apart
   const q = c.visNew("dmx512");
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const pk = (i0) => [{ i0, i1: i0, kind: "sof", text: "BRK", val: 0 }, { i0, i1: i0, kind: "data", text: "SC00", val: 0 }, { i0, i1: i0, kind: "data", text: "7", val: 7 }];
   for (let cap = 0; cap < 6; cap++) c.visIngest(q, { ok: true, spans: [...pk(0), ...pk(4300), ...pk(8600)] }, cap * 0.08, 1e-6);
   assert.ok(Math.abs(c.dmxRate(q) - 1 / 0.0043) < 1, "233 packets/s, not the capture rate: " + c.dmxRate(q));
@@ -139,7 +139,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 
 // ---- LIN: each identifier's newest response; a failed checksum counts apart
 {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const sp = (kind, text, val) => ({ i0: 0, i1: 1, kind, text, val });
   const s = c.visNew("lin");
   c.visIngest(s, { ok: true, spans: [sp("sof", "BRK", 0), sp("rw", "SYNC", 0x55), sp("data", "ID02", 0xc2), sp("data", "12", 0x12), sp("data", "34", 0x34), sp("data", "CKCB", 0xcb),
@@ -156,7 +156,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 
 // ---- Sony sends the command before the address: the button has both
 {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const sp = (kind, text, val) => ({ i0: 0, i1: 1, kind, text, val });
   const s = c.visNew("irsirc");
   c.visIngest(s, { ok: true, spans: [sp("sof", "SIRC"), sp("data", "C15", 0x15), sp("data", "A01", 1), sp("sof", "SIRC"), sp("data", "C12", 0x12), sp("data", "A01", 1),
@@ -189,7 +189,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 // ---- PWM: a duty and its frequency; a servo's angle
 {
   const dt = 1e-6;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const pwm = (periodS, highS, n) => { const w = []; for (let k = 0; k < n; k++) for (let i = 0; i < periodS / dt; i++) w.push(i < highS / dt ? 230 : 25); return w; };
   let r = c.decodePWM(pwm(1e-3, 0.3e-3, 8), dt, {});
   let s = c.visNew("pwm");
@@ -251,7 +251,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 {
   const fs = 48000, slot = 32, dt = 20e-9, bitS = 1 / (fs * 2 * slot), frames = 200;
   const ws = [], sd = [];
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const word = (k, ch) => Math.round((ch ? -0.25 : 0.5) * Math.sin(2 * Math.PI * 1000 * k / fs) * (2 ** 31 - 1));
   const bits = [];
   for (let k = 0; k < frames; k++) for (let ch = 0; ch < 2; ch++) {
@@ -290,13 +290,13 @@ function uartWave(packets, baud, dt, stop, breakS) {
   const fs = 48000, dt = 20e-9, ui = 1 / (fs * 128), frames = 96; // a half cell: 64 cells a frame
   const halves = []; // the line in half cells
   let lvl = 0;
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const put = (n) => { for (let i = 0; i < n; i++) halves.push(lvl); };
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const pre = (name) => { // the preambles' half-cell runs: B 3 1 1 3, M 3 3 1 1, W 3 2 1 2
     for (const r of { B: [3, 1, 1, 3], M: [3, 3, 1, 1], W: [3, 2, 1, 2] }[name]) { lvl ^= 1; put(r); }
   };
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const bit = (b) => { lvl ^= 1; put(1); if (b) lvl ^= 1; put(1); };
   const want = [];
   for (let k = 0; k < frames; k++) for (let ch = 0; ch < 2; ch++) {
@@ -357,9 +357,9 @@ function uartWave(packets, baud, dt, stop, breakS) {
   const KINDS = ["data", "data", "data", "sof", "rw", "id", "frame-error", "parity-error", "crc-error"];
   const TEXTS = ["", "H12", "A04", "C16", "REP", "LDR", "ID02", "CK12", "!CK12", "26b", "F42", "C4660", "12.34mm", "R-5", "F7", "MIN12", "HR3", "DAY9", "SrcCap", "Request", "BRK", "SC00", "RST", "M", "W", "B", "50.0%"];
   let seed = 11;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const size = (v, path, out, depth) => {
     if (depth > 4 || v === null || typeof v !== "object") { if (typeof v === "string") out.push([path, v.length, 25000]); return; }
     if (v instanceof Map || v instanceof Set) { out.push([path, v.size, 2048]); for (const x of v.values()) size(x, path + "[]", out, depth + 1); return; }
@@ -395,7 +395,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 // the stream, gap-free, keeps none (every note's length is seen)
 {
   const s = c.visNew("midi");
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const d = (i0, val) => ({ i0, i1: i0 + 1, kind: "data", text: "", val });
   c.visIngest(s, { ok: true, spans: [d(10, 0x90), d(11, 60), d(12, 100), d(20, 0x80), d(21, 64), d(22, 0)] }, 5, 1e-3);
   deq(s.cap.map((e) => [e.on, e.note]), [[true, 60], [false, 64]], "a push of C4, a release of E4 (pushed before the capture)");
@@ -409,7 +409,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 // ---- gap-free: the scope's stream lines (as the bench's buses streamed them)
 // gathered into frames and read by each bus that streams
 {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const feed = (proto, lines) => {
     const K = c.__.VIS_KINDS[proto], s = c.visNew(proto), S = {}, out = [];
     lines.forEach((l, i) => c.visStreamLine(S, { i, n: l[0], v: l[1] }, i * 0.01, out, !!K.bytewise, !!K.noteAtEnd));
@@ -460,7 +460,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 // typed text's captures parted by a gap mark
 {
   const s = c.visNew("ps2");
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const d = (val) => ({ i0: 0, i1: 1, kind: "data", text: "", val });
   c.visIngest(s, { ok: true, spans: [d(0x1c)] }, 0, 1e-3); // A pressed (its release in the gap)
   c.visIngest(s, { ok: true, spans: [d(0x32), d(0xf0), d(0x32)] }, 1, 1e-3); // B pressed and released
@@ -478,12 +478,12 @@ function uartWave(packets, baud, dt, stop, breakS) {
 {
   const s = c.visNew("midi");
   s.rec = c.midiRecNew();
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const play = (t, bytes) => { for (const b of bytes) c.midiByte(s, b, t); };
   play(10.0, [0xc0, 5]); play(10.0, [0x90, 60, 100]); play(10.5, [64, 90]); play(11.0, [0x80, 60, 0]); play(12.25, [0xfe]); play(12.5, [0x80, 64, 0]);
   assert.equal(s.rec.t.length, 5, "the channel messages recorded (the running-status one too), not active sensing");
   const f = c.midiSMF(s.rec);
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const u32 = (i) => (f[i] << 24 | f[i + 1] << 16 | f[i + 2] << 8 | f[i + 3]) >>> 0;
   assert.equal(String.fromCharCode(...f.slice(0, 4)), "MThd"); assert.equal(u32(4), 6);
   assert.ok(f[9] === 0 && f[11] === 1 && (f[12] << 8 | f[13]) === 480, "format 0, one track, 480 a quarter");
@@ -531,7 +531,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 // ---- the audio's spectrum: a tone's frequency and level, its distortion and noise
 {
   const fs = 48000, n = 8192;
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const tone = (h3) => Float32Array.from({ length: n }, (_, i) => {
     const v = 0.5 * Math.sin(2 * Math.PI * 1000 * i / fs) + h3 * Math.sin(2 * Math.PI * 3000 * i / fs);
     return Math.round(v * 32767) / 32768; // 16 bits
@@ -552,17 +552,17 @@ function uartWave(packets, baud, dt, stop, breakS) {
   const sc = { console, performance, Math };
   vm.createContext(sc);
   vm.runInContext(fs.readFileSync("midi_synth.js", "utf8") + "\n;globalThis.__s = { synthNew, synthNoteOn, synthNoteOff, synthCC, synthPanic, SYNTH_VOICES };", sc);
-  // TRLC-LINKS: REQ-SDS-279
+  // TRLC-LINKS: REQ-DSO-279
   const nop = () => {};
-  // TRLC-LINKS: REQ-SDS-279
+  // TRLC-LINKS: REQ-DSO-279
   const param = () => ({ value: 0, setValueAtTime: nop, linearRampToValueAtTime: nop, setTargetAtTime: nop, exponentialRampToValueAtTime: nop, cancelScheduledValues: nop });
-  // TRLC-LINKS: REQ-SDS-279
+  // TRLC-LINKS: REQ-DSO-279
   const node = () => ({ gain: param(), frequency: param(), detune: param(), connect: nop, start: nop, stop: nop, type: "" });
   const S = sc.__s, sy = S.synthNew();
   sy.ctx = { currentTime: 0, createGain: node, createOscillator: node, createBiquadFilter: node, createBufferSource: node };
   sy.out = node();
   let seed = 7;
-  // TRLC-LINKS: REQ-SDS-279
+  // TRLC-LINKS: REQ-DSO-279
   const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
   for (let i = 0; i < 20000; i++) {
     const ch = rnd(3), note = 40 + rnd(24), r = rnd(10);
@@ -580,11 +580,11 @@ function uartWave(packets, baud, dt, stop, breakS) {
 // ---- the decode strip's rows (app_decode.js decRows): a span enclosing others
 // on the top row, its labelled parts on the bottom, the rest the whole band
 {
-  const src = fs.readFileSync("app_decode.js", "utf8").match(/\n(\/\/ TRLC-LINKS: REQ-SDS-207\nfunction decRows[\s\S]*?\n}\n)/)[1];
+  const src = fs.readFileSync("app_decode.js", "utf8").match(/\n(\/\/ TRLC-LINKS: REQ-DSO-207\nfunction decRows[\s\S]*?\n}\n)/)[1];
   const rc = {};
   vm.createContext(rc);
   vm.runInContext(src + ";globalThis.__r = decRows;", rc);
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   const sp = (kind, text, i0, i1) => ({ kind, text, i0, i1 });
   const caliper = [sp("sof", "", 0, 5), sp("data", "D4", 0, 90), sp("data", "04", 100, 180), sp("data", "00", 190, 270), sp("rw", "12.34mm", 0, 270), sp("data", "AA", 400, 480)];
   deq(Array.from(rc.__r({ spans: caliper })), [0, 2, 2, 2, 1, 0], "the reading on top, its bytes under it, the start and a byte apart the whole band");
@@ -606,14 +606,14 @@ function uartWave(packets, baud, dt, stop, breakS) {
     function visLag() { return 0; }`, c);
   vm.runInContext(fs.readFileSync("app_visual_draw.js", "utf8") + "\n;globalThis.__views = { VIS_VIEWS, VIS_KINDS, visView, visDrawLayer, visLayerTable };", c);
   const bad = [];
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const ctx = (who) => new Proxy({}, {
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     get: (o, k) => (k in o ? o[k] : (...args) => {
       for (const v of args) if (typeof v === "number" && !Number.isFinite(v)) { bad.push(who + ": " + String(k) + "(" + args.join(", ") + ")"); break; }
       return { width: 10 };
     }),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     set: (o, k, v) => { o[k] = v; return true; },
   });
   const V = c.__views;
@@ -647,7 +647,7 @@ function uartWave(packets, baud, dt, stop, breakS) {
 // than the half-minute's drift.
 {
   let seed = 7;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
   for (const ppm of [-100, 100]) {
     const A = {}, hz = 500e6;

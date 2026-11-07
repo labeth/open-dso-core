@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -29,7 +29,7 @@ const canRTLTicks = 8e-9
 // canRenderRates lays out wire bits at a per-bit width in samples. Bits whose
 // index is >= switchAt use dataSpb; widths are fractional and rounded on the
 // running position so long frames keep their exact average rate.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func canRenderRates(wire []int, spb, dataSpb float64, switchAt, lead, trail int) []uint8 {
 	var codes []uint8
 	pos := 0.0
@@ -60,7 +60,7 @@ func canRenderRates(wire []int, spb, dataSpb float64, switchAt, lead, trail int)
 
 // canFDBRSFrame builds an FD base frame with a recessive BRS and reports the
 // wire index of the first bit after BRS, where the data rate starts.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func canFDBRSFrame(id, dlc int, data []int) (wire []int, switchAt int) {
 	bits := []int{0}
 	bits = append(bits, canBitsMSB(id, 11)...)
@@ -95,7 +95,7 @@ func canFDBRSFrame(id, dlc int, data []int) (wire []int, switchAt int) {
 }
 
 // canRemoteFrame builds a classic standard remote frame.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func canRemoteFrame(id, dlc int) []int {
 	in := []int{0}
 	in = append(in, canBitsMSB(id, 11)...)
@@ -122,7 +122,7 @@ type canRefFrame struct {
 }
 
 // canReference splits the Go decoder's spans into frames.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func canReference(r Result) []canRefFrame {
 	var frames []canRefFrame
 	for _, s := range r.Spans {
@@ -151,7 +151,7 @@ func canReference(r Result) []canRefFrame {
 	return frames
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func canContains(data, want []int) bool {
 	if len(want) == 0 {
 		return len(data) > 0
@@ -172,7 +172,7 @@ func canContains(data, want []int) bool {
 }
 
 // Compare the CAN / CAN FD trigger RTL with CANFD on the same line.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestCANTriggerRTL(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {

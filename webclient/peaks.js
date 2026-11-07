@@ -1,10 +1,10 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-PEAKS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Shared FFT + peak-detection logic, used by ui.html (loaded as a <script>) and
 // by peaks.test.cjs under node. Keep it pure (no DOM / no globals) so the exact
 // code the browser runs is the code the test exercises.
 
 // Iterative radix-2 FFT (in-place). re/im length must be a power of two.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function fftInPlace(re, im) {
   const n = re.length;
   for (let i = 1, j = 0; i < n; i++) {
@@ -32,7 +32,7 @@ function fftInPlace(re, im) {
 // spectrum: Hann-windowed magnitude spectrum of a real sample vector. nyq is
 // the Nyquist frequency in Hz (caller computes it from the record's column
 // count and duration). Returns null if there is too little data.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function spectrum(samples, nyq) {
   let N = 1; while (N * 2 <= samples.length) N <<= 1;
   if (N < 16) return null;
@@ -50,7 +50,7 @@ function spectrum(samples, nyq) {
 
 // hannWindow is the N-point Hann window spectrum applies, kept per size: a
 // cosine a sample, every frame, was most of a spectrum.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function hannWindow(N) {
   let w = HANN_WINDOWS.get(N);
   if (!w) {
@@ -73,7 +73,7 @@ const HANN_WINDOWS = new Map();
 // stopband (a capture filtered at 4.2 MHz is not drawn to 15.6 MHz). The
 // result's nyq is the span shown, fs the transform's rate, points its length
 // and peak its largest bin past DC, as the LCD's.
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 function fftReduce(g, nyq0, bandHz, maxN) {
   let n = 1;
   while (n * 2 <= g.length && n < (maxN || 8192)) n <<= 1;
@@ -111,7 +111,7 @@ const SPG_ROW_POINTS = 2048;
 // span of the record's own spectrum (fftReduce), so a capture paints a row
 // for each stretch of the time it spans. A record whose spectrum is shorter
 // than two rows' gives that spectrum alone.
-// TRLC-LINKS: REQ-SDS-068, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-068, REQ-DSO-070
 function fftRows(g, nyq0, bandHz, maxN) {
   const full = fftReduce(g, nyq0, bandHz, maxN);
   if (!full) return [];
@@ -129,7 +129,7 @@ function fftRows(g, nyq0, bandHz, maxN) {
 
 // hannGain is a Hann window's response to a tone d bins (|d| ≤ 0.5) off a bin,
 // relative to a tone on the bin: sinc(d) / (1 − d²) (analysis.hannGain).
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 function hannGain(d) {
   if (d === 0) return 1;
   return Math.sin(Math.PI * d) / (Math.PI * d * (1 - d * d));
@@ -143,13 +143,13 @@ function hannGain(d) {
 // corrected for the Hann window's scalloping at the refined frequency (a tone
 // between bins reads up to 1.42 dB low in its bin) — analysis.Peaks' DB, so the
 // web's and the LCD's peak tables show the same numbers.
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 function detectPeaks(spec, opts) {
   const floorDb = (opts && opts.floorDb != null) ? opts.floorDb : -50;
   const maxPeaks = (opts && opts.maxPeaks != null) ? opts.maxPeaks : 8;
   if (!spec) return [];
   const { mags, half, nyq, peak } = spec;
-  // TRLC-LINKS: REQ-SDS-070
+  // TRLC-LINKS: REQ-DSO-070
   const dbAt = k => 20 * Math.log10(mags[k] / peak + 1e-12);
   const cand = [];
   for (let k = 2; k < half - 2; k++) {
@@ -171,7 +171,7 @@ function detectPeaks(spec, opts) {
 // there is no selection (freq < 0) or no peaks. This is what makes a selection
 // survive across frames — we re-locate the tracked peak by FREQUENCY every
 // frame instead of trusting a list index that magnitude re-sorting would move.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function nearestPeak(peaks, freq) {
   if (!peaks || !peaks.length || !(freq >= 0)) return -1;
   let best = 0, bd = Infinity;
@@ -185,7 +185,7 @@ function nearestPeak(peaks, freq) {
 // fitTone: amplitude+phase of the single tone at cyclesPerLen cycles across
 // the whole array (= freq * recordDuration), by projecting the mean-removed
 // signal onto cos/sin. Values < 0 are gaps, skipped in the fit.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function fitTone(samples, cyclesPerLen) {
   const M = samples.length;
   if (M < 2) return null;
@@ -230,7 +230,7 @@ function fitTone(samples, cyclesPerLen) {
 // tone at cyclesPerLen. A Hann bin's magnitude reads up to 1.42 dB low when the
 // tone falls between bins (scalloping): a 1.98 V fundamental half a bin off
 // reads 1.70 V from the bin.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function toneAmplitude(samples, cyclesPerLen) {
   const t = fitTone(samples, cyclesPerLen);
   return t ? Math.hypot(t.A, t.B) : 0;
@@ -240,7 +240,7 @@ function toneAmplitude(samples, cyclesPerLen) {
 // (fitTone) as a same-length array in the SAME code units, so it can be drawn
 // straight over the time trace — "show me just this frequency inside the
 // waveform". Gaps (values < 0) are still produced in the output.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function component(samples, cyclesPerLen) {
   const t = fitTone(samples, cyclesPerLen);
   if (!t) return null;
@@ -262,7 +262,7 @@ const HARM_MAX = 10;
 
 // peakLvl: a peak's tone level (detectPeaks' lvl), its bin level for a peak
 // from elsewhere.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 function peakLvl(p) { return Number.isFinite(p.lvl) ? p.lvl : p.db; }
 
 // harmonics numbers the peaks that sit on multiples of the fundamental and
@@ -276,7 +276,7 @@ function peakLvl(p) { return Number.isFinite(p.lvl) ? p.lvl : p.db; }
 // fund is the fundamental's index, topDb the strongest tone level (Rel is
 // relative to it), harm[i] 0 for a peak that is no harmonic, thd a fraction
 // (NaN without a harmonic). `spec` is accepted for older callers and unused.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 function harmonics(peaks, spec) { // eslint-disable-line no-unused-vars
   const out = { f0: 0, fund: -1, topDb: 0, harm: [], thd: NaN, count: 0 };
   if (!peaks || !peaks.length) return out;
@@ -324,7 +324,7 @@ const PICK_BINS = 2.5, PICK_LOST_MS = 3000;
 // been gone under PICK_LOST_MS (lostSince: when each pick lost it), then is
 // cleared. Returns the picks kept, the indices of the peaks they hold and the
 // lost times to pass to the next frame.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function trackPicks(sel, peaks, binHz, lostSince, now) {
   const kept = [], idxs = new Set(), lost = new Map();
   const reach = PICK_BINS * (binHz > 0 ? binHz : 0);

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // decode_irmp.js — the IR multi protocols (Samsung32, Samsung, JVC, NEC16,
 // NEC42, Kaseikyo, Matsushita, Denon), a classic script mirroring
 // decode_irmp.go step for step. Uses sliceChannel and fail from decode.js,
@@ -10,11 +10,11 @@ const IRMP_TIMINGS = { 10: [550, 550, 1650], 3: [550, 550, 1650], 20: [560, 560,
   28: [560, 560, 1690], 5: [423, 423, 1269], 4: [872, 872, 2616], 8: [310, 745, 1780] };
 
 // irWithin mirrors decode_irmp.go irWithin.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 function irWithin(d, want, frac) { return d >= want * (1 - frac) && d <= want * (1 + frac); }
 
 // irmpBits mirrors decode_irmp.go irmpBits.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 function irmpBits(m, i, tm, max, us) {
   const bits = [];
   for (; i + 1 < m.length && bits.length < max; i++) {
@@ -28,7 +28,7 @@ function irmpBits(m, i, tm, max, us) {
 }
 
 // lsbOf mirrors decode_irmp.go lsbOf.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 function lsbOf(b, at, n) {
   let v = 0;
   for (let k = 0; k < n; k++) v |= b[at + k] << k;
@@ -36,18 +36,18 @@ function lsbOf(b, at, n) {
 }
 
 // decodeIRMP mirrors decode_irmp.go DecodeIRMP.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 function decodeIRMP(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
   if (!S.ok) return fail("irmp", S.reason);
   if (!(colTimeS > 0)) return fail("irmp", "no sample time");
   const { marks: m, high } = irMarks(S, colTimeS);
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
   const us = (d) => d * colTimeS * 1e6;
   const o = wireOut(S.n);
   let good = false, first = 0, unit = 0, lastJVC = -1;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
   const frame = (proto, x0, x1, addr, cmd, ok, name) => {
     o.add(x0, x0, name, "sof", proto, false);
     let kind = "data", ka = "A", kc = "C";

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // webdec_worker.js — the page's decode of the scope's digital stream
 // (ADR-STREAM-CLIENT-DECODE), off the page's thread. It long-polls
 // /api/stream/words.bin (which holds the scope's client-decode lease while
@@ -15,18 +15,18 @@ webdecInstall(self);
 const wd = { on: false, base: "", sess: null, seq: 0, stat: null, statAt: 0, postAt: 0, gen: 0, posting: false, refused: false };
 
 // wdSleep waits ms.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function wdSleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 // wdNewStat is a session's counters.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function wdNewStat(hdr) {
   return { session: hdr ? hdr.session : 0, proto: hdr ? hdr.proto : "", periodS: hdr ? hdr.periodS : 0, words: 0, bytes: 0, frames: 0,
     losses: 0, dropped: 0, lagS: 0, busyMs: 0, t0: performance.now(), err: "" };
 }
 
 // wdStatus tells the page how the decode goes.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function wdStatus(active, why) {
   const s = wd.stat || wdNewStat(null);
   const sess = wd.sess;
@@ -37,7 +37,7 @@ function wdStatus(active, why) {
 }
 
 // wdPost sends the session's frames (and the words it lost) to the scope.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 async function wdPost(force) {
   const sess = wd.sess;
   if (!sess) return true;
@@ -62,7 +62,7 @@ async function wdPost(force) {
 
 // wdFetchWords asks for the words from wd.seq on: the reply's buffer, or an
 // object saying why there is none.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 async function wdFetchWords() {
   try {
     const r = await fetch(wd.base + "/api/stream/words.bin?from=" + wd.seq + "&max=" + (2 << 20) + "&wait=1000", { cache: "no-store" });
@@ -79,7 +79,7 @@ async function wdFetchWords() {
 // soon as a reply's header says where it starts, and a post is not waited
 // for: the reads, the decoding and the posts overlap, so the words come as
 // fast as the scope and the network serve them, not a round trip a reply.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 async function wdLoop(gen) {
   let next = null;
   while (wd.on && gen === wd.gen) {
@@ -151,7 +151,7 @@ async function wdLoop(gen) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 onmessage = (ev) => {
   const m = ev.data || {};
   if (m.cmd === "start" && !wd.on) {

@@ -1,5 +1,5 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
-// TRLC-LINKS: REQ-SDS-214, REQ-SDS-222
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-222
 // The page decodes with the scope's own decoder settings, as the status's
 // panel Display has them: the protocol (Auto, a detection, is never one),
 // lines, rate, SPI mode and bit order.

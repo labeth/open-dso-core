@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -24,7 +24,7 @@ type lineTiming struct {
 
 // timingOf measures a sliced line's runs (the record's open first and last
 // runs count for the longest only).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func timingOf(sl sliced, colTimeS float64) lineTiming {
 	t := lineTiming{minRun: math.Inf(1), edges: len(sl.edges)}
 	for _, r := range levelRuns(sl) {
@@ -43,14 +43,14 @@ func timingOf(sl sliced, colTimeS float64) lineTiming {
 }
 
 // near reports v within frac of want.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func near(v, want, frac float64) bool { return math.Abs(v-want) <= frac*want }
 
 // considerLines tries the single-line protocols beyond the first ten on
 // line k, those its timing allows. uartBaud is a UART decode's rate on the
 // line (0 none): MIDI is named only on a line at its 31250 Bd. sl is the
 // line's slicing at the automatic threshold.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func considerLines(codes []uint8, sl *sliced, colTimeS float64, format string, uartBaud float64, consider func(Result)) {
 	if !sl.ok || len(sl.edges) < 4 || !(colTimeS > 0) {
 		return
@@ -113,7 +113,7 @@ func considerLines(codes []uint8, sl *sliced, colTimeS float64, format string, u
 // neither): the clocked buses are not read with its data line as their clock
 // (a 10 MHz SPI bus's data line clocking its clock read as MDIO frames).
 // sl are the lines' slicings at the automatic threshold.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func considerPairs(c1, c2 []uint8, sl [2]*sliced, colTimeS float64, format string, clockLine int, consider func(Result, int)) {
 	if c1 == nil || c2 == nil || !(colTimeS > 0) {
 		return
@@ -153,7 +153,7 @@ func considerPairs(c1, c2 []uint8, sl [2]*sliced, colTimeS float64, format strin
 // changing may read either way; another bus's bits that hold a request, an
 // OK and both parities by chance shift into some other request (or none)
 // when the cut moves.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func swdStands(r Result, clk, dio []uint8, colTimeS float64, cfg ClockedCfg, d *sliced) bool {
 	if !r.OK || !d.ok {
 		return r.OK
@@ -190,7 +190,7 @@ func swdStands(r Result, clk, dio []uint8, colTimeS float64, cfg ClockedCfg, d *
 }
 
 // count tallies a decode's spans of each kind.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func (r Result) count(kinds ...string) []int {
 	out := make([]int, len(kinds))
 	for _, s := range r.Spans {
@@ -206,7 +206,7 @@ func (r Result) count(kinds ...string) []int {
 // scoreProto scores the protocols beyond the first ten (scoreResult): each
 // needs the evidence its own check gives, and scores above the generic
 // decoders' reading of the same line.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func scoreProto(r Result) float64 { //nolint:gocyclo // one self-contained rule per protocol, kept together in the order they apply
 	n := len(r.Bytes)
 	c := r.count(kindSOF, kindFrameError, kindParityError, kindData)
@@ -377,7 +377,7 @@ func scoreProto(r Result) float64 { //nolint:gocyclo // one self-contained rule 
 
 // linFrames counts a LIN decode's frames whose identifier and checksum
 // check (good) and those with a good identifier and no response (headers).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func linFrames(r Result) (good, hdr int) {
 	idOK, resp, bad := false, 0, false
 	flush := func() {
@@ -408,7 +408,7 @@ func linFrames(r Result) (good, hdr int) {
 
 // modbusResultFrames counts a Modbus decode's frames without an error span
 // (their CRC checked).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func modbusResultFrames(r Result) int {
 	good, open, bad := 0, false, false
 	for _, s := range r.Spans {

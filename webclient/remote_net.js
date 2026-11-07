@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-REMOTE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // remote_net.js — the phone remote's link to the scope (window.RN): the
 // device API, one long-poll per phone (GET /api/panel/wait) that re-reads the
 // sheet model when its values changed (SheetsSeq), never more often than
@@ -16,7 +16,7 @@
 
   // ---- the device API ---------------------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   async function http(method, path, body, ms) {
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms || 8000);
     try {
@@ -37,21 +37,21 @@
   // its LCD (Adjust, Position and their pushes would move that menu). Again
   // names the workspace it is meant for.
   const api = {
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     wait: (seq, ms) => http("GET", "/api/panel/wait?seq=" + seq + "&timeout_ms=" + ms, null, ms + 6000),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     sheets: () => http("GET", "/api/sheets", null, 10000),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     set: (row, input) => http("POST", "/api/sheets/set", Object.assign({ row }, input)),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     action: (row, action) => http("POST", "/api/sheets/action", { row, action: action || "" }),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press: (button, nomenu) => http("POST", "/api/panel", { button, remote: true, nomenu: !!nomenu }),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     knob: (knob, dir, steps, nomenu) => http("POST", "/api/panel", { knob, dir, steps: steps || 1, remote: true, nomenu: !!nomenu }),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     workspace: (ws) => http("POST", "/api/panel", { workspace: ws }),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     again: (ws) => http("POST", "/api/panel", { again: true, workspace: ws || "" }),
   };
 
@@ -74,13 +74,13 @@
     modelGen: 0, snap: null,              // the model's changes counted, and History's snapshot of it (gen, ws)
     fns: [],
   };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const now = () => performance.now();
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function emit(what) { for (const f of S.fns) { try { f(what); } catch (e) { console.error(e); } } }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function setOnline(on, err) {
     const was = S.online;
     S.online = on;
@@ -89,12 +89,12 @@
     if (was !== on) emit("online");
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const wsId = () => (S.panel && S.panel.WorkspaceID) || "";
 
   // row is a row as the phone shows it: the scope's value, or the value this
   // phone just set while the scope has not answered yet.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function row(id) {
     const r = S.model.rows.get(id);
     if (!r) return null;
@@ -102,7 +102,7 @@
     return o ? Object.assign({}, r, { Value: o.value, Text: o.text, pending: true }) : r;
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function setModelRow(id, value, text) {
     const r = S.model.rows.get(id);
     if (!r) return;
@@ -118,11 +118,11 @@
 
   // shown resolves when the page is shown: a hidden phone (screen off,
   // another app) asks the scope nothing.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function shown() {
     if (!document.hidden) return Promise.resolve(false);
     return new Promise((r) => {
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const f = () => { if (!document.hidden) { document.removeEventListener("visibilitychange", f); r(true); } };
       document.addEventListener("visibilitychange", f);
     });
@@ -138,7 +138,7 @@
   // (SheetsSeq); while the scope does not answer it retries at 0.5, 1, 2, 4
   // and then every 8 s, and reads everything again when it is back. It rests
   // while the page is hidden and catches up when it shows.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   async function start() {
     if (started) return;
     started = true;
@@ -167,7 +167,7 @@
     }
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function applyPanel(st) {
     S.panel = st;
     // a notice the scope shows in answer to this phone (AUTO: UART ... decode on),
@@ -184,7 +184,7 @@
   // time. Without a target (a call of this phone) a read must start after
   // the request, so one comes after a read under way; with the long-poll's
   // SheetsSeq as the target, a read under way that brings it is enough.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function refresh(target) {
     if (reading) {
       if (target) readUpTo = Math.max(readUpTo, target); else readAgain = true;
@@ -208,7 +208,7 @@
   // the answer came and, where the scope counts, brings a SheetsSeq below
   // the answer's. A read that already counts the change is the truth, even
   // one that started first: the scope may have moved on since its answer.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function applySheets(sh, t0) {
     if (typeof sh.SheetsSeq === "number") S.sheetsSeq = sh.SheetsSeq;
     const m = RC.index(sh);
@@ -235,13 +235,13 @@
   // the answer).
   const CLAIM_MS = 10000, AUTOSET_MS = 30000;
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function saveHistory() { RU.store(HIST_KEY, S.history.list); }
 
   // took keeps what an answer of the scope says a call did: the rows it
   // changed (and "workspace" when it switched it), the Autoset it started,
   // and the sheet values' count that shows it.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function took(c, res) {
     if (!res) return;
     for (const id of res.changed || []) c.claims.set(id, Infinity);   // "workspace": it switched the workspace
@@ -252,7 +252,7 @@
   // settle starts the claims' clocks of the calls that answered, and takes
   // the rows of an Autoset sweep this phone started once the scope says it
   // ended (or gives up on it after 30 s).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function settle() {
     const P = S.panel || {}, t = now();
     for (const c of S.calls) {
@@ -266,7 +266,7 @@
   }
 
   // claimer is the newest call that claims row id; the claim is used up.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function claimer(id) {
     const t = now();
     for (let i = S.calls.length - 1; i >= 0; i--) {
@@ -280,7 +280,7 @@
   // change to the call of this phone that claims it, else to the scope or
   // another remote. While a call has not answered (or its Autoset sweeps),
   // nothing is booked: its rows are not known yet.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function book() {
     // a status that changed only the lamps books against the same model: its
     // snapshot is taken once, and one History already holds has no changes
@@ -315,19 +315,19 @@
 
   // otherRemote: the scope's REMOTE line names the row while this phone
   // changed nothing lately: another remote made the change.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function otherRemote(r) {
     const line = (S.panel && S.panel.Remote) || "";
     return !!line && now() - S.lastCall >= 2000 && line.indexOf("REMOTE  " + r.tab + " " + r.label.toLowerCase() + " ") === 0;
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function otherRemoteWs() {
     const line = (S.panel && S.panel.Remote) || "";
     return now() - S.lastCall >= 2000 && line.indexOf("REMOTE  workspace ") === 0;
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function attach(c, rows, ws) {
     const live = c.entry && S.history.list.indexOf(c.entry) >= 0;
     if (live) S.history.extend(c.entry, rows, ws);
@@ -340,7 +340,7 @@
 
   // noAnswer says why a call got no answer, in the remote's words (not the
   // browser's: "Failed to fetch", "Load failed").
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function noAnswer(e) {
     if (e && e.name === "AbortError") return "The scope did not answer in time";
     if (e && e.status) return "The scope answered HTTP " + e.status;
@@ -354,12 +354,12 @@
   // {ok, value, text, error, changed, notice} as soon as the scope does,
   // with after: a promise of the read that shows the change; the next call
   // waits for that read.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function call(meta, fn) {
     if (!S.online) return Promise.resolve({ ok: false, error: "Not connected to the scope" });
     let answered;
     const answer = new Promise((r) => { answered = r; });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const run = async () => {
       book();                                         // what came before this call is not this call's
       const c = { id: ++callSeq, meta, doneAt: 0, claims: new Map(), autoset: 0, upTo: 0, entry: null };   // claims: row id (or "workspace") -> until
@@ -397,7 +397,7 @@
     return answer;
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function applyWorkspace(res) {
     if (!S.panel) return;
     S.panel = Object.assign({}, S.panel, { WorkspaceID: res.workspace, Workspace: res.name, View: res.view, AgainNext: res.next });
@@ -405,14 +405,14 @@
   }
 
   // optimistic shows a value at once, before the scope answers.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function optimistic(id, value, text) {
     S.overlay.set(id, { value, text });
     emit("model");
   }
 
   // set sets a row ({value} or {text}); with a value the phone shows it at once.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function set(id, input, history) {
     if (input.value !== undefined && S.online) {
       const r = S.model.rows.get(id);
@@ -424,7 +424,7 @@
 
   // step turns a row n detents clockwise (cw +1) or back (-1): the phone
   // shows the value at once; detents while a call is out join the next one.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function step(id, cw, n) {
     const r = row(id);
     const t = r && RC.turn(r, cw, n || 1);
@@ -445,13 +445,13 @@
 
   // action runs an action of a row (a setup slot's Save, a preset, Autoset:
   // the rows its sweep changes are this phone's once the scope says it ended).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function action(id, act, history) {
     return call({ row: id, history: Object.assign({ kind: "action" }, history) }, () => api.action(id, act));
   }
 
   // preset runs a number row's labelled value: a change like a set.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function preset(id, label) {
     return call({ row: id, history: { primary: id } }, () => api.action(id, label));
   }
@@ -459,17 +459,17 @@
   // press is a key of the panel (nomenu: a push that waits while a menu is
   // open on the scope); knob a detent of the Adjust or Position knob, which
   // waits so too.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function press(button, history, nomenu) {
     return call({ history: history || {} }, () => api.press(button, nomenu));
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function knob(name, dir) { return call({ history: {} }, () => api.knob(name, dir, 1, true)); }
 
   // workspace switches the scope's workspace (an open sheet on the LCD stays
   // as it is); again runs the active workspace's again. BUS may then search
   // for the bus: the decode it turns on a moment later is the scope's doing.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function workspace(id) {
     return call({ history: {} }, async () => {
       const prev = S.panel;
@@ -484,14 +484,14 @@
   }
   // again is the active workspace's again, as this phone shows it: the
   // scope refuses it if another workspace is active by now.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function again() {
     const name = S.panel ? S.panel.Workspace : "";
     return call({ history: { label: name + " again" } }, () => api.again(wsId()));
   }
 
   // keyOf is a row's value as History keys it.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function keyOf(id) {
     const r = S.model.rows.get(id);
     return r ? JSON.stringify(r.Value === undefined ? null : r.Value) : undefined;
@@ -499,7 +499,7 @@
 
   // inEffect: every setting entry e changed still has e's new value (and
   // the scope is in the workspace e switched to).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function inEffect(e) {
     return e.rows.every((r) => r.kind === "slot" || keyOf(r.id) === r.neu.key) && (!e.ws || wsId() === e.ws.to);
   }
@@ -511,7 +511,7 @@
   // puts the entries it had undone back in effect. Answers {ok, none
   // (nothing went back), fails, error}: a row the scope refused is named
   // with the scope's own words, one it set elsewhere with where it stayed.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function undo(entries, title) {
     const t = S.history.targets(entries);
     const undid = entries.filter((e) => e.undoable && !e.undone).map((e) => e.id);
@@ -552,7 +552,7 @@
     });
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function on(fn) { S.fns.push(fn); }
 
   window.RN = { api, S, HIST_KEY, start, refresh, row, set, step, action, preset, press, knob, workspace, again, undo, on, saveHistory };

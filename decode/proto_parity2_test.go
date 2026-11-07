@@ -1,11 +1,11 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
 // physParityVectors adds the Go<->JS parity vectors of the sigrok protocols
 // beyond the first thirty: each decoder's clean records, records whose
 // checks fail, and corrupted copies (corrupt) that drive the reject paths.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-073
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-073
 func physParityVectors(add parityAdd, add2 parityAdd2, corrupt func([]uint8) []uint8) {
 	type cfg = map[string]any
 	type base struct {

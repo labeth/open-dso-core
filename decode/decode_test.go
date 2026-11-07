@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -10,7 +10,7 @@ import (
 
 // uartWave synthesizes an 8N1 LSB-first UART waveform: idle-high, one start bit,
 // 8 data bits, one stop bit, at spb samples/bit, with lead/trail idle.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func uartWave(bytes []int, spb int) []uint8 {
 	lo, hi := uint8(40), uint8(210)
 	var w []uint8
@@ -36,7 +36,7 @@ func uartWave(bytes []int, spb int) []uint8 {
 	return w
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeUARTRoundTrip(t *testing.T) {
 	want := []int{0x48, 0x69, 0x20, 0x55, 0xAA, 0x0F, 0xF0, 0x0A} // "Hi " + patterns
 	spb := 40
@@ -70,7 +70,7 @@ func TestDecodeUARTRoundTrip(t *testing.T) {
 // SCLK idle low, data set up while SCLK low and sampled on the rising edge; a
 // long idle gap between message repeats so the gap-reset re-frames. Mirrors the
 // FPGA spi.v ground truth. Returns parallel (clk, data) code slices.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func spiWave(bytes []int, h int) (clk, data []uint8) {
 	lo, hi := uint8(40), uint8(210)
 	seg := func(c, d uint8, n int) {
@@ -94,7 +94,7 @@ func spiWave(bytes []int, h int) (clk, data []uint8) {
 	return clk, data
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeSPIRoundTrip(t *testing.T) {
 	want := []int{0x48, 0x69, 0x20, 0x55, 0xAA, 0x0F, 0xF0, 0x0A}
 	clk, data := spiWave(want, 20)
@@ -109,7 +109,7 @@ func TestDecodeSPIRoundTrip(t *testing.T) {
 
 // i2cWave synthesizes a full I2C transaction: START, addr+RW, ACK, data bytes
 // (each ACKed), STOP. SDA changes while SCL is low and is sampled on SCL rising.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cWave(addr7, rw int, data []int, h int) (scl, sda []uint8) {
 	lo, hi := uint8(40), uint8(210)
 	seg := func(c, d uint8, n int) {
@@ -143,7 +143,7 @@ func i2cWave(addr7, rw int, data []int, h int) (scl, sda []uint8) {
 	return scl, sda
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeI2CRoundTrip(t *testing.T) {
 	scl, sda := i2cWave(0x24, 0 /*W*/, []int{0x55, 0xAA}, 20)
 	r := I2C(scl, sda, 2e-7, I2CCfg{})
@@ -166,7 +166,7 @@ func TestDecodeI2CRoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func containsWord(s, w string) bool {
 	for i := 0; i+len(w) <= len(s); i++ {
 		if s[i:i+len(w)] == w {
@@ -176,7 +176,7 @@ func containsWord(s, w string) bool {
 	return false
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetect(t *testing.T) {
 	msg := []int{0x48, 0x69, 0x55, 0xAA}
 	// UART on C1 only, no second channel.
@@ -213,7 +213,7 @@ func TestAutodetect(t *testing.T) {
 // one's own synthetic signal must be claimed as ITSELF (not a lookalike — a
 // 1553 word IS Manchester, a CAN frame is UART-shaped), on either channel, and
 // a bare clock must stay "off" rather than decode as constant-bit Manchester.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectAllProtocols(t *testing.T) {
 	type tc struct {
 		name string
@@ -273,7 +273,7 @@ func TestAutodetectAllProtocols(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestFmtByte(t *testing.T) {
 	if got := FmtByte(0x48, "both"); got != "48'H" {
 		t.Errorf("both 0x48 = %q, want 48'H", got)
@@ -286,7 +286,7 @@ func TestFmtByte(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeUARTFrameError(t *testing.T) {
 	// A byte with the stop bit corrupted -> frame-error span with "!" prefix.
 	spb := 30
@@ -317,7 +317,7 @@ func TestDecodeUARTFrameError(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectARINCWithParityErrors(t *testing.T) {
 	var w []uint8
 	for i := range 9 {

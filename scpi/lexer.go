@@ -34,9 +34,11 @@ type unit struct {
 	params string
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func isWS(c byte) bool { return c == ' ' || c == '\t' || c == '\r' || c == '\n' }
 
 // splitUnits splits a program message at ';' outside strings, blocks and expressions.
+// TRLC-LINKS: REQ-DSO-024
 func splitUnits(msg []byte) []unit {
 	var units []unit
 	start := 0
@@ -105,6 +107,7 @@ func splitUnits(msg []byte) []unit {
 
 // validHeader checks the program header syntax: "*MNEM[?]" or "[:]MNEM{:MNEM}[?]",
 // MNEM = letter {letter|digit|_}.
+// TRLC-LINKS: REQ-DSO-024
 func validHeader(h string) bool {
 	s := strings.TrimSuffix(h, "?")
 	if s == "" {
@@ -123,6 +126,7 @@ func validHeader(h string) bool {
 	return true
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func validMnemonic(m string) bool {
 	if m == "" || !isAlpha(m[0]) {
 		return false
@@ -136,9 +140,11 @@ func validMnemonic(m string) bool {
 	return true
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func isAlpha(c byte) bool { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') }
 
 // lexParams tokenises the program data of a unit. ok=false on a syntax error.
+// TRLC-LINKS: REQ-DSO-024
 func lexParams(s string) ([]Token, bool) {
 	var toks []Token
 	i := 0
@@ -255,8 +261,10 @@ func lexParams(s string) ([]Token, bool) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func isAlnum(c byte) bool { return isAlpha(c) || (c >= '0' && c <= '9') }
 
+// TRLC-LINKS: REQ-DSO-024
 func lexNumber(s string, pi *int) (Token, bool) {
 	i := *pi
 	start := i

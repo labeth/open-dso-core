@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -17,7 +17,7 @@ import (
 
 // symbolRTL runs tb_symbol_trigger on per-clock lines with configuration c
 // and returns the clocks after which match was high.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func symbolRTL(t *testing.T, image, dir string, c SymbolCfg, a, b []bool, resets int) []int {
 	t.Helper()
 	var in strings.Builder
@@ -82,7 +82,7 @@ func symbolRTL(t *testing.T, image, dir string, c SymbolCfg, a, b []bool, resets
 }
 
 // symbolRTLImage compiles the testbench once.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func symbolRTLImage(t *testing.T) (string, string) {
 	t.Helper()
 	for _, tool := range []string{"iverilog", "vvp"} {
@@ -101,7 +101,7 @@ func symbolRTLImage(t *testing.T) (string, string) {
 }
 
 // symbolRuns appends a line of runs (alternating levels from first) to dst.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func symbolRuns(dst []bool, first bool, runs ...int) []bool {
 	l := first
 	for _, w := range runs {
@@ -117,7 +117,7 @@ func symbolRuns(dst []bool, first bool, runs ...int) []bool {
 // random tables, configurations and run sequences (short glitches, unit-like
 // runs, long idles), plus a structured pulse-width frame whose matches are
 // counted.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestSymbolTriggerRTL(t *testing.T) {
 	image, dir := symbolRTLImage(t)
 	rng := rand.New(rand.NewSource(7))
@@ -247,7 +247,7 @@ func TestSymbolTriggerRTL(t *testing.T) {
 	})
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func symHead(v []int) []int {
 	if len(v) > 40 {
 		return v[:40]

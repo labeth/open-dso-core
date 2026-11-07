@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -53,7 +53,7 @@ const irDenonRepeatUS = 70000
 // up to a pulse and a 1's pause, and the repeat's wait before the second
 // (about 133 ms: AUTO framed on the pair it saw, and a longer one lost its
 // repeat to the screen's end).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func MessageMaxS(r Result) float64 {
 	if r.Proto == protoIRMP && r.FrameBits == IRDenon {
 		tm := irmpTimings[IRDenon]
@@ -63,14 +63,14 @@ func MessageMaxS(r Result) float64 {
 }
 
 // irWithin reports d within frac of want.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func irWithin(d, want, frac float64) bool { return d >= want*(1-frac) && d <= want*(1+frac) }
 
 // irmpBits reads pulse-distance bits from mark i on: each mark a pulse of
 // the timing's (within 40 %), the pause after it a 0 or a 1 (within 30 %);
 // it stops at the first mark or pause that is neither, at most max bits. It
 // returns the bits and the index of the mark after the last bit's pulse.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func irmpBits(m []irMark, i int, tm irmpTiming, maxBits int, us func(float64) float64) ([]int, int) {
 	bits := make([]int, 0, maxBits)
 	for ; i+1 < len(m) && len(bits) < maxBits; i++ {
@@ -91,7 +91,7 @@ func irmpBits(m []irMark, i int, tm irmpTiming, maxBits int, us func(float64) fl
 }
 
 // lsbOf is n bits from b[at], least significant first.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func lsbOf(b []int, at, n int) int {
 	v := 0
 	for k := range n {
@@ -114,7 +114,7 @@ func lsbOf(b []int, at, n int) int {
 // Kaseikyo's parities, Denon's inverted repeat) is flagged. Variant
 // (FrameBits) is the first frame's protocol, IRMP's number. OK needs a
 // frame whose checks hold.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func IRMP(codes []uint8, colTimeS float64, cfg LineCfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	S := sliceChannel(codes, cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -255,7 +255,7 @@ func IRMP(codes []uint8, colTimeS float64, cfg LineCfg) Result { //nolint:gocycl
 }
 
 // labelHex is a label and a value in upper-case hex (fmt's "%s%X").
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func labelHex(label string, v int) string {
 	b := make([]byte, 0, len(label)+8)
 	b = append(b, label...)

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -16,7 +16,7 @@ import (
 // sigrok does not ship: Ubuntu's libsigrokdecode 0.5.3 has no ir_sirc or
 // sae_j1850_vpw (added later), and CI runs that version. A missing
 // sigrok-cli itself still fails under CI_REQUIRE_SIGROK=1 (needSigrok).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func needSigrokPD(t *testing.T, pd string) {
 	t.Helper()
 	needSigrok(t)
@@ -31,7 +31,7 @@ func needSigrokPD(t *testing.T, pd string) {
 
 // sigrokLogicDMX reports the 0.5 releases' DMX512 decoder (on logic, its
 // channel "dmx"); later ones stack it on the UART decoder.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func sigrokLogicDMX(t *testing.T) bool {
 	t.Helper()
 	out, err := exec.CommandContext(t.Context(), "sigrok-cli", "-P", "dmx512", "--show").CombinedOutput()
@@ -47,7 +47,7 @@ func sigrokLogicDMX(t *testing.T) bool {
 // rate before sigrok-cli has set it, and its sdcard_sd has no "commands"
 // annotation. CI runs those cross-checks again against libsigrokdecode's own
 // decoders, where a skip fails.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func skipSigrokDefect(t *testing.T, names []string, pdSpec, annSpec, symptom string) {
 	t.Helper()
 	needSigrok(t)

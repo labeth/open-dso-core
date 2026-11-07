@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func TestDecodeOneWireRoundTrip(t *testing.T) {
 	sr := 4e6
 	w := newTimeline(sr)
@@ -44,7 +44,7 @@ func TestDecodeOneWireRoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func TestDecodeWS281xRoundTrip(t *testing.T) {
 	for _, rate := range []float64{800e3, 400e3} {
 		sr := 50e6
@@ -63,7 +63,7 @@ func TestDecodeWS281xRoundTrip(t *testing.T) {
 // A frame whose latches run off both ends of the record (a live window
 // shorter than a frame and two whole latches) decodes once each end holds
 // wsEdgeLatchUs of low; shorter ends do not prove a latch.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func TestDecodeWS281xLatchesAtTheEnds(t *testing.T) {
 	sr := 50e6
 	b := []int{0x10, 0x80, 0xFF, 0x00, 0x5A, 0x0F}
@@ -81,7 +81,7 @@ func TestDecodeWS281xLatchesAtTheEnds(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func TestDecodeDHTRoundTrip(t *testing.T) {
 	sr := 2e6
 	w := newTimeline(sr)
@@ -95,7 +95,7 @@ func TestDecodeDHTRoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func TestDecodeCECRoundTrip(t *testing.T) {
 	sr := 200e3
 	w := newTimeline(sr)
@@ -110,7 +110,7 @@ func TestDecodeCECRoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func TestDecodeJ1850RoundTrip(t *testing.T) {
 	sr := 1e6
 	w := newTimeline(sr)
@@ -129,7 +129,7 @@ func TestDecodeJ1850RoundTrip(t *testing.T) {
 
 // A strip longer than the frame buffer's first size (eight LEDs) decodes
 // whole, from samples and from a digital line's edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func TestDecodeWS281xLongStrip(t *testing.T) {
 	sr := 50e6
 	w := newTimeline(sr)

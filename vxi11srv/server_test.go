@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-VXI11SRV
+// ENGMODEL-OWNER-UNIT: FU-DSO-VXI11SRV
 
 package vxi11srv
 
@@ -12,13 +12,13 @@ import (
 
 // testClient speaks the same framing as ota/internal/vxi11 (the first
 // compatibility target).
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 type testClient struct {
 	c   net.Conn
 	xid uint32
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func dial(t *testing.T, port int) *testClient {
 	t.Helper()
 	d := net.Dialer{Timeout: time.Second}
@@ -30,7 +30,7 @@ func dial(t *testing.T, port int) *testClient {
 	return &testClient{c: c, xid: 100}
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (tc *testClient) call(t *testing.T, proc uint32, args []byte) []byte {
 	t.Helper()
 	tc.xid++
@@ -65,7 +65,7 @@ func (tc *testClient) call(t *testing.T, proc uint32, args []byte) []byte {
 	return rep[24:]
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (tc *testClient) createLink(t *testing.T) (uint32, uint32) {
 	t.Helper()
 	args := putU32(nil, 1)
@@ -76,7 +76,7 @@ func (tc *testClient) createLink(t *testing.T) (uint32, uint32) {
 	return binary.BigEndian.Uint32(r[0:]), binary.BigEndian.Uint32(r[4:])
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (tc *testClient) write(t *testing.T, lid uint32, s string) {
 	t.Helper()
 	args := putU32(nil, lid)
@@ -90,7 +90,7 @@ func (tc *testClient) write(t *testing.T, lid uint32, s string) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (tc *testClient) read(t *testing.T, lid, reqSize uint32) (uint32, uint32, []byte) {
 	t.Helper()
 	args := putU32(nil, lid)
@@ -106,7 +106,7 @@ func (tc *testClient) read(t *testing.T, lid, reqSize uint32) (uint32, uint32, [
 	return errc, reason, r[12 : 12+n]
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func startTest(t *testing.T) (*Server, int) {
 	t.Helper()
 	h := func(line []byte) []byte {
@@ -130,7 +130,7 @@ func startTest(t *testing.T) (*Server, int) {
 	return s, port
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func TestLinkWriteRead(t *testing.T) {
 	_, port := startTest(t)
 	tc := dial(t, port)
@@ -146,7 +146,7 @@ func TestLinkWriteRead(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func TestChunkedRead(t *testing.T) {
 	_, port := startTest(t)
 	tc := dial(t, port)
@@ -172,7 +172,7 @@ func TestChunkedRead(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func TestSingleLinkAndRelease(t *testing.T) {
 	_, port := startTest(t)
 	tc1 := dial(t, port)
@@ -206,7 +206,7 @@ func TestSingleLinkAndRelease(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func TestReadTimeout(t *testing.T) {
 	_, port := startTest(t)
 	tc := dial(t, port)
@@ -222,7 +222,7 @@ func TestReadTimeout(t *testing.T) {
 
 // A line that never ends is refused once it passes maxRecvSize, and the
 // link goes on with the next line.
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func TestEndlessLineIsBounded(t *testing.T) {
 	_, port := startTest(t)
 	tc := dial(t, port)
@@ -254,7 +254,7 @@ func TestEndlessLineIsBounded(t *testing.T) {
 
 // END ends a message without a newline (python-vxi11 sends "*IDN?" bare);
 // without END a partial line waits for the rest.
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func TestEndFlagTerminatesMessage(t *testing.T) {
 	_, port := startTest(t)
 	tc := dial(t, port)

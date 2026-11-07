@@ -1,31 +1,31 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Run by TestListenFiltersJS (listen_filters_node_test.go): the Listen chain
 // (sound_client.js sndAudioFeed) blocks the inputs' DC without a thump, moves
 // a cutoff without a click, and its 24 dB low-pass cuts.
 const assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm");
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 const c = { performance: { now: () => 0 }, Math, Float32Array, Float64Array, Array, Number, Infinity, NaN, console };
 vm.createContext(c);
 vm.runInContext(fs.readFileSync("sound.js", "utf8") + "\n" + fs.readFileSync("sound_client.js", "utf8"), c);
 const fs_ = 500e6 / 8192;
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function rig() {
   const cl = c.sndClient(() => false, "");
   cl.rate = fs_;
   const out = [];
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   cl.audio.node = { port: { postMessage: (m) => out.push(...m.l) } };
   cl.audio.auto = false; cl.audio.gainDB = 0; cl.audio.vol = 1;
   return { cl, out };
 }
 let ph = 0;
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 const tone = (n, f, dc, amp) => { const x = new Float32Array(n); for (let i = 0; i < n; i++) { ph += 2 * Math.PI * f / fs_; x[i] = dc + amp * Math.sin(ph); } return x; };
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 const rms = (v) => Math.sqrt(v.reduce((s, x) => s + x * x, 0) / v.length);
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 const maxStep = (v) => { let m = 0; for (let i = 1; i < v.length; i++) m = Math.max(m, Math.abs(v[i] - v[i - 1])); return m; };
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 const feed = (r, n, f, dc = 1.6, amp = 0.3) => { const x = tone(n, f, dc, amp); c.sndAudioFeed(r.cl, x, x, false); };
 // DC blocked from the first sample: no 1.6 V step, no DC after it settles
 {

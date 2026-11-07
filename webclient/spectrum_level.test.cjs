@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // A peak's level in dBV comes from the transform's points, also when a
 // decimated capture's band keeps fewer bins: a 40-code tone at 0.04 V a code
 // is 1.13 V rms (1.07 dBV) - it read 11.4 dB high when the band kept 1103 of
@@ -7,11 +7,11 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
 const peaks = require('./peaks.js');
 const src = fs.readFileSync('app_fft.js', 'utf8');
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 const pick = (name) => { const i = src.indexOf('function ' + name + '('); return src.slice(i, src.indexOf('\n}\n', i) + 3); };
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 const c = Object.assign({ specMemo: {}, frame: { vpc1: 0.04, vpc2: 0.04 }, peakSpanS: () => 0 }, peaks,
-  // TRLC-LINKS: REQ-SDS-216
+  // TRLC-LINKS: REQ-DSO-216
   { peakLvl: (p) => Number.isFinite(p.lvl) ? p.lvl : p.db });
 vm.createContext(c);
 vm.runInContext(fs.readFileSync('caps.js', 'utf8'), c);

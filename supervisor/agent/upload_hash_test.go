@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -9,7 +9,7 @@ import (
 
 // A chunk rewritten after the in-order hash passed it must not let the
 // running hash vouch for bytes that are no longer in the file.
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func TestUploadRewrittenChunkHashesTheFile(t *testing.T) {
 	a := testAgent(t)
 	final := []byte("HELLO world payload")

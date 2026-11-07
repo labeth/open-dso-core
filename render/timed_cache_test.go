@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -13,7 +13,7 @@ import (
 // readouts of one picture, and of the pictures the measurement serves, share
 // it; another measurement or scale takes it again, and a hand-built frame
 // (no sequence) is never cached.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestTimedForTakesTheTimingOnce(t *testing.T) {
 	a, b := &measure.Result{}, &measure.Result{}
 	n := 0
@@ -37,7 +37,7 @@ func TestTimedForTakesTheTimingOnce(t *testing.T) {
 }
 
 // X-Y's tables put every code where the arithmetic did.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestXYTablesMatchTheArithmetic(t *testing.T) {
 	p := plotArea{top: 20, bot: 400, y0: 14, h: 400, w: 700, m: m800, cpd: defaultCodesPerDiv, span: 8 * defaultCodesPerDiv}
 	rows := p.codeRows(1)
@@ -50,7 +50,7 @@ func TestXYTablesMatchTheArithmetic(t *testing.T) {
 
 // A decode error of a frame that failed its check says so, not "a faster
 // time/div".
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestBusErrorHint(t *testing.T) {
 	for _, e := range []string{"no DHT reading whose checksum checks", "no CRC-valid SENT frame", "no J1850 frame whose CRC checks"} {
 		if h := busErrorHint(e); strings.Contains(h, "faster time/div") {

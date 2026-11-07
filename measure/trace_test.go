@@ -10,6 +10,7 @@ import (
 
 // An 8-bit trace measures exactly as ComputeAcquisition; the same signal as
 // 12-bit words left-aligned in 16 bits measures as its Q8.8 precision words.
+// TRLC-LINKS: REQ-DSO-017
 func TestComputeTraceFormats(t *testing.T) {
 	n := 4000
 	codes, q := make([]uint8, n), make([]uint16, n)

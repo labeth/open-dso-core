@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 
 // nthValue is the value a sort would put at k, for every k, on lines of
 // runs with ties, NaNs and infinities; the input is left as it was.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func TestNthValueIsTheSortedValue(t *testing.T) {
 	rng := rand.New(rand.NewSource(3))
 	for range 300 {
@@ -45,7 +45,7 @@ func TestNthValueIsTheSortedValue(t *testing.T) {
 }
 
 // runningMedian gives medianOf of every prefix of a list, ties and all.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestRunningMedianIsMedianOf(t *testing.T) {
 	rng := rand.New(rand.NewSource(7))
 	for trial := range 200 {

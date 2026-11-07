@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -12,7 +12,7 @@ import (
 // lengths, gates) and does dense sub-sample index math. It must never panic —
 // a panic in the panel's stacker goroutine takes down the app. (Correctness
 // of the stack is covered by the 50-family breaker; this is crash-safety.)
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestSuperresFuzzNoPanic(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x5151))
 	sig := func(n int) []uint8 {

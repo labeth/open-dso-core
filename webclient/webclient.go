@@ -18,6 +18,7 @@ var FS embed.FS
 // Dir is this package's directory on disk, where tests run the node
 // harnesses against the JS modules. It is only meaningful in a build from
 // source (tests), not in a deployed binary.
+// TRLC-LINKS: REQ-DSO-161
 func Dir() string {
 	_, file, _, _ := runtime.Caller(0)
 	return filepath.Dir(file)

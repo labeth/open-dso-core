@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -7,7 +7,7 @@ import "testing"
 // A bit rate read from the edges within 1.5 % of the bus's standard rate is
 // that rate: the bench MIL-1553 bus read "999kb/s", FlexRay "9.88Mb/s" and
 // "10.1Mb/s", USB LS "1.51Mb/s" in BUS's notice. Far from every standard rate it stands.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBusRatesSnapToStandard(t *testing.T) {
 	for _, c := range []struct {
 		baud  int

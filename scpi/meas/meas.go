@@ -54,6 +54,7 @@ var byName = func() map[string]*Param {
 }()
 
 // Lookup is the parameter named name.
+// TRLC-LINKS: REQ-DSO-024
 func Lookup(name string) (*Param, bool) {
 	p, ok := byName[name]
 	return p, ok
@@ -61,6 +62,7 @@ func Lookup(name string) (*Param, bool) {
 
 // Reading is the parameter's value in r, false when the record cannot
 // support it (no measurement, no resolved period, no edge, not finite).
+// TRLC-LINKS: REQ-DSO-024
 func (p *Param) Reading(r *measure.Result) (float64, bool) {
 	show := r != nil
 	switch {
@@ -89,6 +91,7 @@ func (p *Param) Reading(r *measure.Result) (float64, bool) {
 }
 
 // Legacy is the reading in the legacy form "%.6E<unit>", or NoReading.
+// TRLC-LINKS: REQ-DSO-024
 func (p *Param) Legacy(r *measure.Result) string {
 	if v, ok := p.Reading(r); ok {
 		return fmt.Sprintf("%.6E%s", v, p.Unit)
@@ -98,6 +101,7 @@ func (p *Param) Legacy(r *measure.Result) string {
 
 // notAliased is v, or NaN when r is an envelope of a signal faster than its
 // buckets, which holds no mean or RMS.
+// TRLC-LINKS: REQ-DSO-024
 func notAliased(r *measure.Result, v float64) float64 {
 	if r.EnvAliased {
 		return math.NaN()

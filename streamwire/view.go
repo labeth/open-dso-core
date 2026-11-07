@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-STREAMWIRE
 
 package streamwire
 
@@ -18,7 +18,7 @@ const (
 )
 
 // String names the state for the display.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (s State) String() string {
 	return [...]string{"IDLE", "STREAM", "TRIG'D", "STOP", "FAIL", "START"}[s]
 }

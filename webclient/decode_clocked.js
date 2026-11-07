@@ -1,15 +1,15 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // decode_clocked.js — PS/2, SWD, MDIO and Wiegand, a classic script
 // mirroring decode_clocked.go step for step. Uses sliceChannel, logicAt,
 // hex2, fmtByte and fail from decode.js, pspan and levelRuns from
 // decode_pulsewire.js. cfg.threshold slices the first line (clock, D0),
 // cfg.thresholdB the second (data, D1).
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function clockedOpts(thr) { return thr != null ? { threshold: thr } : {}; }
 
 // clockedLines mirrors decode_clocked.go clockedLines.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function clockedLines(a, b, cfg) {
   if (!b) return { why: "needs both lines (clock and data)" };
   const C = sliceChannel(a, clockedOpts(cfg.threshold));
@@ -36,7 +36,7 @@ function clockedLines(a, b, cfg) {
 }
 
 // decodePS2 mirrors decode_clocked.go DecodePS2.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function decodePS2(clk, data, colTimeS, cfg) {
   cfg = cfg || {};
   const L = clockedLines(clk, data, cfg);
@@ -77,7 +77,7 @@ function decodePS2(clk, data, colTimeS, cfg) {
 
 // clockedCols is clockedLines with the clock's edges as typed columns: X
 // their times, DIR their directions and DD the data read at each.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function clockedCols(a, b, cfg) {
   if (!b) return { why: "needs both lines (clock and data)" };
   const C = sliceChannel(a, clockedOpts(cfg.threshold));
@@ -110,7 +110,7 @@ function clockedCols(a, b, cfg) {
 
 // swdCycles are the clock's cycles (a fall, then the rise after it): their
 // times xf, xr and the data read at each, df, dr; n of them.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function swdCycles(L) {
   const { X, DIR, DD } = L;
   const m = X.length;
@@ -135,7 +135,7 @@ function swdCycles(L) {
 // park 1, parity checking) read an OK acknowledge at the rises than at the
 // falls; where as many do, whether more reads' data words check their
 // parity at the rises (decode_clocked.go swdTargetAtRise).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function swdTargetAtRise(cy) {
   let fall = 0;
   let rise = 0;
@@ -170,7 +170,7 @@ function swdTargetAtRise(cy) {
 
 // swdRequestRaces: a request whose SWDIO changes within an eighth of a
 // period of a rise it is read at (decode_clocked.go swdRequestRaces).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function swdRequestRaces(D, cy, c, per) {
   if (!D || !D.ok || !(per > 0)) return false;
   const lo = cy.xf[c];
@@ -189,7 +189,7 @@ function swdRequestRaces(D, cy, c, per) {
 }
 
 // decodeSWD mirrors decode_clocked.go DecodeSWD.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function decodeSWD(clk, dio, colTimeS, cfg) {
   cfg = cfg || {};
   const L = clockedCols(clk, dio, cfg);
@@ -201,7 +201,7 @@ function decodeSWD(clk, dio, colTimeS, cfg) {
   // the target's bits at the falls, or at the rises when that reads more OK
   // acknowledges (decode.go swdTargetAtRise)
   const atRise = swdTargetAtRise(cy);
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
   const tb = (k) => (atRise ? cy.dr[k] : cy.df[k]);
   const n = C.n, spans = [], toks = [], units = [];
   let good = false;
@@ -215,10 +215,10 @@ function decodeSWD(clk, dio, colTimeS, cfg) {
   let explained = 0;
   for (const rs of resets) explained += rs[1] - rs[0];
   for (let k = 0; k < cy.n; k++) if (cy.dr[k] === 0 && cy.df[k] === 0) explained++;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
   const unexplained = (from, to) => { let n2 = 0; for (let k = from; k < to; k++) if (cy.dr[k] !== 0 || cy.df[k] !== 0) n2++; return n2; };
   let ri = 0;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
   const flushResets = (upTo) => {
     for (; ri < resets.length && resets[ri][1] <= upTo; ri++) {
       spans.push(pspan(cy.xr[resets[ri][0]], cy.xr[resets[ri][1]], n, "LINERESET", "rw", 0));
@@ -231,7 +231,7 @@ function decodeSWD(clk, dio, colTimeS, cfg) {
   for (const rs of resets) { firstC = Math.min(firstC, rs[0]); lastC = Math.max(lastC, rs[1]); }
   for (let c = 0; c + 12 <= cy.n; c++) {
     flushResets(c);
-    // TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+    // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
     const r = (k) => cy.dr[c + k];
     if (r(0) !== 1 || r(6) !== 0 || r(7) !== 1 || (c > 0 && cy.dr[c - 1] !== 0 && c !== next)) continue;
     const apdp = r(1), rnw = r(2), a2 = r(3), a3 = r(4), par = r(5);
@@ -291,7 +291,7 @@ const MDIO_C22 = { 1: "WR", 2: "RD" };
 const MDIO_C45 = { 0: "ADDR", 1: "WR45", 2: "RDI45", 3: "RD45" };
 
 // decodeMDIO mirrors decode_clocked.go DecodeMDIO.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function decodeMDIO(mdc, mdio, colTimeS, cfg) {
   cfg = cfg || {};
   const L = clockedLines(mdc, mdio, cfg);
@@ -305,7 +305,7 @@ function decodeMDIO(mdc, mdio, colTimeS, cfg) {
     const pre = ones;
     ones = 0;
     if (pre < 16 || i + 31 >= R.length) continue;
-    // TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+    // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
     const bits = (from, cnt) => { let v = 0; for (let k = 0; k < cnt; k++) v = (v << 1) | R[i + from + k].d; return v; };
     const st = bits(0, 2);
     if (st !== 1 && st !== 0) continue;
@@ -331,7 +331,7 @@ function decodeMDIO(mdc, mdio, colTimeS, cfg) {
 }
 
 // decodeWiegand mirrors decode_clocked.go DecodeWiegand.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 function decodeWiegand(d0, d1, colTimeS, cfg) {
   cfg = cfg || {};
   if (!d1) return fail("wiegand", "needs both lines (D0 and D1)");
@@ -358,16 +358,16 @@ function decodeWiegand(d0, d1, colTimeS, cfg) {
   const n = Math.max(A.ok ? A.n : 0, B.ok ? B.n : 0);
   const spans = [], toks = [], units = [];
   let good = false, interval = 0;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
   const emit = (fr) => {
     const nb = fr.length;
     spans.push(pspan(fr[0].x0, fr[0].x0, n, "", "sof", 0));
     const lbl = nb + "b";
     spans.push(pspan(fr[0].x0, fr[nb - 1].x1, n, lbl, "rw", nb));
     toks.push(lbl);
-    // TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+    // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
     const bits = (from, cnt) => { let v = 0, ones = 0; for (let k = 0; k < cnt; k++) { v = v * 2 + fr[from + k].v; ones += fr[from + k].v; } return { v, ones }; };
-    // TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+    // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
     const field = (from, cnt, pfx, bad) => {
       const { v } = bits(from, cnt);
       let txt = pfx + v, kind = "data";

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -27,7 +27,7 @@ import (
 // EdgeSet holds the mid-level crossings of one record (ejEdges): sub-sample
 // positions T in samples, their polarity Pol (+1 rising, -1 falling), the two
 // population levels Lo and Hi in codes, and the threshold Mid between them.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 type EdgeSet struct {
 	T      []float64
 	Pol    []int
@@ -39,7 +39,7 @@ type EdgeSet struct {
 // of the swing and sub-sample linear interpolation (ejEdges). The levels are
 // the two dominant histogram modes, whatever the duty cycle. It returns nil
 // when the record has no serial swing or fewer than three crossings.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func FindEdges(sig []float64) *EdgeSet {
 	n := len(sig)
 	if n < 2 {
@@ -123,7 +123,7 @@ func FindEdges(sig []float64) *EdgeSet {
 // interpolated position between the last sample before i still below mid
 // (above, for a falling edge) and the one after it; ok false at the record's
 // start or on a flat pair.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func midCrossing(sig []float64, i int, mid float64, rising bool) (float64, bool) {
 	j := i
 	if rising {
@@ -148,7 +148,7 @@ func midCrossing(sig []float64, i int, mid float64, rising bool) (float64, bool)
 // histCode is max(0, min(255, Math.round(v))) for a v that is not NaN,
 // computed without a floor call (a software routine on the ARMv7, and this is
 // the per-sample loop).
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func histCode(v float64) int {
 	switch {
 	case !(v > 0):
@@ -168,7 +168,7 @@ func histCode(v float64) int {
 // shortest run (the 10th percentile) and refines by dividing each interval by
 // its nearest integer multiple. It returns 0 for fewer than 8 intervals or
 // when more than 30 % of them sit off the grid.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func EstimateUIFromIntervals(d []float64) float64 {
 	if len(d) < 8 {
 		return 0
@@ -179,7 +179,7 @@ func EstimateUIFromIntervals(d []float64) float64 {
 }
 
 // refineUI runs the estimator's three refinement passes from seed ui.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func refineUI(d []float64, ui float64) float64 {
 	if !(ui > 1) {
 		return 0
@@ -216,7 +216,7 @@ func refineUI(d []float64, ui float64) float64 {
 // GridFit is a least-squares bit grid t = T0 + N*UI through a set of edges:
 // N holds each edge's (integral) grid index, TIE its distance from the grid,
 // in samples, and RMS the residual.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 type GridFit struct {
 	T0, UI float64
 	TIE    []float64
@@ -228,7 +228,7 @@ type GridFit struct {
 // re-deriving the indices after the first (ejFitGrid). It returns nil when the
 // fit does not lock: a residual above a quarter UI is not jitter, it is not
 // one grid.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func FitGrid(t []float64, ui0 float64) *GridFit {
 	if len(t) == 0 {
 		return nil
@@ -273,7 +273,7 @@ func FitGrid(t []float64, ui0 float64) *GridFit {
 
 // medianInPlace is median(a) for a slice the caller gives up: the element
 // a sort would put at len>>1, found by quickselect (a is reordered).
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func medianInPlace(a []float64) float64 {
 	if len(a) == 0 {
 		return 0
@@ -288,7 +288,7 @@ func medianInPlace(a []float64) float64 {
 // 26 % of its samples there. Unimodal: DJ 0, RJ from the global MAD. Bimodal:
 // DJ is the mode separation, RJ the spread of each side about its own mode.
 // ok is false under 200 samples.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func RJDJ(tie []float64) (rj, dj float64, ok bool) {
 	if len(tie) < 200 {
 		return 0, 0, false
@@ -327,7 +327,7 @@ func RJDJ(tie []float64) (rj, dj float64, ok bool) {
 }
 
 // absDev is |v - c| for every v of a.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func absDev(a []float64, c float64) []float64 {
 	out := make([]float64, len(a))
 	for i, v := range a {
@@ -337,7 +337,7 @@ func absDev(a []float64, c float64) []float64 {
 }
 
 // rmsOf is the root mean square of a; 0 for an empty slice.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func rmsOf(a []float64) float64 {
 	if len(a) == 0 {
 		return 0
@@ -350,7 +350,7 @@ func rmsOf(a []float64) float64 {
 }
 
 // pushCapped appends v while a holds fewer than limit values (ejPushCapped).
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func pushCapped(a *[]float64, v float64, limit int) {
 	if len(*a) < limit {
 		*a = append(*a, v)

@@ -1,11 +1,11 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
 import "testing"
 
 // symbolIndexRef is the bit-by-bit index the RTL's priority encoder gives.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func symbolIndexRef(level bool, count uint32) int {
 	if count > SymbolMaxCount {
 		count = SymbolMaxCount
@@ -28,7 +28,7 @@ func symbolIndexRef(level bool, count uint32) int {
 }
 
 // SymbolIndex agrees with the bit-by-bit reference on every count.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func TestSymbolIndexMatchesRef(t *testing.T) {
 	for c := range uint32(1 << 22) {
 		for _, l := range []bool{false, true} {

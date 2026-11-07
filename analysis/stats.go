@@ -1,16 +1,16 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
 import "math"
 
 // Stats is the running statistics of one measurement in the MEASURE workspace
-// (mean, min, max, sdev and N beside the current reading; REQ-SDS-217), by
+// (mean, min, max, sdev and N beside the current reading; REQ-DSO-217), by
 // Welford's update, which stays exact over long runs where a sum of squares
 // would cancel. Values that
 // are not finite (a measurement that failed on a capture) are not counted.
 // The zero value is empty.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 type Stats struct {
 	n        int
 	mean, m2 float64
@@ -18,7 +18,7 @@ type Stats struct {
 }
 
 // Add counts one value.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func (s *Stats) Add(v float64) {
 	if !finite(v) {
 		return
@@ -36,24 +36,24 @@ func (s *Stats) Add(v float64) {
 }
 
 // N is the number of values counted.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func (s *Stats) N() int { return s.n }
 
 // Mean is the mean, NaN when there is no value.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func (s *Stats) Mean() float64 { return s.or(s.mean) }
 
 // Min is the smallest value, NaN when there is none.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func (s *Stats) Min() float64 { return s.or(s.min) }
 
 // Max is the largest value, NaN when there is none.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func (s *Stats) Max() float64 { return s.or(s.max) }
 
 // Sdev is the standard deviation of the values counted (the population's, as
 // the prototype's table showed it), NaN below two values.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func (s *Stats) Sdev() float64 {
 	if s.n < 2 {
 		return math.NaN()
@@ -63,11 +63,11 @@ func (s *Stats) Sdev() float64 {
 
 // Reset empties the statistics (the Position push in MEASURE, or a change of
 // channel, timebase, trigger or acquisition).
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func (s *Stats) Reset() { *s = Stats{} }
 
 // or is v, or NaN when nothing was counted.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func (s *Stats) or(v float64) float64 {
 	if s.n == 0 {
 		return math.NaN()

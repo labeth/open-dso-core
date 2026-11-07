@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -16,7 +16,7 @@ import (
 
 // writeSlotBinary drops a runnable /bin/sh script into a slot so the real
 // launch path (exec + process group + health watcher) can run against it.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func writeSlotBinary(t *testing.T, a *Agent, slot, script string) {
 	t.Helper()
 	if err := os.MkdirAll(a.store.SlotDir(slot), 0o755); err != nil {
@@ -27,14 +27,14 @@ func writeSlotBinary(t *testing.T, a *Agent, slot, script string) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028, REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-028, REQ-DSO-117
 func appOf(a *Agent) appState {
 	a.appMu.Lock()
 	defer a.appMu.Unlock()
 	return a.app
 }
 
-// TRLC-LINKS: REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-117
 func pausedOf(a *Agent) bool {
 	a.appMu.Lock()
 	defer a.appMu.Unlock()
@@ -43,7 +43,7 @@ func pausedOf(a *Agent) bool {
 
 // ---- pickSlot ladder --------------------------------------------------------
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestPickSlotNothingInstalled(t *testing.T) {
 	a := testAgent(t)
 	if err := a.store.Init(); err != nil {
@@ -54,7 +54,7 @@ func TestPickSlotNothingInstalled(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestPickSlotActive(t *testing.T) {
 	a := testAgent(t)
 	_ = a.store.Init()
@@ -64,7 +64,7 @@ func TestPickSlotActive(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestPickSlotFallsBackToConfirmed(t *testing.T) {
 	a := testAgent(t)
 	_ = a.store.Init()
@@ -82,7 +82,7 @@ func TestPickSlotFallsBackToConfirmed(t *testing.T) {
 
 // ---- crash-loop counting -> rollback ladder ---------------------------------
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestRollbackBelowThresholdDoesNothing(t *testing.T) {
 	a := testAgent(t)
 	_ = a.store.Init()
@@ -103,7 +103,7 @@ func TestRollbackBelowThresholdDoesNothing(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestRollbackToConfirmedAtThreshold(t *testing.T) {
 	a := testAgent(t)
 	_ = a.store.Init()
@@ -124,7 +124,7 @@ func TestRollbackToConfirmedAtThreshold(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestRollbackExhaustedKeepsRetrying(t *testing.T) {
 	a := testAgent(t)
 	_ = a.store.Init()
@@ -147,7 +147,7 @@ func TestRollbackExhaustedKeepsRetrying(t *testing.T) {
 
 // ---- orphan adoption --------------------------------------------------------
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestOrphanAppPid(t *testing.T) {
 	a := testAgent(t)
 	pidFile := a.pidPath(appPidFile)
@@ -181,7 +181,7 @@ func TestOrphanAppPid(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028, REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-028, REQ-DSO-117
 func TestSuperviseAdoptedTornDownByControl(t *testing.T) {
 	a := testAgent(t)
 	// A live process standing in for an app left by a previous agent
@@ -220,7 +220,7 @@ func TestSuperviseAdoptedTornDownByControl(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestSuperviseAdoptedKillsWhenNoHealthEverArrives(t *testing.T) {
 	a := testAgent(t)
 	cmd := exec.CommandContext(t.Context(), "sleep", "30")
@@ -249,7 +249,7 @@ func TestSuperviseAdoptedKillsWhenNoHealthEverArrives(t *testing.T) {
 
 // ---- control plumbing -------------------------------------------------------
 
-// TRLC-LINKS: REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-117
 func TestIdleWaitServicesControlOps(t *testing.T) {
 	a := testAgent(t)
 
@@ -284,7 +284,7 @@ func TestIdleWaitServicesControlOps(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-117
 func TestCtlRequestTimesOutWithoutSupervisor(t *testing.T) {
 	a := testAgent(t)
 	start := time.Now()
@@ -302,7 +302,7 @@ func TestCtlRequestTimesOutWithoutSupervisor(t *testing.T) {
 
 // ---- runAppOnce outcome classification (real exec of throwaway scripts) -----
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestRunAppOnceStableRunConfirmsSlot(t *testing.T) {
 	t.Setenv("OTA_STABLE", "0.3")
 	t.Setenv("OTA_APP_GRACE", "10")
@@ -337,7 +337,7 @@ done`)
 // An app runs until an operator restart (the next update); it must be confirmed
 // while it runs, or that update overwrites the confirmed slot and a crash-looping
 // update cannot roll back to the previous version.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestRunAppOnceConfirmsSlotWhileRunning(t *testing.T) {
 	t.Setenv("OTA_STABLE", "0.3")
 	t.Setenv("OTA_APP_GRACE", "10")
@@ -372,7 +372,7 @@ done`)
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestRunAppOnceCrashCountsAsFailure(t *testing.T) {
 	t.Setenv("OTA_APP_GRACE", "10")
 	a := testAgent(t)
@@ -393,7 +393,7 @@ func TestRunAppOnceCrashCountsAsFailure(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestRunAppOnceStaleHealthGetsTerminated(t *testing.T) {
 	t.Setenv("OTA_APP_GRACE", "10")
 	t.Setenv("OTA_HEALTH_TIMEOUT", "0.3")
@@ -423,7 +423,7 @@ sleep 30`)
 // TestConfirmRetriesAfterAFailedWrite: a confirm write that fails (the stick
 // flipped read-only) is not taken as done: the confirmed pointer stays where
 // it was, and the next tick once the stick takes writes again confirms.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func TestConfirmRetriesAfterAFailedWrite(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("root writes through a read-only directory")

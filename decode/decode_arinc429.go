@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -15,7 +15,7 @@ import (
 //	          (typically 100000 high-speed, or 12500 low-speed).
 //	Threshold /HaveThr override the auto NULL (mid) level of the tri-level slicer.
 //
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type ARINC429Cfg struct {
 	Bitrate   int
 	Threshold float64
@@ -43,7 +43,7 @@ type ARINC429Cfg struct {
 // segmented on that inter-word gap and each COMPLETE 32-bit word is decoded;
 // a word truncated by the capture start/end (a partial with < 32 pulses) is
 // dropped, since a free-running scope starts at a random phase.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func ARINC429(codes []uint8, colTimeS float64, cfg ARINC429Cfg) Result {
 	const proto = protoARINC429
 	const minSPB = 4.0
@@ -234,7 +234,7 @@ func ARINC429(codes []uint8, colTimeS float64, cfg ARINC429Cfg) Result {
 // (or the threshold override), the rails are the extreme populated codes, and
 // pulses enter at 40 percent and return to NULL below 15 percent of each
 // rail's excursion. Hardware ARINC triggering uses the same levels.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func ARINC429Levels(codes []uint8, cfg ARINC429Cfg) (null, thrHi, thrLo, exitHi, exitLo float64, reason string) {
 	n := len(codes)
 	// --- tri-level slice: histogram -> NULL(mid), HI rail(gmax), LO rail(gmin).

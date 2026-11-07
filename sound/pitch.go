@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -34,7 +34,7 @@ var DefaultPitchOpts = PitchOpts{Fmin: 25, Fmax: 5000, Threshold: 0.15}
 const voicedDip = 0.45
 
 // DetectPitch reads the pitch of x (any units) sampled at fs.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func DetectPitch(x []float64, fs float64, o PitchOpts) Pitch {
 	n := len(x)
 	if n < 64 || !(fs > 0) {
@@ -123,7 +123,7 @@ const yinMax = 8192
 
 // blockMeanN averages x in blocks of k samples into out (a partial block
 // dropped; out holds len(x)/k).
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func blockMeanN(out, x []float64, k int) []float64 {
 	out = out[:len(x)/k]
 	for i := range out {
@@ -138,7 +138,7 @@ func blockMeanN(out, x []float64, k int) []float64 {
 
 // yinDifference is YIN's squared difference d(tau) for tau < tauMax over a
 // window of w samples, by FFT: d = E(0) + E(tau) - 2 r(tau).
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func yinDifference(x []float64, w, tauMax int) []float64 {
 	n := len(x)
 	m := mean(x)
@@ -196,7 +196,7 @@ func yinDifference(x []float64, w, tauMax int) []float64 {
 // refinePitch measures f by the phase the strongest of harmonics 1..4 of a
 // first estimate advances between the window's two halves; it keeps the
 // estimate when the refinement disagrees by more than 2 %.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func refinePitch(x []float64, fs, f float64) float64 {
 	n := len(x)
 	half := n / 2
@@ -250,7 +250,7 @@ type Note struct {
 var noteNames = [12]string{"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
 
 // NoteOf names f against A4 = a4 Hz (440 when 0).
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func NoteOf(f, a4 float64) Note {
 	if !(a4 > 0) {
 		a4 = 440
@@ -267,7 +267,7 @@ func NoteOf(f, a4 float64) Note {
 }
 
 // String is "A4" or "C#3".
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func (n Note) String() string {
 	if n.Name == "" {
 		return "--"
@@ -276,7 +276,7 @@ func (n Note) String() string {
 }
 
 // Cents is the interval from b to a in cents.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func Cents(a, b float64) float64 {
 	if !(a > 0) || !(b > 0) {
 		return math.NaN()
@@ -287,7 +287,7 @@ func Cents(a, b float64) float64 {
 // TunerWindow is the samples a tuner reading takes for a pitch near f (0:
 // unknown): about sixteen periods (eight a half for the refinement), a power
 // of two between 4096 and 32768 at the stream's rate.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func TunerWindow(f, fs float64) int {
 	n := 8192
 	if f > 0 {
@@ -299,7 +299,7 @@ func TunerWindow(f, fs float64) int {
 }
 
 // PitchRange is a tuner range's search bounds.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func PitchRange(id string) PitchOpts {
 	switch id {
 	case "bass":

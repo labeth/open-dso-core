@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -12,7 +12,7 @@ import (
 // zoomFrame is a live envelope frame, flat at code level, with a view window
 // over the 100 values about its trigger: a square between codes 60 and 200,
 // 10 cycles across.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func zoomFrame(level uint8) (*sample.Frame, *sample.Detail) {
 	const n, vn, period = 4096, 1540, 154
 	f := &sample.Frame{
@@ -42,7 +42,7 @@ func zoomFrame(level uint8) (*sample.Frame, *sample.Detail) {
 }
 
 // setView gives frame f the scope's view window v, or none.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func setView(f *sample.Frame, v *sample.Detail) {
 	f.Details = nil
 	if v != nil {
@@ -51,7 +51,7 @@ func setView(f *sample.Frame, v *sample.Detail) {
 }
 
 // highRuns counts the stretches of the plot where C1 is drawn on row y.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func highRuns(sf *Image565, y int) int {
 	runs, in := 0, false
 	for x := range W - railW {
@@ -68,7 +68,7 @@ func highRuns(sf *Image565, y int) int {
 // zoomed stretch read again at full detail - not the screen's buckets
 // stretched: 50x of a 4096-value envelope is 81 of its values, 8 cycles of
 // the view's square; a view of another stretch is not used.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestZoomDrawsTheViewWindow(t *testing.T) {
 	hud := HUD{Ch: [MaxChans]Channel{{VdivV: 1, Show: true}, {VdivV: 1}}, TdivS: 200e-6, TrigPosFrac: 0.5, ChanExplicit: true, Running: true, Zoom: 50}
 	f, v := zoomFrame(128)
@@ -104,7 +104,7 @@ func TestZoomDrawsTheViewWindow(t *testing.T) {
 
 // AC coupling moves the zoom's detail by the whole trace's DC, so it sits
 // where the unzoomed trace does.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-096
 func TestZoomViewCoupledAsTheTrace(t *testing.T) {
 	f, v := zoomFrame(150) // the trace's mean 150: AC moves it down by 22
 	setView(f, v)
@@ -122,7 +122,7 @@ func TestZoomViewCoupledAsTheTrace(t *testing.T) {
 // The trigger pointer marks where the screen shows the trigger: zoomed, the
 // screen is centred on the trigger plus the pan, and a trigger panned off the
 // screen has no pointer (the web's marker alike).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestTriggerPointerFollowsZoom(t *testing.T) {
 	const n = 40000
 	f := &sample.Frame{WinPoints: n / 4, TriggerAt: 12000, Snapshot: sample.Settings{TdivS: 1e-3}, Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Valid: n}}}

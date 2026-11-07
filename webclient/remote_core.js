@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-REMOTE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // remote_core.js — the phone remote's pure logic: no DOM, no network. Numbers
 // formatted as the scope writes them, the value a knob detent reaches, the
 // hints for typed numbers and match bytes, search with everyday words, the
@@ -14,7 +14,7 @@
   const SI = [[1e9, "G"], [1e6, "M"], [1e3, "k"], [1, ""], [1e-3, "m"], [1e-6, "u"], [1e-9, "n"], [1e-12, "p"]];
 
   // g3 is three significant figures without trailing zeros (Go's %.3g).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function g3(x) {
     if (x === 0) return "0";
     let s = Number(x).toPrecision(3);
@@ -29,7 +29,7 @@
   }
 
   // si writes v with an SI prefix and unit at three figures ("1.25V", "500us").
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function si(v, unit) {
     if (!Number.isFinite(v)) return "---";
     if (v === 0) return "0" + unit;
@@ -39,15 +39,15 @@
   }
 
   // sgnSI is si with a + on positive values (positions and offsets).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function sgnSI(v, unit) { return v > 0 ? "+" + si(v, unit) : si(v, unit); }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function hex2(v) { return Math.max(0, Math.round(v)).toString(16).toUpperCase().padStart(2, "0"); }
 
   // hexText writes a whole number as the hex rows do (panel hexText): 0x50,
   // and -0x02 for a negative one typed; rounded half away from zero, as Go.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function hexText(v) {
     const n = Math.sign(v) * Math.round(Math.abs(v));
     return n < 0 ? "-0x" + hex2(-n) : "0x" + hex2(n);
@@ -55,26 +55,26 @@
 
   // The rows the device formats in their own way; the rest follow their unit.
   const FMT = {
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     "trig.holdoff": (v) => (v === 0 ? "Off" : si(v, "s")),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     "ch1.offset": (v) => sgnSI(v, "V"),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     "ch2.offset": (v) => sgnSI(v, "V"),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     "time.zoom_pos": (v) => String(Math.round(v * 10) / 10) + " %",
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     "bus.stream_value": (v) => hexText(v),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     "bus.i2c_address": (v) => (v === -1 ? "Any" : hexText(v)),
-    // TRLC-LINKS: REQ-SDS-220, REQ-SDS-243
+    // TRLC-LINKS: REQ-DSO-220, REQ-DSO-243
     "bus.layer_address": (v) => (v === -1 ? "Any" : hexText(v)),
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     "acq.sr_target": (v) => g3(v),
   };
 
   // fmtValue writes a number row's value as the scope would.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function fmtValue(row, v) {
     const f = FMT[row.ID];
     if (f) return f(v);
@@ -88,7 +88,7 @@
 
   // pretty spaces a number from its unit for reading on a phone: "500us" ->
   // "500 us", "+200mV" -> "+200 mV". Other texts stay as the scope writes them.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function pretty(text) {
     const s = String(text == null ? "" : text);
     const m = /^([+-]?\d+(?:\.\d+)?(?:e[+-]\d+)?)([pnuµmkMG]?(?:V|s|Hz|b\/s|Bd))$/.exec(s);
@@ -96,7 +96,7 @@
   }
 
   // compact is pretty without "/div" or trailing zeros, for a small button.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function compact(text) {
     return pretty(text).replace(/\s*\/div$/, "").replace(/(\d)\.0+(?!\d)/g, "$1").replace(/(\.\d*?[1-9])0+(?!\d)/g, "$1");
   }
@@ -107,14 +107,14 @@
   // their printed arcs show): on the phone "right is clockwise" everywhere.
   const CW_DOWN = { "time.tdiv": 1, "ch1.vdiv": 1, "ch2.vdiv": 1 };
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function near(a, b) { return Math.abs(a - b) <= 1e-9 * Math.max(Math.abs(a), Math.abs(b), 1e-12); }
 
   // neighbour is the value one step up (dir +1) or down (-1) from a row's
   // value: the next ladder value, the value plus its step (the device clamps
   // a knob step to the range, so does this), or the next option. null at the
   // end, or when the row has no steps.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function neighbour(row, dir) {
     if (!row) return null;
     if (row.Kind === "enum") {
@@ -140,7 +140,7 @@
 
   // turn is the value a clockwise (cw = +1) or counter-clockwise (-1) detent
   // reaches, n detents on.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function turn(row, cw, n) {
     const dir = CW_DOWN[row && row.ID] ? -cw : cw;
     let r = row, out = null;
@@ -157,7 +157,7 @@
 
   const PREFIX = { p: 1e-12, n: 1e-9, u: 1e-6, "µ": 1e-6, m: 1e-3, k: 1e3, K: 1e3, M: 1e6, G: 1e9 };
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function unitIs(u, unit) {
     if (!unit) return false;
     const l = u.toLowerCase();
@@ -175,7 +175,7 @@
   // when the text has no point and one comma ("2,5V": a European keyboard);
   // before exactly three digits after a whole number ("57,600") it could be
   // a thousands separator too, so that is refused rather than guessed.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function parseNumber(text, unit) {
     const s0 = String(text == null ? "" : text).trim();
     const want = unit ? unit : "a plain number";
@@ -197,7 +197,7 @@
     }
     // the numeric part, scanned as the device does: digits, points, a
     // leading sign, and an exponent that has digits after it
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const dig = (c) => c >= "0" && c <= "9";
     let i = 0;
     while (i < s.length) {
@@ -225,7 +225,7 @@
 
   // numberHint checks typed text for a number row the way the device will:
   // {ok, value, text, note} or {ok: false, error}. Empty text: {empty: true}.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function numberHint(row, text) {
     const t = String(text == null ? "" : text).trim();
     if (!t) return { ok: false, empty: true, error: "" };
@@ -253,7 +253,7 @@
   }
 
   // nearestLadder is the ladder value closest to v on a log scale.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function nearestLadder(L, v) {
     let best = L[0];
     for (const x of L) if (Math.abs(Math.log(x / v)) < Math.abs(Math.log(best / v))) best = x;
@@ -264,7 +264,7 @@
   // writes in hex: its keypad has A-F and 0x instead).
   const UNIT_KEYS = { V: ["mV", "V"], s: ["ns", "us", "ms", "s"], "%": ["%"], "b/s": ["k", "M"], Hz: ["k", "M"] };
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function unitKeys(row) {
     if (isHex(row)) return [];
     const u = UNIT_KEYS[row.Unit || ""];
@@ -275,13 +275,13 @@
   // The rows the scope writes in hex ("0x50").
   const HEX = { "bus.i2c_address": 1, "bus.layer_address": 1, "bus.stream_value": 1 };
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function isHex(row) { return !!row && !!HEX[row.ID]; }
 
   // hexNumKey edits a hex keypad's number ("0x50"): a letter A-F makes it
   // hex (0x goes in front), 0x puts the prefix in or takes it out, Del takes
   // the last digit (and 0x with the last one).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function hexNumKey(buf, k) {
     const hex = buf.slice(0, 2) === "0x";
     if (k === "clear") return "";
@@ -294,7 +294,7 @@
 
   // numKey edits a number keypad's text: digits, the sign, Del (a whole unit
   // at once), Clear, and a unit key that replaces the unit typed before.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function numKey(buf, k, units) {
     const UNIT_TAIL = /\s*(?:mV|V|ns|us|ms|s|%|k|M)$/;
     if (k === "back") return UNIT_TAIL.test(buf) ? buf.replace(UNIT_TAIL, "") : buf.slice(0, -1);
@@ -311,7 +311,7 @@
   const MATCH_MAX = 32;
 
   // utf8 is the UTF-8 bytes of s (match text is sent byte for byte).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function utf8(s) {
     const out = [];
     for (const ch of s) {
@@ -325,7 +325,7 @@
   }
 
   // unescapeBytes resolves \r \n \t \0 \\ \" \' and \xNN in quoted text.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function unescapeBytes(s) {
     const b = utf8(s), out = [];
     for (let i = 0; i < b.length; i++) {
@@ -351,7 +351,7 @@
 
   // parseMatch reads match bytes as the device does: hex tokens ("55 AA",
   // "55AA", "??", "A?", "ERR", "SOF", "CMD") or quoted text ("\"Hi\\r\\n\""); empty = any byte.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function parseMatch(text) {
     const s = String(text == null ? "" : text).trim();
     if (!s || /^any( byte)?$/i.test(s)) return { ok: true, tokens: [] };
@@ -381,7 +381,7 @@
   // quoteText turns typed text into the device's quoted form: quotes and
   // stray backslashes escaped, the \r \n \t \0 \xNN escapes kept. One
   // pass: a kept escape's quote (\") is not escaped a second time.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function quoteText(t) {
     if (!t) return "";
     return '"' + t.replace(/\\[rnt0\\"'x]|\\|"/g, (m) => (m.length === 2 ? m : "\\" + m)) + '"';
@@ -389,9 +389,9 @@
 
   // hexKey edits the hex keypad's text: digits group in pairs ("55 AA"), ??
   // is one wildcard byte, Del takes a whole ?? back.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function hexKey(buf, k) {
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const digits = (b) => b.replace(/\s/g, "").length;
     if (k === "back") {
       let b = buf.replace(/\s+$/, "");
@@ -413,7 +413,7 @@
 
   // index flattens /api/sheets: rows by id with their tab, the section they
   // sit in (carried down from the header row) and the section's note.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function index(sheets) {
     const rows = new Map(), tabs = [];
     for (const t of (sheets && sheets.Tabs) || []) {
@@ -434,14 +434,14 @@
   }
 
   // isSwitch: an Off/On enum, shown as a switch.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function isSwitch(row) {
     const o = row && row.Kind === "enum" ? row.Options || [] : [];
     return o.length === 2 && /^off$/i.test(o[0].Text) && /^on$/i.test(o[1].Text);
   }
 
   // isSlot: a FILE setup slot (Save / Recall).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function isSlot(row) { return !!row && row.Kind === "action" && /^file\.setup\d+$/.test(row.ID); }
 
   // ---- search -------------------------------------------------------------------------
@@ -481,7 +481,7 @@
   };
 
   // label is the name a row has on a tile, in History and in search.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function label(row) {
     if (!row) return "";
     if (NAME[row.ID]) return NAME[row.ID];
@@ -489,7 +489,7 @@
   }
 
   // words splits a query into lower-case words (a known phrase is one).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function words(q) {
     let s = String(q || "").toLowerCase();
     for (const [re, w] of PHRASES) s = s.replace(re, w);
@@ -498,7 +498,7 @@
 
   // within1: a and b differ by at most one letter: one changed, added,
   // dropped, or two neighbours swapped ("offest", "offset").
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function within1(a, b) {
     if (a === b) return true;
     const la = a.length, lb = b.length;
@@ -513,10 +513,10 @@
 
   // vocabulary is every word the sheets use (names, tabs, sections, options,
   // presets, actions) and the everyday words above.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function vocabulary(model) {
     const v = new Set(Object.keys(SYN));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const put = (t) => { for (const w of String(t || "").toLowerCase().split(/[^a-z0-9]+/)) if (w.length >= 4) v.add(w); };
     for (const t of model.tabs) {
       put(t.name); put(t.title);
@@ -538,7 +538,7 @@
   // first, the help text last. When nothing matches, a word of 5 letters or
   // more also matches the sheets' words one letter away from it ("averge",
   // "tigger"). [{id, score}], best first, in sheet order.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function search(model, q, limit) {
     const ws = words(q);
     if (!ws.length) return [];
@@ -559,7 +559,7 @@
 
   // find scores every row against the words, each word standing for its
   // candidates (itself and its alternatives); rows that every word matches.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function find(model, ws, cands) {
     const out = [];
     let order = 0;
@@ -593,7 +593,7 @@
 
   // matchPlace reports whether a place (a workspace, a key, a tab of the
   // remote) matches every word of the query.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function matchPlace(place, q) {
     const ws = words(q), hay = (place.label + " " + place.words).toLowerCase();
     return ws.length > 0 && ws.every((w) => [w].concat(SYN[w] || []).some((x) => hay.indexOf(x) >= 0));
@@ -605,7 +605,7 @@
 
   // tracked: the rows History follows: settings (enum, number, bytes) and
   // the setup slots; not the run state, not live action statuses.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function tracked(row) {
     if (!row || row.ID === "acq.run") return false;
     return row.Kind === "enum" || row.Kind === "number" || row.Kind === "bytes" || isSlot(row);
@@ -613,7 +613,7 @@
 
   // snapshot is what History compares: each tracked row's value, and the
   // workspace.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function snapshot(model, ws) {
     const rows = new Map();
     for (const [id, r] of model.rows) {
@@ -626,7 +626,7 @@
   }
 
   // diff lists the rows whose value differs between two snapshots.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function diff(a, b) {
     const out = [];
     for (const [id, x] of b.rows) {
@@ -641,13 +641,13 @@
 
   // okEntry: a stored entry of the shape this page shows. History survives
   // page updates and hand edits: anything else is dropped when it loads.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function okEntry(e) {
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const str = (x) => typeof x === "string";
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const side = (x) => !!x && typeof x === "object" && str(x.key);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const okRow = (r) => !!r && typeof r === "object" && str(r.id) && str(r.tab) && str(r.label) && side(r.old) && side(r.neu);
     return !!e && typeof e === "object" && Number.isFinite(e.id) && Number.isFinite(e.t) && str(e.src) && Array.isArray(e.rows) && e.rows.every(okRow) &&
       (e.ws == null || (typeof e.ws === "object" && str(e.ws.from) && str(e.ws.to))) && (e.undid === undefined || Array.isArray(e.undid));
@@ -656,7 +656,7 @@
   // autoRow: a row the scope set itself as a consequence of another change
   // (its text ends "(auto)": the memory depth a timebase brings). It is a
   // sub-change of the change that caused it, not one of its own.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function autoRow(r) {
     return / \(auto\)$/.test((r && r.neu && r.neu.text) || "");
   }
@@ -666,9 +666,9 @@
   // entry (stepping back to the start removes it); an undo is itself an
   // entry; rows the scope set itself within 3 s of a change join it (one
   // undo reverts both). At most 100 entries.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   class History {
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     constructor(list) {
       this.list = Array.isArray(list) ? list.filter(okEntry).slice(0, HIST_MAX) : [];
       this.seq = this.list.reduce((m, e) => Math.max(m, e.id || 0), 0);
@@ -678,7 +678,7 @@
     // meta {primary, label, kind, undoable, ws, undid (an undo: the ids of
     // the entries it undid)}. Returns the entry (or null when a merge
     // removed it).
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     add(src, rows, meta, now) {
       meta = meta || {};
       rows = rows.slice();
@@ -715,7 +715,7 @@
 
     // extend adds rows a change brought with it (side effects found later);
     // the row the user changed goes first when it comes later.
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     extend(e, rows, ws) {
       for (const r of rows) {
         const have = e.rows.find((x) => x.id === r.id);
@@ -734,7 +734,7 @@
     // value from the oldest of them, and the workspace they started in. A row
     // the scope derived before and after (auto both ways) is not set: the
     // scope derives it again from the rows put back.
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     targets(entries) {
       const rows = new Map();
       let ws = null;
@@ -748,7 +748,7 @@
     // since is entry e and every newer entry that changed a setting or the
     // workspace: what "back to before this" undoes. Undone entries count too,
     // so an undo and the entry it undid cancel out in the targets.
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     since(e) {
       const at = this.list.indexOf(e);
       return at < 0 ? [] : this.list.slice(0, at + 1).filter((x) => x.ws || x.rows.some((r) => r.kind !== "slot"));
@@ -756,7 +756,7 @@
   }
 
   // ago is a relative time: "now", "12 s ago", "3 min ago", "2 h ago".
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function ago(ms) {
     const s = Math.max(0, Math.round(ms / 1000));
     return s < 5 ? "now" : s < 60 ? s + " s ago" : s < 3600 ? Math.floor(s / 60) + " min ago" : Math.floor(s / 3600) + " h ago";
@@ -766,7 +766,7 @@
 
   // tools reads the scope's tool line ([{Knob, Job}]) into the Adjust and
   // Position jobs with their pushes, and the S/DIV push.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function tools(segs) {
     const out = { adjust: { job: "", push: "" }, position: { job: "", push: "" }, zoom: "" };
     let cur = null;
@@ -783,7 +783,7 @@
   }
 
   // turnWords names the two ways a knob job moves.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function turnWords(job) {
     return /threshold/i.test(job) ? ["Down", "Up"] : /cursor|sample|position|fine|point|level/i.test(job) ? ["Left", "Right"] : ["Prev", "Next"];
   }

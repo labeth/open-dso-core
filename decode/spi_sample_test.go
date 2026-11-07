@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -42,7 +42,7 @@ type spiBus struct {
 // synthPhaseS is C2's sampling instant after C1's (the bench: 1.44 ns).
 const synthPhaseS = 1.44e-9
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (p spiBus) words() []uint64 {
 	type tr struct {
 		t  float64
@@ -139,7 +139,7 @@ func (p spiBus) words() []uint64 {
 	return wide
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (p spiBus) config() SampleSPIConfig {
 	delay := int(math.Round(synthPhaseS * 16e9))
 	if p.clockCh == 0 {
@@ -154,7 +154,7 @@ func (p spiBus) config() SampleSPIConfig {
 
 // frameBytes groups the receiver's events into frames; a frame that ends
 // mid-byte or without a start is reported.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func frameBytes(ev []SampleSPIEvent) ([][]byte, error) {
 	var out [][]byte
 	var cur []byte
@@ -182,7 +182,7 @@ func frameBytes(ev []SampleSPIEvent) ([][]byte, error) {
 }
 
 // benchFrame is the bench source's burst n (an SPI flash fast read).
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func benchFrame(n int) []byte {
 	b := append([]byte{0x0b, 0, 0x10, 0, 0xff}, "SPI FLASH 104MHZ OPEN-SDS 0123  "...)
 	for i := range 32 {
@@ -193,7 +193,7 @@ func benchFrame(n int) []byte {
 
 // synthCases: every rate the bench runs and one far below, in every mode
 // and bit order, inverted, and with the clock on either channel.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func synthCases() []spiBus {
 	var cases []spiBus
 	frames := [][]byte{benchFrame(0)[:12], {0x00, 0xff, 0xa5, 0x5a}, {0x81, 0x7e, 0x01, 0x80}}
@@ -219,7 +219,7 @@ func synthCases() []spiBus {
 }
 
 // The reference decodes every synthetic bus exactly.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleSPISynthetic(t *testing.T) {
 	for _, p := range synthCases() {
 		name := fmt.Sprintf("%.0fMHz/cpol%v/cpha%v/msb%v/inv%v/clockC%d/shift%v", p.rateHz/1e6, p.cpol, p.cpha, p.msb, p.inverted, p.clockCh+1, p.shift)
@@ -234,7 +234,7 @@ func TestSampleSPISynthetic(t *testing.T) {
 }
 
 // readCapture loads a recorded record's SRAM words (gzip, little-endian).
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func readCapture(tb testing.TB, name string) []uint64 {
 	tb.Helper()
 	f, err := os.Open(filepath.Join("testdata", name))
@@ -272,14 +272,14 @@ var spiCaptures = []spiCapture{
 	{"spi_sample_10mhz.bin.gz", 10e6},
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func captureConfig(rate float64) SampleSPIConfig {
 	return SampleSPIConfig{ClockCh: 1, Level: 128, Low: 115, High: 141, DataLevel: 128, MSB: true, Delay: 23, GapClocks: SampleSPIGap(rate)}
 }
 
 // Every whole burst in the recorded captures decodes without a bit error;
 // the bursts cut by the record's ends are left out.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleSPICaptures(t *testing.T) {
 	for _, c := range spiCaptures {
 		t.Run(c.file, func(t *testing.T) {
@@ -309,7 +309,7 @@ func TestSampleSPICaptures(t *testing.T) {
 // The RTL (sample_edges.v, spi_sample.v) finds the model's edges and
 // publishes its events on the same clocks, on the synthetic buses and the
 // recorded captures.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleSPIRTL(t *testing.T) {
 	sim := newRTLSim(t, "tb_spi_sample", "sample_edges.v", "spi_sample.v")
 	type run struct {
@@ -375,7 +375,7 @@ func TestSampleSPIRTL(t *testing.T) {
 // sample_edges.v's output (the testbench's view).
 const sampleEdgesLatency = 7
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func head(e []SampleSPIEdge) []SampleSPIEdge {
 	if len(e) > 8 {
 		return e[:8]
@@ -384,7 +384,7 @@ func head(e []SampleSPIEdge) []SampleSPIEdge {
 }
 
 // headEv shows a few events around the first difference.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func headEv(a, b []SampleSPIEvent) []SampleSPIEvent {
 	i := 0
 	for i < len(a) && i < len(b) && a[i] == b[i] {
@@ -396,7 +396,7 @@ func headEv(a, b []SampleSPIEvent) []SampleSPIEvent {
 
 type rtlSim struct{ dir, image string }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func newRTLSim(t *testing.T, tb string, files ...string) rtlSim {
 	t.Helper()
 	needIverilog(t)
@@ -414,7 +414,7 @@ func newRTLSim(t *testing.T, tb string, files ...string) rtlSim {
 	return rtlSim{dir, image}
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (s rtlSim) run(t *testing.T, words []uint64, c SampleSPIConfig) ([]SampleSPIEdge, []SampleSPIEvent) {
 	t.Helper()
 	var in strings.Builder
@@ -462,7 +462,7 @@ func (s rtlSim) run(t *testing.T, words []uint64, c SampleSPIConfig) ([]SampleSP
 	return edges, events
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func needIverilog(t *testing.T) {
 	t.Helper()
 	for _, tool := range []string{"iverilog", "vvp"} {
@@ -472,20 +472,20 @@ func needIverilog(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func rtlDir(t *testing.T) string {
 	t.Helper()
 	return testenv.RTLDir(t)
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func runCmd(ctx context.Context, name string, args ...string) (string, error) {
 	out, err := exec.CommandContext(ctx, name, args...).CombinedOutput()
 	return string(out), err
 }
 
 // lines splits receiver words into the two channels' codes.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func lines(wide []uint64) (c1, c2 []uint8) {
 	for _, w := range wide {
 		for j := range 4 {
@@ -499,7 +499,7 @@ func lines(wide []uint64) (c1, c2 []uint8) {
 // The software decoder takes the data line at the clock's interpolated
 // crossing under six samples a clock period: the synthetic buses past 80 MHz
 // and the recorded 104 MHz bursts decode exactly.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 func TestDecodeSPIFine(t *testing.T) {
 	for _, p := range synthCases() {
 		if p.rateHz < 75e6 || p.inverted || p.shift != [2]float64{} { // one threshold slices both lines
@@ -529,7 +529,7 @@ func TestDecodeSPIFine(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func intsToBytes(v []int) []byte {
 	b := make([]byte, len(v))
 	for i, x := range v {
@@ -541,7 +541,7 @@ func intsToBytes(v []int) []byte {
 // Lines apart on the screen read only at their own levels: the data line
 // (SDA) sliced at the clock's level reads one value throughout, so no frame
 // decodes and no match fires (an SPI or I2C trigger that never fires).
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-229
 func TestSampleLinesApartOwnLevels(t *testing.T) {
 	for _, p := range synthCases() {
 		if p.shift == [2]float64{} {

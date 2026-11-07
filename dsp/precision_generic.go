@@ -1,12 +1,12 @@
 //go:build !arm
 
-// ENGMODEL-OWNER-UNIT: FU-APP-DSP
+// ENGMODEL-OWNER-UNIT: FU-DSO-DSP
 
 package dsp
 
 import "unsafe"
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func precisionWindow(window *[63]uint16) int64 {
 	// Two sums, so the multiplies need not wait on each other; integers, so
 	// the total is the same.
@@ -20,7 +20,7 @@ func precisionWindow(window *[63]uint16) int64 {
 	return a + b
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func precisionBlock(src, dst *uint16, n int) {
 	in := unsafe.Slice(src, n+62) //nolint:gosec // the block ABI the NEON twin shares: n outputs from n+62 samples
 	out := unsafe.Slice(dst, n)   //nolint:gosec // as above

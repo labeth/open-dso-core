@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-FRAMES
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package fanout
 
@@ -9,7 +9,7 @@ import (
 
 // WaitNext when a newer frame is already there (the display's case at the
 // frame rate).
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func BenchmarkWaitNextFresh(b *testing.B) {
 	fo := NewFrames()
 	fo.has, fo.latest.Seq = true, 7

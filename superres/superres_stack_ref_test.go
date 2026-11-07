@@ -1,11 +1,11 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
 // accumCh resamples one aligned frame at every fine bin (interp kernel): bin b
 // reads the frame at raw index b/K + shift, linearly interpolated. Odd frames
 // also land in the A half-stack (odd/even split for the measured σ).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func (st *Stack) accumCh(ch int, sig []float32, shift float64) {
 	K, nb, n := st.K, st.Nbins, st.N
 	C := &st.C[ch]

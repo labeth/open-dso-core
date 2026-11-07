@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -21,13 +21,13 @@ const saverLinesH = 36
 // SaverPos is the box's top-left corner after step steps: it bounces off the
 // screen's edges one pixel each way per step, on a path that repeats only
 // after hours.
-// TRLC-LINKS: REQ-SDS-221
+// TRLC-LINKS: REQ-DSO-221
 func SaverPos(m *Metrics, step int) (x, y int) {
 	return bounce(step, m.W-m.SaverW), bounce(step, m.H-m.SaverH-saverLinesH)
 }
 
 // bounce runs 0..span and back.
-// TRLC-LINKS: REQ-SDS-221
+// TRLC-LINKS: REQ-DSO-221
 func bounce(t, span int) int {
 	if span <= 0 || t < 0 {
 		return 0
@@ -41,7 +41,7 @@ func bounce(t, span int) int {
 
 // DrawSaver draws the saver picture for a step: black, the live mini scope,
 // its run state and time/div, and a running mask test's counts or the hint.
-// TRLC-LINKS: REQ-SDS-221
+// TRLC-LINKS: REQ-DSO-221
 func DrawSaver(sf Canvas, f *sample.Frame, hud HUD, step int) {
 	f = view8(f)
 	sf.Fill(RGB(0, 0, 0)) // black: a memclr on a memory canvas

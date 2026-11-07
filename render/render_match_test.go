@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -8,7 +8,7 @@ import (
 )
 
 // hexPair accepts exactly the two-character tokens ParseUint(t, 16, 8) does.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestHexPairMatchesParseUint(t *testing.T) {
 	for a := range 256 {
 		for b := range 256 {

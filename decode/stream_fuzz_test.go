@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 
 // streamFuzzCase is the gap-free stream of a protocol's frames, as the
 // engine's decoder meets it: peak samples at the protocol's bucket.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamFuzzCase(c streamCase, seed int64, frames int) (a, b []uint8, ss float64, closeN, maxN, leadN int, ok bool) {
 	name := strings.TrimSuffix(c.name, "-carrier")
 	feature, longest, quiet, ok := StreamTiming(name, c.baud)
@@ -49,7 +49,7 @@ func streamFuzzCase(c streamCase, seed int64, frames int) (a, b []uint8, ss floa
 // streamTranscript is the frames' content and starts (a frame's end can
 // move a sample or two with what follows it in the window: a decoder ends
 // its last span at the next edge it saw).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamTranscript(fs []StreamFrame) []string {
 	out := make([]string, len(fs))
 	for i, f := range fs {
@@ -61,7 +61,7 @@ func streamTranscript(fs []StreamFrame) []string {
 // FuzzStreamChunks splits each gap-free protocol's stream at the places the
 // fuzzer picks: the frames handed out are the stream's in one push, none
 // lost, doubled or moved by a chunk boundary.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func FuzzStreamChunks(f *testing.F) {
 	cases := append(append([]streamCase(nil), streamCases...), moreStreamCases...)
 	for i := range cases {

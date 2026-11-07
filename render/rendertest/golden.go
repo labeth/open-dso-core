@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package rendertest
 
@@ -20,6 +20,7 @@ const MaxDiffPixels = 64
 
 // Diff counts the pixels whose colour differs between two PNG images, and
 // reports the first.
+// TRLC-LINKS: REQ-DSO-021
 func Diff(got, want []byte) (int, image.Point, error) {
 	a, err := png.Decode(bytes.NewReader(got))
 	if err != nil {
@@ -51,6 +52,7 @@ func Diff(got, want []byte) (int, image.Point, error) {
 
 // Check compares a render (PNG) with dir/name.png, allowing allowance
 // differing pixels; update rewrites the golden instead.
+// TRLC-LINKS: REQ-DSO-021
 func Check(t testing.TB, dir, name string, got []byte, allowance int, update bool) {
 	t.Helper()
 	path := filepath.Join(dir, name+".png")

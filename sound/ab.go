@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -32,7 +32,7 @@ const maxDelayS = 0.02
 
 // CompareAB compares output b with input a (volts, fs) at f0 (the tuner's
 // pitch; 0 finds it in a).
-// TRLC-LINKS: REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-271
 func CompareAB(a, b []float64, fs, f0 float64) AB {
 	r := AB{THDA: math.NaN(), THDB: math.NaN(), AddedPct: math.NaN(), AddedDB: math.NaN()}
 	n := min(len(a), len(b))
@@ -87,7 +87,7 @@ func CompareAB(a, b []float64, fs, f0 float64) AB {
 
 // Delay is how much later b carries a's signal: the cross-correlation's
 // peak within maxS, parabola-refined; ok false without a clear peak.
-// TRLC-LINKS: REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-271
 func Delay(a, b []float64, fs, maxS float64) (float64, bool) {
 	n := min(len(a), len(b), 65536)
 	if n < 64 || !(maxS*fs >= 0) {

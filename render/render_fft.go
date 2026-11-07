@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -13,7 +13,7 @@ import (
 // fftBand is the visible bin band [kLo,kHi] of a half spectrum: the whole
 // band, or a zoomed slice (the horizontal zoom reused as a frequency zoom,
 // panned by ZoomOff).
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-070
 func fftBand(half, zoom int, zoomOff float64) (kLo, kHi int) {
 	kLo, kHi = 1, half-1
 	if zoom > 1 {
@@ -36,7 +36,7 @@ func fftBand(half, zoom int, zoomOff float64) (kLo, kHi int) {
 // FFT source on top; the spectra come from the shared per-frame cache, so the
 // SPECTRUM peak table and this plot transform a frame once. n is capped so
 // the per-frame cost stays well under the render budget.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-070, REQ-DSO-216
 func drawFFT(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	n := hud.numChans()
 	src := (hud.FFTSrc%n + n) % n
@@ -94,7 +94,7 @@ func drawFFT(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 // drawSpecMarker draws SPECTRUM's marker in the FFT plot: a dotted amber
 // line at its frequency, a triangle at its level and a label; the delta
 // reference as a dim line.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func drawSpecMarker(sf Canvas, p plotArea, m *wsview.SpecPane, fLo, fHi float64) {
 	if m == nil || !m.HasMark || fHi <= fLo {
 		return
@@ -122,7 +122,7 @@ func drawSpecMarker(sf Canvas, p plotArea, m *wsview.SpecPane, fLo, fHi float64)
 }
 
 // vdash draws a dotted vertical line (every other pixel).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func vdash(sf Canvas, x, y0, y1 int, c Color) {
 	for y := y0; y <= y1; y += 2 {
 		sf.SetPixel(x, y, c)
@@ -130,7 +130,7 @@ func vdash(sf Canvas, x, y0, y1 int, c Color) {
 }
 
 // hdash draws a dotted horizontal line (every other pixel).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func hdash(sf Canvas, x0, x1, y int, c Color) {
 	for x := x0; x <= x1; x += 2 {
 		sf.SetPixel(x, y, c)
@@ -138,7 +138,7 @@ func hdash(sf Canvas, x0, x1, y int, c Color) {
 }
 
 // fftCoreP is fftCore on plot p.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-070
 func fftCoreP(sf Canvas, p plotArea, samples []float64, col Color, effNyq float64, kLo, kHi int) float64 {
 	mags, peak, _ := framecalc.Mags(samples)
 	return drawSpectrum(sf, p, mags, peak, col, effNyq, kLo, kHi)
@@ -147,7 +147,7 @@ func fftCoreP(sf Canvas, p plotArea, samples []float64, col Color, effNyq float6
 // drawSpectrum draws a half spectrum's visible band [kLo,kHi] across plot p
 // (dB below peak, -80 dB at the bottom), marks the significant peaks, and
 // returns the parabola-refined frequency of the band's largest peak.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-070
 func drawSpectrum(sf Canvas, p plotArea, mags []float64, peak float64, col Color, effNyq float64, kLo, kHi int) float64 {
 	half := len(mags)
 	if half < 4 {
@@ -226,7 +226,7 @@ func drawSpectrum(sf Canvas, p plotArea, mags []float64, peak float64, col Color
 
 // binMax is the largest of mags[k0..k1] (mags[k0] when the range is empty):
 // the level one plot column or waterfall pixel holding those bins shows.
-// TRLC-LINKS: REQ-SDS-068, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-068, REQ-DSO-070
 func binMax(mags []float64, k0, k1 int) float64 {
 	m := mags[k0]
 	for k := k0 + 1; k <= k1 && k < len(mags); k++ {

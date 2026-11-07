@@ -2,7 +2,7 @@
 // snapshots covering every view and workspace, rendered by the core's golden
 // tests at each screen's metrics and by a board's own golden test through
 // its display path.
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 package rendertest
 
 import (
@@ -22,6 +22,7 @@ type Scene struct {
 }
 
 // Draw renders the scene into sf as a live frame.
+// TRLC-LINKS: REQ-DSO-021
 func (s Scene) Draw(sf render.Canvas) {
 	if s.Prefill {
 		sf.Fill(render.RGB(255, 0, 255))
@@ -31,6 +32,7 @@ func (s Scene) Draw(sf render.Canvas) {
 
 // Scenes builds the golden scenes, fresh each call (a HUD's spectrogram
 // holds state).
+// TRLC-LINKS: REQ-DSO-021
 func Scenes() []Scene {
 	return []Scene{
 		sceneYTDual(),

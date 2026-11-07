@@ -1,11 +1,11 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
 import "testing"
 
 // layerBench applies every curated and random vector of the bus group.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func layerBench(b *testing.B, group string) {
 	b.Helper()
 	var vs []layerVec
@@ -28,19 +28,19 @@ func layerBench(b *testing.B, group string) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func BenchmarkLayerSPI(b *testing.B) { layerBench(b, "spi") }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func BenchmarkLayerI2C(b *testing.B) { layerBench(b, "i2c") }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func BenchmarkLayerUART(b *testing.B) { layerBench(b, "uart") }
 
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func BenchmarkLayerMisc(b *testing.B) { layerBench(b, "misc") }
 
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func BenchmarkHexToks(b *testing.B) {
 	p := []byte{0x9f, 0x03, 0x00, 0x12, 0xab, 0x7f}
 	for b.Loop() {
@@ -49,7 +49,7 @@ func BenchmarkHexToks(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func BenchmarkLayerMatchSPI(b *testing.B) {
 	p := mkSPI(0x03, 0x00, 0x12, 0x34, 0xff, 0xff)
 	for b.Loop() {
@@ -57,7 +57,7 @@ func BenchmarkLayerMatchSPI(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func BenchmarkLayerTablesJS(b *testing.B) {
 	for b.Loop() {
 		_ = LayerTablesJS()

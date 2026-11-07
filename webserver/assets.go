@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -32,7 +32,7 @@ var Assets = LayeredFS{webclient.FS, design.CSS}
 type LayeredFS []fs.FS
 
 // ReadFile is name's body from the first layer that has it.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func (l LayeredFS) ReadFile(name string) ([]byte, error) {
 	for _, f := range l {
 		if b, err := fs.ReadFile(f, name); err == nil {
@@ -43,7 +43,7 @@ func (l LayeredFS) ReadFile(name string) ([]byte, error) {
 }
 
 // ReadDir lists dir across the layers, sorted by name.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func (l LayeredFS) ReadDir(dir string) ([]fs.DirEntry, error) {
 	seen := map[string]bool{}
 	var out []fs.DirEntry
@@ -85,7 +85,7 @@ var assetTypes = map[string]string{
 var assetTags, assetPages = tagAssets()
 
 // tagAssets hashes every embedded file and makes the pages as served.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func tagAssets() (map[string]string, map[string][]byte) {
 	tags, pages := map[string]string{}, map[string][]byte{}
 	tag := func(body []byte) string {
@@ -115,7 +115,7 @@ var assetRef = regexp.MustCompile(`(src|href)="([A-Za-z0-9_.-]+\.(?:js|css))"`)
 
 // versionRefs names each embedded script and stylesheet a page refers to
 // with its tag: src="app.js" becomes src="app.js?v=<tag>".
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func versionRefs(page []byte, tags map[string]string) []byte {
 	return assetRef.ReplaceAllFunc(page, func(m []byte) []byte {
 		sub := assetRef.FindSubmatch(m)
@@ -132,7 +132,7 @@ func versionRefs(page []byte, tags map[string]string) []byte {
 var gzipped sync.Map
 
 // gzipBody is name's body compressed (body as served).
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func gzipBody(name string, body []byte) []byte {
 	if v, ok := gzipped.Load(name); ok {
 		if gz, ok := v.([]byte); ok {
@@ -152,7 +152,7 @@ func gzipBody(name string, body []byte) []byte {
 // server starts (when the scope has its first frames): compressed on its
 // first request instead, the page's first load after a start took two
 // seconds on the scope's ARM.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func Precompress() {
 	time.Sleep(5 * time.Second)
 	files, _ := Assets.ReadDir(".")
@@ -171,7 +171,7 @@ func Precompress() {
 
 // compressible reports the files served gzip-encoded to a browser that
 // takes it (text; the images and videos are compressed already).
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func compressible(name string) bool {
 	switch path.Ext(name) {
 	case ".js", ".css", ".html", ".webmanifest":
@@ -187,7 +187,7 @@ func compressible(name string) bool {
 // iPhone Safari plays a video only from a server that answers Range
 // requests (the remote's keep-awake). Returns false (writing nothing) when
 // the file is not embedded.
-// TRLC-LINKS: REQ-SDS-161, REQ-SDS-220
+// TRLC-LINKS: REQ-DSO-161, REQ-DSO-220
 func ServeAsset(w http.ResponseWriter, r *http.Request, name string) bool {
 	body, ok := assetPages[name]
 	if !ok {
@@ -235,7 +235,7 @@ var assetBodies sync.Map // name -> []byte
 
 // StaticName reports whether p is a bare asset filename the root serves (no
 // path traversal; pages are served by their own routes).
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func StaticName(p string) bool {
 	if strings.Contains(p, "/") {
 		return false
@@ -247,5 +247,5 @@ func StaticName(p string) bool {
 
 // AssetTag is an embedded file's ETag as served (a page's of the page with
 // its references tagged); "" for a file not embedded.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func AssetTag(name string) string { return assetTags[name] }

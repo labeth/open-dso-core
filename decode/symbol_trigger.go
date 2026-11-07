@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -56,7 +56,7 @@ type SymbolCfg struct {
 }
 
 // SymbolIndex is the table index of a run of count prescaled ticks at level.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func SymbolIndex(level bool, count uint32) int {
 	if count > SymbolMaxCount {
 		count = SymbolMaxCount
@@ -108,14 +108,14 @@ type SymbolTrigger struct {
 }
 
 // NewSymbolTrigger starts the block in reset with configuration c.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func NewSymbolTrigger(c SymbolCfg) *SymbolTrigger {
 	return &SymbolTrigger{c: c, r0: true, d0: true, rp: true}
 }
 
 // Step advances one receiver clock with the sliced lines a and b (before
 // inversion) and reset; it returns the match output after the clock.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func (s *SymbolTrigger) Step(a, b, reset bool) bool { //nolint:gocyclo // one clock of the symbol-trigger RTL, statement for statement with the Verilog
 	c := &s.c
 	pmask := uint32(1)<<c.Prescale - 1
@@ -322,7 +322,7 @@ func (s *SymbolTrigger) Step(a, b, reset bool) bool { //nolint:gocyclo // one cl
 // SymbolMatches runs the block over per-clock line levels after reset clocks
 // of reset and returns the clocks (indices into a, b) whose step output a
 // match.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func SymbolMatches(c SymbolCfg, a, b []bool, resetClocks int) []int {
 	s := NewSymbolTrigger(c)
 	var out []int

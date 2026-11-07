@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -19,7 +19,7 @@ type detectCase struct {
 }
 
 // idleLike is a flat channel as long as c (a probe on an idle line).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func idleLike(c []uint8) []uint8 {
 	out := make([]uint8, len(c))
 	for i := range out {
@@ -30,7 +30,7 @@ func idleLike(c []uint8) []uint8 {
 
 // protoDetectCases are captures of every protocol beyond the first ten, as
 // a scope would record them at a timebase that shows a few frames.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func protoDetectCases() []detectCase {
 	var cs []detectCase
 	one := func(name, proto string, sr float64, w *timeline) {
@@ -200,7 +200,7 @@ func protoDetectCases() []detectCase {
 // and by no other protocol: the evidence each needs keeps them apart (NEC
 // and SIRC, RC-5, DALI and Manchester, 1-Wire, DHT and WS281x, PS/2 and
 // I2C, SWD and MDIO and SPI, the UART-framed ones and UART).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectNamesEveryProtocol(t *testing.T) {
 	for _, tc := range protoDetectCases() {
 		t0 := time.Now()
@@ -216,7 +216,7 @@ func TestAutodetectNamesEveryProtocol(t *testing.T) {
 
 // TestAutodetectPlainUARTIsNoFramedProtocol: a UART carrying text at the
 // rates LIN, DMX512, MIDI and Modbus run at stays a UART.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectPlainUARTIsNoFramedProtocol(t *testing.T) {
 	rng := rand.New(rand.NewSource(7))
 	for _, baud := range []float64{19200, 250000, 31250, 9600} {
@@ -240,7 +240,7 @@ func TestAutodetectPlainUARTIsNoFramedProtocol(t *testing.T) {
 
 // TestAutodetectStableUnderNoise: the protocols' captures with converter
 // noise (two codes) and a slow edge are still named right.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectStableUnderNoise(t *testing.T) {
 	rng := rand.New(rand.NewSource(11))
 	noisy := func(c []uint8) []uint8 {

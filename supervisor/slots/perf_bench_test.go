@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-SLOTS
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-SLOTS
 
 package slots
 
@@ -9,7 +9,7 @@ import (
 )
 
 // status reports each slot's sha256; the device's binaries are ~15 MB.
-// TRLC-LINKS: REQ-SDS-087
+// TRLC-LINKS: REQ-DSO-087
 func BenchmarkStatus(b *testing.B) {
 	s := New(b.TempDir())
 	if err := s.Init(); err != nil {

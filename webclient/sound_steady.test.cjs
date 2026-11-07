@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Run by TestSoundSteadyJS (sound_steady_node_test.go): the SOUND readout
 // boxes show each number's median over the view's last readings (each
 // harmonic's own), the newest text, and start again on a reading not ok.
@@ -8,7 +8,7 @@ const code = src.slice(src.indexOf("function sndSteady("), src.indexOf("// sndAd
 const c = { snd: {}, Number, Array, Object, Float32Array, Float64Array };
 vm.createContext(c);
 vm.runInContext(code, c);
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 const harm = (thd, h2, ch) => ({ ok: true, f0: 440, thdPct: thd, character: ch, h: [{ n: 1, relDB: 0, found: true }, { n: 2, relDB: h2, found: true }] });
 let shown;
 for (const [thd, h2, ch] of [[1, -40, "a"], [9, -10, "b"], [2, -41, "c"], [3, -39, "d"], [2.5, -40.5, "e"]]) shown = c.sndSteady("harm", harm(thd, h2, ch));

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -10,7 +10,7 @@ import (
 )
 
 // usbPkt is one synthetic packet: a 4-bit PID value and its payload bytes.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type usbPkt struct {
 	pid  int
 	data []int
@@ -23,7 +23,7 @@ type usbPkt struct {
 // toggles the level, a 1 holds it). EOP is 2 bit-times of SE0 (D+ low), then the
 // line returns to idle. This mirrors the on-wire signal a real host/device pair
 // would drive, so the decoder round-trips it by construction.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func usbWave(packets []usbPkt, spb int) []uint8 {
 	lo, hi := uint8(40), uint8(210)
 	const idle = 1 // J = high
@@ -78,7 +78,7 @@ func usbWave(packets []usbPkt, spb int) []uint8 {
 	return w
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeUSBLSRoundTrip(t *testing.T) {
 	// A token (SETUP), a data packet whose payload forces bit stuffing (0xFF), and
 	// a handshake (ACK) — the three shapes a real transaction uses.
@@ -141,7 +141,7 @@ func TestDecodeUSBLSRoundTrip(t *testing.T) {
 }
 
 // usblsKinds concatenates span kinds for a containsWord check.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func usblsKinds(spans []Span) string {
 	var sb strings.Builder
 	for _, sp := range spans {
@@ -152,7 +152,7 @@ func usblsKinds(spans []Span) string {
 
 // TestDecodeUSBLSNoPanic feeds degenerate/hostile inputs — a decoder must return
 // an error, never panic or hang (the package also runs a broader decoder fuzz).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeUSBLSNoPanic(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x05B)) // deterministic seed
 	mk := func(nn, kind int) []uint8 {
@@ -205,7 +205,7 @@ func TestDecodeUSBLSNoPanic(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestUSBObservedStuffViolationIsFrameError(t *testing.T) {
 	const spb = 40
 	var w []uint8

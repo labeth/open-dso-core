@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package rendertest
 
@@ -20,7 +20,7 @@ import (
 // that could be environment-dependent (the device URL) is pinned in the HUD.
 
 // Clamp converts a generator value to an ADC code.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func Clamp(v float64) uint8 {
 	if v < 0 {
 		v = 0
@@ -33,7 +33,7 @@ func Clamp(v float64) uint8 {
 
 // Frame builds a render-ready dual-channel frame from two per-sample
 // generators, windowed across the whole record and centred on its middle.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func Frame(n int, g1, g2 func(i int) float64) *sample.Frame {
 	f := &sample.Frame{
 		WinPoints: n,
@@ -53,7 +53,7 @@ func Frame(n int, g1, g2 func(i int) float64) *sample.Frame {
 
 // YTFrame is the bread-and-butter Y-T fixture: a square wave on C1 with
 // a rising edge exactly at EdgeX (=n/2), and a sine on C2.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func YTFrame() *sample.Frame {
 	const n = 2048
 	return Frame(n,
@@ -69,7 +69,7 @@ func YTFrame() *sample.Frame {
 // YTHUD is the matching HUD: both channels shown, distinct V/div, real
 // offsets (ground arrows off-centre), trigger level + position markers, and
 // the fixed device URL on the top bar.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func YTHUD() render.HUD {
 	h := DefaultHUD()
 	h.Ch[0].Show, h.Ch[1].Show = true, true
@@ -87,7 +87,7 @@ func YTHUD() render.HUD {
 // traces, trigger level line + position pointer, per-channel ground arrows,
 // top-bar readouts (V/div, t/div, trigger state, URL) and the bottom
 // Vpp/frequency line.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func sceneYTDual() Scene {
 	return Scene{Name: "yt_dual", Frame: YTFrame(), HUD: YTHUD()}
 }
@@ -95,7 +95,7 @@ func sceneYTDual() Scene {
 // UARTWave synthesizes an 8N1 LSB-first UART record (idle-high, codes
 // 40/210, spb samples per bit), padded with trailing idle to length n — the
 // same shape the decode package's own tests use.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func UARTWave(bytes []int, spb, n int) []uint8 {
 	w := make([]uint8, 0, n)
 	push := func(bit, k int) {
@@ -126,7 +126,7 @@ func UARTWave(bytes []int, spb, n int) []uint8 {
 // drawDecode runs the real internal/decode UART decoder on the fixture wave
 // ("OK!" at an explicit baud), so the golden pins the span bars, byte text and
 // the "UART  3 bytes" label produced by real decode spans.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-018
 func sceneYTDecodeUART() Scene {
 	const n, spb = 1024, 16
 	const sampleS = 1e-6
@@ -156,7 +156,7 @@ func sceneYTDecodeUART() Scene {
 // on exact FFT bins (205/614/1024 cycles over the 4096-sample record) so the
 // spectrum has clean local maxima above the -40 dBc mark floor, plus the
 // per-channel peak-frequency labels and the band label.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-070
 func sceneFFTPeaks() Scene {
 	const n = 4096
 	const sampleS = 50e-9 // Nyquist 10 MHz: tones land at ~1/3/5 MHz
@@ -176,7 +176,7 @@ func sceneFFTPeaks() Scene {
 // sceneXY pins the X-Y (Lissajous) view: C1 and C2 at a 1:2 frequency
 // ratio trace a figure-eight, plus the "X:C1  Y:C2" hint and the X-Y top-bar
 // label.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func sceneXY() Scene {
 	const n = 2048
 	f := Frame(n,
@@ -190,7 +190,7 @@ func sceneXY() Scene {
 // sceneMeasurePanel pins the MEASURE overlay with BOTH channel boxes: the
 // square/sine fixture gives every voltage row plus the timing rows (freq,
 // period, duty) deterministic values. Seq=0 keeps measFor cache-free.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func sceneMeasurePanel() Scene {
 	h := YTHUD()
 	h.ShowMeas = true
@@ -200,7 +200,7 @@ func sceneMeasurePanel() Scene {
 // sceneEnvelope pins the envelope-band rendering (IsEnv + Env arrays):
 // an amplitude-modulated C1 band around centre and a thin C2 band near the
 // bottom rail, so both fills and their shapes are pinned.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func sceneEnvelope() Scene {
 	const cols = 800
 	f := &sample.Frame{
@@ -230,7 +230,7 @@ func sceneEnvelope() Scene {
 // (fc = 30 kHz) sampled at 25 log-spaced points over 1 kHz..1 MHz — decade
 // gridlines, dB/phase axes, both traces with point dots, and the point count.
 // The Bode view renders purely from the HUD arrays; no frame is needed.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func sceneBode() Scene {
 	h := DefaultHUD()
 	h.ViewMode = 3
@@ -249,7 +249,7 @@ func sceneBode() Scene {
 // the real Push path, then blitted with the frequency axis, dB key and
 // new/old arrows. The waterfall content depends only on the pushed frames;
 // the untouched region below the staircase pins the scroll behaviour too.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-068
 func sceneSpectrogram() Scene {
 	const n = 4096
 	const dt = 2e-9 // Nyquist 250 MHz: 4096 samples are under MaxFFT, so the FFT view's spectrum and the waterfall span it all
@@ -270,7 +270,7 @@ func sceneSpectrogram() Scene {
 // sceneCursorsTime pins the time-cursor overlay: two dashed vertical
 // cursors (active A highlighted) over the Y-T trace plus the dt / 1/dt
 // readout box.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func sceneCursorsTime() Scene {
 	h := YTHUD()
 	h.CurOn, h.CurType, h.CurSel = true, 0, 0
@@ -280,7 +280,7 @@ func sceneCursorsTime() Scene {
 
 // sceneCursorsVolts pins the volts-cursor variant: two dashed horizontal
 // cursors (active B highlighted) and the per-channel ΔV readout.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func sceneCursorsVolts() Scene {
 	h := YTHUD()
 	h.CurOn, h.CurType, h.CurSel = true, 1, 1
@@ -295,7 +295,7 @@ func sceneCursorsVolts() Scene {
 // renderer).
 
 // BusFrame is a UART capture: two messages repeating on C1, C2 idle.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func BusFrame() *sample.Frame {
 	const n, spb = 4096, 8
 	var bytes []int
@@ -320,7 +320,7 @@ func BusFrame() *sample.Frame {
 }
 
 // UIHUD is the HUD the workspace goldens share.
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func UIHUD(v wsview.View) render.HUD {
 	h := YTHUD()
 	h.UI = v
@@ -329,13 +329,13 @@ func UIHUD(v wsview.View) render.HUD {
 }
 
 // PaneLayout is a workspace layout: the rail and a pane above the plot.
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func PaneLayout(top int) wsview.Layout { return wsview.Layout{MenuW: 30, PlotTop: top} }
 
 // sceneScopeRail pins SCOPE: the full-height trace beside the
 // pictogram rail (SCOPE active, inverted amber), the label after F1, the
 // workspace's name in the top bar and the Adjust tag.
-// TRLC-LINKS: REQ-SDS-211, REQ-SDS-213
+// TRLC-LINKS: REQ-DSO-211, REQ-DSO-213
 func sceneScopeRail() Scene {
 	v := wsview.View{
 		WS: wsview.Scope, Layout: PaneLayout(0), Rail: true,
@@ -348,7 +348,7 @@ func sceneScopeRail() Scene {
 // sceneBusPackets pins BUS: the packet list as a hex dump with its
 // string box, the selected packet, the match column, the tool line, and
 // the strip's packet box under the trace.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func sceneBusPackets() Scene {
 	line := func(num int, sel bool) wsview.BusLine {
 		return wsview.BusLine{
@@ -376,7 +376,7 @@ func sceneBusPackets() Scene {
 // sceneBusPicker pins the byte picker: the pane framed in amber, the
 // first byte filled, the next three underlined, a bar at a message start,
 // and the F-key column of choices.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func sceneBusPicker() Scene {
 	var toks []wsview.PickTok
 	for range 3 {
@@ -409,7 +409,7 @@ func sceneBusPicker() Scene {
 
 // EyeGrid is a synthetic eye: the two levels as rails and the
 // crossings at 0.5 and 1.5 UI as X-shaped edges with a little jitter.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func EyeGrid(cols, rows int) ([]uint32, uint32) {
 	g := make([]uint32, cols*rows)
 	add := func(r, c int, n uint32) {
@@ -444,7 +444,7 @@ func EyeGrid(cols, rows int) ([]uint32, uint32) {
 // sceneBusEye pins the eye diagram: the density in four shades, the UI
 // grid and labels, the opening box, the two cursors, and the figures beside
 // a small time trace.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func sceneBusEye() Scene {
 	const cols, rows = 384, 166
 	grid, mx := EyeGrid(cols, rows)
@@ -472,7 +472,7 @@ func sceneBusEye() Scene {
 
 // sceneBusStream pins BUS's Stream view: the stream's state, what stops
 // it and the controls in the pane, the transcript filling the plot.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-228
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-228
 func sceneBusStream() Scene {
 	b := &wsview.BusPane{
 		Pane: wsview.Pane{
@@ -507,7 +507,7 @@ func sceneBusStream() Scene {
 
 // sceneSpectrumPeaks pins SPECTRUM: the FFT under its pane with the
 // peak table, readout, marker line and its label in the plot.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func sceneSpectrumPeaks() Scene {
 	const n = 4096
 	f := Frame(n,
@@ -541,7 +541,7 @@ func sceneSpectrumPeaks() Scene {
 
 // sceneMeasureStats pins MEASURE: the statistics table, the cursor
 // block and the trace below with the time cursors.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func sceneMeasureStats() Scene {
 	m := &wsview.MeasPane{
 		Pane: wsview.Pane{
@@ -569,7 +569,7 @@ func sceneMeasureStats() Scene {
 
 // sceneCompare pins COMPARE: the five rows with the stacking bar on
 // MASTER, the selected row's action, and the plot below.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func sceneCompare() Scene {
 	c := &wsview.CmpPane{Pane: wsview.Pane{
 		Title: "COMPARE", Caption: "trigger source C1: averaging",
@@ -591,7 +591,7 @@ func sceneCompare() Scene {
 // Sheet is the TRIG tab as SCOPE's sheet opens it: the tab strip with
 // the workspace's own tabs first, enum rows written out, number rows with
 // gauges, a header, an action row, the side panel and the hint line.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func Sheet() *wsview.Sheet {
 	opts := func(sel int, names ...string) []wsview.Opt {
 		var o []wsview.Opt
@@ -634,7 +634,7 @@ func Sheet() *wsview.Sheet {
 
 // sceneSheet pins a full-screen settings sheet with its F-key column
 // (Down, Up and presets for a number row) and the live mini view.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func sceneSheet() Scene {
 	keys := &wsview.Keys{Title: "LEVEL", Top: 30, Items: [5]wsview.Key{
 		{Label: "Down", Value: "one step"},
@@ -648,7 +648,7 @@ func sceneSheet() Scene {
 
 // sceneSheetPicker pins the sheet's byte picker box under the Match
 // bytes row (the BUS tab's From screen).
-// TRLC-LINKS: REQ-SDS-212, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-212, REQ-DSO-214
 func sceneSheetPicker() Scene {
 	sh := &wsview.Sheet{WSName: "BUS", Hint: wsview.Span{Text: "Menu On/Off: close and discard   S/DIV: other tab (discard)", Col: wsview.Dim}}
 	for i, n := range []string{"BUS", "TRIG", "TIME", "CH1", "CH2", "ACQ", "VIEW", "MEAS", "CURS", "MATH/REF", "FILE", "SYS"} {
@@ -689,7 +689,7 @@ func sceneSheetPicker() Scene {
 
 // sceneMatchEditor pins the serial match keyboard over the sheet with
 // its F-key column.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func sceneMatchEditor() Scene {
 	keys := &wsview.Keys{Title: "MATCH EDITOR", Top: 30, Items: [5]wsview.Key{
 		{Label: "Keys", Value: "Hex"},
@@ -710,7 +710,7 @@ func sceneMatchEditor() Scene {
 
 // SoundPane is a SOUND view as the panel builds it: A4 3 cents sharp
 // on C1, both meters, a cycle trace with its persistence.
-// TRLC-LINKS: REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-273
 func SoundPane(page string, lines []wsview.Span) *wsview.SoundPane {
 	s := &wsview.SoundPane{
 		Pane: wsview.Pane{
@@ -749,6 +749,7 @@ func SoundPane(page string, lines []wsview.Span) *wsview.SoundPane {
 }
 
 // soundScene is a SOUND pane in SPECTRUM.
+// TRLC-LINKS: REQ-DSO-021
 func soundScene(name string, s *wsview.SoundPane) Scene {
 	v := wsview.View{
 		WS: wsview.Spectrum, Layout: wsview.Layout{MenuW: 30, PlotTop: 262, HideViewCaptions: true, HideBottom: true, HideMeas: true},
@@ -761,7 +762,7 @@ func soundScene(name string, s *wsview.SoundPane) Scene {
 
 // sceneSoundModulation pins the SOUND view on its modulation page:
 // tuner, meters (C2 clipping), the readout and the pitch-locked trace.
-// TRLC-LINKS: REQ-SDS-273, REQ-SDS-269, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-273, REQ-DSO-269, REQ-DSO-272
 func sceneSoundModulation() Scene {
 	return soundScene("ws_sound_mod", SoundPane("MODULATION", []wsview.Span{
 		{Text: "TREMOLO (AM)", Col: wsview.Amber},
@@ -777,7 +778,7 @@ func sceneSoundModulation() Scene {
 
 // sceneSoundEnvelope pins the envelope page after a capture, with no
 // pitch (the tuner idle) and no cycle trace.
-// TRLC-LINKS: REQ-SDS-273, REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-273, REQ-DSO-268
 func sceneSoundEnvelope() Scene {
 	s := SoundPane("ENVELOPE", []wsview.Span{
 		{Text: "trigger: FPGA edge, gate C2 1.5V", Col: wsview.Dim},
@@ -796,7 +797,7 @@ func sceneSoundEnvelope() Scene {
 // sceneSoundTake pins a SINGLE take in the plot: a bass note's onset
 // on C2 under a sawtooth melody on C1, each in its lane, the trigger's
 // dashed line and marker, the window's bar and the knobs' jobs.
-// TRLC-LINKS: REQ-SDS-275, REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-275, REQ-DSO-273
 func sceneSoundTake() Scene {
 	s := SoundPane("MODULATION", []wsview.Span{{Text: "TREMOLO (AM)", Col: wsview.Amber}, {Text: "none (0.4%)", Col: wsview.Text}})
 	s.Caption = "STOP: the take (RUN: live)"
@@ -834,7 +835,7 @@ func sceneSoundTake() Scene {
 
 // sceneSoundHarmonics pins the harmonics page with the stream not yet
 // running.
-// TRLC-LINKS: REQ-SDS-273, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-273, REQ-DSO-270
 func sceneSoundHarmonics() Scene {
 	s := SoundPane("HARMONICS", []wsview.Span{
 		{Text: "H1 1kHz  -0.0 dBV", Col: wsview.Text},
@@ -855,7 +856,7 @@ func sceneSoundHarmonics() Scene {
 // golden: a harmonic-rich C1 stack (square-ish: 5 MHz + 3rd/5th harmonics) on
 // a ×16 fine grid with a gap band, a C2 tone, review focus, and the Task-2
 // device URL on the top bar — all deterministic.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func SuperresHUD() render.HUD {
 	const K, nb = 16, 4096
 	const sampleS = 2e-9
@@ -882,7 +883,7 @@ func SuperresHUD() render.HUD {
 // sceneSuperresReview pins the whole super-res review Y-T screen —
 // graticule, stacked trace with its gap, SR status line, top-bar HUD with the
 // device URL — against testdata/golden/superres_review_yt.png.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func sceneSuperresReview() Scene {
 	h := SuperresHUD()
 	h.ViewMode = 0
@@ -892,7 +893,7 @@ func sceneSuperresReview() Scene {
 // sceneSuperresReviewFFT pins the review's stacked-FFT screen (both
 // channels + the fine-Nyquist axis label) — a second consumer proving the
 // harness generalises across views.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-070
 func sceneSuperresReviewFFT() Scene {
 	h := SuperresHUD()
 	h.ViewMode = 2
@@ -904,7 +905,7 @@ func sceneSuperresReviewFFT() Scene {
 
 // SRHUD is a synthetic super-res HUD: a k× fine-grid mean built from gen(fineBin), a
 // second channel from gen2, review focus, and a window covering the whole grid.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-070
 func SRHUD(nb, k int, sampleS float64, gen, gen2 func(b int) float64) render.HUD {
 	m1 := make([]float32, nb)
 	m2 := make([]float32, nb)
@@ -927,6 +928,7 @@ func SRHUD(nb, k int, sampleS float64, gen, gen2 func(b int) float64) render.HUD
 }
 
 // Sine is a frame of a full-scale-ish sine on both channels.
+// TRLC-LINKS: REQ-DSO-021
 func Sine(n int, freqHz, sampleS float64) *sample.Frame {
 	c := make([]uint8, n)
 	for i := range n {
@@ -943,6 +945,7 @@ func Sine(n int, freqHz, sampleS float64) *sample.Frame {
 }
 
 // DefaultHUD is the plain running two-channel HUD the scenes start from.
+// TRLC-LINKS: REQ-DSO-021
 func DefaultHUD() render.HUD {
 	return render.HUD{
 		Ch: [render.MaxChans]render.Channel{{VdivV: 1}, {VdivV: 1}}, TdivS: 500e-6, TrigRising: true,
@@ -960,7 +963,7 @@ const CodesPerDiv12 = 30 * 256
 // Frame12 builds a frame of len(gens) channels of 12-bit codes from
 // per-sample generators in divisions from the centre line, windowed across
 // the whole record and centred on its middle.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func Frame12(n int, gens ...func(i int) float64) *sample.Frame {
 	f := &sample.Frame{
 		WinPoints: n,
@@ -983,7 +986,7 @@ func Frame12(n int, gens ...func(i int) float64) *sample.Frame {
 
 // FourChanFrame is four 12-bit channels: a square, a sine, a ramp and a
 // small fast burst, each about its own level.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func FourChanFrame() *sample.Frame {
 	const n = 2048
 	return Frame12(n,
@@ -1001,7 +1004,7 @@ func FourChanFrame() *sample.Frame {
 }
 
 // FourChanHUD shows the four channels at their own scales and offsets.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func FourChanHUD() render.HUD {
 	h := DefaultHUD()
 	h.NumChans = 4
@@ -1024,7 +1027,7 @@ func FourChanHUD() render.HUD {
 
 // FourChanScenes are pictures only a four-channel 12-bit scope shows: the
 // Y-T screen, its MEASURE boxes and volt cursors, and SCOPE's rail.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func FourChanScenes() []Scene {
 	yt := FourChanHUD()
 	meas := FourChanHUD()

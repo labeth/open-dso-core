@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -12,7 +12,7 @@ import "math"
 // Envelope follows the amplitude of x (volts, sampled at fs) around its mean:
 // a peak detector releasing with time constant tau (s), read as the block
 // maximum every block seconds. It returns the envelope and its rate.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func Envelope(x []float64, fs, tau, block float64) ([]float64, float64) {
 	if len(x) == 0 || !(fs > 0) {
 		return nil, 0
@@ -49,7 +49,7 @@ func Envelope(x []float64, fs, tau, block float64) ([]float64, float64) {
 
 // BlockMeans averages x in blocks of block seconds: a CV read as its own
 // envelope.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func BlockMeans(x []float64, fs, block float64) ([]float64, float64) {
 	if len(x) == 0 || !(fs > 0) {
 		return nil, 0
@@ -83,7 +83,7 @@ type ADSR struct {
 
 // crossUp is the first time (interpolated, in samples) from i0 at which e
 // reaches level going up, -1 when it never does before i1.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func crossUp(e []float64, i0, i1 int, level float64) float64 {
 	for i := max(1, i0); i < i1 && i < len(e); i++ {
 		if e[i] >= level && e[i-1] < level {
@@ -97,7 +97,7 @@ func crossUp(e []float64, i0, i1 int, level float64) float64 {
 }
 
 // crossDown is the first time from i0 at which e falls to level, -1 never.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func crossDown(e []float64, i0, i1 int, level float64) float64 {
 	if i0 < len(e) && i0 >= 0 && e[i0] <= level {
 		return float64(i0)
@@ -112,7 +112,7 @@ func crossDown(e []float64, i0, i1 int, level float64) float64 {
 
 // expTau fits e = S + A exp(-t/tau) over [i0, i1) where e - S stays above
 // lo, by a line through ln(e - S); NaN with too few points.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func expTau(e []float64, i0, i1 int, s, lo, rate float64) float64 {
 	var n, sx, sy, sxx, sxy float64
 	for i := max(0, i0); i < i1 && i < len(e); i++ {
@@ -146,7 +146,7 @@ func expTau(e []float64, i0, i1 int, s, lo, rate float64) float64 {
 // the envelope). Attack runs 10-90 % and start-to-peak, decay from the peak
 // to 90 % of the way down to the sustain, release from its start to a tenth
 // of its starting level (the floor removed throughout).
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func AnalyzeADSR(env []float64, fs, gateOn, gateOff float64) ADSR {
 	nan := math.NaN()
 	r := ADSR{
@@ -285,7 +285,7 @@ func AnalyzeADSR(env []float64, fs, gateOn, gateOff float64) ADSR {
 // flatStretch is the longest stretch after the peak where e stays within
 // a band about its running median (5 % of full scale, or a fifth of the
 // level): [start, end) indexes, empty when none.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func flatStretch(e []float64, from int, fs float64) (int, int) {
 	bestS, bestE := 0, 0
 	w := max(4, int(0.02*fs)) // judged in 20 ms steps

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -13,7 +13,7 @@ import (
 // captures decodes windows of a long UART stream at moving offsets, as a
 // free-running trigger sees it: each capture holds the same messages at
 // other times, with one more or one fewer of them, and fragments at its edges.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func captures(t *testing.T, msgs [][]byte, repeat, n, count int) [][]Packet {
 	t.Helper()
 	const spb = 8
@@ -33,7 +33,7 @@ func captures(t *testing.T, msgs [][]byte, repeat, n, count int) [][]Packet {
 }
 
 // rowText is the rows as text, the selected one marked.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func rowText(l *PacketList) string {
 	var b strings.Builder
 	for i, p := range l.Rows() {
@@ -47,7 +47,7 @@ func rowText(l *PacketList) string {
 
 // TestPacketListHoldsStill: the same messages shifted in time leave the list
 // alone; a new message replaces it; the selection follows its message.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketListHoldsStill(t *testing.T) {
 	msgs := [][]byte{[]byte("temp=21.5C"), []byte("hum=40%"), []byte("OK")}
 	var l PacketList
@@ -149,7 +149,7 @@ func TestPacketListHoldsStill(t *testing.T) {
 // TestPacketListSelectAndFind: Select clamps, FindMatch steps match to match
 // in both directions without wrapping, flagged bytes never match, and
 // SelectedIn finds the selected message in a live capture.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketListSelectAndFind(t *testing.T) {
 	mk := func(i0 int, s string, bad int) Packet {
 		p := Packet{I0: i0, I1: i0 + 10*len(s), Bytes: []byte(s), ByteErr: make([]bool, len(s)), Complete: true}
@@ -220,7 +220,7 @@ func TestPacketListSelectAndFind(t *testing.T) {
 
 // TestPacketListContent: the content key tells messages apart by address,
 // direction, fault and flagged bytes, not by position.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketListContent(t *testing.T) {
 	base := Packet{
 		I0: 10, I1: 90, Bytes: []byte{1, 2}, ByteErr: []bool{false, false}, Addr: 0x24, HasAddr: true,
@@ -257,7 +257,7 @@ func TestPacketListContent(t *testing.T) {
 }
 
 // BenchmarkPacketListUpdate: a held list offered a capture of 200 messages.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func BenchmarkPacketListUpdate(b *testing.B) {
 	var ps []Packet
 	for i := range 200 {

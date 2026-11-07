@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -14,7 +14,7 @@ import (
 // go test ./internal/decode -run - -bench Dec
 
 // benchCase is the first detection case of proto.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func benchCase(b *testing.B, proto string) detectCase {
 	b.Helper()
 	for _, c := range append(physDetectCases(), protoDetectCases()...) {
@@ -26,7 +26,7 @@ func benchCase(b *testing.B, proto string) detectCase {
 	return detectCase{}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func BenchmarkDec(b *testing.B) {
 	line := func(proto string, dec func(c []uint8, ct float64) Result) {
 		b.Run(proto, func(b *testing.B) {
@@ -167,7 +167,7 @@ func BenchmarkDec(b *testing.B) {
 	})
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func BenchmarkAutodetect(b *testing.B) {
 	cs := append(physDetectCases(), protoDetectCases()...)
 	b.Run("corpus", func(b *testing.B) {
@@ -195,7 +195,7 @@ func BenchmarkAutodetect(b *testing.B) {
 	})
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func BenchmarkSliceChannel(b *testing.B) {
 	c := benchCase(b, "dmx512").c1
 	for b.Loop() {
@@ -203,7 +203,7 @@ func BenchmarkSliceChannel(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func BenchmarkNthValue(b *testing.B) {
 	v := make([]float64, 4000)
 	for i := range v {
@@ -215,7 +215,7 @@ func BenchmarkNthValue(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func BenchmarkScorePhys(b *testing.B) {
 	var rs []Result
 	for _, c := range physDetectCases() {
@@ -230,7 +230,7 @@ func BenchmarkScorePhys(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func BenchmarkMorseOf(b *testing.B) {
 	for b.Loop() {
 		for _, c := range []byte("SOS CQ DE 73 ?") {
@@ -239,7 +239,7 @@ func BenchmarkMorseOf(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-244, REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-244, REQ-DSO-247
 func BenchmarkSBUSFrames(b *testing.B) {
 	o := sbusOpts(7e-3, 1e6)
 	o.frames = 6
@@ -252,7 +252,7 @@ func BenchmarkSBUSFrames(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func BenchmarkCrossingsEnd(b *testing.B) {
 	c := benchCase(b, "dmx512").c1
 	for b.Loop() {
@@ -260,7 +260,7 @@ func BenchmarkCrossingsEnd(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func BenchmarkSampleEdges(b *testing.B) {
 	wide := readCapture(b, "spi_sample_104mhz.bin.gz")
 	c := SampleLineConfig{Ch: 1, Rise: true, Fall: true, Level: 128, Low: 110, High: 146, OtherLevel: 128}
@@ -269,7 +269,7 @@ func BenchmarkSampleEdges(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func BenchmarkSampleSPI(b *testing.B) {
 	wide := readCapture(b, "spi_sample_104mhz.bin.gz")
 	c := SampleSPIConfig{ClockCh: 1, Level: 128, Low: 110, High: 146, DataLevel: 128, GapClocks: SampleSPIGap(104e6), MSB: true}
@@ -278,7 +278,7 @@ func BenchmarkSampleSPI(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-229, REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-229, REQ-DSO-230
 func BenchmarkMeasureSPIEye(b *testing.B) {
 	c1, c2 := lines(readCapture(b, "spi_sample_104mhz.bin.gz"))
 	cfg := SPICfg{MSB: true, Threshold: 128, HaveThr: true, DataLag: SPIDataLag(1, 2e-9)}
@@ -290,7 +290,7 @@ func BenchmarkMeasureSPIEye(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func BenchmarkStreamDecoder(b *testing.B) {
 	msg := []int{0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x0D, 0x0A}
 	var w []uint8
@@ -307,7 +307,7 @@ func BenchmarkStreamDecoder(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func BenchmarkStreamGroup(b *testing.B) {
 	var r Result
 	for i := range 400 { // 40 frames of a start and nine bytes
@@ -326,7 +326,7 @@ func BenchmarkStreamGroup(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func BenchmarkStreamBucketLog(b *testing.B) {
 	for b.Loop() {
 		for _, f := range []float64{1e-9, 2e-6, 5e-6, 26e-6, 64e-6, 0.6e-3, 0.1, 1} {
@@ -335,7 +335,7 @@ func BenchmarkStreamBucketLog(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func BenchmarkSymbolIndex(b *testing.B) {
 	for b.Loop() {
 		for c := uint32(1); c < 1<<22; c = c*3 + 1 {
@@ -346,7 +346,7 @@ func BenchmarkSymbolIndex(b *testing.B) {
 
 // The engine learns a serial channel's threshold and a qualifier's extent
 // from every frame: a 14000-sample record, a bus and a quiet line.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func BenchmarkAutoThreshold(b *testing.B) {
 	bus, quiet := make([]uint8, 14000), make([]uint8, 14000)
 	for i := range bus {

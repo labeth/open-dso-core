@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -50,7 +50,7 @@ type CodeFormat struct {
 }
 
 // FormatOf is f as the wire names it.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func FormatOf(f sample.CodeFormat) CodeFormat {
 	st := ""
 	if b, err := f.Storage.MarshalText(); err == nil {
@@ -152,10 +152,11 @@ type Samples struct {
 }
 
 // Len is the segment's word count.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (s Samples) Len() int { return max(len(s.U8), len(s.U16)) }
 
 // storage names the segment's word type; "" when it holds none.
+// TRLC-LINKS: REQ-DSO-163
 func (s Samples) storage() string {
 	switch {
 	case len(s.U16) > 0:
@@ -184,7 +185,7 @@ type Frame struct {
 }
 
 // Reset empties f for reuse, keeping its trace storage.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (f *Frame) Reset() {
 	traces := f.Traces[:0]
 	*f = Frame{Traces: traces}
@@ -203,7 +204,7 @@ var trigKindNames = [...]string{"", "hardware-node", "software-refined", "forced
 // bits), its scale stretched to match. The words are copied (f owns them).
 // The page's shaping fields (cols, col_span_s, edge_frac, win_frac, view)
 // are the scope's to set after it.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (f *Frame) FromSample(src *sample.Frame) {
 	h := &f.Header
 	h.Seq = src.Seq
@@ -276,6 +277,7 @@ func (f *Frame) FromSample(src *sample.Frame) {
 }
 
 // reuse copies src's first n words into buf's storage.
+// TRLC-LINKS: REQ-DSO-163
 func reuse[T uint8 | uint16](buf, src []T, n int) []T {
 	return append(buf[:0], src[:min(n, len(src))]...)
 }
@@ -283,7 +285,7 @@ func reuse[T uint8 | uint16](buf, src []T, n int) []T {
 // EncodeFrame2 lays f out as wire v2. It fills f.Header.Traces and Segs. A
 // trace whose segments disagree with its format's storage is an error (the
 // page would read its words with the wrong width).
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func EncodeFrame2(f *Frame) ([]byte, error) {
 	h := &f.Header
 	h.Traces, h.Segs = h.Traces[:0], h.Segs[:0]
@@ -351,9 +353,11 @@ func EncodeFrame2(f *Frame) ([]byte, error) {
 }
 
 // align8 rounds n up to a multiple of 8.
+// TRLC-LINKS: REQ-DSO-163
 func align8(n int) int { return (n + 7) &^ 7 }
 
 // storageBytes is a stored word's size.
+// TRLC-LINKS: REQ-DSO-163
 func storageBytes(st string) int {
 	if st == "u16" {
 		return 2

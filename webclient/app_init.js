@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-INIT
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_init.js — boot: the workspace layout, the first frame/status poll. Loaded
 // LAST so every handler is registered and every function defined. Shares app.js
 // globals.
@@ -12,7 +12,7 @@ window.addEventListener("resize", resize);
 resize();           // sizes the canvas backing stores and paints once
 updateRefRows();
 updateDecodePanel();
-// the phone remote's address, for the top bar's link (REQ-SDS-220): /r is the short form
+// the phone remote's address, for the top bar's link (REQ-DSO-220): /r is the short form
 $("remoteLink").title = "The phone remote: open " + location.host + "/r on your phone. It changes the scope's settings; nothing opens on the scope's screen.";
 // Track the ACTUAL laid-out size of the scope box (workspace switches, pane
 // resizes, collapse/maximize, late reflow, font load) so the GL backing store

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -21,7 +21,7 @@ type fbGeom struct {
 }
 
 // readFBGeom reads fb0's visible size, depth, line length and pan.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func readFBGeom(dir string) (fbGeom, error) {
 	var g fbGeom
 	pair := func(name string) (int, int) {
@@ -57,7 +57,7 @@ func readFBGeom(dir string) (fbGeom, error) {
 }
 
 // fbImage converts one screen of raw framebuffer bytes to an image.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func fbImage(raw []byte, g fbGeom) (image.Image, error) {
 	if len(raw) < g.H*g.Stride {
 		return nil, errors.New("framebuffer: short read")
@@ -84,7 +84,7 @@ func fbImage(raw []byte, g fbGeom) (image.Image, error) {
 
 // CollectScreen stores the screen fb0 shows as a PNG named
 // screen/<name>.png, and returns its geometry (or the error) for the summary.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func CollectScreen(a *Archive, name string) string {
 	g, err := readFBGeom("/sys/class/graphics/fb0")
 	if err != nil {

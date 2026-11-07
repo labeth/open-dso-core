@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -19,7 +19,7 @@ type manchesterCandidate struct{ Error, Value, Cell int }
 // Exercise the actual quarter-cell RTL against the existing receiver oracle.
 // Both phases must match, not merely the phase that gives the expected bytes.
 // This is receiver-component evidence, not whole-image or live qualification.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestManchesterReceiveRTL(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -145,7 +145,7 @@ func TestManchesterReceiveRTL(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestManchesterReceiveRTLBoundaries(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {

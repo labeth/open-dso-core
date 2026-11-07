@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -10,7 +10,7 @@ import (
 )
 
 // Layers: the application protocol a decoded bus carries, chosen per bus on
-// the BUS sheet (REQ-SDS-241). A layer reads the bus's packets (Packets) as
+// the BUS sheet (REQ-DSO-241). A layer reads the bus's packets (Packets) as
 // the transactions of a chip or a protocol stacked on the bus and writes each
 // packet's Note: "READ 0x001000, 64 bytes" on an SPI flash, "EEPROM 50 write
 // @0x0010: 12 34" on an I2C EEPROM, "ITM ch0 'hello'" on a UART carrying a
@@ -27,7 +27,7 @@ import (
 // The web page has the same layers (layers.js) and gives the same notes.
 
 // Layer is one application layer.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 type Layer struct {
 	ID   string // the settings' and the web page's name: "spiflash"
 	Name string // the BUS sheet's: "SPI flash"
@@ -48,11 +48,11 @@ type layerFns struct {
 }
 
 // Layers lists the layers in the BUS sheet's order; the first is none.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func Layers() []Layer { return append([]Layer(nil), layerList...) }
 
 // LayerByID finds a layer by its ID.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func LayerByID(id string) (Layer, bool) {
 	for _, l := range layerList {
 		if l.ID == id {
@@ -64,7 +64,7 @@ func LayerByID(id string) (Layer, bool) {
 
 // LayersOn lists the layers a bus decode (decode.Result.Proto) can carry,
 // none first.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func LayersOn(proto string) []Layer {
 	out := []Layer{layerList[0]}
 	for _, l := range layerList[1:] {
@@ -76,7 +76,7 @@ func LayersOn(proto string) []Layer {
 }
 
 // busOf names the bus a decoder's packets come from as the layers name it.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func busOf(proto string) string {
 	if proto == "usb" {
 		return protoUSBLS
@@ -86,7 +86,7 @@ func busOf(proto string) string {
 
 // LayerArgs are a layer's settings: the I2C filter's address (-1 any) and
 // direction (0 both, 1 read, 2 write).
-// TRLC-LINKS: REQ-SDS-241, REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-241, REQ-DSO-243
 type LayerArgs struct {
 	Addr int
 	Dir  int
@@ -96,7 +96,7 @@ type LayerArgs struct {
 // returns the packets the list shows: all of them, but for the I2C filter,
 // the transfers it keeps. A layer of another bus, or none, leaves every note
 // empty.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func ApplyLayer(id, proto string, ps []Packet, args LayerArgs) []Packet {
 	for i := range ps {
 		ps[i].Note, ps[i].NoteErr = "", false
@@ -118,7 +118,7 @@ func ApplyLayer(id, proto string, ps []Packet, args LayerArgs) []Packet {
 // the evidence; "" when none proves itself. The layers are tried in the
 // list's order, so a layer with a stronger proof is listed before one its
 // packets also satisfy (EDID before an EEPROM at 0x50).
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func DetectLayer(proto string, ps []Packet) (id, why string) {
 	for _, l := range layerList[1:] {
 		if l.Bus != busOf(proto) {
@@ -138,7 +138,7 @@ func DetectLayer(proto string, ps []Packet) (id, why string) {
 // LayerMatch is the match that selects packet p's transaction on the bus's
 // hardware trigger (the FPGA decides it): the bus's match tokens and the I2C
 // address it needs (-1 any). ok is false when the layer offers none.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func LayerMatch(id string, p Packet) (toks []string, addr int, ok bool) {
 	f, found := layerImpls[id]
 	if !found || f.match == nil {
@@ -151,7 +151,7 @@ func LayerMatch(id string, p Packet) (toks []string, addr int, ok bool) {
 // ---- formatting shared by the layers (layers.js formats alike) ----
 
 // hx writes v in upper-case hex, at least n digits.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func hx[T ~int | ~int64](v T, n int) string {
 	if v < 0 {
 		return fmt.Sprintf("%0*X", n, v)
@@ -185,7 +185,7 @@ var hexByte = func() (t [256]string) {
 }()
 
 // hexList writes bytes as "12 34 56", at most limit of them and ".." after.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func hexList(b []byte, limit int) string {
 	var sb strings.Builder
 	for i, v := range b {
@@ -203,7 +203,7 @@ func hexList(b []byte, limit int) string {
 
 // quoted writes bytes as text in single quotes, '.' for a byte that does
 // not print, at most limit of them and ".." after.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func quoted(b []byte, limit int) string {
 	var sb strings.Builder
 	sb.WriteByte('\'')
@@ -224,7 +224,7 @@ func quoted(b []byte, limit int) string {
 
 // printable writes text from a device with '.' for a byte that does not
 // print, so a note stays ASCII (the LCD's font) whatever the bus carried.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func printable(s string) string {
 	b := []byte(s)
 	for i, v := range b {
@@ -237,7 +237,7 @@ func printable(s string) string {
 
 // fixed writes num/den with places decimals, rounded half away from zero, in
 // integer arithmetic (so the web's twin writes the same digits).
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func fixed(num, den int64, places int) string {
 	if den < 0 {
 		num, den = -num, -den
@@ -265,7 +265,7 @@ func fixed(num, den int64, places int) string {
 }
 
 // plural is "1 byte" / "2 bytes".
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func plural(n int, w string) string {
 	if n == 1 {
 		return fmt.Sprintf("%d %s", n, w)
@@ -274,7 +274,7 @@ func plural(n int, w string) string {
 }
 
 // be is bytes most significant first as a number.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func be(b []byte) int {
 	v := 0
 	for _, x := range b {
@@ -285,7 +285,7 @@ func be(b []byte) int {
 
 // be64 is up to eight bytes most significant first as a number: a 32-bit
 // word past int's range on the scope's 32-bit processor.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func be64(b []byte) int64 {
 	var v int64
 	for _, x := range b {
@@ -295,7 +295,7 @@ func be64(b []byte) int64 {
 }
 
 // le64 is up to eight bytes least significant first as a number.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func le64(b []byte) int64 {
 	var v int64
 	for _, v0 := range slices.Backward(b) {
@@ -305,7 +305,7 @@ func le64(b []byte) int64 {
 }
 
 // le is bytes least significant first as a number.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func le(b []byte) int {
 	v := 0
 	for _, v0 := range slices.Backward(b) {
@@ -315,7 +315,7 @@ func le(b []byte) int {
 }
 
 // regName names register r from a table, or writes it as hex.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func regName(t map[int]string, r int) string {
 	if n, ok := t[r]; ok && n != "" && n != "-" {
 		return n
@@ -324,7 +324,7 @@ func regName(t map[int]string, r int) string {
 }
 
 // anyBad reports a packet with a byte the bus decoder flagged.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func anyBad(p Packet) bool {
 	for _, b := range p.ByteErr {
 		if b {
@@ -335,7 +335,7 @@ func anyBad(p Packet) bool {
 }
 
 // hexToks are bytes as match tokens.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func hexToks(b []byte) []string {
 	out := make([]string, len(b))
 	for i, v := range b {
@@ -347,5 +347,5 @@ func hexToks(b []byte) []string {
 // sofToks are a frame-start token and then bytes: the transaction's first
 // bytes, where a bus with frame starts marks them (an SPI burst after its
 // gap).
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func sofToks(b []byte) []string { return append([]string{"SOF"}, hexToks(b)...) }

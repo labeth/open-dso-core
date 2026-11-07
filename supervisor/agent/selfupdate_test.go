@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -22,7 +22,7 @@ import (
 )
 
 // captureExit swaps osExit for a recorder for the duration of the test.
-// TRLC-LINKS: REQ-SDS-119
+// TRLC-LINKS: REQ-DSO-119
 func captureExit(t *testing.T) chan int {
 	t.Helper()
 	ch := make(chan int, 1)
@@ -32,7 +32,7 @@ func captureExit(t *testing.T) chan int {
 	return ch
 }
 
-// TRLC-LINKS: REQ-SDS-119
+// TRLC-LINKS: REQ-DSO-119
 func waitExit(t *testing.T, ch chan int) int {
 	t.Helper()
 	select {
@@ -44,7 +44,7 @@ func waitExit(t *testing.T, ch chan int) int {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-119, REQ-SDS-029
+// TRLC-LINKS: REQ-DSO-119, REQ-DSO-029
 func TestAgentUpdateInstallsFlipsAndExitsClean(t *testing.T) {
 	a := testAgent(t)
 	// OTA_DIR must exist: agent.B, agent.active and agent.intent live there
@@ -116,7 +116,7 @@ func TestAgentUpdateInstallsFlipsAndExitsClean(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-119, REQ-SDS-029
+// TRLC-LINKS: REQ-DSO-119, REQ-DSO-029
 func TestAgentUpdateRefusesShaMismatchWithoutExiting(t *testing.T) {
 	a := testAgent(t)
 	if err := os.MkdirAll(a.cfg.OTADir, 0o755); err != nil {
@@ -144,7 +144,7 @@ func TestAgentUpdateRefusesShaMismatchWithoutExiting(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-119
+// TRLC-LINKS: REQ-DSO-119
 func TestAgentRestartExitsCleanWithIntent(t *testing.T) {
 	a := testAgent(t)
 	if err := os.MkdirAll(a.cfg.OTADir, 0o755); err != nil {

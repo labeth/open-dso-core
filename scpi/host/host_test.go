@@ -17,6 +17,7 @@ func echo(msg []byte) []byte {
 }
 
 // Raw sessions get their own replies; telnet greets and keeps one session.
+// TRLC-LINKS: REQ-DSO-024
 func TestTransports(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

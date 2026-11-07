@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -63,7 +63,7 @@ const (
 // spanning 0..2 UI with the crossings at 0.5 and 1.5) and the vertical opening
 // at a sample point (Lo and Hi, in codes). HOK and VOK say whether each was
 // measured; a closed eye measures as a zero width.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type EyeBox struct {
 	Left, Right float64
 	Lo, Hi      float64
@@ -71,7 +71,7 @@ type EyeBox struct {
 }
 
 // Width is the horizontal opening in UI, NaN when not measured.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (b EyeBox) Width() float64 {
 	if !b.HOK {
 		return math.NaN()
@@ -80,7 +80,7 @@ func (b EyeBox) Width() float64 {
 }
 
 // Height is the vertical opening in codes, NaN when not measured.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (b EyeBox) Height() float64 {
 	if !b.VOK {
 		return math.NaN()
@@ -97,7 +97,7 @@ func (b EyeBox) Height() float64 {
 // (the prototype review's rule). The Bound flags mark these figures, and
 // SampleLimited says the eye is drawn from fewer than MinSamplesPerUI samples
 // per UI.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type EyeResult struct {
 	BitRate      float64 // bits per second
 	UI           float64 // the unit interval
@@ -140,7 +140,7 @@ type EyeResult struct {
 }
 
 // Eye accumulates an eye diagram and its jitter figures over captures.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type Eye struct {
 	cols, rows, tw int
 	cpr            float64 // codes per row
@@ -180,7 +180,7 @@ type Eye struct {
 // NewEye makes an empty eye with a cols x rows density grid over a 2-UI x
 // code window. cols is rounded down to an even count (the window is one UI
 // shown twice); both are clamped to [2, 2048] x [2, 1024].
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func NewEye(cols, rows int) *Eye {
 	cols = clampInt(cols, 2, eyeMaxCols) &^ 1
 	rows = clampInt(rows, 2, eyeMaxRows)
@@ -194,7 +194,7 @@ func NewEye(cols, rows int) *Eye {
 }
 
 // Reset empties the eye, keeping its size.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) Reset() {
 	clear(e.tile)
 	clear(e.diff)
@@ -212,7 +212,7 @@ func (e *Eye) Reset() {
 // bitHintS is the decoder's bit period in seconds (UART 1/baud, the SPI or I2C
 // clock period), or 0 to estimate it from the edges alone. A capture that
 // cannot be folded is counted and its reason kept in LastErr.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) Feed(codes []float64, sampleS, bitHintS float64) {
 	if !(sampleS > 0) || math.IsInf(sampleS, 0) || len(codes) < 16 {
 		e.reject(EyeNoRecord)
@@ -287,7 +287,7 @@ func (e *Eye) Feed(codes []float64, sampleS, bitHintS float64) {
 // halve halves every count once they could approach overflow (a cell, or a
 // run total in diff, past 2^31): after hours of captures the picture keeps
 // its shape and the figures their ratios.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) halve() {
 	if e.bound <= eyeMaxCount {
 		return
@@ -307,7 +307,7 @@ func (e *Eye) halve() {
 // period when there is one, else the web estimator on the record's own
 // intervals, then on the cross-record pool, and as a last resort the
 // decoder's period itself (an edge-starved record, a single UART byte).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) estimate(d []float64, hint float64) float64 {
 	ok := func(u float64) bool { return u > 0 && finite(u) }
 	if hint > 1 && len(d) >= 3 {
@@ -333,7 +333,7 @@ func (e *Eye) estimate(d []float64, hint float64) float64 {
 
 // foldBurst fits edges [a, b) to their own bit grid and, when it locks, adds
 // their TIE, rise and fall times and samples to the eye.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) foldBurst(sig []float64, es *EdgeSet, a, b int, ui0, sampleS float64) bool {
 	if b-a < 3 {
 		return false
@@ -401,7 +401,7 @@ func (e *Eye) foldBurst(sig []float64, es *EdgeSet, a, b int, ui0, sampleS float
 // periods adds a burst's period and cycle-to-cycle errors: consecutive rising
 // edges against the bit grid (mixing polarities would read duty-cycle
 // distortion as period jitter), as the web's engine does.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) periods(t []float64, pol []int, fit *GridFit, sampleS float64) {
 	prev, prevErr, havePrev := -1, 0.0, false
 	for i := range t {
@@ -426,7 +426,7 @@ func (e *Eye) periods(t []float64, pol []int, fit *GridFit, sampleS float64) {
 // to count as framing: 0.15 UI, and five times the rms residual of the edges
 // between them, so genuine jitter (a 5 sigma end edge is one in a million)
 // stays in the figures.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func framingLimit(fit *GridFit) float64 {
 	ss, n := 0.0, 0
 	for _, v := range fit.TIE[1 : len(fit.TIE)-1] {
@@ -443,7 +443,7 @@ func framingLimit(fit *GridFit) float64 {
 // fitBurst is FitGrid when the burst has edges enough to fit its own period
 // within 5 % of the record's, else a grid with the record's period (a few
 // edges fix an offset well but a slope badly).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func fitBurst(t []float64, ui float64) *GridFit {
 	if len(t) >= 8 {
 		if f := FitGrid(t, ui); f != nil && math.Abs(f.UI/ui-1) <= 0.05 {
@@ -455,7 +455,7 @@ func fitBurst(t []float64, ui float64) *GridFit {
 
 // fitOffset fits the grid offset alone, the period fixed at ui, in two passes
 // as FitGrid does; nil when the residual exceeds a quarter UI.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func fitOffset(t []float64, ui float64) *GridFit {
 	m := float64(len(t))
 	t0 := t[0]
@@ -483,7 +483,7 @@ func fitOffset(t []float64, ui float64) *GridFit {
 
 // edgeTimes adds the 10-90 % rise and 90-10 % fall time of each edge in
 // [a, b), searching up to half a UI either side of its mid crossing.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) edgeTimes(sig []float64, es *EdgeSet, a, b int, lo, hi, ui, sampleS float64) {
 	n := len(sig)
 	l10, l90 := lo+0.1*(hi-lo), lo+0.9*(hi-lo)
@@ -511,7 +511,7 @@ func (e *Eye) edgeTimes(sig []float64, es *EdgeSet, a, b int, lo, hi, ui, sample
 // mid crossing is between sig[j] and sig[j+1]: the levels are searched up to
 // lim samples either side; ok false when either is not found or the time is
 // not positive.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func riseSamples(sig []float64, j, lim int, l10, l90 float64) (float64, bool) {
 	n := len(sig)
 	i10, i90 := -1, -1
@@ -536,7 +536,7 @@ func riseSamples(sig []float64, j, lim int, l10, l90 float64) (float64, bool) {
 }
 
 // fallSamples is riseSamples for a falling edge: the 90-10 % fall time.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func fallSamples(sig []float64, j, lim int, l10, l90 float64) (float64, bool) {
 	n := len(sig)
 	i90, i10 := -1, -1
@@ -567,7 +567,7 @@ func fallSamples(sig []float64, j, lim int, l10, l90 float64) (float64, bool) {
 // wrapped to one UI, r in rows. The drawing does no floating-point rounding
 // per sample (software routines on the ARMv7), and no int64 conversion (a
 // runtime call on 32-bit ARM).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) fold(sig []float64, fit *GridFit, tFirst, tLast, lo, hi float64) {
 	ja := max(0, int(math.Ceil(tFirst-fit.UI)))
 	jb := min(len(sig)-1, int(math.Floor(tLast+fit.UI)))
@@ -658,7 +658,7 @@ func (e *Eye) fold(sig []float64, fit *GridFit, tFirst, tLast, lo, hi float64) {
 
 // addRun counts one in each column a..b of a row's difference array d
 // (tw+1 long; b - a under one UI, b up to one UI past the tile).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func addRun(d []int32, a, b, tw int) {
 	if a >= tw {
 		a, b = a-tw, b-tw
@@ -675,11 +675,11 @@ func addRun(d []int32, a, b, tw int) {
 
 // rowOf is the grid row of a code as a float: row centres sit on integers,
 // row 0 at the top of the window.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) rowOf(code float64) float64 { return (EyeCodeHi-code)/e.cpr - 0.5 }
 
 // codeOfRow is the code at the centre of row r.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) codeOfRow(r int) float64 { return EyeCodeHi - (float64(r)+0.5)*e.cpr }
 
 // segment draws the line from fixed-point column x0 (within one UI) a
@@ -687,7 +687,7 @@ func (e *Eye) codeOfRow(r int) float64 { return EyeCodeHi - (float64(r)+0.5)*e.c
 // leaving out its start point, which the previous segment drew. A level is one
 // run; a line that changes rows is a run in each row it crosses, or, when it
 // is steep, one cell in each row.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) segment(x0, d, r0, r1 int) {
 	c0, c1 := x0>>eyeFix, (x0+d)>>eyeFix // c1 may pass the tile by up to one UI
 	row0, row1 := r0>>eyeFix, r1>>eyeFix
@@ -736,7 +736,7 @@ func (e *Eye) segment(x0, d, r0, r1 int) {
 }
 
 // cell counts one at row and column c (c up to one UI past the tile).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) cell(row, c int) {
 	if uint(row) >= uint(e.rows) || c < 0 {
 		return
@@ -751,7 +751,7 @@ func (e *Eye) cell(row, c int) {
 // run counts one in each column a..b of row (b - a under one UI, b up to one
 // UI past the tile): two writes to the row's difference array, four when it
 // wraps.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) run(row, a, b int) {
 	if uint(row) >= uint(e.rows) || b < a || a < 0 {
 		return
@@ -761,7 +761,7 @@ func (e *Eye) run(row, a, b int) {
 }
 
 // materialize rebuilds dense, the counts and runs summed, when it is stale.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) materialize() {
 	if !e.dirty {
 		return
@@ -781,14 +781,14 @@ func (e *Eye) materialize() {
 }
 
 // reject counts a capture that was not folded.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) reject(why string) {
 	e.rejected++
 	e.lastErr = why
 }
 
 // Result reduces the accumulated eye to its figures and density grid.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) Result() EyeResult {
 	nan := math.NaN()
 	r := EyeResult{
@@ -864,7 +864,7 @@ func (e *Eye) Result() EyeResult {
 // counts near the sample point; the horizontal opening is the run of columns
 // around the sample point where the density near the threshold stays under
 // half its mean. The cursors of the BUS eye view use it.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) Opening(sampleUI, threshold float64) EyeBox {
 	nan := math.NaN()
 	b := EyeBox{Left: nan, Right: nan, Lo: nan, Hi: nan}
@@ -939,7 +939,7 @@ func (e *Eye) Opening(sampleUI, threshold float64) EyeBox {
 // openingRows are the rows where the eye's centre column col (total counts)
 // closes: walking out from the mid row rm toward each rail, the first rows
 // past a trim of 0.1 % of the counts (-1 when a walk finds none).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (e *Eye) openingRows(col []float64, total, rm float64) (hiRow, loRow int) {
 	trim := math.Max(1, total*0.001)
 	hiRow, loRow = -1, -1

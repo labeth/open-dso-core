@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -11,7 +11,7 @@ import (
 // A newer frame with the same decoder settings is decoded afresh, or the
 // cached spans sit where the earlier frame's bytes had been (labels off the
 // trace on a free-phase UART).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeFollowsNewFrame(t *testing.T) {
 	msg := []int{0x48, 0x69, 0x20, 0x55, 0xAA, 0x0F, 0xF0, 0x0A}
 	const n, spb = 4000, 20

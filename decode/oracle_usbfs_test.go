@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-237
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-237
 func TestUSBTokenCRC5(t *testing.T) {
 	// the USB specification's example: address 15h, endpoint Eh, the CRC5
 	// sent as 1 0 1 1 1, read least significant first 1Dh
@@ -30,7 +30,7 @@ func TestUSBTokenCRC5(t *testing.T) {
 
 // oracleUSBFSWave renders packets as the full-speed pair: J = (D+ high,
 // D- low), NRZI from J, each packet's EOP two bit times of SE0 and a J.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-237
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-237
 func oracleUSBFSWave(sr float64, packets [][]int, gapBits float64) (dp, dm []byte) {
 	bt := 1.0 / 12e6
 	wp, wm := newTimeline(sr), newTimeline(sr)
@@ -61,7 +61,7 @@ func oracleUSBFSWave(sr float64, packets [][]int, gapBits float64) (dp, dm []byt
 	return wp.bits, wm.bits
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-237
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-237
 func TestOracleUSBFS(t *testing.T) {
 	const sr = 120000000 // 10 samples a bit
 	packets := [][]int{

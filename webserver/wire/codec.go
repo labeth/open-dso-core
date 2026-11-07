@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -12,7 +12,7 @@ import (
 )
 
 // LEBytes is the memory of w: its words little-endian on these CPUs.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func LEBytes(w []uint16) []byte {
 	if len(w) == 0 {
 		return nil
@@ -23,7 +23,7 @@ func LEBytes(w []uint16) []byte {
 // finiteSeries reports a slice or array of finite floats, or of structs of
 // finite floats, ints, bools and strings without JSON tag options (their
 // encoding/json form is JSONSafe's).
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 func finiteSeries(v reflect.Value) bool {
 	et := v.Type().Elem()
 	switch et.Kind() { //nolint:exhaustive // every other kind is not a series: false
@@ -64,7 +64,7 @@ func finiteSeries(v reflect.Value) bool {
 
 // JSONSafe turns v into plain JSON values with every NaN and infinity as
 // null (encoding/json refuses them): structs by their JSON names.
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 func JSONSafe(v reflect.Value) any {
 	switch v.Kind() { //nolint:exhaustive // the kinds that can hold a NaN; every other value encodes as it is
 	case reflect.Float32, reflect.Float64:

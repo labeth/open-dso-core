@@ -1,9 +1,9 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_decode.js — protocol-decode UI (classic script; shares app.js globals).
 
 // ---- protocol decode: compute + render ----
 "use strict";
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function decCodes(role) {
   return frame ? frame["c" + (role > 1 ? role : 1)] : frame;
 }
@@ -12,7 +12,7 @@ function decCodes(role) {
 // (decode.FeatureSamples): a bit of an NRZ line, half a clock (I2C, SPI),
 // half a bit of a line code (Manchester, MIL-1553, ARINC 429), SENT's
 // shortest pulse of four ticks; 0 when the result names none.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function decodeFeatureSamples(r) {
   const m = (r && r.ok && r.meta) || {};
   if (m.colsPerClock > 0) return m.colsPerClock / 2;
@@ -41,7 +41,7 @@ function decodeFeatureSamples(r) {
 // envelope (decode.EnvelopeFeatureSamples): a Wiegand pulse survives a
 // bucket wider than itself, so there it is the bit interval; PJDL's data
 // time is checked to ten percent, so there it is half of it.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function decodeEnvelopeFeatureSamples(r) {
   if (r && r.ok && r.proto === "wiegand" && r.meta && r.meta.spb > 0) return r.meta.spb;
   if (r && r.proto === "pjdl") return decodeFeatureSamples(r) / 2;
@@ -89,7 +89,7 @@ const DEC_FIXED_TIMING = ["dmx512", "midi", "onewire", "ws281x", "dht", "cec", "
 // decodeMore decodes the protocols beyond the first ten (framecalc
 // decodeMore): the line, or the clock and data lines, with the scope's
 // settings.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function decodeMore(p, colTimeS, cfg) {
   const a = decCodes(dcfg.line);
   const two = { threshold: cfg.threshold, thresholdB: cfg.threshold, format: cfg.fmt };
@@ -122,10 +122,10 @@ function decodeMore(p, colTimeS, cfg) {
 }
 
 // decKey names the bus a decode reads: protocol, lines, polarity.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function decKey() { return [dcfg.proto, dcfg.line, dcfg.scl, dcfg.sda, dcfg.clk, dcfg.data, !!dcfg.inverted].join(","); }
 
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function computeDecode() {
   dcfg.result = null;
   if (dcfg.proto === "off" || !frame || frame.is_env || (frame.peak_detect && !frame.ordered) || !frame.c1) { updateDecodeResults(); return; }
@@ -197,7 +197,7 @@ function computeDecode() {
 // watchReason returns why a decode matches the watch rule ("" = no match): an
 // error kind (frame-error/parity-error, or NAK) and/or a transcript match of the
 // user string ("/re/" = regex, else case-insensitive substring).
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function watchReason(r) {
   let reason = "";
   if (dcfg.watchErr && r.spans.some(s => s.kind === "frame-error" || s.kind === "parity-error" || s.kind === "nak")) reason = "error";
@@ -211,7 +211,7 @@ function watchReason(r) {
   return reason;
 }
 
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function updateCaptureList() {
   const card = $("captureCard");
   if (dcfg.proto === "off" || (!dcfg.watch && !dcfg.captures.length)) { card.style.display = "none"; return; }
@@ -232,7 +232,7 @@ function updateCaptureList() {
 
 // Review a captured window: freeze on its snapshot so you can zoom/navigate/decode
 // it; "live" resumes.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function reviewCapture(i) {
   const c = dcfg.captures[i];
   if (!c) return;
@@ -241,7 +241,7 @@ function reviewCapture(i) {
   computeDecode(); redraw(); updateMeas(); updateCursors(); updateCaptureList();
 }
 
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function reviewLive() {
   dcfg.reviewIdx = -1; frozen = false; $("freeze").classList.remove("on");
   updateCaptureList();
@@ -249,7 +249,7 @@ function reviewLive() {
 
 // updateDecodeResults fills BUS's transcript (the Log view) and its count, then
 // lets the packet table (app_bus.js) group the new result.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function updateDecodeResults() {
   if (typeof busOnDecode === "function") busOnDecode();
   if (dcfg.proto === "off") { $("decodeText").value = ""; $("decodeCount").textContent = ""; return; }
@@ -274,11 +274,11 @@ function updateDecodeResults() {
 // enclosing one and 2 the bottom half for its parts, so both labels show. An
 // enclosing span comes among its parts' neighbours (a decoder adds it before
 // or after them): the 64 spans each side are looked at.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function decRows(r) {
   if (r._rows && r._rows.length === r.spans.length) return r._rows;
   const sp = r.spans, n = sp.length, out = new Uint8Array(n);
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   const mark = (s) => s.kind === "start" || s.kind === "stop";
   for (let i = 0; i < n; i++) {
     const a = sp[i];
@@ -297,7 +297,7 @@ function decRows(r) {
 // Decode band (YT-only) in the lane under the plot (plotH: the plot ends
 // above it). Uses the windowed xForCol so labels track the trace at any zoom;
 // spans off-window are culled.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function drawDecode(g) {
   if (view.mode !== "YT" || dcfg.proto === "off" || !frame || frame.is_env) return;
   const r = dcfg.result;
@@ -307,7 +307,7 @@ function drawDecode(g) {
   g.save();
   g.fillStyle = "#05080c"; g.fillRect(0, PH, CW, CH - PH);
   g.textBaseline = "middle";
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   const font = (row) => "bold " + ((row ? 9 : 11) * dpr) + "px system-ui";
   for (let i = 0; i < spans.length; i++) {
     const s = spans[i];
@@ -345,7 +345,7 @@ function drawDecode(g) {
 }
 
 // ---- decode wiring ----
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function updateDecodePanel() {
   const p = dcfg.proto;
   $("decRoles").style.display = p === "off" ? "none" : "";
@@ -369,7 +369,7 @@ function updateDecodePanel() {
 
 // decLayerOptions lists the layers the protocol carries in the Layer row
 // (hidden for a bus without layers) and shows the one in use.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function decLayerOptions() {
   const ls = typeof layersOn === "function" ? layersOn(dcfg.proto) : [["", "None"]];
   for (const c of document.querySelectorAll(".dec-layer")) c.style.display = ls.length > 1 ? "flex" : "none";
@@ -383,7 +383,7 @@ function decLayerOptions() {
 
 // syncDecodeControls: write dcfg back into the DOM controls (after the page
 // takes the scope's settings, so the dropdowns/inputs show them).
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function syncDecodeControls() {
   $("decProto").value = dcfg.proto;
   $("decScl").value = String(dcfg.scl); $("decSda").value = String(dcfg.sda);
@@ -397,7 +397,7 @@ function syncDecodeControls() {
   decLayerOptions();
 }
 
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function setDetectMsg(t, err) {
   const el = $("decDetectMsg");
   el.style.display = t ? "" : "none";
@@ -425,7 +425,7 @@ const DEC_FRAME_BITS = ["irsirc", "wiegand", "t55xx", "rcencode", "ook", "pjdl",
 // decScopeSettings is the scope's decode (the status's panel Display) as this
 // page's settings: protocol, lines, rate, SPI mode and bit order; null when
 // the status names none.
-// TRLC-LINKS: REQ-SDS-207, REQ-SDS-214, REQ-SDS-222
+// TRLC-LINKS: REQ-DSO-207, REQ-DSO-214, REQ-DSO-222
 function decScopeSettings(d) {
   const proto = d && DEC_SCOPE_PROTOS[d.DecProto];
   if (!proto) return null;
@@ -453,7 +453,7 @@ let decScopeSig = "", decPushT = -Infinity;
 // decFollowScope takes the scope's decoder settings when they changed (the
 // scope's keys, a phone, SCPI, Auto, this page), so the page decodes the bus
 // the LCD decodes with the same settings. Called with each status.
-// TRLC-LINKS: REQ-SDS-207, REQ-SDS-214, REQ-SDS-222
+// TRLC-LINKS: REQ-DSO-207, REQ-DSO-214, REQ-DSO-222
 function decFollowScope() {
   const d = st && st.panel && st.panel.Display;
   const s = decScopeSettings(d);
@@ -472,7 +472,7 @@ function decFollowScope() {
 
 // decPush sets one of the scope's BUS sheet rows from this page's control; a
 // refusal puts the scope's settings back on the page.
-// TRLC-LINKS: REQ-SDS-207, REQ-SDS-214, REQ-SDS-222
+// TRLC-LINKS: REQ-DSO-207, REQ-DSO-214, REQ-DSO-222
 async function decPush(row, value) {
   decPushT = performance.now();
   const r = await sheetSet(row, value);
@@ -482,7 +482,7 @@ async function decPush(row, value) {
 }
 
 // decPushRate sets the scope's UART baud or bit rate from the page's.
-// TRLC-LINKS: REQ-SDS-207, REQ-SDS-222
+// TRLC-LINKS: REQ-DSO-207, REQ-DSO-222
 function decPushRate() {
   if (dcfg.proto === "sent" || dcfg.proto === "i2c" || dcfg.proto === "spi" || dcfg.proto === "off") return;
   decPush(dcfg.proto === "uart" ? "bus.baud" : "bus.bit_rate", dcfg.baud);
@@ -490,13 +490,13 @@ function decPushRate() {
 
 // decPageEdit gives a decoder setting edited here that the scope keeps no row
 // for to the serial trigger this page armed.
-// TRLC-LINKS: REQ-SDS-206, REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-206, REQ-DSO-207
 function decPageEdit() { if (typeof stOnPageEdit === "function") stOnPageEdit(); }
 
 // decDetect is Auto-detect: the scope's Auto detects the bus once and fills
 // in its decoder settings, which this page then follows. It resolves true
 // when a bus is decoded after it.
-// TRLC-LINKS: REQ-SDS-207, REQ-SDS-214, REQ-SDS-222
+// TRLC-LINKS: REQ-DSO-207, REQ-DSO-214, REQ-DSO-222
 async function decDetect() {
   setDetectMsg("the scope is detecting the bus…");
   const r = await sheetSet("bus.protocol", 1);
@@ -525,69 +525,69 @@ async function decDetect() {
 
 // ---- decode panel init + wiring ----
 
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 (function initDecode() {
   for (const sel of document.querySelectorAll(".rolesel")) {
     sel.innerHTML = '<option value="1">C1</option><option value="2">C2</option>';
   }
   $("decSda").value = "2"; $("decData").value = "2"; $("decLine").value = "1";
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decSentTick").onchange = $("decSentNibbles").onchange = () => { recompute(); decPageEdit(); };
   $("decDetect").onclick = decDetect;
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decProto").onchange = () => { dcfg.proto = $("decProto").value; setDetectMsg(""); updateDecodePanel(); recompute(); decPush("bus.protocol", DEC_SCOPE_PROTOS.indexOf(dcfg.proto)); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decScl").onchange = () => { dcfg.scl = +$("decScl").value; recompute(); decPush("bus.scl", dcfg.scl - 1); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decSda").onchange = () => { dcfg.sda = +$("decSda").value; recompute(); decPush("bus.sda", dcfg.sda - 1); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decClk").onchange = () => { dcfg.clk = +$("decClk").value; recompute(); decPush("bus.clk", dcfg.clk - 1); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decData").onchange = () => { dcfg.data = +$("decData").value; recompute(); decPush("bus.data", dcfg.data - 1); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decLine").onchange = () => { dcfg.line = +$("decLine").value; recompute(); decPush("bus.source", dcfg.line - 1); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decAuto").onclick = () => { dcfg.auto = !dcfg.auto; $("decAuto").classList.toggle("on", dcfg.auto); recompute(); decPageEdit(); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decThr").oninput = () => { dcfg.auto = false; $("decAuto").classList.remove("on"); $("decThrV").textContent = $("decThr").value; recompute(); };
   $("decThr").onchange = decPageEdit;
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decBaud").onchange = () => {
     const v = +$("decBaud").value | 0;
     if (!(v >= 50)) { $("decBaud").value = dcfg.baud; return; } // a rate the scope takes: Auto-detect finds one
     dcfg.baud = v; recompute(); decPushRate();
   };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   // UART frames carry 5..9 data bits; Manchester words 1..16.
   $("decBits").onchange = () => {
     const manchester = dcfg.proto === "manchester";
     dcfg.bits = Math.max(manchester ? 1 : 5, Math.min(manchester ? 16 : 9, +$("decBits").value | 0)); recompute(); decPageEdit();
   };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decParity").onchange = () => {
     dcfg.parity = $("decParity").value; recompute(); decPageEdit();
     if (dcfg.proto === "uart") decPush("bus.parity", { even: 1, odd: 2, none: 3 }[dcfg.parity] || 3); // the scope's UART framing too
   };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decInverted").onchange = () => {
     dcfg.inverted = $("decInverted").checked; recompute(); decPageEdit();
     if (dcfg.proto === "uart") decPush("bus.uart_line", dcfg.inverted ? 1 : 0);
   };
-  // TRLC-LINKS: REQ-SDS-241
+  // TRLC-LINKS: REQ-DSO-241
   $("decLayer").onchange = () => {
     dcfg.layer = $("decLayer").value;
     recompute();
     decPush("bus.layer", LAYERS.findIndex((l) => l[0] === dcfg.layer));
   };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decCpol").onchange = () => { dcfg.cpol = +$("decCpol").value; recompute(); decPush("bus.spi_mode", dcfg.cpol * 2 + dcfg.cpha); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decCpha").onchange = () => { dcfg.cpha = +$("decCpha").value; recompute(); decPush("bus.spi_mode", dcfg.cpol * 2 + dcfg.cpha); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decMsb").onchange = () => { dcfg.msb = $("decMsb").value === "1"; recompute(); decPush("bus.bit_order", dcfg.msb ? 0 : 1); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decFmt").onchange = () => { dcfg.fmt = $("decFmt").value; recompute(); }; // hex / ascii / both
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decStream").onclick = async () => {
     const requested = !dcfg.stream;
     const result = await send("stream", requested ? 1 : 0);
@@ -596,19 +596,19 @@ async function decDetect() {
     dcfg.hist = []; dcfg.lastStreamSeq = 0;
     updateDecodeResults();
   };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decHistClear").onclick = () => { dcfg.hist = []; dcfg.lastStreamSeq = 0; updateDecodeResults(); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decWatch").onclick = () => { dcfg.watch = !dcfg.watch; $("decWatch").classList.toggle("on", dcfg.watch); updateCaptureList(); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decWatchErr").onchange = () => { dcfg.watchErr = $("decWatchErr").checked; };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decWatchMatch").oninput = () => { dcfg.watchMatch = $("decWatchMatch").value; };
   $("captureList").addEventListener("click", ev => { const d = ev.target.closest(".cap"); if (d) reviewCapture(+d.dataset.i); });
   $("capLive").onclick = reviewLive;
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("capClear").onclick = () => { dcfg.captures = []; dcfg.reviewIdx = -1; dcfg.lastCapKey = ""; if (frozen) reviewLive(); updateCaptureList(); };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("capCopy").onclick = () => {
     const t = dcfg.captures.map(c => new Date(c.t).toISOString() + " #" + c.seq + " [" + c.reason + "] " + c.text).join("\n");
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).catch(() => {});
@@ -621,7 +621,7 @@ async function decDetect() {
     }
     $("capCopy").textContent = "copied"; setTimeout(() => $("capCopy").textContent = "Copy", 900);
   };
-  // TRLC-LINKS: REQ-SDS-207
+  // TRLC-LINKS: REQ-DSO-207
   $("decodeCopy").onclick = () => {
     const t = $("decodeText").value;
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).catch(() => {});

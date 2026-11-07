@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-PACKETS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // layer_tables.js - the layers' name and command tables, written from the scope's own
 // (internal/analysis LayerTablesJS; TestLayerTablesJS keeps this file equal to them).
 "use strict";

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -22,7 +22,7 @@ type cbit struct {
 
 // risingBits reads the data line at each rise of the clock: the bits, their
 // median clock period in samples, the clock line sliced, or why not.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func risingBits(a, b lineIn, cfg ClockedCfg) ([]cbit, float64, sliced, string) {
 	E, _, C, why := clockedLines(a, b, cfg)
 	if why != "" {
@@ -64,7 +64,7 @@ func risingBits(a, b lineIn, cfg ClockedCfg) ([]cbit, float64, sliced, string) {
 }
 
 // crc7 is the SD card CRC-7 (x^7 + x^3 + 1) of bits, most significant first.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func crc7(bits []int) int {
 	c := 0
 	for _, b := range bits {
@@ -87,19 +87,19 @@ func crc7(bits []int) int {
 // after CMD3 and CMD7, "R7" after CMD8); a CRC-7 or end bit that fails
 // flags its last byte (R3 carries no CRC). Baud is the clock rate. OK needs
 // a token whose CRC checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func SDCard(a, b []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeSDCard(samplesIn(a), samplesIn(b), colTimeS, cfg)
 }
 
 // SDCardEdges is SDCard over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func SDCardEdges(a, b *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeSDCard(edgesIn(a), edgesIn(b), colTimeS, cfg)
 }
 
 // decodeSDCard is SDCard over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func decodeSDCard(a, b lineIn, colTimeS float64, cfg ClockedCfg) Result {
 	B, per, C, why := risingBits(a, b, cfg)
 	if why != "" {
@@ -203,7 +203,7 @@ tokens:
 
 // sdResyncs reports two tokens in a row whose CRCs check from bit j (the
 // second at the next start bit after the first).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func sdResyncs(cb []cbit, j, lastCmd int, acmd bool, bits []int) bool {
 	if j+1 >= len(cb) {
 		return false
@@ -230,7 +230,7 @@ func sdResyncs(cb []cbit, j, lastCmd int, acmd bool, bits []int) bool {
 // (the last command, whether it was an ACMD): its length, whether its CRC-7 (none for
 // R3) and end bit check, and whether a CRC was checked. bits is scratch of
 // 136.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func sdCheck(cb []cbit, i, lastCmd int, acmd bool, bits []int) (n int, ok, crc bool) {
 	host := cb[i+1].v == 1
 	n = 48
@@ -256,7 +256,7 @@ func sdCheck(cb []cbit, i, lastCmd int, acmd bool, bits []int) (n int, ok, crc b
 }
 
 // bitsInt is bits, most significant first, as a number.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func bitsInt(b []int) int {
 	v := 0
 	for _, x := range b {
@@ -277,19 +277,19 @@ var pdiOps = []string{"LDS", "LD", "STS", "ST", "LDCS", "REPEAT", "STCS", "KEY"}
 // count for the next LD or ST); every byte is a unit. A character whose
 // parity or stop fails is flagged and ends the instruction. Baud is the
 // clock rate. OK needs an instruction whose characters check.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func PDI(a, b []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodePDI(samplesIn(a), samplesIn(b), colTimeS, cfg)
 }
 
 // PDIEdges is PDI over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func PDIEdges(a, b *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodePDI(edgesIn(a), edgesIn(b), colTimeS, cfg)
 }
 
 // decodePDI is PDI over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func decodePDI(a, b lineIn, colTimeS float64, cfg ClockedCfg) Result {
 	B, per, C, why := risingBits(a, b, cfg)
 	if why != "" {
@@ -388,7 +388,7 @@ func decodePDI(a, b lineIn, colTimeS float64, cfg ClockedCfg) Result {
 
 // jtagNext is the TAP controller's state after state s with TMS tms (the
 // states numbered as jtagNames).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func jtagNext(s, tms int) int {
 	// 0 reset, 1 idle, 2 sel-DR, 3 cap-DR, 4 shift-DR, 5 exit1-DR, 6 pause-DR,
 	// 7 exit2-DR, 8 update-DR, 9 sel-IR, 10 cap-IR, 11 shift-IR, 12 exit1-IR,
@@ -425,19 +425,19 @@ func jtagNext(s, tms int) int {
 // share of its periods within a fifth of their median (a clock's). OK needs
 // a scan, or an escape and its whole activation code (a short record of a
 // slow probe holds no scan).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func CJTAG(a, b []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeCJTAG(samplesIn(a), samplesIn(b), colTimeS, cfg)
 }
 
 // CJTAGEdges is CJTAG over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func CJTAGEdges(a, b *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeCJTAG(edgesIn(a), edgesIn(b), colTimeS, cfg)
 }
 
 // decodeCJTAG is CJTAG over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func decodeCJTAG(a, b lineIn, colTimeS float64, cfg ClockedCfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	if b.none() {
 		return Result{Proto: protoCJTAG, Error: "needs both lines (TCKC and TMSC)"}
@@ -614,19 +614,19 @@ var mapleHex = func() (t [6][256]string) {
 // the exclusive-or of all before it (flagged when it fails, as is a frame
 // whose length disagrees). The end pattern closes it. OK needs a frame
 // whose checksum checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func Maple(a, b []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeMaple(samplesIn(a), samplesIn(b), colTimeS, cfg)
 }
 
 // MapleEdges is Maple over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func MapleEdges(a, b *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeMaple(edgesIn(a), edgesIn(b), colTimeS, cfg)
 }
 
 // decodeMaple is Maple over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func decodeMaple(a, b lineIn, colTimeS float64, cfg ClockedCfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	if b.none() {
 		return Result{Proto: protoMaple, Error: "needs both lines (SDCKA and SDCKB)"}
@@ -804,19 +804,19 @@ func decodeMaple(a, b lineIn, colTimeS float64, cfg ClockedCfg) Result { //nolin
 // (two units, the low byte first) and the flags (bit 4 negative, bit 7
 // inches; a unit). The reading is hundredths of a millimetre or two
 // thousandths of an inch ("rw", e.g. "-12.34mm"). OK needs a frame.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func Caliper(a, b []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeCaliper(samplesIn(a), samplesIn(b), colTimeS, cfg)
 }
 
 // CaliperEdges is Caliper over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func CaliperEdges(a, b *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeCaliper(edgesIn(a), edgesIn(b), colTimeS, cfg)
 }
 
 // decodeCaliper is Caliper over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func decodeCaliper(a, b lineIn, colTimeS float64, cfg ClockedCfg) Result {
 	B, per, C, why := risingBits(a, b, cfg)
 	if why != "" {

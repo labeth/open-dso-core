@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-CONFIG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-CONFIG
 
 package config
 
@@ -21,7 +21,7 @@ var allKeys = []string{
 	"OTA_TAKEOVER_DELAY", "OTA_AUTO_TAKEOVER",
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func clearEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range allKeys {
@@ -29,7 +29,7 @@ func clearEnv(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func TestLoadDeviceDefaults(t *testing.T) {
 	clearEnv(t)
 	usb := t.TempDir()
@@ -94,7 +94,7 @@ func TestLoadDeviceDefaults(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func TestLoadEveryOverride(t *testing.T) {
 	clearEnv(t)
 	dir := t.TempDir()
@@ -152,7 +152,7 @@ func TestLoadEveryOverride(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func TestEnvDurSecs(t *testing.T) {
 	const key = "OTA_TEST_DUR"
 	def := 10 * time.Second
@@ -183,7 +183,7 @@ func TestEnvDurSecs(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func TestEnvInt(t *testing.T) {
 	const key = "OTA_TEST_INT"
 	cases := []struct {
@@ -205,7 +205,7 @@ func TestEnvInt(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func TestEnvBool(t *testing.T) {
 	const key = "OTA_TEST_BOOL"
 	cases := []struct {
@@ -233,7 +233,7 @@ func TestEnvBool(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func TestListParsing(t *testing.T) {
 	const key = "OTA_TEST_LIST"
 	t.Setenv(key, " sds , phoenix ,, SDS1000_arm.app ,")
@@ -253,7 +253,7 @@ func TestListParsing(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func TestEnvHelper(t *testing.T) {
 	const key = "OTA_TEST_STR"
 	t.Setenv(key, "")

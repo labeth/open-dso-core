@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -10,7 +10,7 @@ import (
 // The screen says ACQUIRING while a record fills, and WAITING FOR TRIGGER,
 // with the trigger and the seconds, while a trigger the FPGA decides waits;
 // after a few seconds it adds what to try.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-206
 func TestAcquiringLines(t *testing.T) {
 	if l := acquiringLines(HUD{RecordS: 2}); len(l) != 1 || !strings.HasPrefix(l[0], "ACQUIRING") || !strings.Contains(l[0], "record") {
 		t.Fatalf("filling: %q", l)

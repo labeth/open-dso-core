@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -13,7 +13,7 @@ import (
 var fsTest = RateHz(StreamLog2)
 
 // gen builds n samples of fn(t) plus gaussian noise of sigma.
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func gen(n int, fs float64, fn func(t float64) float64, sigma float64, seed int64) []float64 {
 	r := rand.New(rand.NewSource(seed))
 	x := make([]float64, n)
@@ -25,7 +25,7 @@ func gen(n int, fs float64, fn func(t float64) float64, sigma float64, seed int6
 
 // quantize rounds volts to the stream's Q8.8 codes at vpc volts a code and
 // back, as the scope delivers them.
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func quantize(x []float64, vpc float64) []float64 {
 	q := make([]uint16, len(x))
 	for i, v := range x {
@@ -36,13 +36,13 @@ func quantize(x []float64, vpc float64) []float64 {
 }
 
 // sine is A sin(2 pi f t + ph).
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func sine(a, f, ph float64) func(float64) float64 {
 	return func(t float64) float64 { return a * math.Sin(2*math.Pi*f*t+ph) }
 }
 
 // square is a band-limited square of amplitude a: odd harmonics to fs/2.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func square(a, f, fs float64) func(float64) float64 {
 	return func(t float64) float64 {
 		s := 0.0
@@ -54,7 +54,7 @@ func square(a, f, fs float64) func(float64) float64 {
 }
 
 // TestLevels reads a 1 V peak sine on 0.5 V DC.
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func TestLevels(t *testing.T) {
 	x := gen(61035, fsTest, func(t float64) float64 { return 0.5 + math.Sin(2*math.Pi*1000*t) }, 0, 1)
 	l := Measure(x)
@@ -78,7 +78,7 @@ func TestLevels(t *testing.T) {
 
 // TestPitchSines reads crystal sines from 27.5 Hz to 4.2 kHz within half a
 // cent through the stream's quantization and noise.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func TestPitchSines(t *testing.T) {
 	vpc := 0.04 // 1 V/div
 	for i, f := range []float64{27.5, 41.2, 55, 110, 220.5, 440, 1000, 1760.3, 3520, 4186} {
@@ -92,7 +92,7 @@ func TestPitchSines(t *testing.T) {
 }
 
 // TestPitchRich reads a square, a sawtooth and a weak-fundamental tone.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func TestPitchRich(t *testing.T) {
 	saw := func(f float64) func(float64) float64 {
 		return func(t float64) float64 {
@@ -131,7 +131,7 @@ func TestPitchRich(t *testing.T) {
 }
 
 // TestNotes names frequencies.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func TestNotes(t *testing.T) {
 	cases := []struct {
 		f, a4 float64
@@ -159,7 +159,7 @@ func TestNotes(t *testing.T) {
 }
 
 // TestTunerSmoothing holds a median and resets on a jump.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func TestTunerSmoothing(t *testing.T) {
 	var tu Tuner
 	tu.Add(Pitch{Hz: 440, OK: true})
@@ -177,7 +177,7 @@ func TestTunerSmoothing(t *testing.T) {
 
 // adsrSignal is a 440 Hz tone (or, cv, the envelope itself) shaped by a
 // linear attack, exponential decay to the sustain and exponential release.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func adsrSignal(a, d, s, hold, r float64, cv bool) func(float64) float64 {
 	env := func(t float64) float64 {
 		const t0 = 0.1
@@ -200,7 +200,7 @@ func adsrSignal(a, d, s, hold, r float64, cv bool) func(float64) float64 {
 
 // TestADSR reads attack, decay, sustain and release of a tone and of a CV,
 // with the gate known and found.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func TestADSR(t *testing.T) {
 	const a, d, s, hold, r = 0.05, 0.04, 0.5, 0.6, 0.08
 	n := int(1.4 * fsTest)
@@ -259,7 +259,7 @@ func TestADSR(t *testing.T) {
 }
 
 // TestTremoloVibrato reads AM and FM depth and rate.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func TestTremoloVibrato(t *testing.T) {
 	n := int(4 * fsTest)
 	const fc = 440.0
@@ -308,7 +308,7 @@ func TestTremoloVibrato(t *testing.T) {
 }
 
 // TestSidebands reads the index and ratio of audio-rate FM.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func TestSidebands(t *testing.T) {
 	for _, c := range []struct{ fc, fm, beta float64 }{{3000, 600, 2}, {2000, 300, 1.5}, {4000, 1000, 0.6}, {5000, 500, 3.2}} {
 		x := gen(32768, fsTest, func(t float64) float64 {
@@ -341,7 +341,7 @@ func TestSidebands(t *testing.T) {
 }
 
 // TestLFO reads a triangle, a ramp and a square LFO.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func TestLFO(t *testing.T) {
 	n := int(5 * fsTest)
 	tri := gen(n, fsTest, func(t float64) float64 { return 2 * (2*math.Abs(2*(t*2-math.Floor(t*2+0.5))) - 1) }, 0.002, 12)
@@ -367,7 +367,7 @@ func TestLFO(t *testing.T) {
 }
 
 // TestHarmonics reads a tone with known harmonics, the hum and THD.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func TestHarmonics(t *testing.T) {
 	a := math.Sqrt2 // 1 V RMS
 	x := gen(65536, fsTest, func(t float64) float64 {
@@ -400,7 +400,7 @@ func TestHarmonics(t *testing.T) {
 
 // TestAB compares a circuit's input and output: gain, phase, delay, added
 // distortion.
-// TRLC-LINKS: REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-271
 func TestAB(t *testing.T) {
 	n := 32768
 	in := gen(n, fsTest, sine(1, 1000, 0), 0.001, 16)
@@ -438,7 +438,7 @@ func TestAB(t *testing.T) {
 }
 
 // TestVOct fits a VCO off by 1 % in scale and flat at the top.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func TestVOct(t *testing.T) {
 	var pts []VOctPoint
 	for v := 0.0; v <= 5; v++ {
@@ -482,7 +482,7 @@ func TestVOct(t *testing.T) {
 }
 
 // TestCycle places a mark on its crossing and reads the cycle.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func TestCycle(t *testing.T) {
 	const f = 500.0
 	x := gen(8192, fsTest, square(1, f, fsTest), 0, 0)
@@ -510,7 +510,7 @@ func TestCycle(t *testing.T) {
 }
 
 // TestBreakers feeds every reading degenerate and hostile input: no panic.
-// TRLC-LINKS: REQ-SDS-266, REQ-SDS-267, REQ-SDS-268, REQ-SDS-269, REQ-SDS-270, REQ-SDS-271, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-266, REQ-DSO-267, REQ-DSO-268, REQ-DSO-269, REQ-DSO-270, REQ-DSO-271, REQ-DSO-272
 func TestBreakers(_ *testing.T) {
 	r := rand.New(rand.NewSource(19))
 	inputs := [][]float64{nil, {1}, make([]float64, 7), make([]float64, 5000)}
@@ -552,7 +552,7 @@ func TestBreakers(_ *testing.T) {
 // they end, at the bound. Doubling past it wrapped the int and never ended
 // (on the scope's 32-bit int, int(+Inf) is MaxInt32 and every such size
 // hung the SOUND service).
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-270
 func TestPow2Bounded(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
@@ -578,7 +578,7 @@ func TestPow2Bounded(t *testing.T) {
 
 // TestDelayBadReach asks Delay for a reach that is no number of samples:
 // no reading, no index from it.
-// TRLC-LINKS: REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-271
 func TestDelayBadReach(t *testing.T) {
 	x := gen(4096, fsTest, sine(1, 440, 0), 0.01, 5)
 	for _, maxS := range []float64{math.NaN(), math.Inf(-1), -1} {
@@ -594,7 +594,7 @@ func TestDelayBadReach(t *testing.T) {
 // TestADSRHeldToTheEnd reads a note still sustaining when the capture ends
 // (a held note outlasting the capture's bound): a sustain, no release, and
 // no index past the envelope.
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func TestADSRHeldToTheEnd(t *testing.T) {
 	n := int(1.4 * fsTest)
 	for _, cv := range []bool{false, true} {

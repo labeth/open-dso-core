@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -14,7 +14,7 @@ import (
 //	          (FlexRay is 10 Mbit/s, but colTimeS varies so infer when unset).
 //	Threshold /HaveThr override the auto slice threshold (see sliceChannel).
 //
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type FlexRayCfg struct {
 	Bitrate   int
 	Threshold float64
@@ -25,7 +25,7 @@ type FlexRayCfg struct {
 // x^7+x^2+1, init 0x1A) over the 20 protected header bits, MSB-first: sync(1),
 // startup(1), frameID(11), payloadLen(7). A frame whose transmitted header-CRC
 // field disagrees with this is corrupt and must not be accepted as a valid frame.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func flexHeaderCRC11(sync, startup, frameID, payloadLen int) int { //nolint:dupl // the tests keep their own copy, an independent reference to build frames by
 	bits := make([]int, 0, 20)
 	bits = append(bits, sync&1, startup&1)
@@ -52,7 +52,7 @@ func flexHeaderCRC11(sync, startup, frameID, payloadLen int) int { //nolint:dupl
 // sigrok oracle cross-check: this decoder validated only the header CRC-11,
 // so a corrupted payload/trailer read back as a clean frame while sigrok's
 // flexray decoder flagged it (oracle_flexray_test.go pins both now).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func flexFrameCRC24(frameBytes []int) int {
 	crc := 0xFEDCBA
 	for _, by := range frameBytes {
@@ -83,7 +83,7 @@ func flexFrameCRC24(frameBytes []int) int {
 // its shape distinguishes "another byte follows" (BSS = high,low) from "frame is
 // over" (FES = low,high, or idle = high,high). Mirrors decode_flexray.js step
 // for step so the web overlay and the on-device LCD agree byte-for-byte.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func FlexRay(codes []uint8, colTimeS float64, cfg FlexRayCfg) Result { //nolint:gocyclo,funlen // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	// three samples a bit at the least: box-averaged records of 3.1 decode
 	// every message (TestLineCodesDecodeAtThreeSamplesABit), so a slow

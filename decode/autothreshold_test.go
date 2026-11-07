@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 // AutoThreshold is the level the decoders slice at without one set, so the
 // hardware matcher given it slices where the decode does; a line without two
 // clear levels has none.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-013
 func TestAutoThresholdIsTheDecoders(t *testing.T) {
 	w := uartWave([]int{0x48, 0x69, 0x20, 0x55, 0xaa}, 20)
 	for i := range w { // a little noise on both rails
@@ -32,7 +32,7 @@ func TestAutoThresholdIsTheDecoders(t *testing.T) {
 }
 
 // AutoThresholdExtent is AutoThreshold and Extent of the same codes.
-// TRLC-LINKS: REQ-SDS-011, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-018
 func TestAutoThresholdExtentIsBoth(t *testing.T) {
 	r := rand.New(rand.NewSource(11))
 	for k := range 300 {
@@ -57,7 +57,7 @@ func TestAutoThresholdExtentIsBoth(t *testing.T) {
 
 // armedCrossings in integers marks what the float comparisons marked, for
 // any threshold and band (fractional, off the codes, NaN).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 func TestArmedCrossingsIsTheFloatOne(t *testing.T) {
 	ref := func(s sliced, n int) (rise, fall []bool) {
 		rise, fall = make([]bool, n), make([]bool, n)

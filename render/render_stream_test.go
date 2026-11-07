@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -10,7 +10,7 @@ import (
 )
 
 // streamStatusRef is the fmt-built status line streamStatus must match.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func streamStatusRef(v streamwire.View) string {
 	if v.State == streamwire.Starting && v.Note != "" {
 		return fmt.Sprintf("STREAM %s  %s  %s", v.Label, v.State, v.Note)
@@ -26,7 +26,7 @@ func streamStatusRef(v streamwire.View) string {
 	return s
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestStreamStatusMatchesFmt(t *testing.T) {
 	for _, v := range []streamwire.View{
 		{Label: "UART 115200", State: streamwire.Streaming, Units: 123456, UnitsPerSecond: 11520, Errors: 2, Lost: 1, Mode: "hex"},

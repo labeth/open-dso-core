@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-VXI11SRV
+// ENGMODEL-OWNER-UNIT: FU-DSO-VXI11SRV
 
 package vxi11srv
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func BenchmarkReadRecord(b *testing.B) {
 	msg := make([]byte, 4+1024)
 	binary.BigEndian.PutUint32(msg, 0x80000000|1024)
@@ -22,7 +22,7 @@ func BenchmarkReadRecord(b *testing.B) {
 }
 
 // A record of several fragments reads as their bytes in order.
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func TestReadRecordFragments(t *testing.T) {
 	var in []byte
 	var want []byte

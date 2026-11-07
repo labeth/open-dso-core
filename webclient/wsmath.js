@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-WSMATH
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // wsmath.js — the workspaces' small numeric helpers: running statistics
 // (MEASURE), the reference difference (COMPARE), the "does the signal repeat"
 // test that gates a stacked master, and the mask dilation shared by the mask
@@ -9,13 +9,13 @@
 // RunStats accumulates a measurement's statistics with Welford's update (no
 // catastrophic cancellation on long runs): count, mean, min, max, sample
 // standard deviation. Non-finite values are skipped.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 class RunStats {
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   constructor() { this.reset(); }
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   reset() { this.n = 0; this.mean = 0; this.m2 = 0; this.min = Infinity; this.max = -Infinity; this.last = NaN; }
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   add(v) {
     this.last = typeof v === "number" ? v : NaN;
     if (!Number.isFinite(this.last)) return;
@@ -26,7 +26,7 @@ class RunStats {
     if (v < this.min) this.min = v;
     if (v > this.max) this.max = v;
   }
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   sdev() { return this.n > 1 ? Math.sqrt(this.m2 / (this.n - 1)) : NaN; }
 }
 
@@ -34,7 +34,7 @@ class RunStats {
 // volts on one time grid; NaN = no sample there) and reports the largest
 // absolute difference, the RMS difference and the percentage of samples within
 // tol (half a division in the readout).
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 function refDiff(live, ref, tol) {
   let mx = 0, s2 = 0, n = 0, inside = 0;
   const len = Math.min(live.length, ref.length);
@@ -51,12 +51,12 @@ function refDiff(live, ref, tol) {
 
 // envelope returns the ±slack-sample running min and max of a record (gaps,
 // values < 0 or NaN, are skipped; a window of only gaps gives min > max).
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 function envelope(x, slack) {
   const n = x.length, lo = new Float64Array(n), hi = new Float64Array(n);
   const qLo = new Int32Array(n), qHi = new Int32Array(n);
   let lh = 0, lt = 0, hh = 0, ht = 0, next = 0;
-  // TRLC-LINKS: REQ-SDS-218
+  // TRLC-LINKS: REQ-DSO-218
   const ok = (v) => v >= 0 && Number.isFinite(v);
   for (let j = 0; j < n; j++) {
     const end = Math.min(n - 1, j + slack), start = Math.max(0, j - slack);
@@ -81,7 +81,7 @@ function envelope(x, slack) {
 // envelope. Two consecutive captures of a repeating, well-triggered signal pass;
 // a free-running or changing one does not. Gaps and the slack-wide ends are
 // skipped; a pair with less than half its samples comparable does not count.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 function repeats(prev, cur, tol, slack) {
   const n = Math.min(prev.length, cur.length);
   if (n < 8) return false;
@@ -107,7 +107,7 @@ function repeats(prev, cur, tol, slack) {
 // linear even for full SRAM records and wide tolerances) and ±tolV codes,
 // clamped to the 8-bit code range. Unobserved columns (lo > hi) become
 // always-pass (0..255) first: dilating inverted bounds would fail every sample.
-// TRLC-LINKS: REQ-SDS-014, REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-014, REQ-DSO-218
 function maskDilate(lo, hi, tolT, tolV) {
   const win = lo.length;
   lo = Float64Array.from(lo); hi = Float64Array.from(hi); // typed working copies

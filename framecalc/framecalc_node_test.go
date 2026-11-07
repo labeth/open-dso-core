@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-FRAMECALC
 
 package framecalc
 
@@ -21,7 +21,7 @@ import (
 // surfaces draw and list the same spectrum (no stride sized from another frame,
 // nothing drawn past the filter). Skips without
 // node (fails under CI_REQUIRE_BROWSER=1).
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 func TestSpectrumJSParity(t *testing.T) {
 	testenv.NeedNode(t)
 	node, _ := exec.LookPath("node")

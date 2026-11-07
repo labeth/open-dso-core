@@ -33,15 +33,19 @@ type Call struct {
 }
 
 // Engine is the engine running the call.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Engine() *Engine { return c.e }
 
 // Instrument is the engine's instrument.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Instrument() Instrument { return c.e.inst }
 
 // Query reports whether the header is a query.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Query() bool { return strings.HasSuffix(c.Header, "?") }
 
 // N is the i-th numeric suffix; 1 when absent.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) N(i int) int {
 	if i < len(c.Suffix) {
 		return c.Suffix[i]
@@ -51,6 +55,7 @@ func (c *Call) N(i int) int {
 
 // Arg is the unit's parameter text as received (Line: upper-cased, trimmed).
 // Reading it consumes every parameter.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Arg() string {
 	c.next = len(c.params)
 	return c.arg
@@ -58,6 +63,7 @@ func (c *Call) Arg() string {
 
 // Unlocked runs fn with the engine's lock released: for a callback that may
 // itself reach state guarded by the engine (a render, the panel).
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Unlocked(fn func()) {
 	c.e.mu.Unlock()
 	defer c.e.mu.Lock()
@@ -66,6 +72,7 @@ func (c *Call) Unlocked(fn func()) {
 
 // Error reports an SCPI error: queued (IEEE), or answered in place with its
 // text (Line). It returns ErrReported.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Error(code int) error {
 	if c.e.d.Grammar == Line {
 		c.e.pushes++
@@ -78,26 +85,33 @@ func (c *Call) Error(code int) error {
 }
 
 // HeaderMode is the CHDR state.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) HeaderMode() HeaderMode { return c.e.hdr }
 
 // SetHeaderMode sets the CHDR state.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) SetHeaderMode(m HeaderMode) { c.e.hdr = m }
 
 // Digits is the number of significant digits of NR3 replies.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Digits() int { return c.e.digits }
 
 // SetDigits sets the significant digits of NR3 replies (:FORMat:DATA).
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) SetDigits(n int) { c.e.digits = max(n, 1) }
 
 // --- parameters (IEEE) ---
 
 // Count is the number of parameters of the unit.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Count() int { return len(c.params) }
 
 // Remaining is the number of parameters not read yet.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Remaining() int { return len(c.params) - c.next }
 
 // Param returns the next parameter; a missing mandatory one is -109.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Param(mandatory bool) (Token, bool, error) {
 	if c.next >= len(c.params) {
 		if mandatory {
@@ -120,6 +134,7 @@ const (
 
 // Number reads a decimal parameter with an optional unit (the multiplier
 // applied); MIN, MAX and DEF return their special code.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Number(mandatory bool) (v float64, special int, present bool, err error) {
 	t, ok, err := c.Param(mandatory)
 	if err != nil || !ok {
@@ -148,6 +163,7 @@ func (c *Call) Number(mandatory bool) (v float64, special int, present bool, err
 }
 
 // Float reads a plain number (MIN/MAX/DEF are -104).
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Float(mandatory bool) (float64, bool, error) {
 	v, sp, ok, err := c.Number(mandatory)
 	if err != nil || !ok {
@@ -160,6 +176,7 @@ func (c *Call) Float(mandatory bool) (float64, bool, error) {
 }
 
 // Int reads an integer parameter (decimal or #H/#B/#Q).
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Int(mandatory bool) (int64, bool, error) {
 	v, ok, err := c.Float(mandatory)
 	if err != nil || !ok {
@@ -169,6 +186,7 @@ func (c *Call) Int(mandatory bool) (int64, bool, error) {
 }
 
 // Bool reads ON/OFF or a number (non-zero is true).
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Bool(mandatory bool) (bool, bool, error) {
 	t, ok, err := c.Param(mandatory)
 	if err != nil || !ok {
@@ -192,6 +210,7 @@ func (c *Call) Bool(mandatory bool) (bool, bool, error) {
 // Choice matches the next parameter against choice patterns (short or long
 // form; a numeric token by its text, so "20M" and "1MIN" are choices) and
 // returns the index; an unknown choice is -224.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Choice(mandatory bool, choices ...string) (int, bool, error) {
 	t, ok, err := c.Param(mandatory)
 	if err != nil || !ok {
@@ -215,6 +234,7 @@ func (c *Call) Choice(mandatory bool, choices ...string) (int, bool, error) {
 }
 
 // String reads a quoted string (character data is accepted as well).
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) String(mandatory bool) (string, bool, error) {
 	t, ok, err := c.Param(mandatory)
 	if err != nil || !ok {
@@ -233,6 +253,7 @@ func (c *Call) String(mandatory bool) (string, bool, error) {
 
 // Text writes one reply value: IEEE values of one unit are joined by ','
 // and units by ';'; a Line reply ends with its own LF.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Text(s string) {
 	if c.e.d.Grammar == Line {
 		c.out.WriteString(s)
@@ -252,6 +273,7 @@ func (c *Call) Text(s string) {
 
 // Raw writes bytes as they are (binary blocks, a screen image): no
 // delimiter after the first value and, in the Line grammar, no LF.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Raw(b []byte) {
 	if c.outputs == 0 && c.pendingSemi {
 		c.out.WriteByte(';')
@@ -261,19 +283,23 @@ func (c *Call) Raw(b []byte) {
 }
 
 // NR3 writes v in %E form with the engine's significant digits.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) NR3(v float64) { c.Text(FormatNR3(v, c.e.digits)) }
 
 // NR1 writes an integer.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) NR1(v int64) { c.Text(strconv.FormatInt(v, 10)) }
 
 // Reply writes a legacy reply under its short header: "<header> <value>"
 // in CHDR SHORT and LONG, the value alone in OFF. Common commands and
 // long-form headers of the IEEE grammar never carry a header.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Reply(header, value string) { c.Legacy(header, "", value, "") }
 
 // Legacy writes a legacy reply: the short or long header (long only when
 // the dialect has long headers; "" falls back to the short one), the value
 // and its unit, which CHDR OFF drops when the dialect says so.
+// TRLC-LINKS: REQ-DSO-024
 func (c *Call) Legacy(short, long, value, unit string) {
 	if c.e.d.Grammar == IEEE && (strings.HasPrefix(short, "*") || strings.HasPrefix(short, ":")) {
 		c.Text(value)
@@ -297,6 +323,7 @@ func (c *Call) Legacy(short, long, value, unit string) {
 }
 
 // FormatNR3 formats v like printf("%.<digits-1>E").
+// TRLC-LINKS: REQ-DSO-024
 func FormatNR3(v float64, digits int) string {
 	return fmt.Sprintf("%.*E", max(digits, 1)-1, v)
 }

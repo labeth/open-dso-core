@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -10,7 +10,7 @@ import (
 // FloorDBV is the scope's own floor in a bin of binHz at vpc volts a code:
 // noise of density FloorCodesPerRtHz through a Hann bin (1.5 bins wide),
 // read on the spectrum's sine-RMS scale.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func FloorDBV(binHz, vpc float64) float64 {
 	if !(binHz > 0) || !(vpc > 0) {
 		return math.Inf(-1)
@@ -19,7 +19,7 @@ func FloorDBV(binHz, vpc float64) float64 {
 }
 
 // LogX places f on a log axis from f0 to f1 as 0..1.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func LogX(f, f0, f1 float64) float64 {
 	if !(f > 0) {
 		return math.Inf(-1)
@@ -29,7 +29,7 @@ func LogX(f, f0, f1 float64) float64 {
 
 // NoteGrid is the C of every octave between f0 and f1 Hz (A4 = a4), for a
 // log axis's note grid: frequencies and names ("C4").
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func NoteGrid(f0, f1, a4 float64) ([]float64, []string) {
 	if !(a4 > 0) {
 		a4 = 440

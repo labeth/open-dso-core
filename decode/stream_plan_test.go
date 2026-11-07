@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -12,7 +12,7 @@ import (
 // where the budget allows, else the finest the budget and the bus allow
 // while three and a half fit; never past the bus's words a second, never
 // coarser than the coarsest decimation's.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestStreamBitsPlan(t *testing.T) {
 	if StreamBitsMinPeriod != 6 || StreamBitsWordRate(StreamBitsMinPeriod) > StreamBusWords || StreamBitsWordRate(StreamBitsMinPeriod-1) <= StreamBusWords {
 		t.Fatalf("finest period %d raw words: %.4g words a second", StreamBitsMinPeriod, StreamBitsWordRate(StreamBitsMinPeriod))

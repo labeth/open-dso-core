@@ -90,6 +90,7 @@ type StreamFaults struct {
 // Run returns channel i's run of a PayloadCodes or PayloadChunks block
 // (i indexes Formats): bytes for codes stored as 8-bit words, words for
 // 16-bit ones; both nil when i is out of range.
+// TRLC-LINKS: REQ-DSO-1001
 func (b StreamBlock) Run(i int) (bytes []byte, words []uint16) {
 	nch := len(b.Formats)
 	if i < 0 || i >= nch {

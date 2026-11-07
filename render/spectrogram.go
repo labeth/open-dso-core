@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -33,7 +33,7 @@ const (
 // Spectrogram is the scrolling image plus the last effective Nyquist (for the
 // frequency axis). Not safe for concurrent Push; the LCD loop is the only
 // writer.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 type Spectrogram struct {
 	img     []Color    // sgRows rows of sgCols, a ring (imgRow)
 	mu565   sync.Mutex // the RGB565 rows: a screen grab blits beside the display
@@ -46,14 +46,14 @@ type Spectrogram struct {
 }
 
 // NewSpectrogram allocates the waterfall image.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func NewSpectrogram() *Spectrogram {
 	return &Spectrogram{img: make([]Color, sgCols*sgRows), img565: make([]uint16, sgCols*sgRows), ok565: make([]bool, sgRows), floorDB: -60}
 }
 
 // heat maps t∈[0,1] to a perceptual black→blue→cyan→green→yellow→red→white
 // ramp (RGB565). Monotone in brightness so higher dB always reads "hotter".
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func heat(t float64) Color {
 	// Total in t: a NaN (from a degenerate 0·Inf in the paint math) must not
 	// reach int(NaN) → a garbage stops[] index. NaN and the low tail → black.
@@ -88,7 +88,7 @@ func heat(t float64) Color {
 // (framecalc.SpectrumRows), so the waterfall fills that many times faster
 // than a row a capture. effNyq is the frame's Nyquist, for a frame without a
 // sample interval.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func (sg *Spectrogram) Push(f *sample.Frame, ch int, effNyq float64) {
 	f = view8(f)
 	if f == nil || len(f.Codes8(0)) == 0 {
@@ -121,7 +121,7 @@ func (sg *Spectrogram) Push(f *sample.Frame, ch int, effNyq float64) {
 // the image's rows are a ring (imgRow), so the newest rows take the oldest
 // ones' place and nothing moves. Copying the whole heatmap down a push read
 // and wrote 600 KB of memory the core cannot cache.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func (sg *Spectrogram) scroll(n int) {
 	n = min(n, sgRows)
 	sg.top = (sg.top - n + sgRows) % sgRows
@@ -129,7 +129,7 @@ func (sg *Spectrogram) scroll(n int) {
 
 // imgRow is the image row that holds waterfall row r (0 the newest, at the
 // top of the heatmap, to sgRows-1 the oldest).
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func (sg *Spectrogram) imgRow(r int) int {
 	r += sg.top
 	if r >= sgRows {
@@ -140,7 +140,7 @@ func (sg *Spectrogram) imgRow(r int) int {
 
 // paintRow paints the half spectrum mags (peak its largest) on heatmap row
 // y (sgY0 the newest): column x is a frequency bin, dB a colour.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func (sg *Spectrogram) paintRow(y int, mags []float64, peak float64) {
 	r := sg.imgRow(y - sgY0)
 	row := sg.img[r*sgCols : (r+1)*sgCols]
@@ -163,7 +163,7 @@ func (sg *Spectrogram) paintRow(y int, mags []float64, peak float64) {
 }
 
 // Clear blanks the waterfall.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func (sg *Spectrogram) Clear() {
 	clear(sg.img)
 	sg.mu565.Lock()
@@ -175,7 +175,7 @@ func (sg *Spectrogram) Clear() {
 // drawSpectrogramMark blits the waterfall into plot p (scaled from its
 // image: the full-screen plot is 1:1) with its axis and colour key, and
 // SPECTRUM's marker when one is given.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-068, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-068, REQ-DSO-216
 func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bool, m *wsview.SpecPane) {
 	if sg == nil || sg.rows == 0 {
 		msg := "SPECTROGRAM - FFT over time; needs a triggered signal"
@@ -283,7 +283,7 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 
 // row565 is heatmap image row r in RGB565, converted once after its paint;
 // the caller holds mu565.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func (sg *Spectrogram) row565(r int) []uint16 {
 	row := sg.img565[r*sgCols : (r+1)*sgCols]
 	if !sg.ok565[r] {
@@ -297,7 +297,7 @@ func (sg *Spectrogram) row565(r int) []uint16 {
 
 // scaleRow fills out with the pixels of src the columns xmap name. Out of
 // line so its slices are registers, not reloaded from the caller's frame.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 //
 //go:noinline
 func scaleRow(out, src []uint16, xmap []int) {

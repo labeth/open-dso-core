@@ -11,7 +11,7 @@ import (
 // data, C2 clock, 2 ns samples, 10x probes): one high half of the clock
 // sampled either side of its peak reads 36 69 68 47 against a hysteresis
 // band to 69.1.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 func loadSPIRunt(t *testing.T) (c1, c2 []uint8) {
 	t.Helper()
 	f, err := os.Open("testdata/spi_flash104_runt.bin.gz")
@@ -34,7 +34,7 @@ func loadSPIRunt(t *testing.T) (c1, c2 []uint8) {
 // sampled half that stops short of the band still clocks its bit, as in the
 // FPGA's receiver; the band dropped it and every byte after it slipped a bit
 // ("-SDS 0" read "-MA..", 68 bytes).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 func TestDecodeSPIKeepsAShortClockHalf(t *testing.T) {
 	c1, c2 := loadSPIRunt(t)
 	r := SPI(c2, c1, 2e-9, SPICfg{MSB: true, DataLag: SPIDataLag(1, 2e-9), DataDelay: 3.7})

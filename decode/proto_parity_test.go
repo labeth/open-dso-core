@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ type parityAdd2 func(proto string, c1, c2 []uint8, colT float64, cfg map[string]
 // protoParityVectors adds the Go<->JS parity vectors of the protocols beyond
 // the first ten: each family's clean frames, frames with their checks
 // failing, and corrupted copies (corrupt) that drive the reject paths.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-073
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-073
 func protoParityVectors(add parityAdd, add2 parityAdd2, corrupt func([]uint8) []uint8) {
 	type cfg = map[string]any
 	type base struct {

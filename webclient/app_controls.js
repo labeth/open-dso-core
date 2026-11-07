@@ -1,12 +1,12 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-CONTROLS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_controls.js — control wiring: acquisition/trigger/timebase/vertical + view/channel/export (classic script; loaded after app.js state).
 
 // ---- acquisition, trigger, timebase, vertical + view/channel/export controls ----
 "use strict";
 $("autoset").onclick = autoset;
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("run").onclick = async () => { if (autosetBusy && !await autosetDone) return; const r = await send("runtoggle", 0); if (r.ok && st) { st.running = !!r.applied; st.single = false; applyStatus(); } };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("single").onclick = async () => {
   if (!(await send("single", 1)).ok) return;
   if (st) { st.norm = st.running = st.single = true; applyStatus(); }
@@ -14,45 +14,45 @@ $("single").onclick = async () => {
   // Run/Stop toggles at the device, independently of this display refresh.
   // Bounded; the steady 1 s poll takes over after.
   let n = 0;
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   const chk = async () => {
     try { st = await (await fetch("/api/status")).json(); applyStatus(); } catch (e) {}
     if (st && st.running && st.single && n++ < 50) setTimeout(chk, 200);
   };
   setTimeout(chk, 200);
 };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("tpos").oninput = () => { $("tposv").textContent = Math.round(+$("tpos").value * 100) + " %"; send("trigpos", +$("tpos").value); };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("tposCentre").onclick = () => { $("tpos").value = 0.5; $("tpos").dispatchEvent(new Event("input")); };
 // The strip's trigger controls are segmented choices (they fire "change").
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("mode").onchange = () => { const on = $("mode").value === "1"; send("norm", on ? 1 : 0); if (st) { st.norm = on; applyStatus(); } };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("slope").onchange = () => { const r = $("slope").value === "1"; send("trigslope", r ? 1 : 0); if (st) { st.trig_rising = r; applyStatus(); } };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("source").onchange = () => { const c = capsServed ? +$("source").value || 0 : $("source").value === "1" ? 1 : 0; send("trigsource", c); if (st) { st.trig_source = c; applyStatus(); } };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("rollStream").onchange = () => { const on = $("rollStream").value === "1"; send("rollstream", on ? 1 : 0); if (st) { st.roll_stream = on; applyStatus(); } };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("ets").onclick = () => { const on = !(st && st.ets); send("ets", on ? 1 : 0); if (st) { st.ets = on; applyStatus(); } };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("tdiv").onchange = () => { $("tdiv")._userAt = performance.now(); send("tdiv", +$("tdiv").value); };
 // −/+ steppers and the knob wheel rule: up (or −) = a bigger trace. The ladders
 // are in ascending order, so "faster / more sensitive" is the previous option.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function wireStepper(id, step) {
   $(id)._knob = step;
   knobWheel($(id), step);
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   $(id + "Dn").onclick = () => step(-1);
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   $(id + "Up").onclick = () => step(1);
 }
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 wireStepper("tdiv", (dir) => stepSelect($("tdiv"), dir, "tdiv"));
 // 50 % and Force are the front panel's keys: one implementation, on the device.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 async function panelPress(name) {
   try {
     const r = await fetch("/api/panel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ button: name }) });
@@ -61,7 +61,7 @@ async function panelPress(name) {
     return !!(j && j.ok);
   } catch (e) { return false; }
 }
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("set50").onclick = async () => {
   if (await panelPress("set50")) return;
   // No panel (bench server): place the level at the source's mid-swing here.
@@ -71,11 +71,11 @@ $("set50").onclick = async () => {
   st.trig_volts = mid; $("lvl").value = mid; $("lvlv").textContent = eng(mid, "V");
   sendTrigLevel(mid); redraw();
 };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("force").onclick = async () => { if (!(await panelPress("force"))) toast("Force trigger is not available on this server", "warn"); };
 // Zoom about the trigger: the client-side window, the same one wheel and box
 // zoom move (the hardware timebase is untouched).
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 $("zoomSeg").onchange = () => {
   const z = +$("zoomSeg").value || 1;
   if (!frame) return;
@@ -86,11 +86,11 @@ $("zoomSeg").onchange = () => {
   view.win.a = c - span * pf; view.win.b = view.win.a + span; userZoomed = true;
   clearPersist(); redraw();
 };
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 $("refSaveA").onclick = () => saveRef("A");
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 $("refSaveB").onclick = () => saveRef("B");
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("holdoff").onchange = () => send("holdoff", +$("holdoff").value);
 
 // sendChan sets channel n's control: channels 1 and 2 by the names the
@@ -100,14 +100,14 @@ $("holdoff").onchange = () => send("holdoff", +$("holdoff").value);
 // (V/div at the tip), offset (V at the tip), probe (a vertical.probes
 // entry), coupling (0 DC, 1 AC, 2 GND), bwlimit (0 full, 1 the limit) and
 // invert (0/1).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 async function sendChan(control, n, value) {
   if (n <= 2) return send(control + n, value);
   return sendBody({ control, ch: n - 1, value }, chanName(n) + " " + control);
 }
 
 // sendBody posts one /api/set body as it is and says a refusal.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 async function sendBody(body, what) {
   if (autosetBusy && !await autosetDone) return { ok: false };
   try {
@@ -124,7 +124,7 @@ async function sendBody(body, what) {
 // ch the source channel's index; the scope converts with its own
 // calibration); one without takes the v1 DAC code "triglevelcode" the page
 // works out from the status's trig_zero/trig_cpv.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function sendTrigLevel(tipVolts) {
   if (capsControl("triglevel")) return sendBody({ control: "triglevel", ch: trigChan() - 1, value_v: tipVolts }, "Trigger level");
   return send("triglevelcode", trigCodeFor(tipVolts));
@@ -133,46 +133,46 @@ function sendTrigLevel(tipVolts) {
 // wireChannel wires channel n's controls: display, V/div and its steppers,
 // offset, probe, coupling, and the bandwidth limit and invert (the scope's
 // channel tab rows; sheetsFollow shows their values).
-// TRLC-LINKS: REQ-SDS-204, REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-204, REQ-DSO-211
 function wireChannel(n) {
   const vd = $("vdiv" + n);
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   vd.onchange = () => { vd._userAt = performance.now(); sendChan("vdiv", n, +vd.value); };
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   wireStepper("vdiv" + n, n <= 2 ? (dir) => stepSelect(vd, dir, "vdiv" + n) : (dir) => {
     const i = Math.max(0, Math.min(vd.options.length - 1, vd.selectedIndex + dir));
     if (!vd.options.length || i === vd.selectedIndex) return;
     vd.selectedIndex = i; vd.onchange(); kickMirrors();
   });
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   $("zero" + n).onclick = () => { $("off" + n).value = 0; $("off" + n + "v").textContent = eng(0, "V"); sendChan("offset", n, 0); };
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   $("probe" + n).onchange = () => sendChan("probe", n, +$("probe" + n).value);
-  // TRLC-LINKS: REQ-SDS-211
+  // TRLC-LINKS: REQ-DSO-211
   $("bwl" + n).onchange = () => n <= 2 ? sheetSet("ch" + n + ".bwl", +$("bwl" + n).value) : sendChan("bwlimit", n, +$("bwl" + n).value);
-  // TRLC-LINKS: REQ-SDS-211
+  // TRLC-LINKS: REQ-DSO-211
   $("inv" + n).onchange = () => n <= 2 ? sheetSet("ch" + n + ".invert", +$("inv" + n).value) : sendChan("invert", n, +$("inv" + n).value);
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   $("cpl" + n).onchange = () => sendChan("coupling", n, +$("cpl" + n).value);
   const rng = $("off" + n), lbl = $("off" + n + "v");
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   rng.oninput = () => { offDragging = true; lbl.textContent = eng(+rng.value, "V"); };
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   rng.onchange = () => { offDragging = false; sendChan("offset", n, +rng.value / probeOf(n)); };
   const tog = $("tC" + n), key = "c" + n;
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   tog.onclick = () => { view[key] = !view[key]; tog.classList.toggle("on", view[key]); tog.textContent = view[key] ? "On" : "Off"; redraw(); };
 }
 for (const n of [1, 2]) wireChannel(n);
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("lvl").oninput = () => { lvlDragging = true; $("lvlv").textContent = eng(+$("lvl").value, "V"); };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("lvl").onchange = () => { lvlDragging = false; sendTrigLevel(+$("lvl").value); };
 
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("ttype").onchange = () => { send("trigtype", +$("ttype").value); if (st) st.trig_type = +$("ttype").value; updateQualRow(); };
 let qualifierQueue = Promise.resolve(), qualifierPending = 0;
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function sendParams(control, extra) {
   const body = JSON.stringify(Object.assign({ control, value: 0 }, extra));
   qualifierPending++;
@@ -188,21 +188,21 @@ for (const id of ["p-lvl", "p-min", "p-max", "p-cond"]) $(id).onchange = sendPul
 for (const id of ["s-lo", "s-hi", "s-min", "s-max", "s-cond"]) $(id).onchange = sendSlope;
 for (const id of ["v-std", "v-line", "v-neg"]) $(id).onchange = sendVideo;
 
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("acq").onchange = () => { send("acqmode", +$("acq").value); if (st) st.acq_mode = +$("acq").value; updateAcqN(); };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("acqn").onchange = () => send([1,4].includes(+$("acq").value) ? "avgcount" : "eres", +$("acqn").value);
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("memdepth").onchange = () => { send("memdepth", +$("memdepth").value); userZoomed = false; }; // deeper = more to scroll, fewer fps
 
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("tPersist").onclick = () => { view.persist = !view.persist; $("tPersist").classList.toggle("on", view.persist); clearPersist(); redraw(); };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("tCursors").onclick = () => { view.cursors = !view.cursors; $("tCursors").classList.toggle("on", view.cursors); updateCursors(); redraw(); };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("freeze").onclick = () => { frozen = !frozen; $("freeze").classList.toggle("on", frozen); };
 
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 $("ePNG").onclick = () => {
   // The scope is a WebGL canvas without preserveDrawingBuffer, so its buffer is
   // cleared after compositing — repaint synchronously in THIS tick so toDataURL
@@ -212,7 +212,7 @@ $("ePNG").onclick = () => {
   a.download = "scope-" + (frame ? frame.seq : 0) + ".png";
   a.href = scope.toDataURL("image/png"); a.click();
 };
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 $("eCSV").onclick = () => {
   if (!frame || !frame.c1) return;
   // dt_s is the true capture pitch; col_span_s is a display nominal on the
@@ -224,7 +224,7 @@ $("eCSV").onclick = () => {
   // does not carry leaves its column empty)
   const nums = chanNums(), inv = exportInvert();
   const cols = nums.map((k) => ({ k, a: frame["c" + k], vpc: chanVpc(frame, k), off: chanOff(frame, k), inv: inv[k - 1] }));
-  // TRLC-LINKS: REQ-SDS-069
+  // TRLC-LINKS: REQ-DSO-069
   const toV = (code, vpc, off, inv) => (code === undefined || code < 0 ? "" : ((inv ? -1 : 1) * ((code - 128) * vpc - off)).toExponential(6));
   // Decimate huge arrays: a superres stack's K× fine grid is interpolation,
   // so exporting every point (>1M) means ~0.5 s of number-formatting for
@@ -261,15 +261,15 @@ $("eCSV").onclick = () => {
 // overwriting the live frame's export of the same seq.
 // exportInvert is which channels the scope displays inverted (Cn:INVS): the
 // files export what the screen shows; SCPI WF? keeps the acquired volts.
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 function exportInvert() {
   return chanNums().map((n) => !!(st && st["inv" + n]));
 }
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 function exportName(seq, ext) {
   return "scope-" + seq + (frame && frame.sr_view ? "-superres" : "") + "." + ext;
 }
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 function exportFile(name, type, data) {
   const a = document.createElement("a");
   a.download = name;
@@ -278,27 +278,27 @@ function exportFile(name, type, data) {
   // blob (10 MB for a superres .sr) stays pinned until the page unloads.
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
 }
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 $("eSR").onclick = () => {
   const s = sigrokSeries(frame, exportInvert());
   if (s) exportFile(exportName(s.seq, "sr"), "application/zip", sigrokSR(s));
 };
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 $("eVCD").onclick = () => {
   const s = sigrokSeries(frame, exportInvert());
   if (s) exportFile(exportName(s.seq, "vcd"), "text/plain", sigrokVCD(s));
 };
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 $("eWAV").onclick = () => {
   const s = sigrokSeries(frame, exportInvert());
   const wav = s && sigrokWAV(s); // null when the rate exceeds WAV's uint32 Hz
   if (wav) exportFile(exportName(s.seq, "wav"), "audio/wav", wav);
 };
 // The device's own screenshot: the PRINT key saves the LCD on the scope.
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 $("ePrint").onclick = async () => {
   popClose();
-  // TRLC-LINKS: REQ-SDS-069
+  // TRLC-LINKS: REQ-DSO-069
   const notice = async () => { try { return ((await (await fetch("/api/status")).json()).panel || {}).Notice || ""; } catch (e) { return null; } };
   const before = await notice();
   if (!(await panelPress("print"))) { toast("Device screenshot is not available on this server", "warn"); return; }
@@ -313,17 +313,17 @@ $("ePrint").onclick = async () => {
     if (/^PRINT/.test(n)) { toast("The scope could not save its screenshot (" + n + ")", "warn"); return; }
   }
 };
-// TRLC-LINKS: REQ-SDS-069
+// TRLC-LINKS: REQ-DSO-069
 $("exportBtn").onclick = () => popToggle($("exportpop"), $("exportBtn"));
 for (const id of ["ePNG", "eCSV", "eSR", "eVCD", "eWAV"]) $(id).addEventListener("click", () => popClose());
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 $("mathFn").onchange = () => { mathFn = $("mathFn").value; updateMathHint(); redraw(); };
 
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 $("precisionRate").onchange = () => send("precisionrate", +$("precisionRate").value);
 
 // Report the engine's qualifier settings after native edits and setup restore.
-// TRLC-LINKS: REQ-SDS-011, REQ-SDS-072
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-072
 function updateTriggerQualifiers(q) {
   if (qualifierPending || !q || !(q.pulse_lvl > 0)) return;
   const values = {

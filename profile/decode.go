@@ -20,6 +20,7 @@ var (
 // encoding.TextUnmarshaler reads a scalar's text, or a list's items joined
 // by commas (how a profile writes a set: content, options). A null leaves
 // the zero value.
+// TRLC-LINKS: REQ-DSO-1002
 func decode(n *node, v reflect.Value, path string) error {
 	if n.kind == nullNode {
 		return nil
@@ -58,6 +59,7 @@ func decode(n *node, v reflect.Value, path string) error {
 	return decodeScalar(n, v, path)
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func decodeStruct(n *node, v reflect.Value, path string) error {
 	if n.kind != mapNode {
 		return mismatch(n, path, "a mapping")
@@ -81,6 +83,7 @@ func decodeStruct(n *node, v reflect.Value, path string) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func decodeMap(n *node, v reflect.Value, path string) error {
 	if n.kind != mapNode {
 		return mismatch(n, path, "a mapping")
@@ -103,6 +106,7 @@ func decodeMap(n *node, v reflect.Value, path string) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func decodeScalar(n *node, v reflect.Value, path string) error {
 	s := n.value
 	bad := func(want string) error {
@@ -148,6 +152,7 @@ func decodeScalar(n *node, v reflect.Value, path string) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func textOf(n *node, path string) (string, error) {
 	switch n.kind {
 	case scalarNode:
@@ -165,10 +170,12 @@ func textOf(n *node, path string) (string, error) {
 	return "", mismatch(n, path, "a scalar or a list")
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func mismatch(n *node, path, want string) error {
 	return fmt.Errorf("%s (line %d): want %s, have %s", path, n.line, want, n.describe())
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func join(path, key string) string {
 	if path == "" {
 		return key

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -29,7 +29,7 @@ const (
 // sequenceRegs writes a sequence trigger (ADR-PROTOCOL-SEQUENCE-TRIGGER) into
 // a register list for tb_top_packet: each element's index, value, mask, then
 // kind (which stores it), then the control word.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func sequenceRegs(dir, name string, elements []seqElem, qualify, endBad bool, extra ...[2]uint32) string {
 	var regs [][2]uint32
 	regs = append(regs, extra...)
@@ -56,7 +56,7 @@ func sequenceRegs(dir, name string, elements []seqElem, qualify, endBad bool, ex
 	return "+regs=" + path + " " + fmt.Sprintf("+nregs=%d", len(regs))
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func dataElements(bytes []int) []seqElem {
 	out := make([]seqElem, len(bytes))
 	for i, b := range bytes {
@@ -72,7 +72,7 @@ type packetTopRun struct {
 
 // Simulate the packet image's top level on one CH1 waveform. Each entry
 // lasts unit ADC samples at 500 MS/s.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func runPacketTop(t *testing.T, dir, image string, entries []uint8, unit int, control, ticks, aux uint32, pattern uint64, extra ...string) packetTopRun {
 	t.Helper()
 	var in strings.Builder
@@ -102,7 +102,7 @@ func runPacketTop(t *testing.T, dir, image string, entries []uint8, unit int, co
 	return r
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func bitsEntries(wire []int, hi, lo uint8) []uint8 {
 	out := make([]uint8, len(wire))
 	for i, b := range wire {
@@ -117,7 +117,7 @@ func bitsEntries(wire []int, hi, lo uint8) []uint8 {
 // The packet image's top level triggers normal records from ARINC 429, CAN
 // and FlexRay through the shared packet block, the Manchester image from
 // Manchester, and both publish their events.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018, REQ-SDS-039
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018, REQ-DSO-039
 func TestPacketImageTopRTL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("full top-level simulation")
@@ -458,7 +458,7 @@ func TestPacketImageTopRTL(t *testing.T) {
 	})
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func ones(n int) []int {
 	out := make([]int, n)
 	for i := range out {
@@ -467,11 +467,11 @@ func ones(n int) []int {
 	return out
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func zeros(n int) []int { return make([]int, n) }
 
 // envelopeRef is the raw envelope contract: per bucket {max2,max1,min2,min1}.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func envelopeRef(words []uint32, skip, bucket int) []uint32 {
 	words = words[skip:]
 	var out []uint32
@@ -490,7 +490,7 @@ func envelopeRef(words []uint32, skip, bucket int) []uint32 {
 }
 
 // writeEntries stores waveform entries for tb_top_packet.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func writeEntries(t *testing.T, dir string, entries []uint8) string {
 	t.Helper()
 	var in strings.Builder

@@ -1,9 +1,9 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
 // SampleEdges runs the extractor over receiver words, one output a word.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func SampleEdges(wide []uint64, c SampleLineConfig) []SampleLineEdge {
 	n := len(wide)
 	other := 1 - c.Ch
@@ -63,7 +63,7 @@ func SampleEdges(wide []uint64, c SampleLineConfig) []SampleLineEdge {
 	return out
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (c SampleUARTConfig) valid() bool {
 	return c.Period16 >= SampleUARTMinPeriod16 && c.Period16 < 1<<24 && c.Bits >= 5 && c.Bits <= 9 &&
 		c.Parity >= 0 && c.Parity <= 2 && c.Length >= 0 && c.Length <= 4
@@ -76,7 +76,7 @@ func (c SampleUARTConfig) valid() bool {
 // the next bit to half a bit time after it, so a baud error accumulates only
 // over a run of equal bits. A frame whose stop bit reads high and whose
 // parity holds publishes its data; otherwise an error event.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func SampleUART(wide []uint64, c SampleUARTConfig) []SampleBusEvent {
 	if !c.valid() {
 		return nil
@@ -181,7 +181,7 @@ func SampleUART(wide []uint64, c SampleUARTConfig) []SampleBusEvent {
 // a third in that clock is dropped; the ordering takes a clock of its own).
 // Events, metadata and the match are i2c_trigger.v's; a match (the address byte's or the pattern's eighth bit)
 // has no event of its own and is returned as its clock.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func SampleI2C(wide []uint64, c SampleI2CConfig) (events []SampleBusEvent, matches []int) {
 	if c.Length < 0 || c.Length > 4 || c.Direction < 0 || c.Direction > 2 {
 		return nil, nil
@@ -275,5 +275,5 @@ func SampleI2C(wide []uint64, c SampleI2CConfig) (events []SampleBusEvent, match
 }
 
 // wrap8 is v as the 8-bit signed register holds it.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func wrap8(v int) int { return int(int8(uint8(v))) }

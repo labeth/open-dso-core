@@ -15,7 +15,7 @@ import (
 // above the decode strip in every workspace, so a trace low on the screen
 // (here 3.5 divisions under the centre, where the strip covered it) is drawn
 // above the decoded bytes, and the -4 division row sits just over the strip.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func TestDecodeStripClearsTrace(t *testing.T) {
 	const n = 1024
 	f := &sample.Frame{
@@ -65,7 +65,7 @@ func TestDecodeStripClearsTrace(t *testing.T) {
 // device's late data: past the next rising edge), the clock on C2 and the
 // data on C1, sampled every 2 ns; the record starts startS into the first
 // burst and its bursts are gapS apart.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func lateSPIFlash(msg []byte, lateS, startS, gapS float64, n int) (c1, c2 []uint8) {
 	const period = 1 / 104e6
 	type tr struct {
@@ -122,7 +122,7 @@ func lateSPIFlash(msg []byte, lateS, startS, gapS float64, n int) (c1, c2 []uint
 // samples on screen (and the bytes sent): it decodes the record with the
 // panel's settings, SPI's data delay among them; without it the strip read
 // each bit one clock late ("80 08 00 7F A9" for "0B 00 10 00 FF").
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func TestDecodeStripReadsTheListsBytes(t *testing.T) {
 	msg := append([]byte{0x0B, 0x00, 0x10, 0x00, 0xFF}, "SPI FLASH 104MHZ OPEN-SDS 0123  "...)
 	const n, win, delayNs = 5000, 500, 7.5

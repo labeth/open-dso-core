@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestRefusalFoundThroughWrapping(t *testing.T) {
 	err := fmt.Errorf("commit: %w", Refuse("trigger zone", "this image has no zone node"))
 	r, ok := AsRefusal(err)
@@ -23,6 +24,7 @@ func TestRefusalFoundThroughWrapping(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestEnumText(t *testing.T) {
 	for n := range trigNodeNames {
 		b, err := n.MarshalText()
@@ -55,6 +57,7 @@ func TestEnumText(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestRoleView(t *testing.T) {
 	for _, r := range []Role{Main, Zoom, Edge, EdgeOpp} {
 		if _, ok := r.ViewIndex(); ok {
@@ -66,6 +69,7 @@ func TestRoleView(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestGridSnap(t *testing.T) {
 	g := Grid{Step: 0.04, Min: -4, Max: 4}
 	cases := map[float64]float64{0.05: 0.04, 0.07: 0.08, -10: -4, 10: 4, -0.05: -0.04}
@@ -83,6 +87,7 @@ type uartConfig struct {
 
 func (uartConfig) Protocol() string { return "uart" }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestProtoTriggerByEmbedding(t *testing.T) {
 	var p ProtoTrigger = uartConfig{Baud: 115200}
 	if p.Protocol() != "uart" {
@@ -90,6 +95,7 @@ func TestProtoTriggerByEmbedding(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestStreamBlockRuns(t *testing.T) {
 	b := StreamBlock{Payload: PayloadCodes, Formats: make([]CodeFormat, 3), Words: []uint16{1, 2, 3, 4, 5, 6}}
 	for i, want := range [][]uint16{{1, 2}, {3, 4}, {5, 6}} {

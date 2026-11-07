@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -8,12 +8,12 @@ import (
 )
 
 // comp is one sine component: cycles per record, amplitude (codes), phase.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 type comp struct{ cyc, amp, ph float64 }
 
 // tones samples a sum of sines around code 128 with Gaussian noise, rounded
 // to codes when round is set.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func tones(n int, cs []comp, noise float64, seed uint64, round bool) []float64 {
 	r := rng{s: seed}
 	out := make([]float64, n)
@@ -33,7 +33,7 @@ func tones(n int, cs []comp, noise float64, seed uint64, round bool) []float64 {
 
 // squareComps is a square wave of amplitude a (peak) at f0 cycles, band
 // limited to its odd harmonics up to top: (4/pi) a/n each.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func squareComps(f0, a float64, top int) []comp {
 	var cs []comp
 	for n := 1; n <= top; n += 2 {
@@ -43,7 +43,7 @@ func squareComps(f0, a float64, top int) []comp {
 }
 
 // triangleComps: (8/pi^2) a/n^2, alternating sign, odd harmonics.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func triangleComps(f0, a float64, top int) []comp {
 	var cs []comp
 	for n := 1; n <= top; n += 2 {
@@ -59,7 +59,7 @@ func triangleComps(f0, a float64, top int) []comp {
 const peakSampleS = 1e-6
 
 // peaksOf runs the Go pipeline: the web's spectrum, then Peaks.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func peaksOf(samples []float64, maxPeaks int) ([]Peak, []float64, float64) {
 	db := SpectrumDB(samples)
 	binHz := 1 / (float64(2*len(db)) * peakSampleS)
@@ -68,7 +68,7 @@ func peaksOf(samples []float64, maxPeaks int) ([]Peak, []float64, float64) {
 
 // TestPeaksAndTHDOfWaveforms: a square wave's odd harmonics and THD, a
 // triangle's, and a sine with a -40 dB second harmonic.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func TestPeaksAndTHDOfWaveforms(t *testing.T) {
 	const n = 4096
 	sq := math.Sqrt(1.0/9 + 1.0/25 + 1.0/49 + 1.0/81)        // H3..H9 of 1/n
@@ -142,7 +142,7 @@ func TestPeaksAndTHDOfWaveforms(t *testing.T) {
 
 // TestPeakLevelBetweenBins: a tone between two bins reads up to 1.42 dB low
 // in its Hann bin; the corrected level stays within 0.06 dB at any offset.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func TestPeakLevelBetweenBins(t *testing.T) {
 	const n = 4096
 	for _, off := range []float64{0, 0.1, 0.2, 0.25, 0.3, 0.4, 0.45, 0.5, 0.6, 0.75, 0.9} {
@@ -164,7 +164,7 @@ func TestPeakLevelBetweenBins(t *testing.T) {
 
 // TestPeaksDegenerate: no panic on empty, flat, NaN or infinite spectra;
 // maxPeaks trims to the strongest; Harmonics on nothing.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func TestPeaksDegenerate(t *testing.T) {
 	nan, inf := math.NaN(), math.Inf(1)
 	for _, db := range [][]float64{
@@ -221,7 +221,7 @@ func TestPeaksDegenerate(t *testing.T) {
 }
 
 // BenchmarkPeaks: an 8192-point spectrum's peaks and THD.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func BenchmarkPeaks(b *testing.B) {
 	db := SpectrumDB(tones(8192, squareComps(41.3, 80, 31), 0.5, 1, true))
 	b.ReportAllocs()

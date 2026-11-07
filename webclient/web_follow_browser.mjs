@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e: the desktop page follows the scope's own sheet (argv[2] = the app server of a real panel
 // controller). Settings changed on the scope (its keys, the phone: here /api/sheets/set) show on the page
 // without a reload - the bandwidth limit, the invert and the master's depth - and the page's controls set
@@ -11,10 +11,10 @@ run(async (t) => {
   const { page, po, browser, pageErrors } = await openScope(app, { waitFrame: false }); // the rig sends no frames
   t.browser = browser;
   await page.waitForFunction(() => typeof st !== "undefined" && st && st.panel && st.panel.SheetsSeq !== undefined, null, { timeout: 15000 });
-  // TRLC-LINKS: REQ-SDS-211
+  // TRLC-LINKS: REQ-DSO-211
   const set = (row, value) => page.evaluate(([u, r, v]) => fetch(u + "/api/sheets/set", { method: "POST",
     headers: { "Content-Type": "application/json" }, body: JSON.stringify({ row: r, value: v }) }).then((x) => x.json()), [app, row, value]);
-  // TRLC-LINKS: REQ-SDS-211
+  // TRLC-LINKS: REQ-DSO-211
   const sheet = (row) => page.evaluate(([u, r]) => fetch(u + "/api/sheets").then((x) => x.json()).then((m) => {
     for (const tb of m.Tabs) for (const x of tb.Rows) if (x.ID === r) return x.Value;
     return null;

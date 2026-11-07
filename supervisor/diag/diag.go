@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 // Package diag is the framework of a diagnostics stick's collector: booted
 // by the vendor firmware on a scope, it leaves one archive of what that board
@@ -69,7 +69,7 @@ type Board interface {
 
 // Run is the program: no subcommand collects; any other is one of the
 // board's own child processes. It returns the exit code.
-// TRLC-LINKS: REQ-SDS-284, REQ-SDS-285, REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-284, REQ-DSO-285, REQ-DSO-286
 func Run(args []string, stderr io.Writer, board Board) int {
 	if len(args) > 0 {
 		if code, ok := board.Child(args[0], args[1:], stderr); ok {
@@ -141,7 +141,7 @@ type Collection struct {
 
 // Say writes a progress line to the status file on the stick: the person who
 // booted the stick sees what it is doing when they take it out.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (c *Collection) Say(format string, args ...any) {
 	line := fmt.Sprintf("%s  %s\n", time.Now().Format("15:04:05"), fmt.Sprintf(format, args...))
 	f, err := os.OpenFile(c.status, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644) //nolint:gosec // G302,G304: a text file the owner reads on the stick
@@ -153,13 +153,13 @@ func (c *Collection) Say(format string, args ...any) {
 }
 
 // Note adds a line to the summary.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (c *Collection) Note(format string, args ...any) {
 	c.summary = append(c.summary, fmt.Sprintf(format, args...))
 }
 
 // run collects into a new archive on the stick.
-// TRLC-LINKS: REQ-SDS-284, REQ-SDS-285, REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-284, REQ-DSO-285, REQ-DSO-286
 func (c *Collection) run() error {
 	name := archiveName(c.OutDir, c.Mode)
 	path := filepath.Join(c.OutDir, name)
@@ -195,7 +195,7 @@ func (c *Collection) run() error {
 
 // stages runs the board's passive stage and, when the mode and the gates
 // allow it, the active and takeover stages.
-// TRLC-LINKS: REQ-SDS-284, REQ-SDS-285, REQ-SDS-287, REQ-SDS-288
+// TRLC-LINKS: REQ-DSO-284, REQ-DSO-285, REQ-DSO-287, REQ-DSO-288
 func (c *Collection) stages(a *Archive) {
 	defer c.board.Close()
 	if !c.board.Passive(c, a) {
@@ -234,7 +234,7 @@ func (c *Collection) stages(a *Archive) {
 
 // ProcState is the state letter of /proc/pid/stat ("R", "S", "T", ...), or
 // "" when the process is gone.
-// TRLC-LINKS: REQ-SDS-285
+// TRLC-LINKS: REQ-DSO-285
 func ProcState(pid int) string {
 	st := ReadStr(fmt.Sprintf("/proc/%d/stat", pid))
 	i := strings.LastIndexByte(st, ')') // the name in parentheses can hold spaces
@@ -246,7 +246,7 @@ func ProcState(pid int) string {
 
 // archiveName is the next free archive name in dir for this scope and mode:
 // the MAC (the clock is not set on these scopes) and a sequence number.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func archiveName(dir, mode string) string {
 	mac := strings.ReplaceAll(strings.TrimSpace(ReadStr("/sys/class/net/eth0/address")), ":", "")
 	if mac == "" {
@@ -261,7 +261,7 @@ func archiveName(dir, mode string) string {
 }
 
 // CPULine is the processor and hardware lines of /proc/cpuinfo.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func CPULine() string {
 	var parts []string
 	for l := range strings.SplitSeq(ReadStr("/proc/cpuinfo"), "\n") {
@@ -273,7 +273,7 @@ func CPULine() string {
 }
 
 // ErrText is err's text in parentheses, or "" for nil.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func ErrText(err error) string {
 	if err == nil {
 		return ""

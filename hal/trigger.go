@@ -232,6 +232,7 @@ type ProtoTrigger interface {
 // ProtoTriggerType is embedded by every ProtoTrigger implementation.
 type ProtoTriggerType struct{}
 
+// TRLC-LINKS: REQ-DSO-1001
 func (ProtoTriggerType) protoTrigger() {}
 
 // TrigCaps is what a bitstream implements.
@@ -244,6 +245,7 @@ type TrigCaps struct {
 }
 
 // Has reports whether node n is in c.
+// TRLC-LINKS: REQ-DSO-1001
 func (c TrigCaps) Has(n TrigNode) bool {
 	_, ok := c.Nodes[n]
 	return ok
@@ -287,6 +289,7 @@ type Trigger interface {
 type Grid struct{ Step, Min, Max float64 }
 
 // Snap returns v on the grid, clamped to its range.
+// TRLC-LINKS: REQ-DSO-1001
 func (g Grid) Snap(v float64) float64 {
 	if g.Step > 0 {
 		n := (v - g.Min) / g.Step

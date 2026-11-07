@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -15,7 +15,7 @@ import (
 
 // ClockedCfg configures PS/2, SWD, MDIO and Wiegand: a, the clock (D0 for
 // Wiegand), and b, the data (D1).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 type ClockedCfg struct {
 	Threshold, ThresholdB float64
 	HaveThr, HaveThrB     bool
@@ -33,14 +33,14 @@ type clkEdge struct {
 // clockedLines slices both lines and lists the clock's edges with the data
 // read at each; the clock's period (median between edges of one direction)
 // in samples.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func clockedLines(a, b lineIn, cfg ClockedCfg) ([]clkEdge, float64, sliced, string) {
 	E, per, C, _, why := clockedLinesD(a, b, cfg)
 	return E, per, C, why
 }
 
 // clockedLinesD is clockedLines with the data line sliced as well.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func clockedLinesD(a, b lineIn, cfg ClockedCfg) ([]clkEdge, float64, sliced, sliced, string) {
 	if b.none() {
 		return nil, 0, sliced{}, sliced{}, "needs both lines (clock and data)"
@@ -124,19 +124,19 @@ func clockedLinesD(a, b lineIn, cfg ClockedCfg) ([]clkEdge, float64, sliced, sli
 // opens on a start bit after the clock idled for 1.4 periods (or right
 // after the last frame). Parity and stop errors flag the byte. OK needs a
 // frame that checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func PS2(clk, data []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodePS2(samplesIn(clk), samplesIn(data), colTimeS, cfg)
 }
 
 // PS2Edges is PS2 over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func PS2Edges(clk, data *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodePS2(edgesIn(clk), edgesIn(data), colTimeS, cfg)
 }
 
 // decodePS2 is PS2 over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func decodePS2(clk, data lineIn, colTimeS float64, cfg ClockedCfg) Result {
 	E, per, C, why := clockedLines(clk, data, cfg)
 	if why != "" {
@@ -253,19 +253,19 @@ type swdCycle struct {
 // from a rise, the host reads it at the next fall. Fifty or more rises with
 // SWDIO high are a line reset ("rw" LINERESET). OK needs a transfer
 // acknowledged OK whose parities check.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func SWD(clk, dio []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeSWD(samplesIn(clk), samplesIn(dio), colTimeS, cfg)
 }
 
 // SWDEdges is SWD over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func SWDEdges(clk, dio *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeSWD(edgesIn(clk), edgesIn(dio), colTimeS, cfg)
 }
 
 // decodeSWD is SWD over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func decodeSWD(clk, dio lineIn, colTimeS float64, cfg ClockedCfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	E, per, C, D, why := clockedLinesD(clk, dio, cfg)
 	if why != "" {
@@ -445,7 +445,7 @@ var swdRequestText = func() (t [2][2][4]string) {
 }()
 
 // swdAckText names an acknowledge ("" none of the three).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func swdAckText(ack int) string {
 	switch ack {
 	case 1:
@@ -464,7 +464,7 @@ func swdAckText(ack int) string {
 // data words check their parity at the rises. An acknowledge's three bits
 // read alike at either edge more often than not; a target that moves SWDIO
 // at the fall has its data read there now and then a bit early or late.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func swdTargetAtRise(cy []swdCycle) bool {
 	fall, rise := 0, 0
 	pf, pr := 0, 0 // read data words whose parity checks at the falls, the rises
@@ -505,7 +505,7 @@ func swdTargetAtRise(cy []swdCycle) bool {
 // periods) are mostly a period long. near: the falls are a digital line's
 // edges (slice), each gap within a hair of its samples, compared as those
 // where they lie clear of a bound.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func swdSteady(cy []swdCycle, per float64, near bool) bool {
 	run, even := 0, 0
 	gap, lo, hi := 4*per, 0.75*per, 1.25*per
@@ -546,7 +546,7 @@ func swdSteady(cy []swdCycle, per float64, near bool) bool {
 type nearBound struct{ lo, hi int }
 
 // nearBoundOf is t's nearBound (none for a t out of the integers' range).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func nearBoundOf(t float64) nearBound {
 	if !(math.Abs(t) < 1<<30) {
 		return nearBound{math.MinInt, math.MaxInt}
@@ -566,7 +566,7 @@ const swdTransferCycles = 46
 // with a millivolt of noise. at keeps its place in sd's edges from request
 // to request; byI: both lines' edges lie within a sample of their own,
 // and an edge and a rise samples apart lie that much apart less one.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func swdRequestRaces(sd *sliced, cy []swdCycle, per float64, at *int, byI bool) bool {
 	if !sd.ok || len(cy) == 0 || !(per > 0) {
 		return false
@@ -602,7 +602,7 @@ func swdRequestRaces(sd *sliced, cy []swdCycle, per float64, at *int, byI bool) 
 }
 
 // swdUnexplained counts a transfer's cycles not counted as idle already.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func swdUnexplained(cy []swdCycle) int {
 	n := 0
 	for c := range cy {
@@ -617,7 +617,7 @@ func swdUnexplained(cy []swdCycle) int {
 // first frame's preamble and after the last frame, up to a preamble and a
 // frame each (a PHY's frame cut by the record's start fell to 0.61 of the
 // clock explained and the pair read as SPI).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func mdioCut(firstR, lastR, n int) int {
 	if firstR < 0 {
 		return 0
@@ -633,19 +633,19 @@ func mdioCut(firstR, lastR, n int) int {
 // bits; "RD 01.02", "WR45 01.03") and the data ("ABCD"); a turnaround whose
 // second bit is not driven low (no PHY answered) flags the data. OK needs a
 // frame whose turnaround is good.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func MDIO(mdc, mdio []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeMDIO(samplesIn(mdc), samplesIn(mdio), colTimeS, cfg)
 }
 
 // MDIOEdges is MDIO over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func MDIOEdges(mdc, mdio *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeMDIO(edgesIn(mdc), edgesIn(mdio), colTimeS, cfg)
 }
 
 // decodeMDIO is MDIO over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func decodeMDIO(mdc, mdio lineIn, colTimeS float64, cfg ClockedCfg) Result {
 	E, per, C, why := clockedLines(mdc, mdio, cfg)
 	if why != "" {
@@ -736,7 +736,7 @@ func decodeMDIO(mdc, mdio lineIn, colTimeS float64, cfg ClockedCfg) Result {
 
 // mdioOpName names an MDIO frame's opcode op after its start st (01
 // clause 22, 00 clause 45); "" a frame no opcode names.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func mdioOpName(st, op int) string {
 	if st == 1 {
 		switch op {
@@ -768,19 +768,19 @@ func mdioOpName(st, op int) string {
 // decimal as readers print them; flagged when its parity fails). Other
 // lengths are their bits in bytes, most significant first. OK needs a 26-
 // or 34-bit frame whose parities check.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func Wiegand(d0, d1 []uint8, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeWiegand(samplesIn(d0), samplesIn(d1), colTimeS, cfg)
 }
 
 // WiegandEdges is Wiegand over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func WiegandEdges(d0, d1 *EdgeLine, colTimeS float64, cfg ClockedCfg) Result {
 	return decodeWiegand(edgesIn(d0), edgesIn(d1), colTimeS, cfg)
 }
 
 // decodeWiegand is Wiegand over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func decodeWiegand(d0, d1 lineIn, colTimeS float64, cfg ClockedCfg) Result {
 	if d1.none() {
 		return Result{Proto: protoWiegand, Error: "needs both lines (D0 and D1)"}

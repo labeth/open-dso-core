@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // webdec_check.mjs — the browser's stream decode (webdec.js) run in node on
 // the Go tests' streams, for their parity checks.
 //
@@ -42,14 +42,14 @@ const W = globalThis.module.exports;
 W.webdecInstall(ctx);
 
 // words reads a little-endian word file as a Uint32Array.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function words(p) {
   const b = fs.readFileSync(p);
   return new Uint32Array(b.buffer.slice(b.byteOffset, b.byteOffset + (b.length & ~3)));
 }
 
 // streamCase decodes one case's pieces with WebDecStream.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function streamCase(c) {
   const w = words(c.words);
   const a = new W.WebDecLine();
@@ -61,7 +61,7 @@ function streamCase(c) {
   const ss = c.ss;
   const cfg = c.cfg;
   // edec decodes a window's lines: through their edges, or (c.samples) as samples.
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
   function edec(x, y) {
     if (c.samples) {
       x = x.samples();
@@ -84,7 +84,7 @@ function streamCase(c) {
 }
 
 // sessionCase decodes one case's replies with WebDecSession.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function sessionCase(c) {
   let sess = null;
   for (const p of c.replies) {

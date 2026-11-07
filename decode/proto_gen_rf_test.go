@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ package decode
 // rcFrame2262 appends a PT2262 frame of twelve trits (0, 1, 2 for F) at a
 // short pulse of a seconds (a long one is three), then its sync pulse and
 // the 31 short pulses of low after it.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func rcFrame2262(w *timeline, trits []int, a float64) {
 	pulse := func(hi, lo float64) {
 		w.add(1, hi*a)
@@ -33,7 +33,7 @@ func rcFrame2262(w *timeline, trits []int, a float64) {
 
 // rcFrame1527 appends an EV1527 frame of 24 bits (bit i of v first) at a
 // short pulse of a seconds, then its sync.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func rcFrame1527(w *timeline, v int, a float64) {
 	for i := range 24 {
 		if v>>i&1 == 1 {
@@ -50,7 +50,7 @@ func rcFrame1527(w *timeline, v int, a float64) {
 
 // manchesterOOK appends bits as Manchester half bits of hp seconds: a 1 high
 // then low, a 0 low then high.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func manchesterOOK(w *timeline, bits []int, hp float64) {
 	for _, b := range bits {
 		w.add(byte(b), hp)
@@ -62,7 +62,7 @@ func manchesterOOK(w *timeline, bits []int, hp float64) {
 // each bit sent inverted then as is) of the nibbles given and their
 // checksum (the sum of the nibbles, low nibble first; 2.1 less ten when
 // minus10), at a half bit of hp seconds, then idle.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func oregonBurst(w *timeline, ver int, nibbles []int, hp float64, minus10 bool, idle float64) {
 	sum := 0
 	for _, x := range nibbles {
@@ -101,7 +101,7 @@ func oregonBurst(w *timeline, ver int, nibbles []int, hp float64, minus10 bool, 
 // start 0, then bits; with pause > 0 each transition is a low pulse of
 // pause seconds on a high line (modified Miller), else a level change.
 // Then idle seconds of no transition.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func millerMessage(w *timeline, bits []int, period, pause, idle float64) {
 	all := append([]int{0}, bits...)
 	// the transitions' times from the message's start
@@ -141,7 +141,7 @@ func millerMessage(w *timeline, bits []int, period, pause, idle float64) {
 
 // morseText appends text keyed in Morse at a unit of u seconds (a word gap
 // for a space), then idle units of rest.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func morseText(w *timeline, text string, u, rest float64) {
 	for i := range len(text) {
 		c := text[i]
@@ -168,14 +168,14 @@ func morseText(w *timeline, text string, u, rest float64) {
 // dcf77Minute appends one DCF77 minute (60 seconds, no pulse in the last)
 // with the fields given (BCD) and their parities; badPar flips the minute's
 // parity.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func dcf77Minute(w *timeline, minute, hr, day, dow, mon, yr int, badPar bool) {
 	dcf77MinuteAt(w, 1, minute, hr, day, dow, mon, yr, badPar)
 }
 
 // dcf77MinuteAt is dcf77Minute with a second of sec seconds (a test
 // source's code, faster than the broadcast's).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func dcf77MinuteAt(w *timeline, sec float64, minute, hr, day, dow, mon, yr int, badPar bool) {
 	var b [59]int
 	b[20] = 1

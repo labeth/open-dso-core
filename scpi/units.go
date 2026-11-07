@@ -37,6 +37,7 @@ var specialUnits = map[string]struct {
 
 // ResolveUnit splits a suffix into multiplier and base unit. ok=false for an unknown suffix.
 // A bare multiplier ("1m", "10k", "2MA") is accepted with base unit "".
+// TRLC-LINKS: REQ-DSO-024
 func ResolveUnit(suffix string) (mult float64, base string, ok bool) {
 	s := strings.ToUpper(suffix)
 	if s == "" {

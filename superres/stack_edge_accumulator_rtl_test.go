@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -25,7 +25,7 @@ type edgeQualifier struct {
 	template                      []uint8
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func (q *edgeQualifier) accept(wave [][2]uint8, ch int, crossing, n int64) bool {
 	if crossing < q.pre || q.count == 0 || q.stride == 0 {
 		return false
@@ -49,7 +49,7 @@ func (q *edgeQualifier) accept(wave [][2]uint8, ch int, crossing, n int64) bool 
 
 // edgeScan is the reference for stack_edge_hits plus the optional qualifier.
 // Rejected candidates do not restart the separation hold-off.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func edgeScan(wave [][2]uint8, first, n, pre, separation int64, ch int, falling bool, level, hysteresis uint8, qual *edgeQualifier) (hits []edgeHit, crossings, rejected int) {
 	code := func(i int64) int64 {
 		v := wave[i][ch]
@@ -93,7 +93,7 @@ func edgeScan(wave [][2]uint8, first, n, pre, separation int64, ch int, falling 
 	return hits, crossings, rejected
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestStackEdgeAccumulatorRTL(t *testing.T) {
 	const n, bins = 3000, 16
 	wave := make([][2]uint8, n)

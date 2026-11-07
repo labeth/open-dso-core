@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DSP
+// ENGMODEL-OWNER-UNIT: FU-DSO-DSP
 
 package dsp
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func TestCoupleDisplay(t *testing.T) {
 	sig := []uint8{100, 200, 100, 200} // mean 150
 	// DC passes through unchanged (same backing array).
@@ -28,7 +28,7 @@ func TestCoupleDisplay(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func TestRemoveDC(t *testing.T) {
 	sig := make([]uint8, 100)
 	for i := range sig {
@@ -49,7 +49,7 @@ func TestRemoveDC(t *testing.T) {
 }
 
 // benchRecord is a captured-looking record: a square wave with noise.
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func benchRecord(n int) []uint8 {
 	r := rand.New(rand.NewSource(1)) //nolint:gosec // a fixed test pattern
 	s := make([]uint8, n)
@@ -63,7 +63,7 @@ func benchRecord(n int) []uint8 {
 	return s
 }
 
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func BenchmarkRemoveDC(b *testing.B) {
 	s := benchRecord(1 << 16)
 	b.SetBytes(int64(len(s)))
@@ -74,7 +74,7 @@ func BenchmarkRemoveDC(b *testing.B) {
 
 // RemoveDC and CoupleDisplayBy keep the clamp's result for every code and
 // shift.
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func TestShiftedIsTheClamp(t *testing.T) {
 	sig := make([]uint8, 256)
 	for i := range sig {

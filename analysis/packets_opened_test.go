@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -13,7 +13,7 @@ import (
 // from it: LIN's frame ID is the address, a bad checksum marks its byte and
 // the packet; SWD's data word takes four bytes; a frame without the next
 // start after it and little record left is cut.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketsOpenedFrames(t *testing.T) {
 	lin := decode.Result{OK: true, Proto: "lin", SPB: 50, Spans: []decode.Span{
 		{I0: 100, I1: 800, Text: "BRK", Kind: "sof"},

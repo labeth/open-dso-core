@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -17,7 +17,7 @@ import (
 )
 
 // orcI2CRun decodes the transfers with the layer and with sigrok's stack.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func orcI2CRun(t *testing.T, layer, pd, ann string, txns []orcI2CTxn) ([]Packet, []orcAnn) {
 	t.Helper()
 	const sr, f = 2_000_000, 100_000
@@ -30,7 +30,7 @@ func orcI2CRun(t *testing.T, layer, pd, ann string, txns []orcI2CTxn) ([]Packet,
 	return ps, anns
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerEDID(t *testing.T) {
 	orcNeed(t, "i2c", "edid")
 	edid := edidBlock()
@@ -55,7 +55,7 @@ func TestOracleLayerEDID(t *testing.T) {
 	orcEq(t, "EDID", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerXFP(t *testing.T) {
 	orcNeed(t, "i2c", "xfp")
 	m := make([]byte, 256)
@@ -90,7 +90,7 @@ func TestOracleLayerXFP(t *testing.T) {
 	orcEq(t, "XFP fields", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerEEPROM24xx(t *testing.T) {
 	orcNeed(t, "i2c", "eeprom24xx")
 	ps, anns := orcI2CRun(t, "eeprom24xx", "eeprom24xx", "eeprom24xx", []orcI2CTxn{
@@ -123,7 +123,7 @@ func TestOracleLayerEEPROM24xx(t *testing.T) {
 	orcEq(t, "EEPROM operations", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerDS1307(t *testing.T) {
 	orcNeed(t, "i2c", "ds1307")
 	ps, anns := orcI2CRun(t, "ds1307", "ds1307", "ds1307", []orcI2CTxn{
@@ -141,7 +141,7 @@ func TestOracleLayerDS1307(t *testing.T) {
 	orcEq(t, "DS1307 date and time", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerRTC8564(t *testing.T) {
 	orcNeed(t, "i2c", "rtc8564")
 	ps, anns := orcI2CRun(t, "rtc8564", "rtc8564", "rtc8564", []orcI2CTxn{
@@ -156,7 +156,7 @@ func TestOracleLayerRTC8564(t *testing.T) {
 	orcEq(t, "RTC-8564 date and time", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerATSHA204A(t *testing.T) {
 	orcNeed(t, "i2c", "atsha204a")
 	rd := atshaCmd(0x02, 0x00, 0x0010, nil)
@@ -183,7 +183,7 @@ func TestOracleLayerATSHA204A(t *testing.T) {
 	orcEq(t, "ATSHA204A commands", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerNunchuk(t *testing.T) {
 	orcNeed(t, "i2c", "nunchuk")
 	ps, anns := orcI2CRun(t, "nunchuk", "nunchuk", "nunchuk", []orcI2CTxn{
@@ -214,7 +214,7 @@ func TestOracleLayerNunchuk(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerHDCP(t *testing.T) {
 	orcNeed(t, "i2c", "hdcp")
 	ps, anns := orcI2CRun(t, "hdcp", "hdcp", "hdcp", []orcI2CTxn{
@@ -259,7 +259,7 @@ func TestOracleLayerHDCP(t *testing.T) {
 	orcEq(t, "HDCP registers", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerLM75(t *testing.T) {
 	orcNeed(t, "i2c", "lm75")
 	// sigrok's LM75 reads the temperature register (its pointer at power-up)
@@ -272,7 +272,7 @@ func TestOracleLayerLM75(t *testing.T) {
 	orcEq(t, "LM75 temperatures", orcMatch(orcNotes(ps), `Temperature (-?\d+\.\d) C$`), orcMatch(orcTexts(anns), `^Temperature: (-?\d+\.\d) °C$`))
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerLTC26x7(t *testing.T) {
 	orcNeed(t, "i2c", "ltc26x7")
 	ps, anns := orcI2CRun(t, "ltc26x7", "ltc26x7", "ltc26x7", []orcI2CTxn{
@@ -301,7 +301,7 @@ func TestOracleLayerLTC26x7(t *testing.T) {
 	orcEq(t, "LTC26x7 writes", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerTCA6408A(t *testing.T) {
 	orcNeed(t, "i2c", "tca6408a")
 	ps, anns := orcI2CRun(t, "tca6408a", "tca6408a", "tca6408a", []orcI2CTxn{
@@ -321,7 +321,7 @@ func TestOracleLayerTCA6408A(t *testing.T) {
 	orcEq(t, "TCA6408A registers", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerPCA9571(t *testing.T) {
 	orcNeed(t, "i2c", "pca9571")
 	ps, anns := orcI2CRun(t, "pca9571", "pca9571", "pca9571", []orcI2CTxn{
@@ -336,7 +336,7 @@ func TestOracleLayerPCA9571(t *testing.T) {
 	orcEq(t, "PCA9571 ports", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerMCP23017(t *testing.T) {
 	orcNeed(t, "i2c", "mcp230xx")
 	ps, anns := orcI2CRun(t, "mcp23017", "mcp230xx", "mcp230xx", []orcI2CTxn{
@@ -359,7 +359,7 @@ func TestOracleLayerMCP23017(t *testing.T) {
 	orcEq(t, "MCP23017 registers", repo, orcMatch(orcTexts(anns), `^((?:Read|Write) [A-Z]+: [0-9A-F]{2})$`))
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerMCP23008(t *testing.T) {
 	orcNeed(t, "i2c", "mcp230xx")
 	const sr, f = 2_000_000, 100_000
@@ -385,7 +385,7 @@ func TestOracleLayerMCP23008(t *testing.T) {
 	orcEq(t, "MCP23008 registers", repo, orcMatch(orcTexts(anns), `^((?:Read|Write) [A-Z]+: [0-9A-F]{2})$`))
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func TestOracleLayerMXC6225XU(t *testing.T) {
 	orcNeed(t, "i2c", "mxc6225xu")
 	// sigrok writes the axes unsigned: values under 128
@@ -404,7 +404,7 @@ func TestOracleLayerMXC6225XU(t *testing.T) {
 	orcEq(t, "MXC6225XU axes", repo, orcMatch(orcTexts(anns), `^([XY]OUT: -?\d+)$`))
 }
 
-// TRLC-LINKS: REQ-SDS-249
+// TRLC-LINKS: REQ-DSO-249
 func TestOracleLayerI2CFilter(t *testing.T) {
 	orcNeed(t, "i2c", "i2cfilter", "mcp230xx")
 	// sigrok's filter forwards one address's transfers to the decoder stacked

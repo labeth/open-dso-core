@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 
 package webclient
 
@@ -12,7 +12,7 @@ import (
 // TestLayerTablesJS keeps layer_tables.js equal to the scope's layer tables,
 // so the web page's layers name every register and command as the LCD does.
 // LAYER_TABLES_WRITE=1 writes the file from them.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func TestLayerTablesJS(t *testing.T) {
 	want := analysis.LayerTablesJS()
 	if os.Getenv("LAYER_TABLES_WRITE") == "1" {

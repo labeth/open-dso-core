@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the protocol-decode UI + navigator in the BUS workspace,
 // driven by headless Chromium against a local server serving a synthetic I2C
 // frame (argv[2]=URL). Asserts: entering BUS with decoding off detects the bus
@@ -64,7 +64,7 @@ run(async (t) => {
       spans: [{ i0: Math.round(n * 0.20), i1: Math.round(n * 0.205), text: "00", kind: "data", val: 0 },
               { i0: Math.round(n * 0.60), i1: Math.round(n * 0.605), text: "FF", kind: "data", val: 255 }] };
     const seen = [], orig = ctx.fillText;
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     ctx.fillText = function (t, x, y) { seen.push(String(t)); return orig.call(this, t, x, y); };
     try { redraw(); } finally { ctx.fillText = orig; }
     return seen.filter(t => t === "00" || t === "FF");

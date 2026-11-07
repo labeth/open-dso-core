@@ -122,6 +122,7 @@ const (
 )
 
 // Has reports whether every option in o is in s.
+// TRLC-LINKS: REQ-DSO-1001
 func (s OptSet) Has(o OptSet) bool { return s&o == o }
 
 // Budget is the resource envelope the core stays inside on this scope.
@@ -157,6 +158,7 @@ var OptionalParts = []string{"streamer", "images", "stacker", "segments", "count
 
 // AbsentReason is why part is absent on this scope: the profile's reason,
 // or a generic one when the profile gives none.
+// TRLC-LINKS: REQ-DSO-1001
 func (p Profile) AbsentReason(part string) string {
 	if r := p.Absent[part]; r != "" {
 		return r

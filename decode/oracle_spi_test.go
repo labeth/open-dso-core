@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -22,7 +22,7 @@ import (
 )
 
 // spiOWord is one SPI word for the oracle generator.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type spiOWord struct {
 	v       int
 	bits    int     // word length; 0 means 8. <8 emits a PARTIAL word (top bits, MSB-first)
@@ -36,7 +36,7 @@ type spiOWord struct {
 // CPOL==CPHA, exactly the repo decoder's tiebreak. Durations accumulate in
 // seconds so fractional samples-per-bit behave like a real capture; both
 // timelines floor the same time values, keeping the channels sample-aligned.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func oracleSPIBits(sr, bitRate float64, cpol, cpha, msb bool, words []spiOWord) (clk, mosi []byte) {
 	ck, da := newTimeline(sr), newTimeline(sr)
 	bt := 1 / bitRate
@@ -74,7 +74,7 @@ func oracleSPIBits(sr, bitRate float64, cpol, cpha, msb bool, words []spiOWord) 
 
 // spiOWords builds whole-byte words with a uniform inter-word gap (bit-times);
 // gap 0 means continuous clocking (back-to-back words).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func spiOWords(gapBits float64, bytes ...int) []spiOWord {
 	ws := make([]spiOWord, len(bytes))
 	for i, b := range bytes {
@@ -83,7 +83,7 @@ func spiOWords(gapBits float64, bytes ...int) []spiOWord {
 	return ws
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestOracleSPI(t *testing.T) {
 	needSigrok(t)
 	const sr = 1_000_000
@@ -311,7 +311,7 @@ func TestOracleSPI(t *testing.T) {
 }
 
 // b2i converts a mode flag to the 0/1 sigrok option value.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func b2i(b bool) int {
 	if b {
 		return 1

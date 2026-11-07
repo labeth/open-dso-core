@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // End-to-end test for the FFT peak-detection + selection logic that ui.html
 // runs in the browser. It loads the SAME peaks.js the page loads, feeds it
 // synthetic scope frames, and checks the two things the user hit: selection
@@ -7,9 +7,9 @@
 const { spectrum, fftReduce, fftRows, SPG_ROW_POINTS, detectPeaks, nearestPeak, trackPicks, component, toneAmplitude } = require("./peaks.js");
 
 let failed = 0;
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function ok(cond, msg) { if (!cond) { console.error("FAIL:", msg); failed++; } else { console.log("ok  -", msg); } }
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function near(a, b, tol, msg) { ok(Math.abs(a - b) <= tol, `${msg} (got ${a}, want ${b}±${tol})`); }
 
 // A scope frame: 1024 byte-codes (0..255) around 128, = two tones + noise.
@@ -19,11 +19,11 @@ const N = 1024, SR = 1e6, NYQ = SR / 2, BIN = SR / N; // 976.5625 Hz/bin
 const F1 = 52 * BIN;   // ~50.78 kHz
 const F2 = 123 * BIN;  // ~120.12 kHz
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 function frame(amp1, amp2, seed) {
   const c1 = new Array(N);
   let s = seed >>> 0;
-  // TRLC-LINKS: REQ-SDS-070
+  // TRLC-LINKS: REQ-DSO-070
   const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff - 0.5; };
   for (let i = 0; i < N; i++) {
     let v = 128
@@ -145,7 +145,7 @@ function frame(amp1, amp2, seed) {
   near(toneAmplitude(r, 20.5), 50, 0.5, "toneAmplitude() recovers the amplitude half a bin off");
 }
 
-// --- 10. harmonics + THD (SPECTRUM's peak table, REQ-SDS-216) ----------------
+// --- 10. harmonics + THD (SPECTRUM's peak table, REQ-DSO-216) ----------------
 // The rules of analysis.Harmonics (the LCD's table): H1..H10 numbered, the THD
 // over H2..H10 from the tone levels. A square wave's odd harmonics fall as 1/n:
 // H3 at −9.5 dB, H5 at −14 dB…; with 8 peaks listed (H1..H15) the THD counts
@@ -227,7 +227,7 @@ function frame(amp1, amp2, seed) {
 // one noisy frame, and is cleared once its tone has been gone half a second.
 {
   const bin = 1000;
-  // TRLC-LINKS: REQ-SDS-070
+  // TRLC-LINKS: REQ-DSO-070
   const pk = (...fs) => fs.map((freq) => ({ freq }));
   let t = trackPicks([100000], pk(50000, 101500), bin, null, 0);
   ok(t.sel.length === 1 && t.sel[0] === 101500 && t.idxs.has(1), "a drifting tone is followed (1.5 bins)");
@@ -255,7 +255,7 @@ function frame(amp1, amp2, seed) {
   const full = fftReduce(g, nyq0, 0, 8192), rows = fftRows(g, nyq0, 0, 8192);
   ok(rows.length === n / SPG_ROW_POINTS, `${n} points give ${n / SPG_ROW_POINTS} rows (${rows.length})`);
   ok(rows.every((r) => Math.abs(r.nyq - full.nyq) < 1e-6 && r.half === SPG_ROW_POINTS / 2), "each row has the record's span and 1024 bins");
-  // TRLC-LINKS: REQ-SDS-068
+  // TRLC-LINKS: REQ-DSO-068
   const at = (s) => { let k = 1; for (let i = 1; i < s.half; i++) if (s.mags[i] > s.mags[k]) k = i; return k * s.binHz; };
   ok(rows.every((r) => Math.abs(at(r) - tone) <= r.binHz), "the tone sits in the same place on every row");
   ok(fftRows(g.subarray(0, 2048), nyq0, 0, 8192).length === 1, "a record of one row's points gives one row");

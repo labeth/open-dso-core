@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-235
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-235
 func TestDecodeDALIRoundTrip(t *testing.T) {
 	sr := 200e3
 	w := newTimeline(sr)
@@ -23,7 +23,7 @@ func TestDecodeDALIRoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-235
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-235
 func TestDecodeUSBPDRoundTrip(t *testing.T) {
 	sr := 50e6
 	w := newTimeline(sr)
@@ -43,7 +43,7 @@ func TestDecodeUSBPDRoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-235
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-235
 func TestDecodeSPDIFRoundTrip(t *testing.T) {
 	for _, fs := range []float64{48e3, 96e3} {
 		sr := 500e6

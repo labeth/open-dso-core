@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const lib=require('./superres.js'),{decodeUART}=require('./decode.js');
 const source=fs.readFileSync('app_superres.js','utf8');
@@ -12,13 +12,13 @@ for(const parity of ['none','even','odd']){
  const sig=Float32Array.from(bits.flatMap(b=>Array(spb).fill(b?200:60)));
  const c={...lib,decodeUART,srGateFeed:globalThis.srGateFeed,dcfg:{proto:'uart',baud:115200,bits:8,parity,auto:true},
   sr:{alignCh:0,evtByte:value,stopVal:0},
-  // TRLC-LINKS: REQ-SDS-019
+  // TRLC-LINKS: REQ-DSO-019
   $:id=>({value:id==='srK'?'4':id==='srKernel'?'interp':''}),
-  // TRLC-LINKS: REQ-SDS-019
+  // TRLC-LINKS: REQ-DSO-019
   srUpdateStats(){},
-  // TRLC-LINKS: REQ-SDS-019
+  // TRLC-LINKS: REQ-DSO-019
   srStatus(){},
-  // TRLC-LINKS: REQ-SDS-019
+  // TRLC-LINKS: REQ-DSO-019
   srStop:s=>{throw Error(s)}};
  vm.createContext(c);vm.runInContext(lanes+code,c);
  const frame={cols:sig.length,c1:sig,c2:sig,sample_s:dt,tdiv_s:.0001};

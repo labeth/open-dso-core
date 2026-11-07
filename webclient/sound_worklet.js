@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // sound_worklet.js — the Listen player (ADR-SOUND): a jitter buffer of the
 // scope's stream (stereo, at the stream's rate), resampled to the sound
 // card's rate with a rate that follows the buffer's fill (the scope's
@@ -20,10 +20,10 @@ const SW_TARGET_MAX = 400; // ms
 const SW_CALM = 20; // seconds of clean play before the target steps back
 const SW_LOW = 25; // ms left in the buffer that count as nearly dry
 
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 class SoundPlayerCore {
   // post sends a report or a burst to the page; rate is the output's rate.
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   constructor(o, rate, post) {
     o = o || {};
     this.rate = rate;
@@ -56,7 +56,7 @@ class SoundPlayerCore {
     this.lastReport = -1;
   }
 
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   onMsg(m) {
     if (m.srcRate > 0) this.srcRate = m.srcRate; // a take played slower: its samples at a lower rate
     if (m.reset) { this.w = 0; this.r = 0; this.primed = false; this.target = Math.max(this.target, this.base + SW_TARGET_STEP); return; }
@@ -81,7 +81,7 @@ class SoundPlayerCore {
   }
 
   // render fills oL and oR (the same array for mono) at time now (seconds).
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   render(oL, oR, now) {
     const sampleRate = this.rate;
     const n = oL.length;
@@ -145,7 +145,7 @@ class SoundPlayerCore {
     this.report(fill, now);
   }
 
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   report(fill, now) {
     if (this.lastReport >= 0 && now - this.lastReport < 0.25) return;
     this.lastReport = now;
@@ -155,17 +155,17 @@ class SoundPlayerCore {
 }
 
 if (typeof AudioWorkletProcessor !== "undefined") {
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   class SoundPlayer extends AudioWorkletProcessor {
-    // TRLC-LINKS: REQ-SDS-265
+    // TRLC-LINKS: REQ-DSO-265
     constructor(opts) {
       super();
       this.core = new SoundPlayerCore(opts && opts.processorOptions, sampleRate, (m) => this.port.postMessage(m));
-      // TRLC-LINKS: REQ-SDS-265
+      // TRLC-LINKS: REQ-DSO-265
       this.port.onmessage = (e) => this.core.onMsg(e.data);
     }
 
-    // TRLC-LINKS: REQ-SDS-265
+    // TRLC-LINKS: REQ-DSO-265
     process(inputs, outputs) {
       const out = outputs[0];
       this.core.render(out[0], out[1] || out[0], currentTime);

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -10,7 +10,7 @@ import (
 // A record that opens inside back-to-back frames decodes without errors: the
 // bytes cut by the window are gaps (not "!0B !AA !A9" at the start of every
 // capture of the bench UART, which the default error watch catches).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestUARTSyncInIsNotAnError(t *testing.T) {
 	const spb = 10
 	var line []uint8
@@ -46,7 +46,7 @@ func TestUARTSyncInIsNotAnError(t *testing.T) {
 // A record that opens idle is in sync from its first byte: a break after it
 // stays an error (the sigrok oracle's break-condition stream, 41 break 42 43;
 // the first sync-in rule turned 41 and the break into gaps).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestUARTSyncInKeepsBreakAfterIdleStart(t *testing.T) {
 	const spb = 10
 	var line []uint8
@@ -77,7 +77,7 @@ func TestUARTSyncInKeepsBreakAfterIdleStart(t *testing.T) {
 
 // benchUARTLine is the bench's UART source: "Hi U" AA 0F F0 0A, each byte 8N1
 // with an idle bit after its stop bit, and 27 idle bits after each message.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func benchUARTLine(spb, messages int) ([]uint8, []int) {
 	msg := []int{0x48, 0x69, 0x20, 0x55, 0xAA, 0x0F, 0xF0, 0x0A}
 	var line []uint8
@@ -104,7 +104,7 @@ func benchUARTLine(spb, messages int) ([]uint8, []int) {
 // bits ("F8" for 0A), on the LCD and on the web alike: the first edge 1.5 bits
 // in must not count as opening idle, and four frames are too few for the
 // sync-in.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestUARTSyncInBenchLine(t *testing.T) {
 	const spb = 12
 	line, msg := benchUARTLine(spb, 4)
@@ -145,7 +145,7 @@ func TestUARTSyncInBenchLine(t *testing.T) {
 // A parity error after a short idle is the line's, not the sync-in's: 8 bits
 // of idle open a record (a parity bit's edge can follow a word of ones, but
 // the rule counts the data bits), so the first frames' errors stay.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestUARTSyncInKeepsAParityErrorAfterIdle(t *testing.T) {
 	const sr, baud = 1_000_000, 62500
 	for _, bad := range []int{0, 1} {

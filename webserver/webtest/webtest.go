@@ -2,7 +2,7 @@
 // against its adapter (and its simulator) and so checks that the shared
 // page and the phone can drive it through the one API. Fake is a scope for
 // the server's own tests and a starting point for a new scope's adapter.
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 package webtest
 
 import (
@@ -23,7 +23,7 @@ import (
 // helloHandler is the fake's own route.
 type helloHandler struct{}
 
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func (helloHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	webserver.WriteJSON(w, map[string]any{"ok": true, "hello": "fake"})
 }
@@ -35,7 +35,7 @@ type client struct {
 }
 
 // do serves one request.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func (c client) do(method, path, body string) *httptest.ResponseRecorder {
 	c.t.Helper()
 	var rd io.Reader
@@ -48,7 +48,7 @@ func (c client) do(method, path, body string) *httptest.ResponseRecorder {
 }
 
 // json serves one request and decodes its JSON object reply.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (c client) json(method, path, body string, wantCode int) map[string]any {
 	c.t.Helper()
 	rec := c.do(method, path, body)
@@ -66,7 +66,7 @@ func (c client) json(method, path, body string, wantCode int) map[string]any {
 }
 
 // frame fetches /api/frame.bin and decodes its header, flags and payload.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (c client) frame(path string) (wire.FrameReply, byte, []byte) {
 	c.t.Helper()
 	rec := c.do(http.MethodGet, path, "")
@@ -89,7 +89,7 @@ func (c client) frame(path string) (wire.FrameReply, byte, []byte) {
 // check) against the API's contract: the pages, the claim, the status, the
 // settings, the frames, and every optional part answering as present or as
 // absent. opts are the server's options as the scope's app passes them.
-// TRLC-LINKS: REQ-SDS-161, REQ-SDS-162, REQ-SDS-163, REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
 func Run(t *testing.T, newScope func() webserver.Scope, opts ...webserver.Option) {
 	t.Helper()
 	open := func(t *testing.T) (client, webserver.Scope) {

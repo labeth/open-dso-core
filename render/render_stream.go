@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -12,13 +12,13 @@ import (
 // streamFullScreen reports the transcript replacing the waveform: a running
 // or failed stream, or a stopped one with its list open
 // (ADR-PANEL-DECODED-STREAM).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func streamFullScreen(hud HUD) bool {
 	return hud.StreamOn && hud.StreamList
 }
 
 // streamStatus is the stream's one-line status.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func streamStatus(v streamwire.View) string {
 	if v.State == streamwire.Starting && v.Note != "" { // no counts yet: why it takes seconds
 		return "STREAM " + v.Label + "  " + v.State.String() + "  " + v.Note
@@ -53,7 +53,7 @@ var rateUnits = []siUnit{{1e6, "M"}, {1e3, "k"}, {1, ""}}
 // drawStream fills the plot with the hexdump transcript: status, column
 // header, the page of lines, and on a stopped or scrolled-back stream where
 // the page sits and which controls move it.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func drawStream(sf Canvas, p plotArea, hud HUD) {
 	v, pg := hud.Stream, hud.StreamPage
 	fillRect(sf, 0, p.y0+14, p.w, p.m.H-28-p.y0, colBoxBg)
@@ -87,7 +87,7 @@ func drawStream(sf Canvas, p plotArea, hud HUD) {
 
 // drawStreamStrip overlays the transcript lines around the trigger on the
 // recalled record's waveform.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func drawStreamStrip(sf Canvas, p plotArea, hud HUD) {
 	v, pg := hud.Stream, hud.StreamPage
 	const lineH = 10

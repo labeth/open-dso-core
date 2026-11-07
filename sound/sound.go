@@ -4,7 +4,7 @@
 // the gap-free audio-rate stream (or any evenly sampled stretch of volts).
 // The functions are pure; the LCD's SOUND view runs them in Go, and the web
 // page runs their twins in sound.js, held to them by TestSoundJSParity.
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 package sound
 
 import (
@@ -44,7 +44,7 @@ var Presets = []Preset{
 }
 
 // PresetByID finds a reference (dBu when unknown).
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func PresetByID(id string) Preset {
 	for _, p := range Presets {
 		if p.ID == id {
@@ -55,7 +55,7 @@ func PresetByID(id string) Preset {
 }
 
 // DB is v (RMS volts) in dB against ref volts (-Inf for no signal).
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func DB(v, ref float64) float64 {
 	if !(v > 0) || !(ref > 0) {
 		return math.Inf(-1)
@@ -78,7 +78,7 @@ type Levels struct {
 }
 
 // Measure reads the meters of x (volts).
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func Measure(x []float64) Levels {
 	l := Levels{N: len(x)}
 	if len(x) == 0 {
@@ -114,7 +114,7 @@ func Measure(x []float64) Levels {
 // ClipCodes reports Q8.8 codes at the converter's rails: more than a
 // two-hundredth of them within two codes of either end (as the scope's own
 // clip readout, measure.Clipped).
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func ClipCodes(q []uint16) bool {
 	if len(q) == 0 {
 		return false
@@ -132,7 +132,7 @@ func ClipCodes(q []uint16) bool {
 }
 
 // percentile is the p-quantile (0..1) of x (sorted copy; 0 for none).
-// TRLC-LINKS: REQ-SDS-268, REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-268, REQ-DSO-269
 func percentile(x []float64, p float64) float64 {
 	if len(x) == 0 {
 		return 0
@@ -147,13 +147,13 @@ func percentile(x []float64, p float64) float64 {
 }
 
 // median is the 0.5 percentile.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-268
 func median(x []float64) float64 { return percentile(x, 0.5) }
 
 // MinMaxColumns reduces x to cols columns of their lowest and highest
 // values: column i covers samples i·n/cols up to (i+1)·n/cols, at least the
 // one under it (a take's window drawn at any zoom).
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func MinMaxColumns(x []float64, cols int) (lo, hi []float64) {
 	n := len(x)
 	if n == 0 || cols <= 0 {

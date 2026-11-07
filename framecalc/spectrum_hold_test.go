@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-FRAMECALC
 
 package framecalc
 
@@ -11,7 +11,7 @@ import (
 )
 
 // holdFrame is a 4096-sample tone frame with sequence number seq.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func holdFrame(seq uint64, cycles float64) *sample.Frame {
 	c := make([]uint8, 4096)
 	for i := range c {
@@ -23,7 +23,7 @@ func holdFrame(seq uint64, cycles float64) *sample.Frame {
 // Held, a later frame of the same acquisition gets the spectrum taken
 // before (until the hold lapses); Spectrum and an unheld display always
 // take the frame's own.
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 func TestSpectrumHeld(t *testing.T) {
 	defer SetSpectrumHold(0)
 	a, b := holdFrame(101, 100), holdFrame(102, 300)

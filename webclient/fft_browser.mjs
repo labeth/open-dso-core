@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the FFT peak UI (SPECTRUM's peak table), driven by
 // headless Chromium via Playwright. It is launched by fft_browser_test.go
 // against a local httptest server (URL in argv[2]) that serves a synthetic
@@ -44,13 +44,13 @@ run(async (t) => {
   t.ok(await po.count("#fftBody .pk") === full, `raising top-N restores the full list (${full})`);
 
   await po.eval(() => clearPeaksCh(1));
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   const near = (a, b) => Math.abs(a - b) < 800;
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   const selFn = (ch = 1) => po.eval((c) => [...fftCh[c].selIdx].map(i => Math.round(fftCh[c].peaks[i].freq)).sort((a, b) => a - b), ch);
   // Toggle the peak nearest a frequency by finding+clicking its row in ONE
   // in-page step (no index race with the background poll re-rendering the list).
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   const toggle = f => po.eval(freq => {
     let best = null, bd = Infinity;
     for (const r of document.querySelectorAll("#fftBody .pk")) {

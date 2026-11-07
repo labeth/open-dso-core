@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func TestOracleSWIM(t *testing.T) {
 	const sr = 20000000
 	const T = 22 / 4e6
@@ -91,7 +91,7 @@ func TestOracleSWIM(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func TestOracleSDQ(t *testing.T) {
 	needSigrokPD(t, "sdq")
 	const sr = 10000000
@@ -137,7 +137,7 @@ func TestOracleSDQ(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func TestOraclePJDL(t *testing.T) {
 	needSigrokPD(t, "pjdl")
 	const sr = 2000000
@@ -189,7 +189,7 @@ func TestOraclePJDL(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func TestOracleDSI(t *testing.T) {
 	const sr = 100000
 	w := newTimeline(sr)
@@ -220,7 +220,7 @@ func TestOracleDSI(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func TestOracleQi(t *testing.T) {
 	const sr = 200000
 	w := newTimeline(sr)

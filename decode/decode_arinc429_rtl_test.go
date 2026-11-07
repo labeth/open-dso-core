@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -22,7 +22,7 @@ type arincRTLEvent struct {
 
 // Compare the actual three-level FPGA receiver with the repository decoder.
 // This is component evidence, not a fitted acquisition image or live support.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestARINC429TriggerRTL(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {

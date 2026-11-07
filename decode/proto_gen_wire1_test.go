@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -10,7 +10,7 @@ package decode
 // (dir: 0 the host, 1 the device), nb bits of v most significant first,
 // their even parity (flipped by badPar) and the acknowledge ack; a 0 is low
 // for 20 of the bit's 22 SWIM clocks, a 1 for 2. Then gap seconds of idle.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func swimFrame(w *timeline, dir, nb, v int, period float64, ack int, badPar bool, gap float64) {
 	bits := []int{dir}
 	p := 0
@@ -35,14 +35,14 @@ func swimFrame(w *timeline, dir, nb, v int, period float64, ack int, badPar bool
 
 // swimSync appends a SWIM synchronization frame: 128 SWIM clocks of low
 // at a bit of T (22 clocks), then idle.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func swimSync(w *timeline, period float64) {
 	w.add(0, 128.0/22*period)
 	w.add(1, 4*period)
 }
 
 // sdqBreak appends an SDQ break (two bits low) and a bit of high.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func sdqBreak(w *timeline, period float64) {
 	w.add(0, 2*period)
 	w.add(1, period)
@@ -50,7 +50,7 @@ func sdqBreak(w *timeline, period float64) {
 
 // sdqByte appends an SDQ byte, least significant bit first: a 1 low for a
 // quarter bit, a 0 for three quarters.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func sdqByte(w *timeline, v int, period float64) {
 	for i := range 8 {
 		lo := 0.75
@@ -64,7 +64,7 @@ func sdqByte(w *timeline, v int, period float64) {
 
 // pjonPacket is a PJON packet: receiver id, header, length, the header's
 // CRC-8, payload and the CRC-8 of all before it (badEnd spoils it).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func pjonPacket(rx, header int, payload []int, badEnd bool) []int {
 	b := []int{rx, header, 4 + len(payload) + 1}
 	b = append(b, crc8PJON(b))
@@ -80,7 +80,7 @@ func pjonPacket(rx, header int, payload []int, badEnd bool) []int {
 // sync pads (high for the pad time, then a data time low), then each byte
 // after its own sync pad, eight data times least significant bit first;
 // then idle seconds.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func pjdlFrame(w *timeline, m int, b []int, idle float64) {
 	data, pad := pjdlModes[m][0]*1e-6, pjdlModes[m][1]*1e-6
 	for range 3 {
@@ -100,7 +100,7 @@ func pjdlFrame(w *timeline, m int, b []int, idle float64) {
 // dsiFrame appends a DSI frame on an idle-low line: the start bit 0 and
 // eight bits of v most significant first, Manchester at 600 bit/s (a 1
 // high then low), then idle seconds.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func dsiFrame(w *timeline, v int, idle float64) {
 	const half = 1 / 1200.0
 	bits := []int{0}
@@ -119,7 +119,7 @@ func dsiFrame(w *timeline, v int, idle float64) {
 // start 0, eight bits least significant first, odd parity and a stop 1;
 // then a transition (the stop bit's end, which sigrok needs to see) and
 // idle seconds.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func qiPacket(w *timeline, b []int, badCk bool, idle float64) {
 	l := &bmcLine{w: w, bit: 500e-6}
 	if k := len(w.bits); k > 0 {

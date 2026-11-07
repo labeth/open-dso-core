@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 // clock idles at CPOL, each bit is launched delay samples after its launch
 // edge (CPHA 0: the trailing edge, the first bit set up at the burst start;
 // CPHA 1: the leading edge) and is sampled on the other edge.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func spiModeWave(bytes []int, h, delay int, cpol, cpha, msb bool) (clk, dat []uint8) {
 	lo, hi := uint8(40), uint8(210)
 	idle, act := lo, hi
@@ -67,7 +67,7 @@ func spiModeWave(bytes []int, h, delay int, cpol, cpha, msb bool) (clk, dat []ui
 // data is launched on, and only text breaks the bit order (not CPHA 1 as mode
 // 0, or binary payloads LSB first, as in 87 of 320 physically modelled
 // captures).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectSPIModes(t *testing.T) {
 	binary := []int{0x0F, 0xF0, 0x3C, 0xC3, 0x12, 0x34, 0x56, 0x78, 0x01, 0x80}
 	text := []int{'H', 'e', 'l', 'l', 'o', ' ', 'S', 'P', 'I', '!'}

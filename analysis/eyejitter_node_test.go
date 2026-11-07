@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -21,7 +21,7 @@ import (
 // bit-rate change, an edge-starved signal) and non-default engine sizes.
 
 // ejVector is one parity vector: records fed in order to one engine.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type ejVector struct {
 	Name    string         `json:"name"`
 	SampleS float64        `json:"sampleS"`
@@ -33,7 +33,7 @@ type ejVector struct {
 }
 
 // ejWebResult is ejparity.cjs's answer for one vector (nil: undefined in JS).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type ejWebResult struct {
 	Name        string      `json:"name"`
 	Status      []string    `json:"status"`
@@ -60,14 +60,14 @@ type ejWebResult struct {
 	Digest      ejWebDigest `json:"digest"`
 }
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type ejWebEye struct {
 	Height float64 `json:"height"`
 	Width  float64 `json:"width"`
 	Cross  float64 `json:"cross"`
 }
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 type ejWebDigest struct {
 	Sum      float64 `json:"sum"`
 	Weighted float64 `json:"weighted"`
@@ -75,7 +75,7 @@ type ejWebDigest struct {
 }
 
 // ejVectors builds the shared vectors.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func ejVectors() []ejVector {
 	const sampleS, n = 2e-9, 8192
 	bits := prbs7(4000)
@@ -209,7 +209,7 @@ var (
 )
 
 // ejWeb runs the vectors through eyejitter.js once per test binary.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func ejWeb(t *testing.T) ([]ejVector, []ejWebResult) {
 	t.Helper()
 	testenv.NeedNode(t)
@@ -246,7 +246,7 @@ func ejWeb(t *testing.T) ([]ejVector, []ejWebResult) {
 
 // sameF compares a Go figure with the JavaScript one within rel (relative to
 // the larger) or abs; a nil JavaScript figure (undefined) wants a missing Go one.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func sameF(t *testing.T, vec, name string, has bool, got float64, want *float64, rel, abs float64) {
 	t.Helper()
 	switch {
@@ -267,7 +267,7 @@ func sameF(t *testing.T, vec, name string, has bool, got float64, want *float64,
 // RJ/DJ, period and cycle-to-cycle jitter, the TIE spectrum, the eye metrics
 // and the eye density map must agree. Skips without node (fails under
 // CI_REQUIRE_BROWSER=1).
-// TRLC-LINKS: REQ-SDS-215, REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-215, REQ-DSO-199
 func TestEyeJitterJSParity(t *testing.T) {
 	vecs, web := ejWeb(t)
 	const rel = 1e-12
@@ -332,7 +332,7 @@ func TestEyeJitterJSParity(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func fmtSeconds(ok bool, v float64) string {
 	if !ok {
 		return "-"
@@ -340,7 +340,7 @@ func fmtSeconds(ok bool, v float64) string {
 	return strconv.FormatFloat(v*1e12, 'g', 4, 64) + " ps rms"
 }
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func fmtEye(m *EyeMetrics) string {
 	if m == nil {
 		return "-"

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // The Listen player's jitter buffer against a scope whose replies come late
 // now and then: the stream arrives in 40 ms pieces, every few seconds one
 // 160 ms late (the LCD's SOUND view beside Listen). The player grows its
@@ -14,10 +14,10 @@ const p = new ctx.SoundPlayerCore({ srcRate: fsrc, targetMs: 120 }, out, () => {
 const block = 128;
 let t = 0, sent = 0, late = 0;
 const piece = Math.round(0.04 * fsrc);
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 const src = (n) => { const l = new Float32Array(n); for (let i = 0; i < n; i++) l[i] = 0.1 * Math.sin(2 * Math.PI * 1000 * (sent + i) / fsrc); return l; };
 let k = 0, prevArr = 0, undersAfter10s = -1;
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 const arrival = (k) => {
   // the scope seals a piece every 40 ms; every fourth second one reply is 160 ms late and the next follow it at once
   const sched = 0.04 * (k + 1), isLate = k % 100 === 50;

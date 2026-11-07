@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -17,7 +17,7 @@ import (
 	"github.com/labeth/open-dso-core/supervisor/config"
 )
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func benchAgent(b *testing.B) *Agent {
 	b.Helper()
 	dir := b.TempDir()
@@ -33,7 +33,7 @@ func benchAgent(b *testing.B) *Agent {
 	return New(cfg, newFakeBoard(cfg, dir), "bench")
 }
 
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func BenchmarkPutChunk(b *testing.B) {
 	a := benchAgent(b)
 	id, err := a.newUpload(filepath.Join(b.TempDir(), "x.bin"), 0, "", 0o644)
@@ -52,7 +52,7 @@ func BenchmarkPutChunk(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-116
+// TRLC-LINKS: REQ-DSO-116
 func BenchmarkGetChunk(b *testing.B) {
 	a := benchAgent(b)
 	p := filepath.Join(b.TempDir(), "y.bin")
@@ -70,7 +70,7 @@ func BenchmarkGetChunk(b *testing.B) {
 }
 
 // mustJSON marshals args the way otactl does, inside a cmd-first Request.
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func mustJSON(v any) json.RawMessage {
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -80,7 +80,7 @@ func mustJSON(v any) json.RawMessage {
 }
 
 // One connection per call, as otactl's TCP transport dials.
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func BenchmarkTCPCall(b *testing.B) {
 	a := benchAgent(b)
 	req := []byte(`{"cmd":"ping"}` + "\n")
@@ -99,7 +99,7 @@ func BenchmarkTCPCall(b *testing.B) {
 }
 
 // An 8 MiB upload in otactl's 128 KiB chunks, committed.
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func BenchmarkUpload8M(b *testing.B) {
 	a := benchAgent(b)
 	data := make([]byte, 8<<20)
@@ -123,7 +123,7 @@ func BenchmarkUpload8M(b *testing.B) {
 }
 
 // The supervisor polls the health token every 500 ms for the app's life.
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 func BenchmarkHealthPoll(b *testing.B) {
 	p := filepath.Join(b.TempDir(), "health")
 	if err := os.WriteFile(p, []byte("frames 1234 fps 38\n"), 0o644); err != nil {
@@ -136,7 +136,7 @@ func BenchmarkHealthPoll(b *testing.B) {
 }
 
 // Takeover re-asserts TakenOver on every boot and request.
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 func BenchmarkStateUpdateSame(b *testing.B) {
 	sf := loadState(filepath.Join(b.TempDir(), "state.json"))
 	if err := sf.update(func(s *State) { s.TakenOver = true }); err != nil {
@@ -150,7 +150,7 @@ func BenchmarkStateUpdateSame(b *testing.B) {
 }
 
 // The logs RPC tails the agent log (8 KiB by default).
-// TRLC-LINKS: REQ-SDS-115
+// TRLC-LINKS: REQ-DSO-115
 func BenchmarkTailFile(b *testing.B) {
 	p := filepath.Join(b.TempDir(), "agent.log")
 	if err := os.WriteFile(p, make([]byte, 256<<10), 0o644); err != nil {
@@ -164,7 +164,7 @@ func BenchmarkTailFile(b *testing.B) {
 }
 
 // A heartbeat as it goes on the wire.
-// TRLC-LINKS: REQ-SDS-108
+// TRLC-LINKS: REQ-DSO-108
 func BenchmarkHeartbeatJSON(b *testing.B) {
 	a := benchAgent(b)
 	hb := a.heartbeat()
@@ -176,7 +176,7 @@ func BenchmarkHeartbeatJSON(b *testing.B) {
 }
 
 // Every ping, heartbeat and status names the agent's slot.
-// TRLC-LINKS: REQ-SDS-114
+// TRLC-LINKS: REQ-DSO-114
 func BenchmarkAgentSlot(b *testing.B) {
 	a := benchAgent(b)
 	for b.Loop() {
@@ -185,7 +185,7 @@ func BenchmarkAgentSlot(b *testing.B) {
 }
 
 // The supervisor waits a second at a time while paused or not taken over.
-// TRLC-LINKS: REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-117
 func BenchmarkIdleWait(b *testing.B) {
 	a := benchAgent(b)
 	for b.Loop() {
@@ -194,7 +194,7 @@ func BenchmarkIdleWait(b *testing.B) {
 }
 
 // A healthy app's supervisor tick past STABLE: the slot is confirmed already.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func BenchmarkConfirmTick(b *testing.B) {
 	a := benchAgent(b)
 	if err := a.store.Init(); err != nil {

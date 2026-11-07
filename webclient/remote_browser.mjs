@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-REMOTE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the phone remote (argv[2] = the scope's URL, argv[3] =
 // the control server of TestRemoteBrowser): Pixel 7 and iPhone 14 in phone
 // emulation with touch drive every tab, a tile, typed numbers with units and
@@ -21,22 +21,22 @@ run(async (t) => {
   const pw = (await import(findPlaywright())).default;
   const browser = await pw.chromium.launch({ headless: true, args: ["--no-sandbox", "--autoplay-policy=user-gesture-required"] });
   t.browser = browser;
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const ctrl = async (p) => (await fetch(CTRL + p)).json();
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const rows = async () => {
     const m = await (await fetch(APP + "/api/sheets", { headers: { "X-Test-Driver": "1" } })).json(), out = {};
     for (const tab of m.Tabs) for (const r of tab.Rows) out[r.ID] = r;
     return out;
   };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const lcdClosed = async () => (await ctrl("/status")).Mode === "workspace";
   let dropped = false;
   if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   async function phone(devName, opts) {
     const d = Object.assign({}, pw.devices[devName]);
     delete d.defaultBrowserType;
@@ -48,10 +48,10 @@ run(async (t) => {
     if (opts.audioSession) {
       await ctx.addInitScript(() => {
         const session = { type: "auto" };
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         Object.defineProperty(Navigator.prototype, "audioSession", { configurable: true, get: () => session });
         const play = HTMLMediaElement.prototype.play;
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         HTMLMediaElement.prototype.play = function () { window.__play = { session: session.type, muted: this.muted }; return play.call(this); };
       });
     }
@@ -60,7 +60,7 @@ run(async (t) => {
     await ctx.addInitScript((iphone) => {
       window.__vib = [];
       if (iphone) delete Navigator.prototype.vibrate;
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       else Navigator.prototype.vibrate = function (p) { window.__vib.push(p); return true; };
     }, /iPhone/.test(devName));
     const page = await ctx.newPage();
@@ -74,7 +74,7 @@ run(async (t) => {
     await page.goto(APP + "/remote", { waitUntil: "domcontentloaded" });
     await page.waitForSelector(".tile .tv", { timeout: 15000 });
     await page.waitForFunction(() => document.querySelector('[data-tile="time.tdiv"] .tv') && document.querySelector('[data-tile="time.tdiv"] .tv').textContent.trim() !== "");
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const centre = async (sel) => {
       const el = page.locator(sel).first();
       await el.scrollIntoViewIfNeeded();
@@ -84,10 +84,10 @@ run(async (t) => {
     };
     const P = {
       page, ctx, errors, name: opts.label || devName,
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       tap: async (sel) => { await page.locator(sel).first().tap(); await page.waitForTimeout(60); },
       // a finger held down for ms (Playwright's tap is short)
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       hold: async (sel, ms) => {
         const c = await centre(sel);
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c.x, y: c.y }] });
@@ -96,7 +96,7 @@ run(async (t) => {
         await page.waitForTimeout(80);
       },
       // a finger dragged across fx0..fx1 of the element's width
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       drag: async (sel, fx0, fx1, ms) => {
         const c = await centre(sel), y = c.y, n = Math.max(4, Math.round(ms / 16));
         await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: c.b.x + c.b.width * fx0, y }] });
@@ -107,28 +107,28 @@ run(async (t) => {
         await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
         await page.waitForTimeout(80);
       },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       text: (sel) => page.evaluate((s) => { const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g, " ").trim() : null; }, sel),
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       visible: (sel) => page.evaluate((s) => { const e = document.querySelector(s); return !!e && e.getClientRects().length > 0 && !e.closest("[hidden]"); }, sel),
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       toast: () => page.evaluate(() => { const e = document.querySelector(".toast"); return e && !e.hidden ? e.textContent : ""; }),
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       shot: async (n) => { if (SHOTS) { await page.waitForTimeout(260); await page.screenshot({ path: path.join(SHOTS, (opts.label || devName).replace(/\s+/g, "") + "-" + n + ".png") }); } },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       until: async (fn, msg, ms) => t.until(fn, (opts.label || devName) + ": " + msg, ms || 4000),
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       ok: (c, msg) => t.ok(c, (opts.label || devName) + ": " + msg),
     };
     return P;
   }
 
   // the layout rules on what is shown now: targets of 44 px, text of 13 px, no sideways scroll
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   async function layout(P, where) {
     const r = await P.page.evaluate(() => {
       const small = [], tiny = [];
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const shown = (e) => { const s = getComputedStyle(e); if (s.visibility === "hidden" || s.display === "none") return false; const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.bottom > 0 && b.top < innerHeight && !e.closest("[hidden]"); };
       for (const e of document.querySelectorAll("button, input, [role=slider]")) {
         if (!shown(e) || e.closest(".scrim")) continue;
@@ -149,7 +149,7 @@ run(async (t) => {
     P.ok(!r.side, where + ": nothing scrolls sideways");
     // every shown text against what is drawn under it: 4.5:1 (3:1 large), disabled controls aside (WCAG AA)
     const low = await P.page.evaluate(() => {
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const parse = (c) => {
         let m = /rgba?\(([^)]+)\)/.exec(c);
         if (m) { const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; }
@@ -157,15 +157,15 @@ run(async (t) => {
         if (m) { const p = m[1].split(/[ /]+/).filter(Boolean).map(Number); return [p[0] * 255, p[1] * 255, p[2] * 255, p.length > 3 ? p[3] : 1]; }
         return null;
       };
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const lum = (c) => {
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
         return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
       };
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const over = (fg, bg) => [0, 1, 2].map((i) => fg[i] * fg[3] + bg[i] * (1 - fg[3])).concat(1);
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const under = (e) => {
         const layers = [];
         for (let x = e; x; x = x.parentElement) { const c = parse(getComputedStyle(x).backgroundColor); if (c && c[3] > 0) layers.push(c); if (c && c[3] >= 1) break; }
@@ -196,7 +196,7 @@ run(async (t) => {
   }
 
   // ---- one phone through every requirement ----------------------------------------------------
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   async function flow(devName, label, opts) {
     // a clean scope: factory settings, SCOPE, no menu on the LCD
     await ctrl("/reset");
@@ -287,7 +287,7 @@ run(async (t) => {
     await P.until(async () => /^Pinned to SCOPE Home: Trigger holdoff/.test(await P.toast()), "a long press on a row pins it to Home");
     await P.until(async () => /on Home/.test(await P.text('.mbody [data-row="trig.holdoff"] .cl small') || ""), "the row says it is on Home");
     await P.tap('[data-tabbar="home"]');
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const order = () => page.evaluate(() => [...document.querySelectorAll(".tile")].map((x) => x.dataset.tile));
     P.ok((await order()).slice(-1)[0] === "trig.holdoff", "the pinned tile joins the end of the grid");
     await P.hold('[data-tile="trig.holdoff"] .tmain', 700);
@@ -480,7 +480,7 @@ run(async (t) => {
     await P.until(async () => /^Autoset/.test(await P.toast()), "and says so");
 
     // Keys: the pushes act as the scope's, the knob jobs turn, a menu key opens the phone's page
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const zero = (s) => /^-?0\s*m?V$/.test(s || "");
     await P.tap('[data-tabbar="home"]');
     await P.tap('[data-tile="trig.level"] [data-q="cw"]');
@@ -503,7 +503,7 @@ run(async (t) => {
     await P.tap('[data-knob="horizpos"][data-push]');
     await P.until(async () => (await rows())["time.trig_pos"].Text === pos0, "its push centres it again");
     // each key is confirmed by what the scope did, never by a text of the phone's own (the toast cleared first)
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const clearToast = () => page.evaluate(() => { const e = document.querySelector(".toast"); if (e) { e.hidden = true; e.textContent = ""; } });
     const lvl = (await rows())["trig.level"].Value;
     await clearToast();
@@ -540,7 +540,7 @@ run(async (t) => {
     if (opts && opts.noWakeLock) {
       // Chromium holds the screen for a muted video that fills a fifth of the screen: it plays behind the page
       P.ok(/^awake: muted video/.test(ks), "without a wake lock (plain HTTP) a muted video keeps the phone awake: " + ks);
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const vid = () => page.evaluate(() => {
         const v = document.querySelector("video.awake-video");
         if (v && v.seeks === undefined) { v.seeks = 0; v.addEventListener("seeking", () => { v.seeks++; }); }
@@ -627,7 +627,7 @@ run(async (t) => {
     await B.tap('[data-tile="ch2.vdiv"] [data-q="ccw"]');
     await A.until(async () => (await A.text('[data-tile="ch2.vdiv"] .tv')) === "2 V", "phone A follows phone B");
     // whose change is whose: only the rows the scope says a call changed are that phone's
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const book = (P, id) => P.page.evaluate((id) => RN.S.history.list.filter((e) => e.rows.some((r) => r.id === id)).map((e) => ({ src: e.src, rows: e.rows.map((r) => r.id) })), id);
     await sleep(3100);
     await B.page.route("**/api/sheets/set", async (route) => { await sleep(1500); await route.continue(); });
@@ -664,7 +664,7 @@ run(async (t) => {
       }
       crafted.SheetsSeq = base.SheetsSeq + 1000;
       RN.S.panel = Object.assign({}, RN.S.panel, { Remote: "REMOTE  CH2 coupling " + (crafted.Tabs.flatMap((t) => t.Rows).find((r) => r.ID === "ch2.coupling").Text) });
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       RN.api.sheets = async () => crafted;
       await RN.refresh();
       RN.api.sheets = real;
@@ -712,14 +712,14 @@ run(async (t) => {
       r.Value = 1e-3; r.Text = "1ms";
       fresh.SheetsSeq = base.SheetsSeq + 1;
       let release;
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       RN.api.sheets = () => new Promise((res) => {
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         release = () => res(fresh);
       });
       const reading = RN.refresh();
       await new Promise((res) => setTimeout(res, 30));
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       RN.api.set = async () => ({ ok: true, row: "time.tdiv", value: 2e-3, text: "2ms", changed: ["time.tdiv"], sheetsSeq: fresh.SheetsSeq });
       const answered = RN.set("time.tdiv", { value: 1e-3 });
       await new Promise((res) => setTimeout(res, 30));
@@ -760,7 +760,7 @@ run(async (t) => {
   // ---- History kept on the phone: entries of another shape are dropped, the badge counts only new ones ----
   {
     await ctrl("/reset");
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const P = await phone("Pixel 7", { label: "stored history", init: () => {
       const row = { id: "time.tdiv", tab: "TIME", label: "Time/div", kind: "number", old: { value: 1e-3, text: "1ms", key: "0.001" }, neu: { value: 5e-4, text: "500us", key: "0.0005" } };
       localStorage.setItem("sds-remote:history", JSON.stringify([{ id: 1, t: Date.now(), src: "phone" }]));   // an older page's
@@ -781,9 +781,9 @@ run(async (t) => {
     await ctrl("/reset");
     const P = await phone("Pixel 7", { label: "back" });
     const { page } = P;
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const back = async () => { await page.evaluate(() => history.back()).catch(() => {}); await page.waitForTimeout(300); };
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const here = () => /\/remote$/.test(page.url());
     await P.tap('[data-tile="trig.level"] .tmain');
     await P.until(() => P.visible(".sheet"), "a sheet opens");

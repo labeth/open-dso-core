@@ -1,14 +1,14 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-SERIALTRIG
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 "use strict";
 const ds = { id: null, abort: null, events: 0, lost: 0, lines: [], words: 0, reading: false, statusBusy: false };
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function dsQuery(id) { return `epoch=${id.epoch}&record=${id.record}`; }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function dsMessage(text) { $("dsStatus").textContent = text; }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 // dsSequence mirrors the engine's planSequence: the pattern as event
 // elements in the hardware's value layout (ADR-PROTOCOL-SEQUENCE-TRIGGER).
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function dsSequence(p) {
   const unit = p.proto === 7 ? 0xffff : p.proto === 8 ? 0x7ffff : p.proto === 5 ? 0xf : p.proto === 4 ? 2 ** (p.bits || 8) - 1 : 0xff;
   const tokens = p.pattern.length ? p.pattern : p.bytes.map(value => ({ kind: 2, value, mask: unit }));
@@ -23,7 +23,7 @@ function dsSequence(p) {
   return { length: elements.length, qualify: dataOnly && [4, 5, 6, 8, 9, 10].includes(p.proto), end_bad_value: p.proto === 4 || p.proto === 8, elements };
 }
 // dsStandardBaud snaps a measured UART rate to a standard one within 3 %.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function dsStandardBaud(b) {
   for (const s of [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 1e6, 2e6, 3e6])
     if (Math.abs(b - s) <= 0.03 * s) return s;
@@ -36,7 +36,7 @@ function dsStandardBaud(b) {
 // figures are the last decode that read this bus: right after a detection the
 // newest frame can still be one the detection's new timebase replaces,
 // unread.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function dsAutoFill(p) {
   const g = dcfg.good && dcfg.good.key === decKey() ? dcfg.good : null;
   const r = dcfg.result && dcfg.result.ok ? dcfg.result : g && g.r, m = r && r.ok && r.meta;
@@ -53,7 +53,7 @@ function dsAutoFill(p) {
   if (q.proto === 5 && !(q.tickNs > 0) && m.tickSamples > 0 && dt > 0) q.tickNs = m.tickSamples * dt * 1e9;
   return q;
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function dsConfig() {
   let p = stParams();
   if (p && p.proto >= 11) throw Error("This page streams the first ten protocols' hardware decoders; the scope's BUS Stream view streams the others where its FPGA image does.");
@@ -130,14 +130,14 @@ function dsConfig() {
 // receiver counts whole 125 MHz ticks a bit and never re-times, so the bit's
 // rounding and a transmitter's 2 % over a 10-bit frame, and a tick each for
 // the start edge and the slicing, must stay inside half a bit (8N1 to 5 MBd).
-// TRLC-LINKS: REQ-SDS-206, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-206, REQ-DSO-229
 function dsGeneralUART(baud) {
   const bit = 125e6 / baud, ticks = Math.round(bit);
   return ticks >= 4 && ticks <= 0xffffff && 9.5 * (Math.abs(ticks - bit) + 0.02 * bit) + 2 <= bit / 2;
 }
 // dsPacketConfig builds the packet image's Manchester or packet block. The
 // 64-bit pattern is a BigInt, written into the JSON text as a plain integer.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function dsPacketConfig(p, cfg) {
   if (p.baud <= 0) throw Error("Streaming requires an explicit bit rate.");
   const ch = p.chA;
@@ -162,14 +162,14 @@ function dsPacketConfig(p, cfg) {
   cfg.json = JSON.stringify(cfg).replace('"@P"', pattern.toString());
   return cfg;
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 async function dsRequest(url, options) {
   const response = await fetch(url, options);
   if (!response.ok) throw Error(await response.text());
   return response;
 }
 const DS_EVENT_NAMES = ["", "START", "DATA", "END", "ERROR", "LOSS", "TRIGGER", "RETAINED"];
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 async function dsRead(id, controller) {
   try {
     const response = await dsRequest(`/api/decoded/events.bin?${dsQuery(id)}`, { signal: controller.signal });
@@ -198,7 +198,7 @@ async function dsRead(id, controller) {
   } catch (error) { if (!controller.signal.aborted && ds.id === id) dsMessage(error.message); }
   finally { if (ds.id === id) ds.reading = false; }
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 async function dsStart() {
   $("dsStart").disabled = true;
   try {
@@ -209,7 +209,7 @@ async function dsStart() {
     dsMessage("Streaming decoded events. Waiting for the trigger."); void dsRead(id, ds.abort);
   } catch (error) { dsMessage(error.message); $("dsStart").disabled = false; }
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 async function dsEnd() {
   const id = ds.id; if (!id) return;
   try {
@@ -218,7 +218,7 @@ async function dsEnd() {
     dsMessage("Session ended. Press Run to resume waveform acquisition.");
   } catch (error) { dsMessage(error.message); }
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 async function dsDownload() {
   const id = ds.id; if (!id) return;
   $("dsRaw").disabled = true;
@@ -231,13 +231,13 @@ async function dsDownload() {
 }
 // dsGone resets the page when its session was ended elsewhere: Run, the
 // scope's keys, or no client for two minutes.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function dsGone() {
   if (ds.abort) ds.abort.abort();
   ds.id = null; ds.reading = false; $("dsEnd").disabled = true; $("dsRaw").disabled = true; $("dsStart").disabled = false;
   dsMessage("The session ended: Run, the scope's keys or two minutes without this page took the acquisition back.");
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 async function dsPoll() {
   const id = ds.id; if (!id || ds.statusBusy) return; ds.statusBusy = true;
   try {

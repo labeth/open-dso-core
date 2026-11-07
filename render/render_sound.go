@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -26,14 +26,14 @@ const (
 )
 
 // scaleCol scales a colour's brightness by k (0..1).
-// TRLC-LINKS: REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-273
 func scaleCol(f hal.PixelFormat, c Color, k float64) Color {
 	r, g, b := atPrecision(f, c).channels()
 	return rgb(uint8(float64(r)*k), uint8(float64(g)*k), uint8(float64(b)*k))
 }
 
 // chanCol is a channel's trace colour.
-// TRLC-LINKS: REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-273
 func chanCol(ch int) Color {
 	if ch == 1 {
 		return colC2
@@ -42,7 +42,7 @@ func chanCol(ch int) Color {
 }
 
 // drawSoundPane draws the tuner, the meters and the readout column.
-// TRLC-LINKS: REQ-SDS-273, REQ-SDS-267, REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-273, REQ-DSO-267, REQ-DSO-266
 func drawSoundPane(sf Canvas, p plotArea, s *wsview.SoundPane) {
 	drawPaneFrame(sf, p, &s.Pane)
 	bottom := p.y0 - 15 // above the tool line
@@ -64,7 +64,7 @@ func drawSoundPane(sf Canvas, p plotArea, s *wsview.SoundPane) {
 }
 
 // drawTuner draws the note, the needle, the strobe and the pitch strip.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-273
 func drawTuner(sf Canvas, s *wsview.SoundPane, bottom int) {
 	x0, w := sndTunerX, sndTunerW
 	noteCol := colDim
@@ -153,7 +153,7 @@ func drawTuner(sf Canvas, s *wsview.SoundPane, bottom int) {
 
 // drawMeters draws the two level bars (+6 to -60 dB against the
 // reference) with their figures beneath.
-// TRLC-LINKS: REQ-SDS-266, REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-266, REQ-DSO-273
 func drawMeters(sf Canvas, s *wsview.SoundPane, bottom int) {
 	x0 := sndMeterX
 	DrawText(sf, x0, 28, cutText(s.RefName, sndMeterW/6), colDim, 1)
@@ -207,7 +207,7 @@ func drawMeters(sf Canvas, s *wsview.SoundPane, bottom int) {
 
 // drawSoundTrace draws the pitch-locked cycles in the plot: the newest in
 // the channel's colour over the older ones dimmed, and its figures.
-// TRLC-LINKS: REQ-SDS-272, REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-272, REQ-DSO-273
 func drawSoundTrace(sf Canvas, p plotArea, s *wsview.SoundPane) {
 	if s == nil {
 		return
@@ -271,7 +271,7 @@ func drawSoundTrace(sf Canvas, p plotArea, s *wsview.SoundPane) {
 // lane (C1 above, C2 below) as a band of its lowest and highest volts a
 // column, the trigger as a dashed line with its marker on top, a bar of
 // where the window sits in the take, and the title and the knobs' jobs.
-// TRLC-LINKS: REQ-SDS-275, REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-275, REQ-DSO-273
 func drawSoundTake(sf Canvas, p plotArea, t *wsview.SoundTake) {
 	top, h := p.y0+16, p.h-30
 	lane := h / 2
@@ -322,7 +322,7 @@ func drawSoundTake(sf Canvas, p plotArea, t *wsview.SoundTake) {
 }
 
 // centsText is the tuner's offset, signed always (fmt's "%+.1f c").
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-273
 func centsText(c float64) string {
 	b := make([]byte, 1, 16)
 	b[0] = '+'
@@ -334,5 +334,5 @@ func centsText(c float64) string {
 }
 
 // si3 writes v to three significant digits.
-// TRLC-LINKS: REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-273
 func si3(v float64) string { return strconv.FormatFloat(v, 'g', 3, 64) }

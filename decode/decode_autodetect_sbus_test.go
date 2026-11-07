@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ import (
 
 // sbusFrame is an S.BUS frame: 0x0F, sixteen 11-bit channels packed LSB
 // first into 22 bytes, the flags byte and the end byte.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func sbusFrame(ch [16]int, flags, end int) []int {
 	out := []int{0x0f}
 	acc, n := 0, 0
@@ -42,7 +42,7 @@ type sbusLineOpts struct {
 }
 
 // sbusOpts is a true S.BUS line: 100 kBd 8E2 inverted, a frame each period.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func sbusOpts(periodS, sr float64) sbusLineOpts {
 	return sbusLineOpts{
 		periodS: periodS, frames: 4, header: 0x0f, end: 0x00, length: 25, baud: 100000,
@@ -51,7 +51,7 @@ func sbusOpts(periodS, sr float64) sbusLineOpts {
 }
 
 // sbusLine records the line o describes.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func sbusLine(o sbusLineOpts) []uint8 {
 	rng := rand.New(rand.NewSource(o.seed))
 	w := newTimeline(o.sampleRate)
@@ -87,7 +87,7 @@ func sbusLine(o sbusLineOpts) []uint8 {
 }
 
 // isSBUS reports a detection on S.BUS's framing.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func isSBUS(r Result) bool {
 	return r.Proto == "uart" && r.Inverted && r.Parity == "even" && r.Baud == sbusBaud
 }
@@ -96,7 +96,7 @@ func isSBUS(r Result) bool {
 // frames every 7 or 14 ms, at two sample rates, on either channel, with the
 // record starting inside a frame and with converter noise, is named a UART
 // on S.BUS's framing, its bytes the frames from 0x0F.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-244, REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-244, REQ-DSO-247
 func TestAutodetectFindsSBUS(t *testing.T) {
 	rng := rand.New(rand.NewSource(5))
 	noisy := func(c []uint8) []uint8 {
@@ -141,7 +141,7 @@ func TestAutodetectFindsSBUS(t *testing.T) {
 // Modbus's and S.BUS's own rates, an inverted UART, and lines that are
 // nearly S.BUS (another header, 24 bytes a frame, a bad end byte, frames 10
 // ms apart, idling high, odd parity) are never read on S.BUS's framing.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-244, REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-244, REQ-DSO-247
 func TestAutodetectSBUSCrossConfusion(t *testing.T) {
 	for _, tc := range protoDetectCases() {
 		if r, _ := AutodetectFast(tc.c1, tc.c2, tc.colT, "hex"); isSBUS(r) {
@@ -200,7 +200,7 @@ func TestAutodetectSBUSCrossConfusion(t *testing.T) {
 
 // TestSBUSFramesCountsWholeFrames: the frames the record cuts are not
 // counted, and a broken frame between whole ones makes the line no S.BUS.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func TestSBUSFramesCountsWholeFrames(t *testing.T) {
 	o := sbusOpts(7e-3, 1e6)
 	o.frames, o.cutS = 5, 2.5e-3

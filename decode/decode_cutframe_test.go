@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -10,7 +10,7 @@ import "testing"
 // record ends, or 300 us before, does not
 // (the record's end cuts a longer burst at any bit: an Oregon sensor's burst
 // cut at 16 bits read as a DALI frame).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-235
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-235
 func TestDALIFrameCutByTheRecordIsNoFrame(t *testing.T) {
 	const sr = 100e3
 	for _, tc := range []struct {

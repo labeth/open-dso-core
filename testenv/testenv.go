@@ -4,7 +4,7 @@
 // (CI_REQUIRE_BROWSER=1) the same condition is a hard FAILURE, so the
 // browser/node/parity suites can never be silently skipped where they are
 // the whole point of the job.
-// ENGMODEL-OWNER-UNIT: FU-APP-TESTENV
+// ENGMODEL-OWNER-UNIT: FU-DSO-TESTENV
 package testenv
 
 import (
@@ -18,12 +18,12 @@ import (
 
 // required reports whether environment skips must be treated as failures
 // (set CI_REQUIRE_BROWSER=1 on the lane that installs node + Chromium).
-// TRLC-LINKS: REQ-SDS-179
+// TRLC-LINKS: REQ-DSO-179
 func required() bool { return os.Getenv("CI_REQUIRE_BROWSER") == "1" }
 
 // NeedNode skips t when node is not on PATH — or fails it under
 // CI_REQUIRE_BROWSER=1.
-// TRLC-LINKS: REQ-SDS-179
+// TRLC-LINKS: REQ-DSO-179
 func NeedNode(tb testing.TB) {
 	tb.Helper()
 	if haveNode() {
@@ -44,7 +44,7 @@ var haveNode = sync.OnceValue(func() bool {
 // SkipBrowser records a browser-environment skip (Playwright/Chromium not
 // installed, or the browser failed to launch) — or fails the test under
 // CI_REQUIRE_BROWSER=1.
-// TRLC-LINKS: REQ-SDS-179
+// TRLC-LINKS: REQ-DSO-179
 func SkipBrowser(tb testing.TB, format string, args ...any) {
 	tb.Helper()
 	if required() {
@@ -58,7 +58,7 @@ func SkipBrowser(tb testing.TB, format string, args ...any) {
 // the first directory above the working directory that holds fpga/common,
 // or a sibling open-sds1000cml checkout of one of those directories. Without
 // one the test is skipped (failed under CI_REQUIRE_BROWSER=1).
-// TRLC-LINKS: REQ-SDS-179
+// TRLC-LINKS: REQ-DSO-179
 func ScopeDir(tb testing.TB) string {
 	tb.Helper()
 	isScope := func(d string) bool {
@@ -91,7 +91,7 @@ func ScopeDir(tb testing.TB) string {
 
 // CoreDir returns the open-dso-core checkout this package was built from, so
 // a scope's tests can read the core's test data (decode/testdata captures).
-// TRLC-LINKS: REQ-SDS-179
+// TRLC-LINKS: REQ-DSO-179
 func CoreDir() string {
 	_, file, _, _ := runtime.Caller(0)
 	return filepath.Dir(filepath.Dir(file))
@@ -99,7 +99,7 @@ func CoreDir() string {
 
 // WebDir returns the shared web client's directory (webclient/), which holds
 // the JS twins of the core's Go packages.
-// TRLC-LINKS: REQ-SDS-179
+// TRLC-LINKS: REQ-DSO-179
 func WebDir(tb testing.TB) string {
 	tb.Helper()
 	_, file, _, _ := runtime.Caller(0)
@@ -110,7 +110,7 @@ func WebDir(tb testing.TB) string {
 // testbenches under sim/, as symlinks into fpga/ (common, trigger, images/*).
 // RTL tests name files the way they sit in an image project ("top.v",
 // "sim/tb_x.v") whichever group of the source tree holds them.
-// TRLC-LINKS: REQ-SDS-179
+// TRLC-LINKS: REQ-DSO-179
 func RTLDir(tb testing.TB) string {
 	tb.Helper()
 	fpga := filepath.Join(ScopeDir(tb), "fpga")

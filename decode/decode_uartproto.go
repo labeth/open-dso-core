@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -17,7 +17,7 @@ import (
 // start of LIN and DMX512. Mirrored step for step by decode_uartproto.js.
 
 // uchar is one character read off the line.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 type uchar struct {
 	x0, x1 float64 // the start bit's edge, the end of the last stop bit (a break: its rising edge)
 	val    int
@@ -29,7 +29,7 @@ type uchar struct {
 // parity "even", "odd" or "none", stops 1 or 2 (only the first is checked,
 // as receivers do). A zero character with its stop bit low whose low run
 // lasts breakBits or more is a break (breakBits 0: none).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func uartChars(sl sliced, spb float64, parity string, stops int, breakBits float64) []uchar {
 	out := scratchSlice[uchar](sl.sc, len(sl.edges)/4+1) // a character takes two edges or more
 	lv := levelCursor{s: &sl}                            // logicAt, walking the edges forward
@@ -104,7 +104,7 @@ func uartChars(sl sliced, spb float64, parity string, stops int, breakBits float
 }
 
 // ui clamps a sample position into a record of n samples, rounded.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func ui(x float64, n int) int {
 	i := int(math.Round(x))
 	if i < 0 {
@@ -118,7 +118,7 @@ func ui(x float64, n int) int {
 
 // LINCfg configures the LIN decode: Baud 0 reads the rate off the sync
 // fields (snapped to a LIN rate within 2 %).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 type LINCfg struct {
 	Baud      int
 	Threshold float64
@@ -135,7 +135,7 @@ const linBreakBits = 11.0
 
 // linPIDParity is the protected identifier with its two parity bits for a
 // 6-bit frame ID (P0 = ID0^ID1^ID2^ID4, P1 = !(ID1^ID3^ID4^ID5)).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func linPIDParity(id int) int {
 	b := func(k int) int { return (id >> k) & 1 }
 	p0 := b(0) ^ b(1) ^ b(2) ^ b(4)
@@ -145,7 +145,7 @@ func linPIDParity(id int) int {
 
 // linChecksum is the inverted eight-bit sum with carry of the data bytes,
 // with the protected identifier first for the enhanced checksum.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func linChecksum(pid int, data []int, enhanced bool) int {
 	s := 0
 	if enhanced {
@@ -163,7 +163,7 @@ func linChecksum(pid int, data []int, enhanced bool) int {
 // linSyncSPB finds the bit time of the sync fields that follow breaks: a
 // break (a low run) then, after the delimiter, 0x55's ten evenly spaced
 // edges. The median over the record's sync fields; 0 when none is seen.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func linSyncSPB(sl sliced) float64 {
 	var cands []float64
 	E := sl.edges
@@ -196,7 +196,7 @@ func linSyncSPB(sl sliced) float64 {
 }
 
 // snapSPB moves a bit time onto the nearest of rates within tol (a fraction).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func snapSPB(spb, colTimeS float64, rates []float64, tol float64) float64 {
 	if !(spb > 0) || !(colTimeS > 0) {
 		return spb
@@ -218,19 +218,19 @@ func snapSPB(spb, colTimeS float64, rates []float64, tol float64) float64 {
 // the PID ("ID3C"), the data bytes and the checksum ("CK5A"); a bad parity
 // or checksum is that unit's error span. OK needs a frame whose sync and
 // identifier read right and whose checksum checks (or no response).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func LIN(codes []uint8, colTimeS float64, cfg LINCfg) Result {
 	return decodeLIN(samplesIn(codes), colTimeS, cfg)
 }
 
 // LINEdges is LIN over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func LINEdges(codes *EdgeLine, colTimeS float64, cfg LINCfg) Result {
 	return decodeLIN(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeLIN is LIN over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func decodeLIN(codes lineIn, colTimeS float64, cfg LINCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -331,7 +331,7 @@ func decodeLIN(codes lineIn, colTimeS float64, cfg LINCfg) Result {
 }
 
 // DMXCfg configures the DMX512 decode; Baud 0 is the standard 250 kbit/s.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 type DMXCfg struct {
 	Baud      int
 	Threshold float64
@@ -346,19 +346,19 @@ const dmxBreakBits = 22.0
 // after break, the start code (slot 0, "SC00") and the slots, 8N2 at
 // 250 kbit/s. Spans: "sof" BRK, "rw" MAB, then a unit per slot. OK needs a
 // packet with a start code and a slot after it, all framed.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func DMX512(codes []uint8, colTimeS float64, cfg DMXCfg) Result {
 	return decodeDMX512(samplesIn(codes), colTimeS, cfg)
 }
 
 // DMX512Edges is DMX512 over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func DMX512Edges(codes *EdgeLine, colTimeS float64, cfg DMXCfg) Result {
 	return decodeDMX512(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeDMX512 is DMX512 over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func decodeDMX512(codes lineIn, colTimeS float64, cfg DMXCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -439,7 +439,7 @@ func decodeDMX512(codes lineIn, colTimeS float64, cfg DMXCfg) Result {
 }
 
 // MIDICfg configures the MIDI decode; Baud 0 is the standard 31250 Bd.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 type MIDICfg struct {
 	Baud      int
 	Threshold float64
@@ -449,7 +449,7 @@ type MIDICfg struct {
 
 // midiDataLen is the data bytes a status byte takes (-1: a system exclusive
 // message, up to its end; real-time bytes take none).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func midiDataLen(st int) int {
 	switch st >> 4 {
 	case 0x8, 0x9, 0xA, 0xB, 0xE:
@@ -469,7 +469,7 @@ func midiDataLen(st int) int {
 }
 
 // midiName names a status byte, a channel message with its channel 1..16.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func midiName(st int) string {
 	ch := []string{"OFF", "ON", "PAT", "CC", "PC", "CAT", "PB"}
 	if st < 0xF0 {
@@ -490,7 +490,7 @@ func midiName(st int) string {
 // data bytes follow (running status: a channel message's data repeat with no
 // status), real-time bytes may come between. A data byte with no message to
 // belong to is an error. OK needs a complete message.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func MIDI(codes []uint8, colTimeS float64, cfg MIDICfg) Result {
 	S := sliceChannel(codes, cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -585,7 +585,7 @@ func MIDI(codes []uint8, colTimeS float64, cfg MIDICfg) Result {
 // ModbusCfg configures the Modbus RTU decode: Baud 0 infers the rate,
 // Parity "" tries even (the RTU default), none with two stop bits, odd and
 // none with one, keeping the framing with the most CRC-valid frames.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 type ModbusCfg struct {
 	Baud      int
 	Parity    string
@@ -596,7 +596,7 @@ type ModbusCfg struct {
 
 // modbusCRC is CRC-16/MODBUS: the reflected polynomial 0xA001 from all
 // ones, sent low byte first.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func modbusCRC(b []int) int {
 	c := 0xFFFF
 	for _, v := range b {
@@ -615,7 +615,7 @@ func modbusCRC(b []int) int {
 // modbusFrames groups characters into RTU frames, split where the line idles
 // more than two character times (the standard's 3.5 between frames, at most
 // 1.5 within one).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func modbusFrames(chars []uchar, spb float64) [][]uchar {
 	var out [][]uchar
 	var cur []uchar
@@ -633,7 +633,7 @@ func modbusFrames(chars []uchar, spb float64) [][]uchar {
 }
 
 // modbusGood counts a framing's CRC-valid frames and its character errors.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func modbusGood(frames [][]uchar) (good, bad int) {
 	for _, f := range frames {
 		ok := len(f) >= 4
@@ -656,19 +656,19 @@ func modbusGood(frames [][]uchar) (good, bad int) {
 // ("F03", an exception response "F83!"), the data bytes and the CRC (two
 // bytes, low first; "!" on both when it does not check). Each frame opens
 // with a "sof". OK needs a CRC-valid frame.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func Modbus(codes []uint8, colTimeS float64, cfg ModbusCfg) Result {
 	return decodeModbus(samplesIn(codes), colTimeS, cfg)
 }
 
 // ModbusEdges is Modbus over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func ModbusEdges(codes *EdgeLine, colTimeS float64, cfg ModbusCfg) Result {
 	return decodeModbus(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeModbus is Modbus over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-232
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
 func decodeModbus(codes lineIn, colTimeS float64, cfg ModbusCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {

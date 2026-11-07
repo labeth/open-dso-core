@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -11,7 +11,7 @@ import (
 	"github.com/labeth/open-dso-core/uimodel/wsview"
 )
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func sgSine(n int, freqHz, sampleS float64) *sample.Frame {
 	c := make([]uint8, n)
 	for i := range n {
@@ -28,7 +28,7 @@ func sgSine(n int, freqHz, sampleS float64) *sample.Frame {
 }
 
 // The colormap must be monotone in brightness (higher dB reads hotter).
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func TestHeatMonotone(t *testing.T) {
 	lum := func(c Color) int {
 		r := int((pack565(c) >> 11) & 0x1f)
@@ -47,7 +47,7 @@ func TestHeatMonotone(t *testing.T) {
 }
 
 // A single-tone frame's spectrogram row must peak at the frequency's column.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func TestSpectrogramPeakColumn(t *testing.T) {
 	const n = 4096
 	const dt = 2e-9 // Nyquist 250 MHz
@@ -74,7 +74,7 @@ func TestSpectrogramPeakColumn(t *testing.T) {
 
 // "FFT over time": a frequency that STEPS across successive frames must move
 // the bright column DOWN the rows (older rows keep the earlier frequency).
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func TestSpectrogramTracksSteppedFrequency(t *testing.T) {
 	const n = 4096
 	const dt = 2e-9
@@ -119,7 +119,7 @@ func TestSpectrogramTracksSteppedFrequency(t *testing.T) {
 // top: a tone that steps inside one capture shows its later frequency on the
 // top row and its earlier one below, and the waterfall fills four rows a
 // capture of 8192 samples.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func TestSpectrogramRowsPerStretch(t *testing.T) {
 	const n, dt = 8192, 2e-9
 	early, late := sgSine(n, 20e6, dt), sgSine(n, 100e6, dt)
@@ -154,7 +154,7 @@ func TestSpectrogramRowsPerStretch(t *testing.T) {
 
 // The spectrogram VIEW render path (Render → ViewMode 4 → drawSpectrogram) had
 // no coverage: dispatch + the heatmap blit, and the empty-Spect hint.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-068
 func TestRenderSpectrogramView(t *testing.T) {
 	const n = 4096
 	const dt = 2e-9
@@ -210,7 +210,7 @@ var heatStops = [7][3]uint8{
 	{0, 0, 0}, {40, 0, 90}, {130, 20, 90}, {200, 50, 20}, {240, 150, 10}, {250, 220, 80}, {255, 255, 255},
 }
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func TestHeatStops(t *testing.T) {
 	for i := range 7 {
 		r, g, b := unrgb(heat(float64(i) / 6)) // t=i/6 lands exactly on stop i
@@ -222,7 +222,7 @@ func TestHeatStops(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func absU8(a, b uint8) int {
 	if a > b {
 		return int(a - b)
@@ -234,7 +234,7 @@ func absU8(a, b uint8) int {
 // of its bins: a square wave's odd harmonics are single narrow tones, and a
 // column that sampled one bin drew every other harmonic tens of dB low (the
 // web's per-pixel maxima showed them all). The waterfall's pixels alike.
-// TRLC-LINKS: REQ-SDS-068, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-068, REQ-DSO-070
 func TestSpectrumColumnsShowNarrowTones(t *testing.T) {
 	const half = 4096
 	mags := make([]float64, half)
@@ -283,7 +283,7 @@ func TestSpectrumColumnsShowNarrowTones(t *testing.T) {
 
 // The waterfall blit into the back buffer equals the pixel-by-pixel blit,
 // full screen and scaled into a smaller plot.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func TestSpectrogramBlitMatchesPixels(t *testing.T) {
 	sg := NewSpectrogram()
 	for s := range 6 {

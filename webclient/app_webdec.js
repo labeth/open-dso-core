@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_webdec.js — "decode in this browser" on BUS's Stream view
 // (ADR-STREAM-CLIENT-DECODE): a web worker (webdec_worker.js) takes the
 // scope's digital stream and decodes it here, and the scope's transcript,
@@ -8,7 +8,7 @@
 const webdec = { worker: null, stat: null };
 
 // webdecFmt is the worker's status as a line.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecFmt(s) {
   if (!s) return "";
   if (!s.active) return s.why || "";
@@ -20,12 +20,12 @@ function webdecFmt(s) {
 }
 
 // webdecSet starts or stops the worker.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecSet(on) {
   try { localStorage.setItem("sds.webdec", on ? "1" : ""); } catch (e) { /* private window: not remembered */ }
   if (on && !webdec.worker) {
     webdec.worker = new Worker("webdec_worker.js");
-    // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+    // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
     webdec.worker.onmessage = (ev) => {
       if (ev.data && ev.data.type === "status") webdec.stat = ev.data;
       const t = webdecFmt(webdec.stat);
@@ -42,7 +42,7 @@ function webdecSet(on) {
   $("streamWebDec").checked = !!on;
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 $("streamWebDec").onchange = () => webdecSet($("streamWebDec").checked);
 {
   let on = false;

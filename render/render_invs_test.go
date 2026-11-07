@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -12,7 +12,7 @@ import (
 // traceRows scans the mid-screen window (clear of the top-bar channel labels,
 // the left-edge ground markers and the right-edge trigger handle) and returns
 // the min/max row holding a pixel of the given trace colour.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func traceRows(sf *Image565, col Color) (minY, maxY int, found bool) {
 	minY, maxY = H, -1
 	for y := 16; y <= 450; y++ {
@@ -30,7 +30,7 @@ func traceRows(sf *Image565, col Color) (minY, maxY int, found bool) {
 	return minY, maxY, maxY >= 0
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func flatFrame(v1, v2 uint8) *sample.Frame {
 	const n = 2048
 	f := &sample.Frame{
@@ -52,7 +52,7 @@ func flatFrame(v1, v2 uint8) *sample.Frame {
 // contract: with HUD.Inv set, the rendered Y-T trace is mirrored about the
 // display centre — y(v) becomes y(255−v) — for BOTH channels, independently,
 // while nothing else about the render is inverted.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderINVSFlipsTrace(t *testing.T) {
 	f := flatFrame(168, 88) // C1 above centre, C2 below — asymmetric on purpose
 	hud := HUD{
@@ -98,7 +98,7 @@ func TestRenderINVSFlipsTrace(t *testing.T) {
 
 // TestRenderINVSFlipsEnvelope pins the envelope (peak-detect/roll) path: the
 // inverted band's rows are the mirror of the upright band's codes.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderINVSFlipsEnvelope(t *testing.T) {
 	const n = 400
 	f := &sample.Frame{
@@ -136,7 +136,7 @@ func TestRenderINVSFlipsEnvelope(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestTriggerPositionMarkerEndpoints(t *testing.T) {
 	for _, tc := range []struct {
 		pos float64
@@ -150,7 +150,7 @@ func TestTriggerPositionMarkerEndpoints(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-018
 func TestLeftEdgeTraceDecodeAndZoneAlignment(t *testing.T) {
 	const n = 1024
 	f := &sample.Frame{WinPoints: n, TriggerAt: 0, SampleS: 1e-6, Traces: []sample.Trace{{Codes8: uartWave([]int{0x4f, 0x4b, 0x21}, 16, n), Valid: n}, {Ch: 1, Valid: n}}}
@@ -177,7 +177,7 @@ func TestLeftEdgeTraceDecodeAndZoneAlignment(t *testing.T) {
 // A mask built from full-rate records draws over the live envelope of the same
 // timebase through trigger-relative time, where the engine tests it, as on
 // frames of its own sampling.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-014
 func TestMaskOverlayThroughTime(t *testing.T) {
 	lo, hi := make([]uint8, 1000), make([]uint8, 1000)
 	for j := range lo {

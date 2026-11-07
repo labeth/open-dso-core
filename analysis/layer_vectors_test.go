@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -17,23 +17,23 @@ type layerVec struct {
 }
 
 // mkSPI is an SPI transaction (one burst).
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func mkSPI(b ...byte) Packet { return Packet{Bytes: b, ByteErr: make([]bool, len(b)), Complete: true} }
 
 // mkI2C is an I2C transfer to addr.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func mkI2C(addr int, read bool, b ...byte) Packet {
 	return Packet{Bytes: b, ByteErr: make([]bool, len(b)), Addr: addr, HasAddr: true, Read: read, Complete: true}
 }
 
 // mkUSB is a USB packet with its PID.
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func mkUSB(pid int, b ...byte) Packet {
 	return Packet{Bytes: b, ByteErr: make([]bool, len(b)), Addr: pid, HasAddr: true, Complete: true}
 }
 
 // sbusBytes builds an S.BUS frame of 16 channel values and flags.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func sbusBytes(ch [16]int, flags byte) []byte {
 	b := make([]byte, 25)
 	b[0] = 0x0f
@@ -52,7 +52,7 @@ func sbusBytes(ch [16]int, flags byte) []byte {
 
 // edidBlock is a valid 128-byte EDID base block for a 1920x1080 60 Hz
 // display named "TESTMON".
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func edidBlock() []byte {
 	m := make([]byte, 128)
 	copy(m, edidHeader)
@@ -76,7 +76,7 @@ func edidBlock() []byte {
 }
 
 // layerCurated are realistic records for every layer.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func layerCurated() []layerVec {
 	var vs []layerVec
 	add := func(name, id, proto string, ps ...Packet) {
@@ -271,7 +271,7 @@ func layerCurated() []layerVec {
 }
 
 // atshaCmd is an ATSHA204A command transfer with its count and CRC.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func atshaCmd(op, p1 byte, p2 int, data []byte) Packet {
 	c := []byte{0, op, p1, byte(p2), byte(p2 >> 8)}
 	c = append(c, data...)
@@ -290,7 +290,7 @@ type tpiuItem struct {
 // tpiuFrame packs stream changes and data into 16-byte TPIU frames: an ID
 // takes an even byte (its low bit 1, and the auxiliary bit 0: it takes
 // effect at once), data fills the rest.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func tpiuFrame(items []tpiuItem) []byte {
 	var out []byte
 	for len(items) > 0 {
@@ -328,7 +328,7 @@ func tpiuFrame(items []tpiuItem) []byte {
 
 // layerRandom are random records for every layer (the parity and break
 // suites' second half): random lengths and bytes, flags and addresses.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func layerRandom(seed int64) []layerVec {
 	r := rand.New(rand.NewSource(seed))
 	var vs []layerVec

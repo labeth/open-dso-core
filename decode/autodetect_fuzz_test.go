@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -47,7 +47,7 @@ var autoAlike = map[string][]string{
 // edge, swing, offset or distractor) leave the bus named: where they do not,
 // the cut left a fragment another bus reads as well (a T55xx command cut to
 // six clean characters of 4800 Bd), no detection's fault.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func cleanNamesIt(c detectCase, m fuzzMutation) bool {
 	clean := fuzzMutation{edge: 1, swing: 1, cutHead: m.cutHead, cutTail: m.cutTail, decim: m.decim}
 	n := len(c.c1)
@@ -61,13 +61,13 @@ func cleanNamesIt(c detectCase, m fuzzMutation) bool {
 	return r.OK && r.Proto == c.proto
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func alikeName(want, got string) bool {
 	return slices.Contains(autoAlike[want], got)
 }
 
 // fuzzUART is a UART bus: text at baud, sampled at sr.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func fuzzUART(rng *rand.Rand, baud, sr float64) []uint8 {
 	w := newTimeline(sr)
 	w.idle(30 / baud)
@@ -92,7 +92,7 @@ type spiShape struct {
 
 // fuzzSPI is an SPI bus of shape s: bytes on the data line, the clock on the
 // other, as a twoLine (a clock, b data).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func fuzzSPI(rng *rand.Rand, s spiShape, sr float64, bytes int) twoLine {
 	l := newTwoLine(sr)
 	idle := byte(0)
@@ -137,7 +137,7 @@ func fuzzSPI(rng *rand.Rand, s spiShape, sr float64, bytes int) twoLine {
 // fuzzI2C is an I2C bus at hz: transfers to addr of a few bytes, each
 // acknowledged but a read's last (the controller NAKs it), with START and
 // STOP, as a twoLine (a SCL, b SDA).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func fuzzI2C(rng *rand.Rand, hz, sr float64, transfers int) twoLine {
 	l := newTwoLine(sr)
 	T := 1 / hz
@@ -181,7 +181,7 @@ func fuzzI2C(rng *rand.Rand, hz, sr float64, transfers int) twoLine {
 
 // fuzzCorpus is every labelled capture: the detection tests' and the
 // parametric buses'.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func fuzzCorpus(tb testing.TB) []fuzzCase {
 	tb.Helper()
 	var cs []fuzzCase
@@ -250,7 +250,7 @@ type fuzzMutation struct {
 	mild, moderate             bool
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (m fuzzMutation) String() string {
 	return fmt.Sprintf("noise %.1f edge %.2f swing %.2f offset %+.0f cut %.2f/%.2f decim %d distractor %q",
 		m.noise, m.edge, m.swing, m.offset, m.cutHead, m.cutTail, m.decim, m.distractor)
@@ -258,7 +258,7 @@ func (m fuzzMutation) String() string {
 
 // fuzzMutate is c mutated by a random mutation of rng (mild with odds
 // mildShare: a little noise and edge, no cut past a tenth, no decimation).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func fuzzMutate(rng *rand.Rand, c detectCase) (detectCase, fuzzMutation) {
 	m := fuzzMutation{mild: rng.Float64() < 0.5}
 	if m.mild {
@@ -300,7 +300,7 @@ func fuzzMutate(rng *rand.Rand, c detectCase) (detectCase, fuzzMutation) {
 }
 
 // isIdle reports a flat channel (idleLike's).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func isIdle(c []uint8) bool {
 	for _, v := range c {
 		if v != c[0] {
@@ -312,7 +312,7 @@ func isIdle(c []uint8) bool {
 
 // distractor is a channel of kind: noise about mid-scale, a free-running
 // square wave, or a random telegraph (two levels, edges at random).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func distractor(rng *rand.Rand, kind string, n int) []uint8 {
 	out := make([]uint8, n)
 	switch kind {
@@ -346,7 +346,7 @@ func distractor(rng *rand.Rand, kind string, n int) []uint8 {
 // shapeChannel is c as the mutation's front end records it: a slow edge
 // (first-order, edge the share a sample moves), the swing and offset about
 // mid-scale, noise, then box-averaged by decim.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func shapeChannel(rng *rand.Rand, c []uint8, m fuzzMutation) []uint8 {
 	if len(c) == 0 {
 		return c
@@ -378,7 +378,7 @@ type fuzzFinding struct {
 
 // fuzzRun runs mutations seed0..seed0+n-1 over the corpus (case seed%len),
 // in parallel, and returns the findings.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func fuzzRun(corpus []fuzzCase, seed0 int64, n int) []fuzzFinding {
 	var mu sync.Mutex
 	var out []fuzzFinding
@@ -406,7 +406,7 @@ func fuzzRun(corpus []fuzzCase, seed0 int64, n int) []fuzzFinding {
 
 // fuzzOne mutates the corpus's case for seed (a noise or idle capture on one
 // seed in ten) and judges the detection's name by the three rules.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func fuzzOne(corpus []fuzzCase, seed int64) (fuzzFinding, bool) {
 	rng := rand.New(rand.NewSource(seed))
 	if seed%10 == 9 { // nothing on either channel: no bus
@@ -451,7 +451,7 @@ func fuzzOne(corpus []fuzzCase, seed int64) (fuzzFinding, bool) {
 // TestAutodetectFuzzCampaign runs the campaign: SDS_AUTO_FUZZ mutations (24
 // by default) from SDS_AUTO_FUZZ_SEED; it lists every finding by rule and
 // case and fails on any. SDS_AUTO_FUZZ_ONE=seed replays one.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectFuzzCampaign(t *testing.T) {
 	corpus := fuzzCorpus(t)
 	if s := os.Getenv("SDS_AUTO_FUZZ_ONE"); s != "" {
@@ -494,7 +494,7 @@ func TestAutodetectFuzzCampaign(t *testing.T) {
 // with the distractor as the clock both once named one (DCF77 beside a
 // square read as general-call writes of zeros; Modbus beside a telegraph as
 // one MDIO frame on the UART's idle ones).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectLineBesideDistractor(t *testing.T) {
 	tried := 0
 	for _, c := range protoDetectCases() {

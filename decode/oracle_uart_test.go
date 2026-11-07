@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -15,7 +15,7 @@ import (
 )
 
 // uframe is one UART frame for the oracle generator.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type uframe struct {
 	v          int
 	flipParity bool // emit the WRONG parity bit
@@ -26,7 +26,7 @@ type uframe struct {
 // oracleUARTBits renders frames at the given rates: LSB-first data, optional
 // parity, one stop bit, per-frame idle gap. Timings accumulate in seconds so
 // non-integer samples-per-bit behave like a real async capture.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func oracleUARTBits(sr, baud float64, dataBits int, parity string, frames []uframe) []byte {
 	w := newTimeline(sr)
 	bt := 1 / baud
@@ -60,7 +60,7 @@ func oracleUARTBits(sr, baud float64, dataBits int, parity string, frames []ufra
 	return w.bits
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func frames(bytes ...int) []uframe {
 	fs := make([]uframe, len(bytes))
 	for i, b := range bytes {
@@ -69,7 +69,7 @@ func frames(bytes ...int) []uframe {
 	return fs
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestOracleUART(t *testing.T) {
 	needSigrok(t)
 	const sr = 1_000_000

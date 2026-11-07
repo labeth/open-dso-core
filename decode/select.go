@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -14,7 +14,7 @@ var nthScratch = sync.Pool{New: func() any { return new([]float64) }}
 // first) without sorting: a copy is partitioned until k is in place, linear
 // on average. A busy line holds hundreds of thousands of runs, and sorting
 // them all for one quantile cost the bus search seconds on the scope.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func nthValue(v []float64, k int) float64 {
 	// The copy is scratch: a pooled buffer, not an allocation the
 	// collector has to clear and sweep each call.
@@ -57,7 +57,7 @@ type nearBuf struct {
 // and of them only the ones that differ from it. On the device a float
 // compare costs ten integer ones, and a clock's gaps nearly all equal a
 // period's samples exactly. b holds the working arrays (nil: made anew).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func nthNear(v []float64, iv []int, k int, b *nearBuf) float64 {
 	if b == nil {
 		b = &nearBuf{}
@@ -137,7 +137,7 @@ func nthNear(v []float64, iv []int, k int, b *nearBuf) float64 {
 }
 
 // nearBufOf is a nearBuf kept in sc's next slot (nil sc: a new one).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func nearBufOf(sc *scratch) *nearBuf {
 	s := scratchSlice[nearBuf](sc, 1)[:1]
 	return &s[0]
@@ -146,7 +146,7 @@ func nearBufOf(sc *scratch) *nearBuf {
 // quickSelect is the k-th smallest of c (0-based), c reordered: Hoare
 // partitions around a median-of-three pivot until k is in place, linear on
 // average. c holds no NaN.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214, REQ-DSO-236
 func quickSelect[T int | float64](c []T, k int) T {
 	lo, hi := 0, len(c)-1
 	for lo < hi {
@@ -202,7 +202,7 @@ type runningMedian struct{ lo, hi keyHeap } // lo holds the keys inverted
 // orderKey is an integer that orders as x does among values that are not
 // NaN (-0 below +0): the sign bit set for a positive x, all bits inverted
 // for a negative one.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func orderKey(x float64) uint64 {
 	b := math.Float64bits(x)
 	if b>>63 != 0 {
@@ -212,7 +212,7 @@ func orderKey(x float64) uint64 {
 }
 
 // keyValue is the value of an orderKey.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func keyValue(k uint64) float64 {
 	if k>>63 != 0 {
 		return math.Float64frombits(k &^ (1 << 63))
@@ -221,7 +221,7 @@ func keyValue(k uint64) float64 {
 }
 
 // add puts x in the list.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (m *runningMedian) add(x float64) {
 	k := orderKey(x)
 	if len(m.lo.v) > 0 && k < ^m.lo.v[0] {
@@ -239,7 +239,7 @@ func (m *runningMedian) add(x float64) {
 }
 
 // value is medianOf of the values added, 0 for none.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (m *runningMedian) value() float64 {
 	if len(m.hi.v) == 0 {
 		return 0
@@ -253,7 +253,7 @@ func (m *runningMedian) value() float64 {
 type keyHeap struct{ v []uint64 }
 
 // push adds x (heap.Push).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (h *keyHeap) push(x uint64) {
 	h.v = append(h.v, x)
 	v, j := h.v, len(h.v)-1
@@ -268,7 +268,7 @@ func (h *keyHeap) push(x uint64) {
 }
 
 // pop removes and returns the least (heap.Pop).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (h *keyHeap) pop() uint64 {
 	v := h.v
 	n := len(v) - 1

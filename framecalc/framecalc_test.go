@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-FRAMECALC
 
 package framecalc
 
@@ -11,7 +11,7 @@ import (
 )
 
 // sineFrame is a frame of a sine of cycles periods over n samples.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func sineFrame(n int, cycles, amp float64, seq uint64) *sample.Frame {
 	f := &sample.Frame{SampleS: 1e-6, Seq: seq, Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Codes8: make([]uint8, n), Valid: n}}}
 	for i := range f.Codes8(0) {
@@ -24,7 +24,7 @@ func sineFrame(n int, cycles, amp float64, seq uint64) *sample.Frame {
 // The spectrum's peak sits at the tone's bin, its level reads the tone's
 // amplitude (A*N/4 through the Hann window), and a second request for the
 // same frame is the cached result.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func TestSpectrumPeakAndCache(t *testing.T) {
 	f := sineFrame(4096, 64, 80, 7)
 	sp, ok := Spectrum(f, 0, f.SampleS)
@@ -51,7 +51,7 @@ func TestSpectrumPeakAndCache(t *testing.T) {
 
 // Decode is shared: the strip and the packet list asking for the same frame
 // get one decode; a different format is a different decode.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func TestDecodeCacheShared(t *testing.T) {
 	f := sineFrame(2048, 4, 100, 11)
 	p := DecodeParams{Proto: ProtoUART, Baud: 115200, Format: "hex"}
@@ -69,7 +69,7 @@ func TestDecodeCacheShared(t *testing.T) {
 // bins hold the stopband (a 32 ns capture filtered at 4.2 MHz drawn to
 // 15.6 MHz shows a square's harmonics above 4.2 MHz gone). An
 // unfiltered frame keeps its whole Nyquist.
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 func TestSpectrumEndsAtTheFilterBand(t *testing.T) {
 	f := sineFrame(4096, 64, 80, 21)
 	f.SampleS = 32e-9
@@ -93,7 +93,7 @@ func TestSpectrumEndsAtTheFilterBand(t *testing.T) {
 // the characters back to back with it from there, where a record opening
 // inside the traffic read "A5" and then "ER" three times on the owner's AA
 // trigger.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestDecodeFramesFromTheHardwareMatch(t *testing.T) {
 	const spb = 20
 	var w []uint8
@@ -128,7 +128,7 @@ func TestDecodeFramesFromTheHardwareMatch(t *testing.T) {
 // The settings' parameters: SPI's data delay in seconds (no other protocol
 // takes one), and the format index wrapped onto the three formats, so the
 // panel and the LCD ask Decode the same question.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func TestParams(t *testing.T) {
 	delayNs := 7.5
 	p := Params(ProtoSPI, 0, 1, 0, false, true, true, 4, delayNs, "")
@@ -143,7 +143,7 @@ func TestParams(t *testing.T) {
 
 // as12bit is f with its codes as 12-bit words left-aligned in 16 bits (each
 // code its high byte), as a 12-bit scope's frame holds the same screen.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func as12bit(f *sample.Frame) *sample.Frame {
 	g := *f
 	g.Traces = make([]sample.Trace, len(f.Traces))
@@ -162,7 +162,7 @@ func as12bit(f *sample.Frame) *sample.Frame {
 
 // A 12-bit frame decodes, is searched and makes its spectrum on the 8-bit
 // view: what an 8-bit frame of the same screen gives.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-070
 func TestTwelveBitFramesReadAsTheirEightBitView(t *testing.T) {
 	const spb = 20
 	var w []uint8

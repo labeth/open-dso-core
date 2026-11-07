@@ -1,25 +1,25 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 (async()=>{
-for(const [file,key,loop,end] of [['app_eye.js','ej','ejLoop','// TRLC-LINKS: REQ-SDS-200\n$("ejEye")'],['app_superres.js','sr','srLoop','// TRLC-LINKS: REQ-SDS-019\n$("srArm")']]){
+for(const [file,key,loop,end] of [['app_eye.js','ej','ejLoop','// TRLC-LINKS: REQ-DSO-200\n$("ejEye")'],['app_superres.js','sr','srLoop','// TRLC-LINKS: REQ-DSO-019\n$("srArm")']]){
  const src=fs.readFileSync(file,'utf8'),start=src.indexOf('async function '+loop+'('),code=src.slice(start,src.indexOf(end,start));
  let sample={seq:1,peak_detect:true},ingested=0,stopped=0,queued=0;
  const state={armed:true,gen:1,lastSeq:0,fails:0};
  const noBuffer={ok:true,
-  // TRLC-LINKS: REQ-SDS-019, REQ-SDS-067
+  // TRLC-LINKS: REQ-DSO-019, REQ-DSO-067
   arrayBuffer:async()=>null};
  const c={st:{running:true},[key]:state,srFails:0,ejOptBusy:false,
-  // TRLC-LINKS: REQ-SDS-019, REQ-SDS-067
+  // TRLC-LINKS: REQ-DSO-019, REQ-DSO-067
   fetch:async()=>noBuffer,
-  // TRLC-LINKS: REQ-SDS-019, REQ-SDS-067
+  // TRLC-LINKS: REQ-DSO-019, REQ-DSO-067
   decodeBinFrame:()=>sample,
-  // TRLC-LINKS: REQ-SDS-019, REQ-SDS-067
+  // TRLC-LINKS: REQ-DSO-019, REQ-DSO-067
   [key+'Ingest'](){ingested++;},
-  // TRLC-LINKS: REQ-SDS-019, REQ-SDS-067
+  // TRLC-LINKS: REQ-DSO-019, REQ-DSO-067
   [key+'Stop'](){stopped++;state.armed=false;},
-  // TRLC-LINKS: REQ-SDS-019, REQ-SDS-067
+  // TRLC-LINKS: REQ-DSO-019, REQ-DSO-067
   [key+'Status'](){},
-  // TRLC-LINKS: REQ-SDS-019, REQ-SDS-067
+  // TRLC-LINKS: REQ-DSO-019, REQ-DSO-067
   setTimeout(){queued++;},
   Date,Math};
  vm.createContext(c);vm.runInContext(fs.readFileSync('caps.js','utf8'),c);vm.runInContext(code,c);

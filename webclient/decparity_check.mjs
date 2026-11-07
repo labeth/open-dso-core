@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // decparity_check.mjs — Go<->JS decoder parity checker.
 //
 // Loads the browser decode logic (decode.js + every protocol twin) into one
@@ -57,116 +57,116 @@ const D = ctx.__D;
 
 // codes2 carries the second channel for two-channel protocols (I2C, SPI); an
 // empty/missing array means "channel off".
-// TRLC-LINKS: REQ-SDS-181
+// TRLC-LINKS: REQ-DSO-181
 const c2of = (v) => (v.codes2 && v.codes2.length ? v.codes2 : undefined);
 const dispatch = {
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   manchester: (v) => D.decodeManchester(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   mil1553: (v) => D.decodeMIL1553(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   flexray: (v) => D.decodeFlexRay(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   sent: (v) => D.decodeSENT(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   canfd: (v) => D.decodeCANFD(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   arinc429: (v) => D.decodeARINC429(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   usbls: (v) => D.decodeUSBLS(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   uart: (v) => D.decodeUART(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   i2c: (v) => D.decodeI2C(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   spi: (v) => D.decodeSPI(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   lin: (v) => D.decodeLIN(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   dmx512: (v) => D.decodeDMX512(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   midi: (v) => D.decodeMIDI(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   modbus: (v) => D.decodeModbus(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   onewire: (v) => D.decodeOneWire(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   ws281x: (v) => D.decodeWS281x(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   dht: (v) => D.decodeDHT(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   cec: (v) => D.decodeCEC(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   j1850: (v) => D.decodeJ1850(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   irnec: (v) => D.decodeIRNEC(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   irsirc: (v) => D.decodeIRSIRC(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   irrc5: (v) => D.decodeIRRC5(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   irrc6: (v) => D.decodeIRRC6(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   dali: (v) => D.decodeDALI(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   usbpd: (v) => D.decodeUSBPD(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   spdif: (v) => D.decodeSPDIF(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   ps2: (v) => D.decodePS2(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   swd: (v) => D.decodeSWD(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   mdio: (v) => D.decodeMDIO(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   wiegand: (v) => D.decodeWiegand(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   quad: (v) => D.decodeQuadrature(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   stepper: (v) => D.decodeStepper(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   pwm: (v) => D.decodePWM(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   rcencode: (v) => D.decodeRCEncode(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   ook: (v) => D.decodeOOK(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   miller: (v) => D.decodeMiller(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   morse: (v) => D.decodeMorse(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   dcf77: (v) => D.decodeDCF77(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   em4100: (v) => D.decodeEM4100(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   em4305: (v) => D.decodeEM4305(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   t55xx: (v) => D.decodeT55xx(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   swim: (v) => D.decodeSWIM(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   sdq: (v) => D.decodeSDQ(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   pjdl: (v) => D.decodePJDL(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   dsi: (v) => D.decodeDSI(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   qi: (v) => D.decodeQi(v.codes, v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   sdcard: (v) => D.decodeSDCard(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   pdi: (v) => D.decodePDI(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   cjtag: (v) => D.decodeCJTAG(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   maple: (v) => D.decodeMaple(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   caliper: (v) => D.decodeCaliper(v.codes, c2of(v), v.colT, v.cfg),
-  // TRLC-LINKS: REQ-SDS-181
+  // TRLC-LINKS: REQ-DSO-181
   irmp: (v) => D.decodeIRMP(v.codes, v.colT, v.cfg),
 };
 
-// TRLC-LINKS: REQ-SDS-181, REQ-SDS-073
+// TRLC-LINKS: REQ-DSO-181, REQ-DSO-073
 const arrEq = (a, b) => {
   a = a || [];
   b = b || [];

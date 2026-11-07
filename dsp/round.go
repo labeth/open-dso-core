@@ -1,11 +1,11 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DSP
+// ENGMODEL-OWNER-UNIT: FU-DSO-DSP
 
 package dsp
 
 // RoundQ8 writes each Q8 sample of src rounded to its code into dst: (v +
 // 128) >> 8, at most 255, the codes a conditioned record is drawn and
 // measured from. dst must hold len(src).
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func RoundQ8(dst []uint8, src []uint16) {
 	if len(src) == 0 {
 		return
@@ -18,7 +18,7 @@ func RoundQ8(dst []uint8, src []uint16) {
 // then channel 2's, four bytes a pair, as a precision record's words come)
 // into q1 and q2 and their codes (RoundQ8) into c1 and c2. q2, c1 and c2
 // must hold len(q1), b 4*len(q1) bytes.
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func SplitQ8(q1, q2 []uint16, c1, c2 []uint8, b []byte) {
 	n := len(q1)
 	if n == 0 {

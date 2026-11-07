@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestWideWordFormatting(t *testing.T) {
 	for _, tc := range []struct {
 		v, bits      int

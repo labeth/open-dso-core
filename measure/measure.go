@@ -7,7 +7,7 @@
 // derived from interpolated threshold crossings so it is accurate to a fraction
 // of a sample. Timing is reported only when the record has a real, resolvable
 // edge (a minimum amplitude and at least one full cycle).
-// ENGMODEL-OWNER-UNIT: FU-APP-MEASURE
+// ENGMODEL-OWNER-UNIT: FU-DSO-MEASURE
 package measure
 
 import (
@@ -20,7 +20,7 @@ import (
 // Result is the full auto-measurement set: volts, seconds and Hz. HasTiming is
 // false when the record has no resolvable edge (flat/DC or sub-noise), in which
 // case the timing fields are zero and callers should show them as "—".
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 type Result struct {
 	Vpp    float64 `json:"vpp"`
 	Vmax   float64 `json:"vmax"`
@@ -83,7 +83,7 @@ type EdgeWindow struct {
 // a clean edge of the channel adds nothing. A signal faster than the
 // envelope's buckets resolve has no timing there, and an aliased mean; a
 // window holding whole periods gives both.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (r *Result) WithEdgeDetail(voltsPerCode, offV float64, windows ...EdgeWindow) *Result {
 	if r == nil || len(windows) == 0 {
 		return r
@@ -141,7 +141,7 @@ type avg struct {
 	n   int
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (a *avg) add(v float64) {
 	if v > 0 {
 		a.sum += v
@@ -150,7 +150,7 @@ func (a *avg) add(v float64) {
 }
 
 // mean is the values' mean, 0 with none.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (a *avg) mean() float64 {
 	if a.n == 0 {
 		return 0
@@ -163,7 +163,7 @@ func (a *avg) mean() float64 {
 // and positive and negative widths swap, duty becomes its complement; Vpp,
 // amplitude, RMS, frequency and period hold. A new value: callers cache r.
 // Without it an inverted trace reads Vmax +3.3 V while it runs 0 to -3.3 V.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (r *Result) Inverted() *Result {
 	if r == nil {
 		return nil
@@ -184,7 +184,7 @@ func (r *Result) Inverted() *Result {
 // DropTiming removes the timing results: a peak-detect envelope holds each
 // bucket's extremes, not samples in time order, so periods, widths and edges
 // measured on it are artefacts. Amplitude extremes stay valid.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (r *Result) DropTiming() {
 	if r == nil {
 		return
@@ -196,7 +196,7 @@ func (r *Result) DropTiming() {
 
 // WithoutTiming returns a copy with the timing results removed (see
 // DropTiming); cached results are left untouched.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (r *Result) WithoutTiming() *Result {
 	if r == nil {
 		return nil
@@ -218,7 +218,7 @@ const envMinBuckets = 8
 // period spans at least envMinBuckets buckets; rise/fall and over/preshoot,
 // which happen inside a bucket, stay dropped. Without it every running frame
 // at 10 us/div and slower has no frequency.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (r *Result) WithEnvelopeTiming(env []uint8, voltsPerCode, offV, sampleS float64) *Result {
 	c := r.WithoutTiming()
 	n := len(env) / 2
@@ -278,17 +278,17 @@ func (r *Result) WithEnvelopeTiming(env []uint8, voltsPerCode, offV, sampleS flo
 
 // envSwing is an envelope's extremes and the bounds of the middle half of
 // its swing.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 type envSwing struct{ lo, hi, q1, q3 int }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func scanEnvelope(env []uint8) envSwing {
 	lo, hi := minMax8(env)
 	l, h := int(lo), int(hi)
 	return envSwing{l, h, l + (h-l)/4, h - (h-l)/4}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (q envSwing) resolvable() bool { return q.hi-q.lo >= minAmplCodes }
 
 // Bucket classes against the middle half of the swing: spanning it, wholly
@@ -302,7 +302,7 @@ const (
 
 // narrowPulseIn is the narrow-pulse test on classified buckets: a run of one
 // or two spanning buckets between buckets wholly at the same level.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func narrowPulseIn(class []uint8) bool {
 	n := len(class)
 	for i := 1; i+1 < n; i++ {
@@ -335,7 +335,7 @@ const minAmplCodes = 8
 // low excursion is nowhere near it, and this symmetric front end rails BOTH ends
 // on overdrive, so low-rail pileup catches it; the high side only flags at the
 // hard clamp (>=253). >0.5 % of samples piled within 2 codes of the rail ⇒ clipped.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func Clipped(sig []uint8) bool {
 	n := len(sig)
 	if n == 0 {
@@ -363,13 +363,13 @@ func Clipped(sig []uint8) bool {
 // code step to volts (already probe-scaled); offV is the input-referred offset
 // (v = (code-128)·voltsPerCode − offV); sampleS is per-sample seconds. Returns
 // nil for an empty record.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func Compute(sig []uint8, voltsPerCode, offV, sampleS float64) *Result {
 	return compute(sig, voltsPerCode, offV, sampleS, 1)
 }
 
 // ComputeQ8 preserves fractional acquisition codes in every measurement.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func ComputeQ8(sig []uint16, voltsPerCode, offV, sampleS float64) *Result {
 	return compute(sig, voltsPerCode/256, offV, sampleS, 256)
 }
@@ -377,7 +377,7 @@ func ComputeQ8(sig []uint16, voltsPerCode, offV, sampleS float64) *Result {
 // ComputeAcquisition chooses the precision record when available. Coupling
 // 1 removes its mean in the measurement domain, without quantizing samples;
 // coupling 2 grounds the displayed input. The legacy path is already coupled.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func ComputeAcquisition(raw []uint8, q []uint16, voltsPerCode, offV, sampleS float64, coupling int, guard ...int) *Result {
 	if len(q) != len(raw) || len(q) == 0 {
 		return Compute(raw, voltsPerCode, offV, sampleS)
@@ -401,14 +401,14 @@ func ComputeAcquisition(raw []uint8, q []uint16, voltsPerCode, offV, sampleS flo
 	return r
 }
 
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func compute[T ~uint8 | ~uint16](sig []T, voltsPerCode, offV, sampleS, scale float64) *Result {
 	return computeMin(sig, voltsPerCode, offV, sampleS, scale, minAmplCodes)
 }
 
 // computeMin is compute with timing resolvable from a top-base span of
 // minAmpl 8-bit codes.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func computeMin[T ~uint8 | ~uint16](sig []T, voltsPerCode, offV, sampleS, scale, minAmpl float64) *Result {
 	n := len(sig)
 	if n == 0 {
@@ -578,7 +578,7 @@ func computeMin[T ~uint8 | ~uint16](sig []T, voltsPerCode, offV, sampleS, scale,
 // 8): the mean of the samples in the top and base modes' whole codes (topC,
 // baseC; -1 for none, which keeps top or base as given). Both means come in
 // one pass over the record, or from the histogram's low-byte sums.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func settledCodes[T ~uint8 | ~uint16](sig []T, shift, topC, baseC, top, base int, hist *[256]int, lowSum *[256]uint32) (topCode, baseCode int) {
 	topCode, baseCode = top, base
 	// Both codes' means in one pass over the record. int64: the device's
@@ -626,7 +626,7 @@ func settledCodes[T ~uint8 | ~uint16](sig []T, shift, topC, baseC, top, base int
 // (interpolated at mid50) of each complete transition through the Schmitt
 // band: below lowCode, across midCode, beyond highCode. Small midpoint
 // recrossings do not turn one noisy edge into several periods.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func schmittCrossings[T ~uint8 | ~uint16](sig []T, lowCode, midCode, highCode int, mid50 float64, rise, fall []float64) ([]float64, []float64) {
 	n := len(sig)
 	state := 0
@@ -695,7 +695,7 @@ walk:
 // moments16 is compute's pass over a Q8.8 record: the extremes, the sum and
 // sum of squares of the deltas from ref, and each whole code's count and
 // low-byte sum. Out of line for the same reason as histogram4.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 //
 //go:noinline
 func moments16(sig []uint16, ref int, coarse *[256]int, lowSum *[256]uint32) (cmin, cmax int, sum int64, sq uint64) {
@@ -723,7 +723,7 @@ func moments16(sig []uint16, ref int, coarse *[256]int, lowSum *[256]uint32) (cm
 
 // minMax8 is the extremes of a non-empty s (dsp.MinMax8: a long run in
 // blocks on the vector unit, the rest by predicted branches).
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func minMax8(s []uint8) (lo, hi uint8) {
 	return dsp.MinMax8(s)
 }
@@ -732,7 +732,7 @@ func minMax8(s []uint8) (lo, hi uint8) {
 // do not wait on the previous increment's store. Out of line on purpose: in
 // the caller's large frame every table address is reloaded from a literal
 // pool per sample, here the tables sit behind one register.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 //
 //go:noinline
 func histogram4(h *[4][256]int32, s []uint8) {
@@ -752,7 +752,7 @@ func histogram4(h *[4][256]int32, s []uint8) {
 
 // interp returns the fractional sample index where a segment [a,b] straddling
 // samples (i-1,i) crosses level. a and b are the sample values.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func interp(a, b float64, i int, level float64) float64 {
 	if b == a {
 		return float64(i)
@@ -762,7 +762,7 @@ func interp(a, b float64, i int, level float64) float64 {
 
 // modeInRange returns the most-populated code in [lo,hi] (inclusive), or -1 if
 // the range is empty.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func modeInRange(hist []int, lo, hi int) int {
 	if lo < 0 {
 		lo = 0
@@ -785,7 +785,7 @@ func modeInRange(hist []int, lo, hi int) int {
 // cycles, to a fraction of a sample); a burst clock (an SPI flash read)
 // leaves out the idle gaps between its bursts, which as a span over the
 // record read a 104 MHz clock as 75 MHz.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func cyclePeriod(idx []float64) float64 {
 	var buf [256]float64
 	gaps := buf[:0]
@@ -808,7 +808,7 @@ func cyclePeriod(idx []float64) float64 {
 
 // nthFloat returns the value sorting would put at x[k] (Hoare selection,
 // reordering x): the median of a record's gaps without sorting them.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func nthFloat(x []float64, k int) float64 {
 	lo, hi := 0, len(x)-1
 	for lo < hi {
@@ -845,7 +845,7 @@ func nthFloat(x []float64, k int) float64 {
 // forward), which makes the matching `to` index non-decreasing across `from` —
 // a single merge pass instead of a rescan per crossing (a deep 20480-sample
 // record with many cycles made the rescan quadratic).
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func avgWidth(from, to []float64) float64 {
 	if len(from) == 0 || len(to) == 0 {
 		return 0
@@ -873,7 +873,7 @@ func avgWidth(from, to []float64) float64 {
 // without reversing between them, returning both interpolated crossing indices.
 // rising=true looks for an upward edge (first=lo10, second=hi90); rising=false
 // a downward edge (first=hi90, second=lo10).
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func firstEdge[T ~uint8 | ~uint16](sig []T, first, second float64, rising bool) (float64, float64, bool) {
 	n := len(sig)
 	firstUp, firstDown := int(math.Ceil(first)), int(math.Floor(first))

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-OTACTL
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-OTACTL
 
 package otactl
 
@@ -15,14 +15,14 @@ import (
 
 // Client wraps a Transport with the high-level device operations (file
 // transfer, app/agent OTA) that are multi-step over the raw RPC.
-// TRLC-LINKS: REQ-SDS-109, REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-109, REQ-DSO-110
 type Client struct {
 	Transport Transport
 }
 
 // Call runs one RPC and turns a device-side failure into an error, keeping
 // any data the device sent with it.
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func (c *Client) Call(cmd string, args any, timeout time.Duration) (json.RawMessage, error) {
 	resp, err := c.Transport.Call(cmd, args, timeout)
 	if err != nil {
@@ -36,7 +36,7 @@ func (c *Client) Call(cmd string, args any, timeout time.Duration) (json.RawMess
 
 // PutFile streams a local file to an absolute device path via put.begin/
 // put.chunk/put.commit and returns the device-side sha256.
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 func (c *Client) PutFile(localPath, devicePath string, mode uint32, chunk int, progress func(done, total int64)) (string, error) {
 	f, err := os.Open(localPath) //nolint:gosec // uploading the file the user names is the command
 	if err != nil {
@@ -118,7 +118,7 @@ func (c *Client) PutFile(localPath, devicePath string, mode uint32, chunk int, p
 
 // putChunkArgs is put.chunk's argument object; encoding/json writes Data as
 // standard base64 straight into the request, without a base64 string first.
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 type putChunkArgs struct {
 	ID     string `json:"id"`
 	Offset int64  `json:"offset"`
@@ -126,7 +126,7 @@ type putChunkArgs struct {
 }
 
 // GetFile pulls a device file to a local path via the get RPC.
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 func (c *Client) GetFile(devicePath, localPath string, progress func(done, total int64)) (err error) {
 	out, err := os.Create(localPath) //nolint:gosec // downloading to the path the user names is the command
 	if err != nil {
@@ -171,7 +171,7 @@ func (c *Client) GetFile(devicePath, localPath string, progress func(done, total
 
 // UpdateApp uploads a new app binary to a staging path, then triggers
 // app.update (install to inactive slot, activate, restart).
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 func (c *Client) UpdateApp(localBin, stageDir string) (json.RawMessage, error) {
 	dest := stageDir + "/app.upload"
 	sum, err := c.PutFile(localBin, dest, 0o755, 0, nil)
@@ -183,7 +183,7 @@ func (c *Client) UpdateApp(localBin, stageDir string) (json.RawMessage, error) {
 
 // UpdateAgent uploads a new agent binary and triggers agent.update (write
 // inactive agent slot, flip pointer, agent exits for startup.sh to relaunch).
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 func (c *Client) UpdateAgent(localBin, stageDir string) (json.RawMessage, error) {
 	dest := stageDir + "/agent.upload"
 	sum, err := c.PutFile(localBin, dest, 0o755, 0, nil)

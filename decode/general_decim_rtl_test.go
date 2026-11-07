@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -23,7 +23,7 @@ const generalPrecisionStub = "`timescale 1ns/1ps\n" +
 // The general image's SPI trigger (its receiver on the line levels) on a
 // two-line bus fires at the same word whether the record takes every word
 // or one in 8 or 128 (decimated /16 and /256): it reads the raw samples.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-040
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-040
 func TestGeneralImageDecimatedTopRTL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("full top-level simulation")

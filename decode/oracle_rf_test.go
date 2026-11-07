@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -17,7 +17,7 @@ import (
 
 // sigrokOption reports whether the installed sigrok's decoder pd takes
 // option opt (a later release's): the run is tried on a one-sample capture.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func sigrokOption(t *testing.T, pd, ch, opt string) bool {
 	t.Helper()
 	needSigrok(t)
@@ -31,7 +31,7 @@ func sigrokOption(t *testing.T, pd, ch, opt string) bool {
 	return err == nil
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func TestOracleRCEncode(t *testing.T) {
 	const sr = 200000
 	const a = 350e-6
@@ -95,7 +95,7 @@ func TestOracleRCEncode(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func TestOracleOOKOregon(t *testing.T) {
 	const sr = 100000
 	const hp = 1 / 2048.0
@@ -146,7 +146,7 @@ func TestOracleOOKOregon(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func TestOracleMiller(t *testing.T) {
 	const sr = 4000000
 	const baud = 106000
@@ -207,7 +207,7 @@ func TestOracleMiller(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func TestOracleMorse(t *testing.T) {
 	const sr = 2000
 	w := newTimeline(sr)
@@ -233,7 +233,7 @@ func TestOracleMorse(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func TestOracleDCF77(t *testing.T) {
 	const sr = 1000
 	w := newTimeline(sr)

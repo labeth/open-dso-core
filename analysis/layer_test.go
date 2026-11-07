@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -13,7 +13,7 @@ import (
 // TestLayerNotesGolden reads the curated records of every layer and holds
 // the notes to testdata/layer_notes.golden: what each layer writes for each
 // transaction, and which it flags. LAYER_GOLDEN_WRITE=1 writes the file.
-// TRLC-LINKS: REQ-SDS-241, REQ-SDS-242, REQ-SDS-243, REQ-SDS-244, REQ-SDS-245, REQ-SDS-246, REQ-SDS-249
+// TRLC-LINKS: REQ-DSO-241, REQ-DSO-242, REQ-DSO-243, REQ-DSO-244, REQ-DSO-245, REQ-DSO-246, REQ-DSO-249
 func TestLayerNotesGolden(t *testing.T) {
 	var sb strings.Builder
 	for _, v := range layerCurated() {
@@ -51,7 +51,7 @@ func TestLayerNotesGolden(t *testing.T) {
 
 // TestLayersOfferedPerBus: each bus offers its layers and none of another's,
 // none first; the order is the list's; unknown buses offer none only.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func TestLayersOfferedPerBus(t *testing.T) {
 	want := map[string]int{"spi": 22, "i2c": 18, "uart": 6, "onewire": 4, "mdio": 1, "usbls": 1, "usb": 1, "canfd": 0, "lin": 0}
 	for bus, n := range want {
@@ -94,7 +94,7 @@ func TestLayersOfferedPerBus(t *testing.T) {
 // TestLayerFixed holds the integer formatting the two surfaces share:
 // halves round away from zero, negatives keep their sign, a zero
 // denominator writes "?".
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func TestLayerFixed(t *testing.T) {
 	for _, c := range []struct {
 		num, den int64

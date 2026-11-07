@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-FDINHERIT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-FDINHERIT
 
 package fdinherit
 
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-002
+// TRLC-LINKS: REQ-DSO-002
 func TestFindInheritedFD(t *testing.T) {
 	// Open a real file; its /proc/self/fd entry must be discoverable by path.
 	f, err := os.CreateTemp(t.TempDir(), "fdtest")
@@ -30,7 +30,7 @@ func TestFindInheritedFD(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func TestHoldersOfSelf(t *testing.T) {
 	f, err := os.CreateTemp(t.TempDir(), "holdertest")
 	if err != nil {
@@ -50,7 +50,7 @@ func TestHoldersOfSelf(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func TestAlive(t *testing.T) {
 	if !Alive(os.Getpid()) {
 		t.Error("self should be alive")
@@ -60,7 +60,7 @@ func TestAlive(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func TestPPidOfSelf(t *testing.T) {
 	if PPid(os.Getpid()) != os.Getppid() {
 		t.Errorf("PPid(self)=%d, want %d", PPid(os.Getpid()), os.Getppid())

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-WATCHDOG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-WATCHDOG
 
 package watchdog
 
@@ -14,7 +14,7 @@ import (
 
 // fileDev is a hal.Watchdog over a plain temp file: no test arms the host's
 // real watchdog. It counts its open holds.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 type fileDev struct {
 	path string
 
@@ -23,7 +23,7 @@ type fileDev struct {
 	opens int
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (d *fileDev) Open() error {
 	f, err := os.OpenFile(d.path, os.O_RDWR, 0)
 	if err != nil {
@@ -36,13 +36,13 @@ func (d *fileDev) Open() error {
 	return nil
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (d *fileDev) Pet() error {
 	_, err := d.f.Write([]byte{0x01})
 	return err
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (d *fileDev) Close() error {
 	d.mu.Lock()
 	d.opens--
@@ -51,7 +51,7 @@ func (d *fileDev) Close() error {
 	return d.f.Close()
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func newDev(t *testing.T) *fileDev {
 	t.Helper()
 	p := filepath.Join(t.TempDir(), "watchdog")
@@ -61,7 +61,7 @@ func newDev(t *testing.T) *fileDev {
 	return &fileDev{path: p}
 }
 
-// TRLC-LINKS: REQ-SDS-026, REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-026, REQ-DSO-086
 func TestAcquirePetsImmediatelyAndDisarmsWithTheMagicByte(t *testing.T) {
 	d := newDev(t)
 	k := NewKeeper(d)
@@ -82,7 +82,7 @@ func TestAcquirePetsImmediatelyAndDisarmsWithTheMagicByte(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-026, REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-026, REQ-DSO-086
 func TestPetLoopFeedsOnIntervalAndStopsAfterDisarm(t *testing.T) {
 	d := newDev(t)
 	k := NewKeeper(d)
@@ -110,7 +110,7 @@ func TestPetLoopFeedsOnIntervalAndStopsAfterDisarm(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func TestAcquireRetriesThenTimesOut(t *testing.T) {
 	missing := &fileDev{path: filepath.Join(t.TempDir(), "nope")}
 	k := NewKeeper(missing)
@@ -130,7 +130,7 @@ func TestAcquireRetriesThenTimesOut(t *testing.T) {
 	k.Disarm()
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func TestAcquireIdempotentAndReacquirable(t *testing.T) {
 	d := newDev(t)
 	k := NewKeeper(d)
@@ -151,7 +151,7 @@ func TestAcquireIdempotentAndReacquirable(t *testing.T) {
 
 // Acquires that race (the restart path and a takeover RPC both acquire) arm
 // one hold: after Disarm none is left.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func TestConcurrentAcquireLeavesOneHold(t *testing.T) {
 	d := newDev(t)
 	for round := range 100 {
@@ -175,7 +175,7 @@ func TestConcurrentAcquireLeavesOneHold(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func TestNoWatchdog(t *testing.T) {
 	k := NewKeeper(nil)
 	if err := k.Acquire(time.Second, time.Hour); !errors.Is(err, ErrNone) {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -95,7 +95,7 @@ var edgeStreamDecs = map[string]func(a, b *EdgeLine, s float64) Result{
 
 // edgeLineOf is a line of 0/1 levels as an EdgeLine, built a sample at a
 // time.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func edgeLineOf(levels []byte) *EdgeLine {
 	l := &EdgeLine{}
 	for _, v := range levels {
@@ -105,7 +105,7 @@ func edgeLineOf(levels []byte) *EdgeLine {
 }
 
 // codesOf is a line of 0/1 levels as samples, 0 or 255.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func codesOf(levels []byte) []uint8 {
 	out := make([]uint8, len(levels))
 	for i, v := range levels {
@@ -116,7 +116,7 @@ func codesOf(levels []byte) []uint8 {
 
 // randomLevels is a random digital line: runs of random length about mean,
 // sometimes a line resting at one level with seldom pulses.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func randomLevels(rng *rand.Rand, n int, mean float64, sparse bool) []byte {
 	out := make([]byte, 0, n)
 	lvl := byte(rng.Intn(2))
@@ -138,7 +138,7 @@ func randomLevels(rng *rand.Rand, n int, mean float64, sparse bool) []byte {
 // An EdgeLine's slicing is sliceChannel's of its samples, field for field,
 // at every threshold: inside the band, at its edges, outside the codes and
 // none; on busy lines, quiet ones, seldom pulsed ones and short ones.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestEdgeLineSliceMatchesSamples(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	thrs := []float64{128, 127.5, 0, -3, 1, 20, 25.5, 26, 100, 200, 229, 229.5, 230, 254.5, 255, 256, math.NaN()}
@@ -175,7 +175,7 @@ func TestEdgeLineSliceMatchesSamples(t *testing.T) {
 }
 
 // AppendWords, AppendRange and Drop build the line the samples are.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestEdgeLineBuilds(t *testing.T) {
 	rng := rand.New(rand.NewSource(2))
 	for range 2000 {
@@ -241,7 +241,7 @@ func TestEdgeLineBuilds(t *testing.T) {
 // at: the digital stream's for its feature at the device's budget of 4 M
 // samples a second, or for a bus finer than that stream resolves, three and
 // a half samples a feature.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func edgeStreamPeriod(tc streamCPUCase) float64 {
 	if period, ok := StreamBitsPlan(tc.feature, 4e6); ok {
 		return StreamBitsPeriod(period)
@@ -251,7 +251,7 @@ func edgeStreamPeriod(tc streamCPUCase) float64 {
 
 // streamBitsLines is about secs of the case's traffic as the digital
 // stream's levels (0 or 1) a sample of ss; bursty as streamCPULines.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamBitsLines(tc streamCPUCase, seed int64, secs, ss float64, bursty bool) (a, b []byte) {
 	rng := rand.New(rand.NewSource(seed))
 	fine := newTwoLine(1 / ss)
@@ -275,7 +275,7 @@ func streamBitsLines(tc streamCPUCase, seed int64, secs, ss float64, bursty bool
 
 // edgeStreamRuns decodes the lines as a stream of samples and of edges,
 // pushed in the same random pieces, and returns both streams' frames.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func edgeStreamRuns(tc streamCPUCase, la, lb []byte, ss float64, seed int64, edec func(a, b *EdgeLine, s float64) Result) (samples, edges []StreamFrame) {
 	closeN, maxN, leadN := int(tc.quiet/ss), int((tc.longest+tc.quiet)/ss), int(tc.lead/ss)
 	ds := NewStreamDecoder(func(x, y []uint8) Result { return tc.c.dec(x, y, ss) }, closeN, maxN)
@@ -319,7 +319,7 @@ func edgeStreamRuns(tc streamCPUCase, la, lb []byte, ss float64, seed int64, ede
 // digital stream's edges that it hands out from its samples: long random
 // traffic, dense and bursty, one line and two, in random pieces with lost
 // stretches between.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestEdgeStreamMatchesSamples(t *testing.T) {
 	names := make([]string, 0, len(edgeStreamDecs))
 	for n := range edgeStreamDecs {

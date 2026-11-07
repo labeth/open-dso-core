@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ import (
 
 // uartBackToBack is 8N1 UART with no idle between the characters (the bench
 // line), messages repeated after idle bits of gap, at spb samples a bit.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func uartBackToBack(msg []int, repeats, gap, spb int) []uint8 {
 	var w []uint8
 	push := func(bit, k int) {
@@ -40,7 +40,7 @@ func uartBackToBack(msg []int, repeats, gap, spb int) []uint8 {
 // ER characters on a line carrying 20 55 AA 0F. The hardware's match fixes
 // the framing: with its point (inside the matched character's stop bit) as
 // the anchor, every character back to back with it reads as sent.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestUARTAnchorFramesBackToBackTraffic(t *testing.T) {
 	msg := []int{0x48, 0x69, 0x20, 0x55, 0xAA, 0x0F, 0xF0, 0x0A}
 	const spb = 20

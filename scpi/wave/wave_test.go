@@ -7,6 +7,7 @@ import (
 )
 
 // The descriptor puts every field at its LeCroy offset.
+// TRLC-LINKS: REQ-DSO-024
 func TestDescOffsets(t *testing.T) {
 	d := Desc{Template: "WAVEACE", CommType: 1, CommOrder: 1, WaveArray1: 40, InstrumentName: "X",
 		InstrumentNumber: 0xCDAB, WaveArrayCount: 20, PointsPerScreen: 18, LastValid: 19, FirstPoint: 3,
@@ -40,6 +41,7 @@ func TestDescOffsets(t *testing.T) {
 }
 
 // Blocks carry their lengths; windows clip to the record and the limit.
+// TRLC-LINKS: REQ-DSO-024
 func TestBlocksAndWindow(t *testing.T) {
 	if got := string(Block9("C1:WF DAT2,", []byte("ab"))); got != "C1:WF DAT2,#9000000002ab" {
 		t.Fatal(got)

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -67,7 +67,7 @@ const (
 )
 
 // Add counts a record's ends and starts.
-// TRLC-LINKS: REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-230
 func (v *SPIEyeVotes) Add(e SPIEye) {
 	if e.PeriodS <= 0 {
 		return
@@ -94,7 +94,7 @@ func (v *SPIEyeVotes) Add(e SPIEye) {
 // buffer); a middle later than any device's t_V is the data changing at
 // the other edge with such a skew (a host's data at a few MHz), read
 // before the edge.
-// TRLC-LINKS: REQ-SDS-229, REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-229, REQ-DSO-230
 func (e SPIEye) Resolve(v SPIEyeVotes) SPIEye {
 	e.DelayS, e.Late, e.Resolving = e.MiddleS, false, false
 	if e.MiddleS < e.PeriodS/2 {
@@ -122,7 +122,7 @@ const SPIEyeMin = 16
 // data transition between sampling edges a period apart gives its phase
 // after the edge before it; the eye is the widest phase interval holding
 // none. ok false with fewer than SPIEyeMin transitions or no clock.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229, REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229, REQ-DSO-230
 func MeasureSPIEye(clk, data []uint8, sampleS float64, cfg SPICfg) (SPIEye, bool) {
 	if cfg.Inverted {
 		clk, data = invertLogic(clk), invertLogic(data)

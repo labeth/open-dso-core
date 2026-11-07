@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -8,13 +8,13 @@ import (
 )
 
 // FPGAStackWords is the number of little-endian 16-bit words in one channel/bin.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 const FPGAStackWords = 20
 
 // FPGAStackMoments preserves integer state without float64 rounding. Limbs are
 // little-endian: Sum and SumOdd have 69 Q24 bits; SumSquares has 106 Q48 bits.
 // The odd-hit subset supplies the independent half-stack statistics.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 type FPGAStackMoments struct {
 	Sum, SumSquares, SumOdd [2]uint64
 	Count, CountOdd         uint32
@@ -22,7 +22,7 @@ type FPGAStackMoments struct {
 
 // EncodeFPGAMoments matches stack_tile_transfer's 308-bit layout. This checks
 // representation bounds, not whether the statistical state is physically valid.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func EncodeFPGAMoments(m FPGAStackMoments) ([FPGAStackWords]uint16, error) {
 	var words [FPGAStackWords]uint16
 	if m.Sum[1]>>5 != 0 || m.SumOdd[1]>>5 != 0 || m.SumSquares[1]>>42 != 0 {
@@ -38,7 +38,7 @@ func EncodeFPGAMoments(m FPGAStackMoments) ([FPGAStackWords]uint16, error) {
 
 // DecodeFPGAMoments rejects truncated/extended records and reserved padding.
 // Callers still need capture/tile identity and ownership checks before use.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func DecodeFPGAMoments(words []uint16) (FPGAStackMoments, error) {
 	if len(words) != FPGAStackWords {
 		return FPGAStackMoments{}, fmt.Errorf("FPGA stack state has %d words, want %d", len(words), FPGAStackWords)
@@ -52,7 +52,7 @@ func DecodeFPGAMoments(words []uint16) (FPGAStackMoments, error) {
 	}, nil
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func putFPGAField(words *[FPGAStackWords]uint16, offset, width int, value [2]uint64) {
 	for bit := range width {
 		if value[bit/64]&(uint64(1)<<uint(bit%64)) != 0 {
@@ -62,7 +62,7 @@ func putFPGAField(words *[FPGAStackWords]uint16, offset, width int, value [2]uin
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func getFPGAField(words []uint16, offset, width int) (value [2]uint64) {
 	// A word's bits at a time, not one by one.
 	for bit := 0; bit < width; {
@@ -86,7 +86,7 @@ func getFPGAField(words []uint16, offset, width int) (value [2]uint64) {
 // sums and counts, so a tile scanned from zero per record and added on the ARM
 // equals one that kept accumulating in the FPGA, without uploading the state
 // back word by word before every scan.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func AddFPGAMoments(a *FPGAStackMoments, b FPGAStackMoments) {
 	add := func(x *[2]uint64, y [2]uint64) {
 		lo := x[0] + y[0]

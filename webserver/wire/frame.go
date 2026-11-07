@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -44,7 +44,7 @@ const (
 
 // FrameReply is a published frame as /api/frame.bin serves it: the header
 // fields and the per-channel arrays EncodeBinFrame lays out after it.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 type FrameReply struct {
 	NoiseGainIdeal float64  `json:"noise_gain_ideal,omitempty"`
 	PassbandHz     float64  `json:"passband_hz,omitempty"`
@@ -160,7 +160,7 @@ type FrameReply struct {
 
 // EncodeBinFrame serializes a built reply to the binary wire format. It runs
 // after WithFrame returns — rep owns its data, so no lock is held here.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func EncodeBinFrame(rep FrameReply) []byte {
 	var flags byte
 	precision := rep.FractionBits == 8 && len(rep.Q1) == len(rep.C1) && len(rep.Q2) == len(rep.C2) && len(rep.Q1) > 0
@@ -266,7 +266,7 @@ type RawFrame struct {
 
 // EncodeRawFrame serializes a raw-shape frame: the frame layout's header
 // with the raw flag, then the payload as built.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func EncodeRawFrame(f RawFrame) []byte {
 	var flags byte = FlagRaw
 	if f.Unchanged {

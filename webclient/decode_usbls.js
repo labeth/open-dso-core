@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE-USBLS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // USB low/full-speed decoder — JS twin of decode_usbls.go, kept algorithm-
 // faithful so the web overlay and the on-device LCD agree byte-for-byte. Classic
 // script: no imports/exports; reuses sliceChannel / logicAt / hex2 / fail from
@@ -21,7 +21,7 @@ const usbPIDName = {
   0xC: "PRE", 0x8: "SPLIT", 0x4: "PING",
 };
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decodeUSBLS(dp, colTimeS, cfg) {
   cfg = cfg || {};
   const minSPB = 4;       // samples per bit floor
@@ -106,11 +106,11 @@ function decodeUSBLS(dp, colTimeS, cfg) {
   segs.push([segStart, S.edges.length - 1]);
 
   const n = S.n;
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const clampI = i => (i < 0 ? 0 : (i >= n ? n - 1 : i));
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const cellStart = (x0, k) => clampI(Math.round(x0 + k * T));
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const cellEnd = (x0, k) => clampI(Math.round(x0 + (k + 1) * T) - 1);
 
   const spans = [], bytes = [], toks = [];
@@ -223,7 +223,7 @@ function decodeUSBLS(dp, colTimeS, cfg) {
 }
 
 // usbCRC5 is the USB token CRC (decode_usbls.go usbCRC5).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function usbCRC5(v) {
   let c = 0x1F;
   for (let i = 0; i < 11; i++) {
@@ -237,7 +237,7 @@ function usbCRC5(v) {
 
 // usbCRC16 is the USB data CRC: 0x8005 reflected (0xA001), init all ones,
 // inverted; sent low byte first.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function usbCRC16(data) {
   let c = 0xFFFF;
   for (const b of data) {

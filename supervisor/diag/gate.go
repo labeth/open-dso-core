@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -10,7 +10,7 @@ type Check struct {
 }
 
 // Passed reports whether every check passed, and the first that did not.
-// TRLC-LINKS: REQ-SDS-287
+// TRLC-LINKS: REQ-DSO-287
 func Passed(cs []Check) (bool, string) {
 	for _, c := range cs {
 		if !c.OK {

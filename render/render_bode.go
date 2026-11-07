@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -11,7 +11,7 @@ import (
 // drawBode renders the accumulated FRA / Bode curve: magnitude (dB, colC1) in
 // the upper panel and phase (deg, colC2) in the lower, against a LOG frequency
 // axis with decade gridlines. Parity with the web bode.js render.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawBode(sf Canvas, p plotArea, hud HUD) {
 	n := len(hud.BodeFreq)
 	if n < 1 {
@@ -139,7 +139,7 @@ func drawBode(sf Canvas, p plotArea, hud HUD) {
 
 // gridStep is the smallest of the round steps that splits [lo,hi] into at
 // most five intervals (the largest when none does). Mirrors bode.js.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func gridStep(lo, hi float64, steps []float64) float64 {
 	for _, s := range steps {
 		if (hi-lo)/s <= 5+1e-9 {
@@ -154,7 +154,7 @@ func gridStep(lo, hi float64, steps []float64) float64 {
 
 // niceRange pads [min,max] of vals to round multiples of step; fallback when
 // empty. Mirrors bode.js bodeNiceRange.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func niceRange(vals []float64, flo, fhi, step float64) (float64, float64) {
 	if len(vals) == 0 {
 		return flo, fhi

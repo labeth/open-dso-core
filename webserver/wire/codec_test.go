@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -12,7 +12,7 @@ import (
 
 // JSONSafe writes NaN and infinities as null, keeps JSON names and
 // passes long finite series whole.
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 func TestJSONSafe(t *testing.T) {
 	type pt struct {
 		T  float64 `json:"t"`
@@ -44,14 +44,14 @@ func TestJSONSafe(t *testing.T) {
 }
 
 // LEBytes is the words' little-endian bytes.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestLEBytes(t *testing.T) {
 	if b := LEBytes([]uint16{0x0102, 0xA0B0}); !bytes.Equal(b, []byte{2, 1, 0xB0, 0xA0}) || LEBytes(nil) != nil {
 		t.Fatalf("% x", b)
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func BenchmarkEncodeSoundBin(b *testing.B) {
 	q1, q2 := make([]uint16, 4096), make([]uint16, 4096)
 	h := map[string]int{"n": 4096}

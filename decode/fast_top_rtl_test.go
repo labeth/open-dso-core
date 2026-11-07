@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -26,7 +26,7 @@ type fastTopEvent struct {
 	Meta           int
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func runFastTop(t *testing.T, dir, image string, wide []uint64, regs [][2]uint32, extra ...string) (events []fastTopEvent, eventWords []int, trigger int) {
 	t.Helper()
 	var in strings.Builder
@@ -78,7 +78,7 @@ func runFastTop(t *testing.T, dir, image string, wide []uint64, regs [][2]uint32
 // bus decode the model's events from both channels and trigger a record on
 // the model's match (the trigger follows the match by the receiver's and
 // the trigger path's latency).
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-229
 func TestFastImageTopRTL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("full top-level simulation")
@@ -194,7 +194,7 @@ func TestFastImageTopRTL(t *testing.T) {
 // 104 MHz, I2C at 3.4 MHz) triggers where it does at the full rate, and the
 // record, written a word in many, freezes on that trigger (a fire taken
 // only on a written word was lost there).
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-040, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-040, REQ-DSO-229
 func TestFastImageDecimatedTopRTL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("full top-level simulation")
@@ -265,7 +265,7 @@ func TestFastImageDecimatedTopRTL(t *testing.T) {
 
 // compileWordsTop builds tb_top_fast (acquisition words on both channels)
 // around an image's top level with its decoders.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-229
 func compileWordsTop(t *testing.T, dir, name, defines string, decoders ...string) string {
 	t.Helper()
 	rtl := testenv.RTLDir(t)
@@ -290,7 +290,7 @@ func compileWordsTop(t *testing.T, dir, name, defines string, decoders ...string
 
 // topFrames groups a top level's events of one protocol into frames: START,
 // the data bytes, the end.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func topFrames(ev []fastTopEvent, protocol int) [][]byte {
 	var out [][]byte
 	var cur []byte
@@ -315,7 +315,7 @@ func topFrames(ev []fastTopEvent, protocol int) [][]byte {
 // general image's on the line levels decode both lines and trigger. With
 // both lines at one level the second reads one value throughout and nothing
 // triggers.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-229
 func TestTwoLineLevelsTopRTL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("full top-level simulation")

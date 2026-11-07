@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -8,7 +8,7 @@ import (
 )
 
 // fpgaQ converts an unsigned little-endian 128-bit limb pair scaled by 2^-shift.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func fpgaQ(v [2]uint64, shift int) float64 {
 	// Scaling by powers of two is exact: the products are Ldexp's values
 	// without its calls (two a moment field, five fields a bin).
@@ -32,7 +32,7 @@ const (
 // the software stacker. moments is bin-major with two channels per bin, on a
 // grid of k fine bins per input sample; values are ADC codes. align is the
 // channel the hardware detected edges on. Hits counts committed hits.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func FPGAStack(moments []FPGAStackMoments, k, align, hits, frames int, sampleS float64) (*Stack, error) {
 	if k < 1 || len(moments) == 0 || len(moments)%(2*k) != 0 {
 		return nil, fmt.Errorf("FPGA stack: %d moments do not form whole samples at %d bins per sample", len(moments), k)

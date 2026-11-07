@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Node tests for superres_comp.js: the analog-falloff compensation math. A
 // synthetic multi-tone in code space is ATTENUATED by the measured cal H(f)
 // (simulating the scope rolloff), then srCompensate must RESTORE the in-band
@@ -8,7 +8,7 @@
 const C = require("./superres_comp.js");
 
 let fails = 0;
-// TRLC-LINKS: REQ-SDS-142, REQ-SDS-181
+// TRLC-LINKS: REQ-DSO-142, REQ-DSO-181
 function check(name, ok, detail) {
   console.log((ok ? "ok   " : "FAIL ") + name + (detail ? "  [" + detail + "]" : ""));
   if (!ok) fails++;
@@ -38,7 +38,7 @@ function check(name, ok, detail) {
 }
 
 // ---- amplitude at a bin-exact tone via single-bin DFT ----
-// TRLC-LINKS: REQ-SDS-142, REQ-SDS-181
+// TRLC-LINKS: REQ-DSO-142, REQ-DSO-181
 function toneAmp(x, M, cyclesPerRecord) {
   let re = 0, im = 0;
   for (let i = 0; i < M; i++) {

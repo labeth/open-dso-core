@@ -14,6 +14,7 @@ import (
 // tokens.css and the displays' Tokens. It fails when tokens.json changed
 // without `go generate ./design`, so a scope's web UI and its display cannot
 // diverge.
+// TRLC-LINKS: REQ-DSO-021
 func TestPaletteParity(t *testing.T) {
 	raw, err := os.ReadFile("tokens.json")
 	if err != nil {
@@ -49,6 +50,7 @@ func TestPaletteParity(t *testing.T) {
 }
 
 // TestSharedStylesheets checks the stylesheets every scope serves are here.
+// TRLC-LINKS: REQ-DSO-021
 func TestSharedStylesheets(t *testing.T) {
 	for _, f := range []string{"tokens.css", "base.css", "remote.css", "sound.css"} {
 		if _, err := fs.Stat(CSS, f); err != nil {

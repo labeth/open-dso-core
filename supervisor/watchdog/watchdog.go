@@ -1,5 +1,5 @@
 // Package watchdog keeps a board's hardware watchdog after the takeover.
-// ENGMODEL-OWNER-UNIT: FU-OTA-WATCHDOG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-WATCHDOG
 package watchdog
 
 import (
@@ -17,7 +17,7 @@ import (
 // power cycle. It is unarmed until Acquire, petted on a fixed interval while
 // armed, and disarmed (the driver told to stop counting) only on a clean
 // supervisor stop: the respawned supervisor re-acquires it.
-// TRLC-LINKS: REQ-SDS-026, REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-026, REQ-DSO-086
 type Keeper struct {
 	wd hal.Watchdog // nil on a board without one
 
@@ -32,13 +32,13 @@ type Keeper struct {
 var ErrNone = errors.New("watchdog: this board has none")
 
 // NewKeeper is an unarmed keeper of wd; nil is a board without a watchdog.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func NewKeeper(wd hal.Watchdog) *Keeper { return &Keeper{wd: wd} }
 
 // Acquire opens the watchdog, retrying until timeout (the vendor app's
 // descriptor needs a moment to drain after the kill), pets once so the
 // countdown is fresh, and starts the pet loop.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (k *Keeper) Acquire(timeout, petEvery time.Duration) error {
 	if k.wd == nil {
 		return ErrNone
@@ -77,7 +77,7 @@ func (k *Keeper) Acquire(timeout, petEvery time.Duration) error {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-026, REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-026, REQ-DSO-086
 func (k *Keeper) loop(every time.Duration, stop chan struct{}) {
 	t := time.NewTicker(every)
 	defer t.Stop()
@@ -95,7 +95,7 @@ func (k *Keeper) loop(every time.Duration, stop chan struct{}) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-026, REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-026, REQ-DSO-086
 func (k *Keeper) petLocked() {
 	k.petErr = k.wd.Pet()
 	k.lastPet = time.Now()
@@ -103,7 +103,7 @@ func (k *Keeper) petLocked() {
 
 // Disarm stops the pet loop and closes the watchdog so the driver disarms
 // instead of resetting (no-op when not armed).
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (k *Keeper) Disarm() {
 	k.mu.Lock()
 	defer k.mu.Unlock()
@@ -116,7 +116,7 @@ func (k *Keeper) Disarm() {
 }
 
 // Status is the watchdog's state for the status and heartbeat.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 type Status struct {
 	Armed   bool      `json:"armed"`
 	LastPet time.Time `json:"last_pet,omitzero"`
@@ -125,7 +125,7 @@ type Status struct {
 
 // Status reports whether the watchdog is armed, its last pet and the last
 // pet's failure.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (k *Keeper) Status() Status {
 	k.mu.Lock()
 	defer k.mu.Unlock()

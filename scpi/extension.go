@@ -17,6 +17,7 @@ type Extension struct {
 
 // Extensions are the commands of exts. A refused command or query is -200;
 // a query's reply is written as one value.
+// TRLC-LINKS: REQ-DSO-024
 func Extensions(exts []Extension) []Command {
 	var out []Command
 	for _, x := range exts {

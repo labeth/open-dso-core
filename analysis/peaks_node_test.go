@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -17,7 +17,7 @@ import (
 // detectPeaks) and SpectrumDB + Peaks on the same frames: the same peaks in
 // the same order, at the same bins and frequencies, with the same bin levels.
 // Skips without node (fails under CI_REQUIRE_BROWSER=1).
-// TRLC-LINKS: REQ-SDS-216, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-216, REQ-DSO-070
 func TestPeaksJSParity(t *testing.T) {
 	testenv.NeedNode(t)
 	node, _ := exec.LookPath("node")

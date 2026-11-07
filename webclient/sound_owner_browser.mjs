@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for who holds the acquisition while SOUND streams,
 // launched by sound_owner_test.go against the real panel behind the real
 // handlers (/test/leases reads the stream's lease). A key on the scope
@@ -10,17 +10,17 @@ import { openScope, run } from "./scope_po.mjs";
 const URL = process.argv[2];
 
 // leases reads the stream's lease: running now, and how many were taken.
-// TRLC-LINKS: REQ-SDS-277
+// TRLC-LINKS: REQ-DSO-277
 async function leases() { return (await fetch(URL + "/test/leases")).json(); }
 
 // lcdKey presses a key on the scope, as its own panel does.
-// TRLC-LINKS: REQ-SDS-277
+// TRLC-LINKS: REQ-DSO-277
 async function lcdKey(name) {
   await fetch(URL + "/api/panel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ button: name }) });
 }
 
 // sleep waits ms.
-// TRLC-LINKS: REQ-SDS-277
+// TRLC-LINKS: REQ-DSO-277
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 run(async (t) => {

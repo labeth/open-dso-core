@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-VISUAL
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // audio_decode.js — digital audio out of a record: S/PDIF's subframes (from
 // its decode), I2S read off its word select and data (the scope has two
 // channels: the bit clock is recovered from the word select's period and the
@@ -13,7 +13,7 @@
 // least significant (the audio word with its auxiliary bits under it), from
 // the first frame's first subframe. A subframe whose parity fails repeats the
 // channel's last sample and counts.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function audioFromSPDIF(r) {
   if (!r || !r.ok || !r.spans) return { ok: false, error: (r && r.error) || "no S/PDIF decode" };
   const ch = [[], []], raw = [[], []];
@@ -52,7 +52,7 @@ function audioFromSPDIF(r) {
 // read MSB first from one bit after the word select's edge (I2S; 0 for
 // left-justified: opts.lj), the left channel while the word select is low
 // (opts.swap the other way).
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function audioFromI2S(ws, sd, dt, opts) {
   opts = opts || {};
   const W = sliceChannel(ws, {});
@@ -73,7 +73,7 @@ function audioFromI2S(ws, sd, dt, opts) {
   const P = 2 * sorted[sorted.length >> 1]; // a frame: both channels
   if (!(P > 8)) return { ok: false, error: "word select too fast for the sample rate" };
   // the data's edges against each slot width's bit grid from the word select's edges
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const score = (slot) => {
     const bit = P / (2 * slot);
     if (bit < 2) return -1;
@@ -127,7 +127,7 @@ const PDM_DECIM = 64;
 // seconds): the data taken a quarter period after each rising edge (the
 // first microphone of a pair) and each falling one (the second), +1 or -1, a
 // third-order CIC filter decimating by PDM_DECIM to PCM, its DC taken out.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function audioFromPDM(clk, data, dt) {
   const C = sliceChannel(clk, {}), D = sliceChannel(data, {});
   if (!C.ok) return { ok: false, error: "clock: " + C.reason };
@@ -152,7 +152,7 @@ function audioFromPDM(clk, data, dt) {
 
 // pdmCIC is a third-order CIC decimator of a ±1 stream by R, scaled to -1..1
 // and its mean (the DC) taken out.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function pdmCIC(x, R) {
   const out = [];
   let i1 = 0, i2 = 0, i3 = 0, c1 = 0, c2 = 0, c3 = 0;
@@ -175,12 +175,12 @@ function pdmCIC(x, R) {
 // audioStats are a channel's figures: RMS and peak in dBFS, the samples at
 // full scale (clipped), the DC as a share of full scale and, from the raw
 // words, the bits they really use (the low bits never set do not count).
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function audioStats(x, raw, bits) {
   let s2 = 0, pk = 0, sum = 0, clip = 0;
   for (const v of x) { s2 += v * v; sum += v; const a = Math.abs(v); if (a > pk) pk = a; if (a >= 0.999) clip++; }
   const n = x.length || 1;
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const db = (v) => v > 0 ? 20 * Math.log10(v) : -Infinity;
   let used = NaN;
   if (raw && bits > 0) {
@@ -194,7 +194,7 @@ function audioStats(x, raw, bits) {
 }
 
 // audioFFT is an in-place radix-2 FFT of re/im (their length a power of two).
-// TRLC-LINKS: REQ-SDS-283
+// TRLC-LINKS: REQ-DSO-283
 function audioFFT(re, im) {
   const n = re.length;
   for (let i = 1, j = 0; i < n; i++) {
@@ -228,7 +228,7 @@ const SPEC_SINAD_MAX = 200;
 // sine 0 dBFS); its tone (the strongest bin past DC, its frequency
 // interpolated) and the tone's distortion (THD: harmonics 2 to 5 against
 // it), its SINAD (it against all else past DC) and the bits that make (ENOB).
-// TRLC-LINKS: REQ-SDS-283
+// TRLC-LINKS: REQ-DSO-283
 function audioSpectrum(x, fs) {
   let n = 1;
   while (n * 2 <= x.length && n < 65536) n *= 2;
@@ -248,7 +248,7 @@ function audioSpectrum(x, fs) {
   const bin = fs / n, guard = 4; // the window spreads a tone over four bins each side: the tone's power is the bins about it
   let pk = guard + 1;
   for (let k = guard + 1; k < half; k++) if (pw[k] > pw[pk]) pk = k;
-  // TRLC-LINKS: REQ-SDS-283
+  // TRLC-LINKS: REQ-DSO-283
   const around = (k0) => { let s = 0; for (let k = Math.max(1, k0 - guard); k <= Math.min(half - 1, k0 + guard); k++) s += pw[k]; return s; };
   const a0 = db[pk - 1], a1 = db[pk], a2 = db[pk + 1] !== undefined ? db[pk + 1] : a1;
   const off = a0 - 2 * a1 + a2 !== 0 ? 0.5 * (a0 - a2) / (a0 - 2 * a1 + a2) : 0;

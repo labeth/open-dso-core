@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Serial-protocol decoders (UART / I2C / SPI here; the other seven protocols
 // live in the sibling decode_*.js files), pure JS mirroring peaks.js:
 // no DOM, no globals. Served at /decode.js, loaded by ui.html via <script src>,
@@ -22,27 +22,27 @@ const KINDS = ["start", "stop", "addr", "rw", "ack", "nak", "data", "frame-error
 // captures saved before dt_s existed. The on-screen time GRID deliberately
 // keeps the nominal (it must match the labelled tdiv); these helpers are for
 // measurements.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function frameDtS(frame, n) {
   if (frame.dt_s > 0) return frame.dt_s;
   return (frame.col_span_s || 0) / (n || 1);
 }
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function frameSpanS(frame, n) {
   if (frame.dt_s > 0) return frame.dt_s * n;
   return frame.col_span_s || 0;
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function hex2(b) { return (b & 0xff).toString(16).toUpperCase().padStart(2, "0"); }
 // UNSIGNED shift (>>>): a signed >> on a value with the sign bit set shifts
 // in 1s and never reaches 0 — an infinite loop, the same DoS the Go popcount
 // had. cfg.bits is bounded below so the assembled word stays non-negative.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function popcount(v) { let c = 0; v = v >>> 0; while (v) { c += v & 1; v >>>= 1; } return c; }
 // fmtByte renders a payload byte per the display format: "hex" -> 48, "ascii" ->
 // the printable char (else .), "both" -> 48·H. Applied to data bytes only.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function fmtByte(v, fmt) {
   v &= 0xff;
   const h = hex2(v), printable = v >= 0x20 && v < 0x7f, ch = printable ? String.fromCharCode(v) : ".";
@@ -50,7 +50,7 @@ function fmtByte(v, fmt) {
   if (fmt === "both") return printable ? h + "·" + ch : h;
   return h;
 }
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function fmtWord(v, bits, fmt) {
   if (bits <= 8) return fmtByte(v, fmt);
   bits = Math.min(16, bits); v &= 2 ** bits - 1;
@@ -60,7 +60,7 @@ function fmtWord(v, bits, fmt) {
   if (fmt === "ascii") return printable ? String.fromCharCode(v) : ".";
   return fmt === "both" && printable ? h + "·" + String.fromCharCode(v) : h;
 }
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function fail(proto, error, meta) {
   return { ok: false, error, proto, spans: [], text: "", bytes: [], meta: meta || {} };
 }
@@ -68,7 +68,7 @@ function fail(proto, error, meta) {
 // decHeldBeyond counts the samples of a line's rarer side of thr that lie in
 // runs of three or more: a pulse holds its level, a noise spike does not
 // (decode.go heldBeyond).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decHeldBeyond(codes, thr) {
   const held = [0, 0];
   let run = 0;
@@ -85,7 +85,7 @@ function decHeldBeyond(codes, thr) {
 
 // decRailsWithin is sliceChannel's rails over the histogram's codes
 // gmin..gmax: each half's count-weighted centroid (decode.go railsWithin).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decRailsWithin(h, gmin, gmax, minAmp) {
   if (gmax <= gmin) return { reason: "flat/no transitions" };
   const mid0 = (gmin + gmax) / 2;
@@ -108,7 +108,7 @@ function decRailsWithin(h, gmin, gmax, minAmp) {
 // the histogram finds none: a line holding its rarer level at all (runs of
 // three samples or more) is a line, however seldom pulsed; each rail the
 // mean of its side's codes (decode.go railsAround).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decRailsAround(codes, thr, minAmp) {
   if (decHeldBeyond(codes, thr) < 3) return null;
   let ls = 0;
@@ -132,7 +132,7 @@ function decRailsAround(codes, thr, minAmp) {
 // band for edge/period detection, and records threshold crossings. The bit
 // VALUE is never read from the hysteretic level[] (which lags); callers use
 // logicAt(), which thresholds the raw code at the sample instant.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function sliceChannel(codes, opts) {
   // A frame may carry NO per-sample array for a channel (channel toggled off,
   // or an envelope/roll band ships env min/max instead) — decCodes()
@@ -204,7 +204,7 @@ function sliceChannel(codes, opts) {
 
 // logicAt: the bit-decision primitive — raw code vs threshold at column x
 // (rounded). Returns 0/1, or -1 for a gap / out of range.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function logicAt(s, x) {
   const i = Math.round(x);
   if (i < 0 || i >= s.n) return -1;
@@ -215,7 +215,7 @@ function logicAt(s, x) {
 
 // minConsecutive returns the smallest column gap between successive edges whose
 // direction passes `dirOk` (used for the too-fast resolution guard).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function minEdgeGap(edges, dirOk) {
   let prev = -1, min = Infinity;
   for (const e of edges) {
@@ -240,7 +240,7 @@ function minEdgeGap(edges, dirOk) {
 // but so does the true bit, and the true bit is the wide one); none =>
 // genuinely ambiguous, be honest. Mirrors decode_uart.go inferUARTspb step for
 // step. Returns { spb, reason }.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function inferUARTspb(S) {
   const gaps = [];
   for (let k = 1; k < S.edges.length; k++) { const g = S.edges[k].x - S.edges[k - 1].x; if (g >= 1) gaps.push(g); }
@@ -314,7 +314,7 @@ const STANDARD_BAUDS = [300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 3
 // rate when one lies within 1.5% (decode_uart.go snapStandardBaud): an estimate
 // from a short record is a fraction of a sample off per bit, and the rate on
 // the wire is almost always a standard one. Otherwise the estimate stands.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function snapStandardBaud(spb, colTimeS) {
   if (!(spb > 0) || !(colTimeS > 0)) return spb;
   const baud = 1 / (spb * colTimeS);
@@ -331,7 +331,7 @@ const UART_SYNC_FRAMES = 8;
 // of the first UART_SYNC_FRAMES is an error and there are two or more, else
 // from two clean frames after the last error or the first frame after an
 // idle, if that comes within UART_SYNC_FRAMES frames. Reports a change.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function uartSyncIn(spans, S, SPB, frameBits, confirm, idle) {
   if (!spans.length) return false;
   const run = Math.ceil(confirm * SPB);
@@ -340,7 +340,7 @@ function uartSyncIn(spans, S, SPB, frameBits, confirm, idle) {
     for (let j = spans[0].i0 - run; j < spans[0].i0 && opened; j++) opened = logicAt(S, j) === idle;
     if (opened) return false; // opened idle
   }
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const clean = (k) => spans[k].kind === "data";
   let end = 1; // the frames back to back with the first: [0, end)
   while (end < spans.length && spans[end].i0 - (spans[end - 1].i0 + frameBits * SPB) < confirm * SPB) end++;
@@ -354,7 +354,7 @@ function uartSyncIn(spans, S, SPB, frameBits, confirm, idle) {
   return true;
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decodeUART(codes, colTimeS, cfg) {
   cfg = cfg || {};
   if (cfg.inverted) {
@@ -380,7 +380,7 @@ function decodeUART(codes, colTimeS, cfg) {
   }
   if (!(SPB >= minSPB)) return fail("uart", SPB.toFixed(1) + " samples/bit; need >= " + minSPB, { samplesPerBit: SPB, baud });
 
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const parityOf = v => { const p = popcount(v & ((1 << bits) - 1)) & 1; return parity === "even" ? p : (1 - p); };
   // The parity bit lengthens the frame — count it so a frame near the record end
   // isn't started with its stop bit off the captured range.
@@ -388,7 +388,7 @@ function decodeUART(codes, colTimeS, cfg) {
   const need = Math.ceil((bits + 2 + pcNeed) * SPB);
   // frameAt reads the frame whose start bit begins at start (Go frameAt):
   // { sp, next } or null when no start bit is there.
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const frameAt = (start) => {
     if (logicAt(S, Math.round(start + 0.5 * SPB)) !== (1 - idle)) return null; // confirm start bit
     let val = 0, gap = false;
@@ -411,13 +411,13 @@ function decodeUART(codes, colTimeS, cfg) {
     return { sp: { i0: start, i1, text: pfx + fmtWord(val, bits, fmt), kind, val }, next: Math.round(start + (bits + 1 + pc) * SPB) + 1 };
   };
   // scan reads the frames whose start edges lie in [from, to) onto spans.
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   // The level a sample at a time is carried from one to the next: two
   // logicAt calls (each a Math.round) a sample were most of a decode.
   const sc = S.codes, thr = S.threshold, sn = S.n;
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const lv = (k) => (k < 0 || k >= sn || sc[k] < 0 ? -1 : sc[k] >= thr ? 1 : 0);
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const scan = (spans, from, to) => {
     let prev = lv(from - 1);
     for (let i = from; i < n - need - guard && i < to; i++) {
@@ -454,7 +454,7 @@ function decodeUART(codes, colTimeS, cfg) {
 
 // snapRate is a bit rate read from a record's edges moved onto the nearest of a
 // bus's standard rates within 1.5 %; otherwise it stands (Go snapRate).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function snapRate(baud, rates) {
   for (const r of rates) if (Math.abs(baud - r) <= 0.015 * r) return Math.round(r);
   return baud;
@@ -465,17 +465,17 @@ function snapRate(baud, rates) {
 // character's stop bit; the matched frame and the frames back to back before
 // it, while each reads clean. [] without an anchor or when the matched frame
 // does not read clean. dataBits counts the parity bit.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 function uartAnchorChain(S, cfg, spb, dataBits, guard, idle, frameAt) {
   const a = cfg.anchor;
   if (!(a >= 0) || !(spb > 0)) return [];
   const startDir = idle === 1 ? -1 : 1;
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const startNear = (lo, hi) => {
     for (const e of S.edges) if (e.dir === startDir && e.x >= lo && e.x <= hi) return e.i;
     return -1;
   };
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const clean = (start) => {
     if (start < guard) return null;
     const fr = frameAt(start);
@@ -493,7 +493,7 @@ function uartAnchorChain(S, cfg, spb, dataBits, guard, idle, frameAt) {
   return chain;
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decodeI2C(scl, sda, colTimeS, cfg) {
   cfg = cfg || {};
   if (cfg.inverted) {
@@ -557,7 +557,7 @@ function decodeI2C(scl, sda, colTimeS, cfg) {
     meta: { threshold: CL.threshold, lowRail: CL.lowRail, highRail: CL.highRail, colsPerClock } };
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decodeSPI(clk, data, colTimeS, cfg) {
   cfg = cfg || {};
   if (cfg.inverted) {
@@ -654,7 +654,7 @@ function decodeSPI(clk, data, colTimeS, cfg) {
 // armedCrossings: a sliced line's crossings as the FPGA's receiver on the
 // samples takes them, each direction armed by a sample beyond the opposite
 // edge of the band; a missing sample disarms both (decode_i2c_spi.go).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 function armedCrossings(s, n) {
   const rise = new Uint8Array(n);
   const fall = new Uint8Array(n);
@@ -673,7 +673,7 @@ function armedCrossings(s, n) {
 // crossingAt: where a sliced line crossed its threshold before the sample i
 // its level changed on, linear between the two samples around the threshold
 // (decode_i2c_spi.go crossingAt).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 function crossingAt(s, i, rising) {
   let j = i;
   while (j > 0 && s.codes[j - 1] >= 0 && (s.codes[j - 1] >= s.threshold) === rising) j--;
@@ -684,11 +684,11 @@ function crossingAt(s, i, rising) {
 
 // decode: dispatcher used by node tests. frame = { c1, c2, col_span_s }.
 // cfg.protocol in {uart,i2c,spi}; role fields are 1|2 (=> c1|c2).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decode(frame, cfg) {
   cfg = cfg || {};
   const n = frame.c1.length, colTimeS = frameDtS(frame, n);
-  // TRLC-LINKS: REQ-SDS-018
+  // TRLC-LINKS: REQ-DSO-018
   const pick = r => (r === 2 || r === "c2") ? frame.c2 : frame.c1;
   const p = cfg.protocol || cfg.proto;
   if (p === "uart") return decodeUART(pick(cfg.line || 1), colTimeS, cfg);

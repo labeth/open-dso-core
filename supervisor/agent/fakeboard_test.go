@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -15,13 +15,13 @@ import (
 
 // fileWatchdog is a hal.Watchdog over a plain temp file: open and write
 // behave as on a device node, and no test arms the host's real watchdog.
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 type fileWatchdog struct {
 	path string
 	f    *os.File
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (w *fileWatchdog) Open() error {
 	f, err := os.OpenFile(w.path, os.O_RDWR, 0)
 	if err != nil {
@@ -31,13 +31,13 @@ func (w *fileWatchdog) Open() error {
 	return nil
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (w *fileWatchdog) Pet() error {
 	_, err := w.f.Write([]byte{0x01})
 	return err
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (w *fileWatchdog) Close() error {
 	_, _ = w.f.Write([]byte{'V'})
 	return w.f.Close()
@@ -45,7 +45,7 @@ func (w *fileWatchdog) Close() error {
 
 // fakeBoard is a board with no vendor app: no boot descriptors, no vendor
 // holders unless a test sets them, and a temp-file watchdog.
-// TRLC-LINKS: REQ-SDS-027, REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-027, REQ-DSO-122
 type fakeBoard struct {
 	slots string
 	wd    *fileWatchdog // nil: no watchdog
@@ -57,7 +57,7 @@ type fakeBoard struct {
 	killed   int
 }
 
-// TRLC-LINKS: REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-086
 func (f *fakeBoard) Watchdog() (hal.Watchdog, bool) {
 	if f.wd == nil {
 		return nil, false
@@ -65,7 +65,7 @@ func (f *fakeBoard) Watchdog() (hal.Watchdog, bool) {
 	return f.wd, true
 }
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func (f *fakeBoard) Takeover(ctx context.Context) error {
 	res := ResultOf(ctx)
 	f.mu.Lock()
@@ -77,32 +77,32 @@ func (f *fakeBoard) Takeover(ctx context.Context) error {
 	return nil
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (f *fakeBoard) LaunchEnv() ([]string, []*os.File) { return []string{"SCOPE_FAKE=1"}, nil }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (f *fakeBoard) Alive(pid int) bool { return fdinherit.Alive(pid) }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (f *fakeBoard) SlotsDir() string { return f.slots }
 
-// TRLC-LINKS: REQ-SDS-121
+// TRLC-LINKS: REQ-DSO-121
 func (f *fakeBoard) Reboot(string) error { return errors.New("fake board: no reboot") }
 
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func (f *fakeBoard) Heartbeat() error { return nil }
 
-// TRLC-LINKS: REQ-SDS-114
+// TRLC-LINKS: REQ-DSO-114
 func (f *fakeBoard) BootFDs() map[string]int { return map[string]int{"bus": -1} }
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func (f *fakeBoard) VendorHolders() []fdinherit.Holder {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]fdinherit.Holder(nil), f.holders...)
 }
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func (f *fakeBoard) Land(res *TakeoverResult, opts TakeoverOpts) bool {
 	if f.land != nil {
 		return f.land(res, opts)
@@ -116,7 +116,7 @@ func (f *fakeBoard) Land(res *TakeoverResult, opts TakeoverOpts) bool {
 	return true
 }
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func (f *fakeBoard) Reclaim(res *TakeoverResult) {
 	f.mu.Lock()
 	f.reclaims++
@@ -125,14 +125,14 @@ func (f *fakeBoard) Reclaim(res *TakeoverResult) {
 	res.Step("reclaimed")
 }
 
-// TRLC-LINKS: REQ-SDS-114
+// TRLC-LINKS: REQ-DSO-114
 func (f *fakeBoard) Probe(deep, takenOver bool) any {
 	return map[string]bool{"deep": deep, "taken_over": takenOver}
 }
 
 // newFakeBoard is a fakeBoard on the configuration's slot root, with a
 // temp-file watchdog in dir.
-// TRLC-LINKS: REQ-SDS-122
+// TRLC-LINKS: REQ-DSO-122
 func newFakeBoard(cfg *config.Config, dir string) *fakeBoard {
 	wd := dir + "/watchdog"
 	if err := os.WriteFile(wd, nil, 0o644); err != nil {

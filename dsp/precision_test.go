@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DSP
+// ENGMODEL-OWNER-UNIT: FU-DSO-DSP
 
 package dsp
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func TestPrecisionMatchesDirectConvolution(t *testing.T) {
 	rng := rand.New(rand.NewSource(903))
 	s := make([]uint16, 4096)
@@ -33,7 +33,7 @@ func TestPrecisionMatchesDirectConvolution(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func BenchmarkPrecisionFullRecord(b *testing.B) {
 	s := make([]uint16, 524288)
 	scratch := make([]uint16, len(s))
@@ -47,7 +47,7 @@ func BenchmarkPrecisionFullRecord(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func TestPrecisionDCAndFraction(t *testing.T) {
 	s := make([]uint16, 1000)
 	for i := range s {
@@ -61,7 +61,7 @@ func TestPrecisionDCAndFraction(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func TestPrecisionRejectsAlternatingAndKeepsBoundary(t *testing.T) {
 	s := make([]uint16, 1000)
 	for i := range s {
@@ -78,7 +78,7 @@ func TestPrecisionRejectsAlternatingAndKeepsBoundary(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func TestPrecisionFilterCenteredPassband(t *testing.T) {
 	const n = 2048
 	const f = 1.0 / 64
@@ -98,7 +98,7 @@ func TestPrecisionFilterCenteredPassband(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-099
+// TRLC-LINKS: REQ-DSO-099
 func BenchmarkPrecisionLimits(b *testing.B) {
 	for b.Loop() {
 		PrecisionLimits(16)
@@ -106,7 +106,7 @@ func BenchmarkPrecisionLimits(b *testing.B) {
 }
 
 // conditionRef is ConditionQ8's first loop: the oracle and the baseline.
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func conditionRef(samples, scratch []uint16) {
 	copy(scratch[:len(samples)], samples)
 	for i := PrecisionGuard; i < len(samples)-PrecisionGuard; i++ {
@@ -116,7 +116,7 @@ func conditionRef(samples, scratch []uint16) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func BenchmarkPrecisionRecordRef(b *testing.B) {
 	s := make([]uint16, 65536)
 	scratch := make([]uint16, len(s))
@@ -125,7 +125,7 @@ func BenchmarkPrecisionRecordRef(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func BenchmarkPrecisionRecord(b *testing.B) {
 	s := make([]uint16, 65536)
 	scratch := make([]uint16, len(s))
@@ -135,7 +135,7 @@ func BenchmarkPrecisionRecord(b *testing.B) {
 }
 
 // ConditionQ8 is the reference loop sample for sample.
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func TestConditionIsTheReference(t *testing.T) {
 	a := make([]uint16, 5000)
 	for i := range a {
@@ -154,7 +154,7 @@ func TestConditionIsTheReference(t *testing.T) {
 
 // Every interior length is the reference's, whatever is left after whole
 // groups of samples (the block filters several at a time).
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func TestConditionEveryLengthIsTheReference(t *testing.T) {
 	rng := rand.New(rand.NewSource(37))
 	for n := len(precisionTaps); n < len(precisionTaps)+12; n++ {
@@ -175,7 +175,7 @@ func TestConditionEveryLengthIsTheReference(t *testing.T) {
 }
 
 // RoundQ8 is (v + 128) >> 8 at most 255 for every sample, at every length.
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func TestRoundQ8(t *testing.T) {
 	src := make([]uint16, 70000)
 	for i := range src {
@@ -197,7 +197,7 @@ func TestRoundQ8(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func BenchmarkRoundQ8(b *testing.B) {
 	src := make([]uint16, 65536)
 	dst := make([]uint8, len(src))
@@ -209,7 +209,7 @@ func BenchmarkRoundQ8(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func BenchmarkRoundQ8Loop(b *testing.B) {
 	src := make([]uint16, 65536)
 	dst := make([]uint8, len(src))
@@ -224,7 +224,7 @@ func BenchmarkRoundQ8Loop(b *testing.B) {
 }
 
 // SplitQ8 parts the pairs and rounds them at every length.
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func TestSplitQ8(t *testing.T) {
 	rng := rand.New(rand.NewSource(8))
 	for _, n := range []int{1, 7, 8, 9, 16, 23, 4099} {
@@ -250,7 +250,7 @@ func TestSplitQ8(t *testing.T) {
 }
 
 // MinMax8 is the extremes at every length and alignment.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func TestMinMax8(t *testing.T) {
 	rng := rand.New(rand.NewSource(88))
 	buf := make([]uint8, 3000)
@@ -277,7 +277,7 @@ func TestMinMax8(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func BenchmarkMinMax8(b *testing.B) {
 	s := make([]uint8, 65536)
 	for i := range s {
@@ -288,7 +288,7 @@ func BenchmarkMinMax8(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func BenchmarkMinMax8Loop(b *testing.B) {
 	s := make([]uint8, 65536)
 	for i := range s {

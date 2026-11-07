@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-FRAMECALC
 
 // Package framecalc holds the per-frame calculations that both the LCD
 // renderer and the panel's workspace tools need: the protocol decode of a
@@ -98,12 +98,12 @@ var protoNumbers = map[string]int{
 
 // ProtoOf is the protocol number of a decode's Proto name (decode.Result's
 // "uart", "lin"...), 0 for none.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func ProtoOf(name string) int { return protoNumbers[name] }
 
 // ResultName is the Proto name a decode of protocol p reports ("uart",
 // "i2c"...), "" for none.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-241
 func ResultName(p int) string {
 	for name, n := range protoNumbers {
 		if n == p {
@@ -116,7 +116,7 @@ func ResultName(p int) string {
 // TwoLine reports a protocol of two lines (ChA and ChB): I2C, SPI, the
 // clocked PS/2, SWD, MDIO and Wiegand, an encoder's or a stepper's pair and
 // the clocked SD card, PDI, cJTAG, Maple and caliper buses.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-258
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-258
 func TwoLine(p int) bool {
 	switch p {
 	case ProtoI2C, ProtoSPI, ProtoPS2, ProtoSWD, ProtoMDIO, ProtoWiegand, ProtoQuad, ProtoStepper, ProtoSDCard,
@@ -153,7 +153,7 @@ var Formats = [3]string{"hex", "ascii", "both"}
 // the record (the cache is keyed by the parameters), and the strip reads the
 // bytes the list does (the strip without SPI's data delay read a late
 // 104 MHz device one bit behind the list).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func Params(proto, baud, chA, chB int, cpol, cpha, lsb bool, format int, spiDelayNs float64, parity string) DecodeParams {
 	p := DecodeParams{
 		Proto: proto, Baud: baud, ChA: chA, ChB: chB, CPOL: cpol, CPHA: cpha, LSB: lsb,
@@ -196,7 +196,7 @@ type decodeEntry struct {
 // codes8 is trace ch's codes on the 8-bit view the decoders and the
 // spectrum read: 8-bit codes as they are, a wider converter's words mapped
 // onto it (decode.Codes8); nil without the trace.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func codes8(f *sample.Frame, ch int) []uint8 {
 	if ch < 0 || ch >= len(f.Traces) {
 		return nil
@@ -209,7 +209,7 @@ func codes8(f *sample.Frame, ch int) []uint8 {
 
 // Channel is trace ch's first valid codes on the 8-bit view; the first
 // trace's when ch's is short of them.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func Channel(f *sample.Frame, ch, valid int) []uint8 {
 	if c := codes8(f, ch); ch > 0 && len(c) >= valid {
 		return c[:valid]
@@ -218,7 +218,7 @@ func Channel(f *sample.Frame, ch, valid int) []uint8 {
 }
 
 // Valid clamps a frame's valid-sample count into its first trace's codes.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func Valid(f *sample.Frame) int {
 	return min(max(f.Len(), 1), len(codes8(f, 0)))
 }
@@ -227,7 +227,7 @@ func Valid(f *sample.Frame) int {
 // same frame content and settings: a deep record's decode takes most of a
 // second on the ARM, and the strip, the packet list and the eye all need it.
 // A zero Seq and Content (a hand-built frame) is never cached.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func Decode(f *sample.Frame, p DecodeParams) decode.Result {
 	if f == nil || len(codes8(f, 0)) == 0 || p.Proto == ProtoOff || p.Proto == ProtoAuto {
 		return decode.Result{}
@@ -298,7 +298,7 @@ func Decode(f *sample.Frame, p DecodeParams) decode.Result {
 
 // decodeMore decodes the protocols beyond the first ten with p's settings;
 // ch gives a channel's samples.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func decodeMore(p DecodeParams, ch func(int) []uint8, sampleS float64) decode.Result {
 	a := ch(p.ChA)
 	ir := decode.IRCfg{Format: p.Format}
@@ -352,7 +352,7 @@ func decodeMore(p DecodeParams, ch func(int) []uint8, sampleS float64) decode.Re
 // (and b, the two-line ones'). Each finds its own timing and variant on the
 // record (a tag's data rate, an RC code's trits or bytes, a PJON mode, the
 // IR protocol), as Auto's detection does.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-258
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-258
 func decodePhys(p DecodeParams, a, b []uint8, sampleS float64) decode.Result {
 	two := decode.ClockedCfg{Format: p.Format}
 	lc := decode.LineCfg{Format: p.Format}
@@ -389,7 +389,7 @@ func decodePhys(p DecodeParams, a, b []uint8, sampleS float64) decode.Result {
 // settings that decode it best (decode.Autodetect), with the spans in the
 // frame's sample indices. It is Auto's search on one frame, run when a
 // detection is asked for, never per frame.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214, REQ-SDS-222
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214, REQ-DSO-222
 func Detect(f *sample.Frame, format string) decode.Result {
 	if f == nil || len(codes8(f, 0)) == 0 {
 		return decode.Result{}
@@ -425,7 +425,7 @@ const MinEnvelopeFeature = 4.0
 // data as starts and stops: I2C at 500us/div lists packets of no bytes), so a
 // bus whose shortest feature is not well over a bucket is
 // not decoded from it.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func EnvelopeResolves(res decode.Result) bool {
 	fs := decode.EnvelopeFeatureSamples(res)
 	return fs == 0 || fs >= MinEnvelopeFeature
@@ -437,7 +437,7 @@ const unresolvedNote = " not resolved at this timebase - S/DIV faster, or SINGLE
 
 // Unresolved reports a decode refused because the live envelope does not
 // resolve the bus: sampled frames would decode it.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func Unresolved(res decode.Result) bool {
 	return !res.OK && strings.HasSuffix(res.Error, unresolvedNote)
 }
@@ -468,7 +468,7 @@ type Spec struct {
 
 // EnvPair is 2 for a peak-detect envelope, whose values come in (min, max)
 // pairs per bucket, else 1.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func EnvPair(f *sample.Frame) int {
 	if f.Content == sample.PeakPairs {
 		return 2
@@ -481,7 +481,7 @@ func EnvPair(f *sample.Frame) int {
 // sample is bucket midpoints: transforming the pairs themselves puts their
 // alternation at the top of the axis as a rising false spectrum (a UART at
 // 10 us/div).
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func PairStride(f *sample.Frame, stride int) int {
 	stride = max(stride, 1)
 	if p := EnvPair(f); stride%p != 0 {
@@ -494,7 +494,7 @@ func PairStride(f *sample.Frame, stride int) int {
 // samples: a boxcar low-pass ahead of the decimation. Taking every stride-th
 // sample instead folded everything above the reduced Nyquist back into the
 // plot (a 1 MHz square's harmonics and the 200 MHz interleave spur at stride 2).
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func BlockMeans(src []uint8, n, stride int) []float64 {
 	stride = max(stride, 1)
 	out := make([]float64, n)
@@ -510,7 +510,7 @@ func BlockMeans(src []uint8, n, stride int) []float64 {
 
 // FFT is an in-place iterative radix-2 Cooley-Tukey transform (len must be
 // a power of two).
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func FFT(re, im []float64) {
 	n := len(re)
 	for i, j := 1, 0; i < n; i++ {
@@ -562,7 +562,7 @@ func FFT(re, im []float64) {
 // real: their even and odd ones go through one complex transform of half the
 // length, and the window and the unpacking twiddles are tabled per length -
 // an 8192-point spectrum took 86 ms on the scope's ARM, two a SPECTRUM frame.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func Mags(samples []float64) ([]float64, float64, int) {
 	n := len(samples)
 	half := n / 2
@@ -607,7 +607,7 @@ var magsCache struct {
 }
 
 // magsTables is the table for n samples, made once.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func magsTables(n int) *magsTable {
 	magsCache.Lock()
 	defer magsCache.Unlock()
@@ -654,7 +654,7 @@ type specSlot struct {
 // Spectrum returns channel ch's spectrum of frame f at sampleS seconds per
 // sample, cached per channel by frame content. ok is false for a frame
 // without per-sample data (an envelope) or too few samples.
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 func Spectrum(f *sample.Frame, ch int, sampleS float64) (Spec, bool) {
 	return spectrum(f, ch, sampleS, 0)
 }
@@ -664,7 +664,7 @@ var specHold atomic.Int64
 
 // SetSpectrumHold sets how long SpectrumHeld keeps a channel's spectrum
 // for the next frames of the same acquisition (0: a new one each frame).
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 func SetSpectrumHold(d time.Duration) { specHold.Store(int64(max(d, 0))) }
 
 // SpectrumHeld is Spectrum for the display: while the spectrum hold lasts
@@ -672,14 +672,14 @@ func SetSpectrumHold(d time.Duration) { specHold.Store(int64(max(d, 0))) }
 // with the spectrum it took, not a new one. Two 8192-point spectra a
 // picture cost the one core more than the capture loop's whole frame; the
 // display holds them when it is what keeps the loop under its rate.
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 func SpectrumHeld(f *sample.Frame, ch int, sampleS float64) (Spec, bool) {
 	return spectrum(f, ch, sampleS, time.Duration(specHold.Load()))
 }
 
 // spectrum is Spectrum, a cached one of the same acquisition answering for
 // hold after it was taken.
-// TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 func spectrum(f *sample.Frame, ch int, sampleS float64, hold time.Duration) (Spec, bool) {
 	if f == nil || f.Flags.Has(sample.Envelope) || len(codes8(f, 0)) == 0 || ch < 0 || ch >= len(f.Traces) {
 		return Spec{}, false
@@ -729,7 +729,7 @@ func spectrum(f *sample.Frame, ch int, sampleS float64, hold time.Duration) (Spe
 
 // specOf is the spectrum of samples, each the mean of stride record samples
 // sampleS apart, cut at a decimated capture's filter bandwidth bw (0: none).
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func specOf(samples []float64, stride int, sampleS, bw float64) Spec {
 	n := len(samples)
 	mags, peak, peakK := Mags(samples)
@@ -763,7 +763,7 @@ const RowFFT = 2048
 // points with the stride and span of the record's own spectrum (Spectrum),
 // so one capture paints several rows of the time it spans. A record whose
 // spectrum is shorter than two rows' gives that spectrum alone.
-// TRLC-LINKS: REQ-SDS-068, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-068, REQ-DSO-070
 func SpectrumRows(f *sample.Frame, ch int, sampleS float64) []Spec {
 	full, ok := Spectrum(f, ch, sampleS)
 	if !ok {

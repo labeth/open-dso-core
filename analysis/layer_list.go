@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -151,7 +151,7 @@ var layerImpls = map[string]layerFns{
 
 // spiFirst matches an SPI transaction by its first n bytes after the burst's
 // start: the command (and the register or address) that names it.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func spiFirst(n int) func(p Packet) ([]string, int) {
 	return func(p Packet) ([]string, int) {
 		if len(p.Bytes) == 0 {
@@ -171,7 +171,7 @@ func spiFirst(n int) func(p Packet) ([]string, int) {
 
 // i2cFirst matches an I2C transfer by its device address and first n bytes
 // (a register pointer, a command).
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func i2cFirst(n int) func(p Packet) ([]string, int) {
 	return func(p Packet) ([]string, int) {
 		if !p.HasAddr {
@@ -185,7 +185,7 @@ func i2cFirst(n int) func(p Packet) ([]string, int) {
 }
 
 // i2cAddrMatch matches an I2C transfer by its device address alone.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func i2cAddrMatch(p Packet) ([]string, int) {
 	if !p.HasAddr {
 		return nil, -1
@@ -194,7 +194,7 @@ func i2cAddrMatch(p Packet) ([]string, int) {
 }
 
 // uartFirst matches a UART burst by its first n bytes.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func uartFirst(n int) func(p Packet) ([]string, int) {
 	return func(p Packet) ([]string, int) {
 		if len(p.Bytes) == 0 {

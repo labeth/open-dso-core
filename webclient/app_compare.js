@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-COMPARE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_compare.js — the COMPARE workspace: references A and B, math and the mask
 // against the live trace, a live difference readout, and the stacked master
 // (COMPARE again): average N captures of the trigger source in the device's
@@ -16,7 +16,7 @@ let cmpT = 0;
 // frame interpolates, as the scope stores a reference), and the reference's
 // volts; both NaN where the live record does not reach. Without a trigger on
 // either side it maps index-proportionally.
-// TRLC-LINKS: REQ-SDS-218, REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-218, REQ-DSO-227
 function liveOnRef(r, ch, live) {
   const codes = r["c" + ch];
   const vpcR = r["vpc" + ch], offR = r["off" + ch];
@@ -45,7 +45,7 @@ function liveOnRef(r, ch, live) {
 // cmpRender fills the difference readout: for every shown reference and each
 // channel it holds, the live trace against it (max |Δ|, RMS Δ, % of samples
 // within half a division), or why it cannot compare.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 function cmpRender() {
   const rows = [];
   for (const slot of ["A", "B"]) {
@@ -78,7 +78,7 @@ WS_TICKS.push((now) => { if (ws.cur === "compare" && now - cmpT > 300) { cmpT = 
 // cmpRepeat shows the scope's word on the trigger source, as its COMPARE
 // caption: whether it repeats (a master or a mask needs it), warn if not. It
 // comes with the status, so it follows each status poll.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 function cmpRepeat() {
   const el = $("cmpRepeat"), t = (st && st.trig_repeat) || "";
   const text = t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
@@ -87,33 +87,33 @@ function cmpRepeat() {
 }
 // a held (stopped or frozen) capture sends no frames: keep the readout current anyway
 setInterval(() => { if (ws.cur === "compare" && performance.now() - cmpT > 900) { cmpT = performance.now(); cmpRender(); } }, 1000);
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 WS_HOOKS.push({ enter(id) { if (id === "compare") { cmpT = 0; cmpRender(); } } });
 
 // ---- the stacked master ----------------------------------------------------------
 const master = { busy: false, abort: false };
 
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 function masterSay(t, kind) {
   $("masterStat").textContent = t;
   $("masterStat").className = "sub" + (kind === "warn" ? " warn" : "");
 }
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 function masterUI() {
   const b = $("masterBtn");
   b.textContent = master.busy ? "Cancel master" : "Stack master";
   b.classList.toggle("on", master.busy);
   wsDots();
 }
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 function masterCancel() { if (master.busy) { master.abort = true; masterSay("cancelling…"); } }
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 const msleep = (ms) => new Promise((r) => setTimeout(r, ms));
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 async function masterStatus() { try { st = await (await fetch("/api/status")).json(); applyStatus(); } catch (e) { /* keep the last */ } return st; }
 
 // masterAct runs the scope's Stack master row (stack, or cancel while stacking).
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 async function masterAct(action) {
   try {
     return await (await fetch("/api/sheets/action", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -123,7 +123,7 @@ async function masterAct(action) {
 
 // masterRow is the scope's Stack master row: "stacking", "REF A: 64 x C1" or
 // "none"; null when the scope did not answer.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 async function masterRow() {
   try {
     const m = await (await fetch("/api/sheets")).json();
@@ -137,7 +137,7 @@ async function masterRow() {
 // across the screen, the probes and the setup it was stored at) this page's
 // reference slot. A label given names it ("master ×64"); without one a slot
 // still holding the same store keeps its label.
-// TRLC-LINKS: REQ-SDS-218, REQ-SDS-203, REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-218, REQ-DSO-203, REQ-DSO-227
 function loadScopeRef(slot, a, label) {
   const ks = refKeys(a), vdiv = a.vdiv || [], off = a.off || [];
   const n = a.cols || (ks.map((k) => a["c" + k]).find(Boolean) || []).length;
@@ -162,7 +162,7 @@ function loadScopeRef(slot, a, label) {
 // refKeys is the channel numbers a reference as the scope exports it may
 // hold: the scope's channels, and any further its vdiv list or a c<n> trace
 // names (an export from before a channel change).
-// TRLC-LINKS: REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-227
 function refKeys(a) {
   const ks = new Set([1, 2, ...chanNums()]);
   (a.vdiv || []).forEach((_, i) => ks.add(i + 1));
@@ -171,7 +171,7 @@ function refKeys(a) {
 }
 
 // refChans is the channel numbers whose trace reference r holds.
-// TRLC-LINKS: REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-227
 function refChans(r) {
   const out = [];
   for (const k of Object.keys(r)) { const m = /^c(\d+)$/.exec(k); if (m && r[k]) out.push(+m[1]); }
@@ -184,7 +184,7 @@ function refChans(r) {
 // an answer to this page's own change match no status tag: the next status
 // reads them again (refsFollow sets the tag of its own read after this), or
 // the scope going back to the tag before the change would not be followed.
-// TRLC-LINKS: REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-227
 function takeScopeRefs(arr) {
   refsTag = "";
   for (const [i, slot] of [[0, "A"], [1, "B"]]) {
@@ -205,7 +205,7 @@ let refsBusy = false;
 let refsTaken = 0;
 // refsFollow reads the scope's references again when its status says they
 // changed (stored, shown, hidden or cleared on the LCD, the phone or here).
-// TRLC-LINKS: REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-227
 async function refsFollow(force) {
   const tag = st && st.panel && st.panel.Refs ? JSON.stringify(st.panel.Refs) : "";
   if (refsBusy || (!force && tag === refsTag)) return;
@@ -225,12 +225,12 @@ refsFollow(true);
 // as its own, and its mask pane follows the scope's mask. Averaging through
 // SINGLE instead reads a full record per capture on the SRAM image: 64 captures
 // take about 15 minutes. The button again, or Esc, cancels.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 async function stackMaster() {
   if (master.busy) { masterCancel(); return; }
   if (ws.cur !== "compare") setWs("compare");
   const N = Math.max(2, +$("masterN").value || 64);
-  // TRLC-LINKS: REQ-SDS-218
+  // TRLC-LINKS: REQ-DSO-218
   const refuse = (why) => { masterSay("Master refused: " + why, "warn"); toast("Master refused: " + why, "warn"); };
   master.busy = true; master.abort = false; masterUI();
   try {
@@ -265,5 +265,5 @@ async function stackMaster() {
     masterUI();
   }
 }
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 $("masterBtn").onclick = () => stackMaster();

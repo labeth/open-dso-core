@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-VISUAL
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_visual_draw.js — each bus's picture, figures and controls in BUS's
 // Visual view (VIS_VIEWS, one entry for each bus of VIS_KINDS in visual.js;
 // app_visual.js runs them): a MIDI piano, DMX levels, a PS/2 keyboard or
@@ -16,7 +16,7 @@ const VIS_CH_COLOURS = ["#4fc3f7", "#ffb74d", "#81c784", "#e57373", "#ba68c8", "
 // visDcfHint says what the time needs: a whole minute (60 of the bus's
 // seconds) after the record's trigger, so two minutes in the record, and the
 // timebase step that holds them.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDcfHint(s) {
   const sec = s.secS > 0 ? s.secS : dcfg.baud > 0 ? 1 / dcfg.baud : 0;
   if (!(sec > 0)) return "a whole minute (60 of its seconds) must fit the record";
@@ -27,7 +27,7 @@ function visDcfHint(s) {
 
 // visDrawFrames draws the identifiers seen as tiles, each with its newest
 // bytes and count, brighter the newer: a bus's traffic at a glance.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawFrames(g, W, H, s, hint) {
   const all = [...s.frames.entries()].sort((a, b) => a[0] - b[0]);
   if (!all.length) return visBig(g, W, H, "no frame yet", hint);
@@ -48,7 +48,7 @@ function visDrawFrames(g, W, H, s, hint) {
 }
 
 // visBig writes a large reading and a line under it, with a history graph.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visBig(g, W, H, big, small, hist) {
   g.fillStyle = "#e6edf3"; g.textAlign = "center"; g.textBaseline = "middle";
   const p = Math.max(14, Math.min(H * 0.22, W / Math.max(6, big.length) * 1.6));
@@ -60,7 +60,7 @@ function visBig(g, W, H, big, small, hist) {
 }
 
 // visSpark draws a history (points {t, v}) as a line, its range written.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visSpark(g, x, y, w, h, hist, col) {
   if (hist.length < 2) return;
   let lo = Infinity, hi = -Infinity;
@@ -80,7 +80,7 @@ function visSpark(g, x, y, w, h, hist, col) {
 }
 
 // visNum writes a value briefly.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visNum(v) { return Math.abs(v) >= 1000 || Number.isInteger(v) ? String(Math.round(v * 100) / 100) : v.toPrecision(4); }
 
 // VIS_MIDI_RISE is the seconds a played note takes to rise off the picture.
@@ -89,7 +89,7 @@ const VIS_MIDI_RISE = 4;
 // visPianoGeom is the piano's layout in a W x H picture: the 88 keys' white
 // ones, a key's x and width (keyX), the keyboard's top, the felt line notes
 // land on (hitY) and the space above it (from legH, rollH high).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visPianoGeom(W, H) {
   const lo = 21, hi = 108, whites = [];
   for (let n = lo; n <= hi; n++) if (![1, 3, 6, 8, 10].includes(n % 12)) whites.push(n);
@@ -98,7 +98,7 @@ function visPianoGeom(W, H) {
   // keyboard never more than a third of the picture
   const kbH = Math.max(36 * dpr, Math.min(H / 3, ww * 5.5)), felt = 3 * dpr, legH = 20 * dpr;
   const keyTop = H - kbH, hitY = keyTop - felt;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const keyX = (n) => {
     const bl = [1, 3, 6, 8, 10].includes(n % 12);
     const wi = whites.indexOf(bl ? n - 1 : n);
@@ -108,7 +108,7 @@ function visPianoGeom(W, H) {
 }
 
 // visDrawPianoBack draws the space above the keys and its octave lanes.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawPianoBack(g, W, P) {
   g.fillStyle = "#070a0f"; g.fillRect(0, 0, W, P.hitY);
   for (let k = 0; k < P.whites.length; k++) {
@@ -119,7 +119,7 @@ function visDrawPianoBack(g, W, P) {
 
 // visDrawPianoKeys draws the felt and the keys over the picture, the lit ones
 // (note -> {ch}) pressed in their channel's colour with a glow above them.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawPianoKeys(g, W, P, lit) {
   const { ww, kbH, felt, keyTop, hitY, keyX } = P;
   for (const [note, n] of lit) {
@@ -157,7 +157,7 @@ function visDrawPianoKeys(g, W, P, lit) {
 }
 
 // visDrawLegend writes the channels in chans, each its colour and instrument.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawLegend(g, P, s, chans) {
   g.font = Math.round(11 * dpr) + "px monospace"; g.textBaseline = "middle"; g.textAlign = "left";
   let lx = 8 * dpr;
@@ -175,7 +175,7 @@ function visDrawLegend(g, P, s, chans) {
 // they are held, live rising from their keys and fading (with a lead,
 // falling onto them); from captures, whose gaps hide notes' ends, the
 // newest capture is drawn on its own (visDrawMIDICapture).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawMIDI(g, W, H, s) {
   if (s.cap) return visDrawMIDICapture(g, W, H, s);
   const P = visPianoGeom(W, H), { lo, hi, ww, legH, hitY, rollH, keyX } = P;
@@ -184,7 +184,7 @@ function visDrawMIDI(g, W, H, s) {
   const rise = !(lead > 0), span = rise ? VIS_MIDI_RISE : lead;
   // a time's height: live, now at the keys and the past above; falling, now
   // at the top and lead seconds ago at the keys
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const yOf = (t) => rise ? hitY - ((now - t) / span) * rollH : hitY - ((t - (now - lead)) / lead) * rollH;
   visDrawPianoBack(g, W, P);
   const lit = new Map(), chans = new Set();
@@ -228,11 +228,11 @@ function visDrawMIDI(g, W, H, s) {
 // above their keys, each as high as it is long before the capture's end (its
 // time scale at the left), the keys pushed and not released in it pressed.
 // A capture's gaps hide what was held across them, so no note is drawn on.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawMIDICapture(g, W, H, s) {
   const P = visPianoGeom(W, H), { lo, hi, ww, legH, hitY, rollH, keyX } = P;
   const span = Math.max(1e-6, s.capT1 - s.capT0), top = legH + 10 * dpr, h = hitY - 6 * dpr - top;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const yOf = (t) => hitY - 6 * dpr - ((s.capT1 - t) / span) * h;
   visDrawPianoBack(g, W, P);
   // the time scale: the capture's end at the keys, its start at the top
@@ -274,7 +274,7 @@ function visDrawMIDICapture(g, W, H, s) {
 
 // visDrawDMX draws the universe's 512 levels as bars, 32 a row, a bar just
 // changed outlined; the channel number every eighth.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawDMX(g, W, H, s) {
   const cols = 32, rows = 16, cw = W / cols, ch = H / rows, now = performance.now() / 1000;
   g.font = Math.round(Math.min(10 * dpr, cw / 3)) + "px monospace"; g.textBaseline = "top"; g.textAlign = "left";
@@ -289,7 +289,7 @@ function visDrawDMX(g, W, H, s) {
 }
 
 // visDrawKeyboard draws a keyboard, the keys held lit.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawKeyboard(g, W, H, s) {
   const u = Math.min(W / 23.2, H / 6.6), ox = (W - 23 * u) / 2, oy = (H - 6.5 * u) / 2;
   // from captures: the newest one's own presses (lit, those still down at its
@@ -314,7 +314,7 @@ function visDrawKeyboard(g, W, H, s) {
 
 // visDrawMouse draws the mouse's moves (the trail, newest bright), its
 // buttons and the wheel.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawMouse(g, W, H, s) {
   const tr = s.trail;
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
@@ -337,7 +337,7 @@ function visDrawMouse(g, W, H, s) {
 }
 
 // visDrawLEDs draws the strip's LEDs in their colours, as many a row as fit.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawLEDs(g, W, H, s) {
   const leds = wsColours(s.leds, vis.wsOrder);
   if (!leds.length) return visBig(g, W, H, "no frame latched yet", "an LED frame ends with its reset");
@@ -353,10 +353,10 @@ function visDrawLEDs(g, W, H, s) {
 
 // visDrawPWM draws the duty cycle as a gauge (a servo's angle as a pointer
 // beside it), and its history.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawPWM(g, W, H, s) {
   const cx = W * 0.3, cy = H * 0.62, r = Math.min(W * 0.25, H * 0.5);
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const arc = (v, col, w) => { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(cx, cy, r, Math.PI, Math.PI + Math.PI * v); g.stroke(); };
   arc(1, "#1b2430", 14 * dpr);
   if (Number.isFinite(s.duty)) arc(Math.max(0, Math.min(1, s.duty / 100)), "#4fc3f7", 14 * dpr);
@@ -376,7 +376,7 @@ function visDrawPWM(g, W, H, s) {
 
 // visDrawDial draws an encoder's or a stepper's position on a dial (a turn
 // of 200 steps, the count written) and its history.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawDial(g, W, H, s) {
   const cx = W * 0.3, cy = H / 2, r = Math.min(W * 0.22, H * 0.4), a = (s.pos % 200) / 200 * 2 * Math.PI - Math.PI / 2;
   g.strokeStyle = "#1b2430"; g.lineWidth = 6 * dpr; g.beginPath(); g.arc(cx, cy, r, 0, 2 * Math.PI); g.stroke();
@@ -391,7 +391,7 @@ function visDrawDial(g, W, H, s) {
 
 // visDrawPD draws the source's offers as bars by voltage (the one asked for
 // lit, the contract's ringed).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawPD(g, W, H, s) {
   if (!s.caps.length) return visBig(g, W, H, "no Source_Capabilities yet", "plug the sink in: the source offers its power first");
   const n = s.caps.length, bw = W / (n + 1), maxV = Math.max(...s.caps.map((c) => c.mv)) || 1;
@@ -406,7 +406,7 @@ function visDrawPD(g, W, H, s) {
 
 // visDrawCAN graphs up to four signals ticked in the table (else the first
 // four), each in its own band.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawCAN(g, W, H, s) {
   if (!s.dbc) return visDrawFrames(g, W, H, s, "load a DBC file to graph its messages' signals");
   const all = [...s.sigs.values()], pick = all.filter((e) => vis.canPick.has(e.msg + "." + e.name));
@@ -421,7 +421,7 @@ function visDrawCAN(g, W, H, s) {
 }
 
 // visDrawLayer graphs the layer's values: the four rows with numbers updated last.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawLayer(g, W, H) {
   const rows = [...vis.layer.notes.values()].filter((e) => e.hist.length > 1).sort((a, b) => b.t - a.t).slice(0, 4);
   if (!rows.length) return visBig(g, W, H, "no value yet", "the layer's notes list beside; those with numbers graph here");
@@ -434,7 +434,7 @@ function visDrawLayer(g, W, H) {
 }
 
 // visLayerTable lists the layer's rows: each note's newest and its count.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visLayerTable() {
   const rows = [...vis.layer.notes.values()].sort((a, b) => b.t - a.t).slice(0, 40);
   return '<table class="meas"><tbody>' + rows.map((e) => `<tr><td class="${e.err ? "bad" : ""}">${escHTML(e.note)}</td><td>${e.count}x</td></tr>`).join("") + "</tbody></table>";
@@ -444,15 +444,15 @@ function visLayerTable() {
 // ---- the figures' table and times -----------------------------------------------------------
 
 // visTab writes rows as the figures' table, each row's first cell its heading.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visTab(rows) { return '<table class="meas"><tbody>' + rows.map((r) => "<tr>" + r.map((c, i) => i ? `<td>${c}</td>` : `<th>${c}</th>`).join("") + "</tr>").join("") + "</tbody></table>"; }
 
 // visAgo writes how long ago a time on the page's clock was.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visAgo(t) { const d = performance.now() / 1000 - t; return d < 1 ? "now" : d < 60 ? d.toFixed(0) + " s ago" : (d / 60).toFixed(0) + " min ago"; }
 
 // visLog writes a list of the newest lines first.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visLog(title, lines) { return '<div class="sub">' + title + '</div><div class="vislog">' + lines.map(escHTML).join("<br>") + "</div>"; }
 
 // ---- each bus's view ------------------------------------------------------------------------
@@ -466,7 +466,7 @@ function visLog(title, lines) { return '<div class="sub">' + title + '</div><div
 const VIS_VIEWS = {
   midi: {
     draw: visDrawMIDI,
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => {
       const held = [...s.held.values()].map((n) => midiNoteName(n.note) + "<sub>" + (n.ch + 1) + "</sub>").join(" ");
       // from captures: the newest one's pushes and releases (what was held across their gaps is not known)
@@ -477,13 +477,13 @@ const VIS_VIEWS = {
         ["programs", [...s.prog].map((v, i) => s.roll.some((n) => n.ch === i) ? (i + 1) + ":" + (v + 1) : "").filter(Boolean).join(" ") || "-"]]) +
         visLog("newest messages", s.log.slice(-14).reverse().map((l) => l.text));
     },
-    // TRLC-LINKS: REQ-SDS-279
+    // TRLC-LINKS: REQ-DSO-279
     controls: () => '<div class="r"><button type="button" id="visSound" class="xs tog' + (vis.sound ? " on" : "") + '">Sound</button><label class="row-tight"><span class="lbl">vol</span><input type="range" id="visVol" min="0" max="1" step="0.05" value="' + (vis.sy ? vis.sy.gain : 0.5) + '" aria-label="MIDI volume"></label><button type="button" id="visPanic" class="xs">All notes off</button></div>' +
       '<div class="r"><button type="button" id="visRec" class="xs tog' + (vis.s && vis.s.rec ? " on" : "") + '" title="Record every MIDI message with its time (gap-free: all of them)">Record</button>' +
       '<button type="button" id="visRecSave" class="xs"' + (vis.recDone || (vis.s && vis.s.rec) ? "" : " disabled") + ' title="Save the recording as a Standard MIDI File">Save .mid</button></div>' +
       '<div class="r"><label class="row-tight"><span class="lbl">notes</span><select id="visLead" aria-label="live: a note sounds as it comes and rises away; fall: it falls onto its key for the seconds chosen and sounds as it lands">' +
       [0, 1.5, 3, 5, 8].map((v) => `<option value="${v}"${v === vis.midiLead ? " selected" : ""}>${v ? "fall " + v + " s" : "live, rise away"}</option>`).join("") + "</select></label></div>",
-    // TRLC-LINKS: REQ-SDS-279
+    // TRLC-LINKS: REQ-DSO-279
     wire: (s, on) => {
       on("visSound", "onclick", async () => {
         if (!vis.sy) vis.sy = synthNew();
@@ -498,13 +498,13 @@ const VIS_VIEWS = {
       on("visLead", "onchange", () => { vis.midiLead = +$("visLead").value; if (vis.sy) { vis.sy.lead = vis.midiLead; vis.sy.offset = NaN; } visDraw(true); });
       on("visPanic", "onclick", () => { if (vis.sy) synthPanic(vis.sy); if (vis.s && vis.s.held) vis.s.held.clear(); });
       // Record starts a recording (or ends it, kept to save); Save .mid downloads it
-      // TRLC-LINKS: REQ-SDS-282
+      // TRLC-LINKS: REQ-DSO-282
       on("visRec", "onclick", () => {
         if (vis.s.rec) { vis.recDone = { rec: vis.s.rec, gaps: vis.s.recGaps, full: vis.s.recFull }; vis.s.rec = null; }
         else { vis.s.rec = midiRecNew(); vis.s.recGaps = false; vis.s.recFull = false; vis.recDone = null; }
         visSide(true);
       });
-      // TRLC-LINKS: REQ-SDS-282
+      // TRLC-LINKS: REQ-DSO-282
       on("visRecSave", "onclick", () => {
         const r = vis.s.rec ? { rec: vis.s.rec } : vis.recDone;
         if (!r || !r.rec.t.length) { toast("nothing recorded yet"); return; }
@@ -520,7 +520,7 @@ const VIS_VIEWS = {
   },
   dmx512: {
     draw: visDrawDMX,
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => {
       const top = [...s.levels.keys()].filter((i) => s.levels[i] > 0).sort((a, b) => s.levels[b] - s.levels[a]).slice(0, 12);
       return visTab([["start code", s.sc < 0 ? "-" : visHex2(s.sc) + (s.sc === 0 ? " (levels)" : s.sc === 0xCC ? " (RDM)" : "")], ["slots", s.slots], ["packets", s.frames + " · " + dmxRate(s).toFixed(1) + " /s"]]) +
@@ -528,98 +528,98 @@ const VIS_VIEWS = {
     },
   },
   ps2: {
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     draw: (g, W, H, s) => s.kind === "mouse" ? visDrawMouse(g, W, H, s) : visDrawKeyboard(g, W, H, s),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab([["device", s.kind === "mouse" ? "mouse" : s.kind === "kbd" ? "keyboard" : "not known yet"], ["last key", escHTML(s.lastKey || "-")],
       ["held", [...s.keys].map((c) => escHTML((PS2_KEYS.get(c) || { label: c }).label)).join(" ") || "-"]]) +
       '<div class="sub">typed</div><pre class="transcript visterm">' + escHTML(s.typed.slice(-600)) + "</pre>",
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     controls: () => '<div class="r"><label class="hl"><span class="lbl">device</span><select id="visPs2" aria-label="PS/2 device"><option value="">by its bytes</option><option value="kbd">keyboard</option><option value="mouse">mouse</option></select></label></div>',
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     wire: (s, on) => {
       // the device chosen, or (by its bytes) the one its bytes vote for from here
-      // TRLC-LINKS: REQ-SDS-278
+      // TRLC-LINKS: REQ-DSO-278
       on("visPs2", "onchange", () => { vis.ps2Kind = $("visPs2").value; vis.s.kind = vis.ps2Kind; vis.s.forced = !!vis.ps2Kind; visDraw(true); });
       if ($("visPs2")) $("visPs2").value = vis.ps2Kind;
     },
   },
   ws281x: {
     draw: visDrawLEDs,
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab([["LEDs", Math.floor(s.leds.length / vis.wsOrder.length)], ["frames", s.frames], ["bytes", s.leds.length]]),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     controls: () => '<div class="r"><label class="hl"><span class="lbl">order</span><select id="visOrder" aria-label="LED byte order">' + ["GRB", "RGB", "BRG", "GRBW", "RGBW"].map((o) => `<option${o === vis.wsOrder ? " selected" : ""}>${o}</option>`).join("") + "</select></label></div>",
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     wire: (s, on) => on("visOrder", "onchange", () => { vis.wsOrder = $("visOrder").value; visDraw(true); }),
   },
   irnec: {
     draw: visDrawIR,
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab([["address", "command", "received", "last"], ...[...s.buttons.values()].sort((a, b) => b.t - a.t).slice(0, 20).map((b) => ["A " + visHexN(b.addr), "C " + visHexN(b.cmd), b.count + "x", visAgo(b.t)])]),
   },
   pwm: {
     draw: visDrawPWM,
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab([["duty", Number.isFinite(s.duty) ? s.duty.toFixed(2) + " %" : "-"], ["range", Number.isFinite(s.min) ? s.min.toFixed(1) + " - " + s.max.toFixed(1) + " %" : "-"],
       ["frequency", Number.isFinite(s.freq) ? eng(s.freq, "Hz", 5) : "-"], ["period", Number.isFinite(s.periodS) ? eng(s.periodS, "s", 4) : "-"], ["servo", Number.isFinite(pwmServo(s)) ? pwmServo(s).toFixed(1) + "°" : "not a servo's"]]),
   },
   quad: { draw: visDrawDial, figures: visDialFigures, controls: visZeroControl, wire: visZeroWire },
   stepper: { draw: visDrawDial, figures: visDialFigures, controls: visZeroControl, wire: visZeroWire },
   caliper: {
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     draw: (g, W, H, s) => visBig(g, W, H, s.text || "--", s.hist.length ? "min " + Math.min(...s.hist.map((p) => p.v)) + "  max " + Math.max(...s.hist.map((p) => p.v)) + " " + s.unit : "", s.hist),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab([["reading", escHTML(s.text || "-")], ["readings", s.hist.length]]),
   },
   dcf77: {
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     draw: (g, W, H, s) => visBig(g, W, H, s.time || "waiting for a minute", s.bad ? "a parity failed: the time is not sure" : s.time ? "DCF77 time and date" : visDcfHint(s)),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab(Object.entries(s.fields).map(([k, f]) => [k, f.v + (f.bad ? " (parity)" : "")])),
   },
   uart: {
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     draw: (g, W, H) => visBig(g, W, H, "", "the terminal is beside"),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: () => "",
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     controls: () => '<div class="r"><button type="button" id="visClear" class="xs">Clear</button></div><pre id="visTerm" class="transcript visterm" aria-label="terminal"></pre>',
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     wire: (s, on) => on("visClear", "onclick", () => { vis.s.text = ""; visSide(false); }),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     update: (s) => { const term = $("visTerm"); if (term && term.textContent !== s.text) { term.textContent = s.text; term.scrollTop = term.scrollHeight; } },
   },
   lin: {
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     draw: (g, W, H, s) => visDrawFrames(g, W, H, s, "the identifiers' newest responses; checksum failures count beside"),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab([["id", "bytes", "period", "count"], ...[...s.frames.entries()].sort((a, b) => a[0] - b[0]).slice(0, 40).map(([id, f]) => [visHex2(id), f.bytes.map(visHex2).join(" "), visPeriod(f), f.count])]) +
       (s.errs ? '<div class="sub">' + s.errs + " frames failed their checksum or identifier parity</div>" : ""),
   },
   usbpd: {
     draw: visDrawPD,
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab([["contract", s.contract || (s.request ? (s.request.rejected ? "rejected" : "asked: " + escHTML(s.request.text)) : "-")], ...s.caps.map((c, i) => [(i + 1) + " " + c.type, c.text])]) +
       visLog("messages", s.msgs.slice(-12).reverse().map((m) => m.sop + " " + m.name)),
   },
   wiegand: {
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     draw: (g, W, H, s) => visBig(g, W, H, s.lastCard ? "card " + s.lastCard.card : "no card yet",
       s.lastCard ? (s.lastCard.bits || "?") + "-bit · facility " + s.lastCard.fac + " · read " + s.lastCard.count + "x" : "present a card to the reader"),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => visTab([["bits", "facility", "card", "read"], ...[...s.cards.values()].sort((a, b) => b.t - a.t).slice(0, 20).map((c) => [c.bits || "?", c.fac, c.card, c.count + "x " + visAgo(c.t)])]),
   },
   can: {
     draw: visDrawCAN,
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: (s) => {
       if (s.dbc && s.sigs.size) return visTab([["", "signal", "value"], ...[...s.sigs.entries()].sort().map(([k, e]) => [`<input type="checkbox" data-sig="${escHTML(k)}"${vis.canPick.has(k) ? " checked" : ""} aria-label="graph ${escHTML(k)}">`, escHTML(k), visNum(e.v) + " " + escHTML(e.unit)])]);
       return visTab([["id", "bytes", "period", "count"], ...[...s.frames.entries()].sort((a, b) => a[0] - b[0]).slice(0, 40).map(([id, f]) => [visHexN(id) + ((s.dbc && s.dbc.get(id)) ? " " + escHTML(s.dbc.get(id).name) : ""), f.bytes.map(visHex2).join(" "), visPeriod(f), f.count])]);
     },
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     controls: () => '<div class="r"><label class="hl"><span class="lbl">DBC</span><input type="file" id="visDbc" accept=".dbc,text/plain" aria-label="DBC file"></label><span class="sub">' + escHTML(vis.dbcName) + "</span></div>",
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     wire: (s, on) => {
       on("visDbc", "onchange", async () => {
         const f = $("visDbc").files[0];
@@ -630,25 +630,25 @@ const VIS_VIEWS = {
         visSide(true);
       });
       const fig = $("visFig");
-      // TRLC-LINKS: REQ-SDS-278
+      // TRLC-LINKS: REQ-DSO-278
       if (fig) fig.onchange = (e) => { const k = e.target && e.target.dataset && e.target.dataset.sig; if (!k) return; if (e.target.checked) vis.canPick.add(k); else vis.canPick.delete(k); visDraw(true); };
     },
   },
   spdif: {
-    // TRLC-LINKS: REQ-SDS-280
+    // TRLC-LINKS: REQ-DSO-280
     draw: (g, W, H) => visBig(g, W, H, "S/PDIF", "Digital audio captures a whole record, decodes it, measures it and plays it"),
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     figures: () => "",
   },
 };
 
 // visHexN writes a number in upper-case hex (a negative one, unknown, as "-").
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visHexN(v) { return v >= 0 ? v.toString(16).toUpperCase() : "-"; }
 
 // visDrawIR writes the remote's newest button: its address and command, held
 // and repeating, the times pressed.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawIR(g, W, H, s) {
   const b = s.lastBtn;
   if (!b) return visBig(g, W, H, "no button yet", "press a button on the remote");
@@ -656,7 +656,7 @@ function visDrawIR(g, W, H, s) {
 }
 
 // visDialFigures are an encoder's or a stepper's figures.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDialFigures(s) {
   if (s.gapless) return visTab([["position", s.pos], ["direction", s.fwd ? "forward" : "reverse"], ["speed", Math.abs(s.speed).toFixed(1) + " steps/s"]]) +
     '<div class="sub">Gap-free: every step counted.</div>';
@@ -665,18 +665,18 @@ function visDialFigures(s) {
 }
 
 // visPeriod writes an identifier's period (its frames one right after the other), "-" not yet timed.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visPeriod(f) { return Number.isFinite(f.period) ? eng(f.period, "s", 3) : "-"; }
 
 // visZeroControl is Zero, setting an encoder's or a stepper's count to 0.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visZeroControl() { return '<div class="r"><button type="button" id="visZero" class="xs">Zero</button></div>'; }
 
 // visZeroWire wires Zero.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visZeroWire(s, on) { on("visZero", "onclick", () => { vis.s.pos = 0; vis.s.hist = []; visDraw(true); }); }
 
 // visView is the view of a protocol's bus (null for one VIS_KINDS lacks).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visView(proto) { const k = VIS_KINDS[proto]; return k ? VIS_VIEWS[k.key] || null : null; }
 

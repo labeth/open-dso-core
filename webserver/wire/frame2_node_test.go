@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire_test
 
@@ -30,7 +30,7 @@ type array struct {
 }
 
 // arr reads field k as a typed array.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (d decoded) arr(t *testing.T, k string) array {
 	t.Helper()
 	var a array
@@ -41,7 +41,7 @@ func (d decoded) arr(t *testing.T, k string) array {
 }
 
 // num reads field k as a number.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (d decoded) num(t *testing.T, k string) float64 {
 	t.Helper()
 	var v float64
@@ -53,7 +53,7 @@ func (d decoded) num(t *testing.T, k string) float64 {
 
 // twin8 is a two-channel 8-bit frame as a sample frame, at 25 codes a
 // division about 128, and its v1 reply.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func twin8(precision bool) (*sample.Frame, wire.FrameReply) {
 	c1, c2 := []uint8{100, 128, 156, 200, 7}, []uint8{10, 20, 30, 40, 250}
 	q1, q2 := []uint16{100 << 8, 128<<8 + 1, 156 << 8, 200<<8 + 255, 7 << 8}, []uint16{10 << 8, 20 << 8, 30<<8 + 128, 40 << 8, 250 << 8}
@@ -82,7 +82,7 @@ func twin8(precision bool) (*sample.Frame, wire.FrameReply) {
 }
 
 // encode2 is a sample frame as wire v2 with the page's shaping fields set.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func encode2(t *testing.T, f *sample.Frame) []byte {
 	t.Helper()
 	var w wire.Frame
@@ -99,7 +99,7 @@ func encode2(t *testing.T, f *sample.Frame) []byte {
 // frame object the page draws: a two-channel 8-bit frame and its Q8.8
 // precision words exactly as their v1 twins decode, and four channels of
 // 12-bit left-aligned words to display units that keep every code.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestFrameV2NodeRoundTrip(t *testing.T) {
 	testenv.NeedNode(t)
 	dir := t.TempDir()
@@ -222,7 +222,7 @@ func TestFrameV2NodeRoundTrip(t *testing.T) {
 
 // v1Replies are v1 replies of every shape: native, deep with margins,
 // envelope with a view window, precision words and all margin.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func v1Replies() map[string]wire.FrameReply {
 	base := wire.FrameReply{Seq: 8, Cols: 6, EdgeX: 3, EdgeFrac: 0.5, WinFrac: 1, Vpc1: 0.04, Vpc2: 0.02, Off1V: 0.1, Off2V: -0.05}
 	native := base
@@ -246,7 +246,7 @@ func v1Replies() map[string]wire.FrameReply {
 
 // binframe2.js's own checks: hand-built v2 messages of every shape and the
 // protocol failures it refuses.
-// TRLC-LINKS: REQ-SDS-023, REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-023, REQ-DSO-163
 func TestBinframe2JS(t *testing.T) {
 	testenv.NeedNode(t)
 	cmd := exec.CommandContext(t.Context(), "node", "binframe2.test.cjs")

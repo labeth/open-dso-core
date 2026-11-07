@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TRLC-LINKS: REQ-DSO-1003
 func TestContentText(t *testing.T) {
 	for c := RawFullRate; c <= DisplayDomain; c++ {
 		b, err := c.MarshalText()
@@ -25,6 +26,7 @@ func TestContentText(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1003
 func TestContentSet(t *testing.T) {
 	s := ContentSetOf(RawFullRate, PeakPairs)
 	if !s.Has(RawFullRate) || !s.Has(PeakPairs) || s.Has(Resampled) || s.Has(0) {
@@ -39,6 +41,7 @@ func TestContentSet(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1003
 func TestCodeFormatValidate(t *testing.T) {
 	ok := []CodeFormat{
 		{Bits: 8, Storage: U8, Max: 255, Mid: 128},
@@ -64,6 +67,7 @@ func TestCodeFormatValidate(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1003
 func TestTraceVolts(t *testing.T) {
 	tr8 := Trace{Format: CodeFormat{Bits: 8, Storage: U8}, Codes8: []uint8{128, 153}, Scale: Scale{Zero: 128, PerCode: 0.04}}
 	if v := tr8.Volts(1); v < 0.999 || v > 1.001 {
@@ -75,6 +79,7 @@ func TestTraceVolts(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1003
 func TestCopyFromOwnsStorage(t *testing.T) {
 	src := &Frame{
 		Seq:   7,
@@ -108,6 +113,7 @@ func TestCopyFromOwnsStorage(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1003
 func TestStorageText(t *testing.T) {
 	var s StorageKind
 	if err := s.UnmarshalText([]byte("u16")); err != nil || s != U16 || s.Bits() != 16 {
@@ -118,6 +124,7 @@ func TestStorageText(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1003
 func BenchmarkCopyFrom(b *testing.B) {
 	src := &Frame{Traces: []Trace{
 		{Valid: 20480, Codes8: make([]uint8, 20480), Precision: make([]uint16, 20480)},
@@ -131,6 +138,7 @@ func BenchmarkCopyFrom(b *testing.B) {
 
 // An envelope keeps its own length, the detail windows' frames are shared,
 // and the accessors tolerate a missing trace.
+// TRLC-LINKS: REQ-DSO-1003
 func TestCopyFromEnvelopeAndDetails(t *testing.T) {
 	edge := &Frame{SampleS: 2e-9}
 	src := &Frame{
@@ -160,6 +168,7 @@ func TestCopyFromEnvelopeAndDetails(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1003
 func TestTriggerName(t *testing.T) {
 	for _, c := range []struct {
 		f    Frame
@@ -180,6 +189,7 @@ func TestTriggerName(t *testing.T) {
 
 // The 8-bit view maps an 8-bit code to itself and a left-aligned 12-bit
 // word to its high byte, each format's mid to 128.
+// TRLC-LINKS: REQ-DSO-1003
 func TestEightBitView(t *testing.T) {
 	f8 := CodeFormat{Bits: 8, Storage: U8, Max: 255, Mid: 128}
 	f12 := CodeFormat{Bits: 12, Storage: U16, Shift: 4, Min: 0x0800, Max: 0xF7F0, Mid: 0x8000}
@@ -203,6 +213,7 @@ func TestEightBitView(t *testing.T) {
 
 // A 12-bit trace's 8-bit view holds its high bytes, and its codes per
 // division on that view are the words' over 256.
+// TRLC-LINKS: REQ-DSO-1003
 func TestTraceView8(t *testing.T) {
 	t8 := &Trace{Format: CodeFormat{Bits: 8, Storage: U8, Max: 255, Mid: 128}, Codes8: []uint8{1, 2, 3}, Valid: 2, CodesPerDiv: 25}
 	if v := t8.View8(); len(v) != 2 || &v[0] != &t8.Codes8[0] || t8.CodesPerDiv8() != 25 {

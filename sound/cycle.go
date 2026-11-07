@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -16,7 +16,7 @@ const markReach = 6
 
 // PlaceMark finds the crossing of level in the direction asked nearest
 // sample mark of x, within markReach samples: its interpolated position.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func PlaceMark(x []float64, mark int, level float64, rising bool) (float64, bool) {
 	best, bd := -1.0, math.Inf(1)
 	for i := max(1, mark-markReach); i <= min(len(x)-1, mark+markReach); i++ {
@@ -55,7 +55,7 @@ type Cycle struct {
 }
 
 // catmull interpolates x at fractional position t (Catmull-Rom).
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func catmull(x []float64, t float64) float64 {
 	i := int(t) // the floor for t >= 0, without math.Floor
 	if t < 0 {
@@ -74,7 +74,7 @@ func catmull(x []float64, t float64) float64 {
 
 // ExtractCycles takes cycles periods (period in samples) of x from the
 // placed trigger at, resampled to points.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func ExtractCycles(x []float64, fs, at, period float64, cycles, points int) Cycle {
 	c := Cycle{Cycles: cycles}
 	if !(period > 1) || cycles < 1 || points < 8 || at < 0 || at+period*float64(cycles) > float64(len(x)-2) {
@@ -113,7 +113,7 @@ func ExtractCycles(x []float64, fs, at, period float64, cycles, points int) Cycl
 
 // edgeTime is the first 10-90 % (rising) or 90-10 % (falling) transit in
 // samples, NaN when none.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func edgeTime(x []float64, lo, hi float64, rising bool) float64 {
 	start := -1.0
 	for i := 1; i < len(x); i++ {

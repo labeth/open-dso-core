@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -14,7 +14,7 @@ import (
 
 // orcUARTRun renders the bursts, decodes them with the layer and with
 // sigrok's stack (uart, then pd: one decoder or a comma list).
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func orcUARTRun(t *testing.T, layer, uart, pd string, baud float64, parity string, stops int, inv bool, bursts [][]byte, gap float64) ([]Packet, []orcAnn) {
 	t.Helper()
 	const sr = 4_000_000
@@ -28,7 +28,7 @@ func orcUARTRun(t *testing.T, layer, uart, pd string, baud float64, parity strin
 	return ps, anns
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func TestOracleLayerSBUS(t *testing.T) {
 	orcNeed(t, "uart", "sbus_futaba")
 	var a, b [16]int
@@ -63,7 +63,7 @@ func TestOracleLayerSBUS(t *testing.T) {
 	orcEq(t, "S.BUS frames", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func TestOracleLayerITM(t *testing.T) {
 	orcNeed(t, "uart", "arm_itm")
 	// sigrok writes a channel's characters out at the next stimulus word
@@ -101,7 +101,7 @@ func TestOracleLayerITM(t *testing.T) {
 	orcEq(t, "ITM packets", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func TestOracleLayerTPIU(t *testing.T) {
 	orcNeed(t, "uart", "arm_tpiu", "arm_itm")
 	// stream 1 the ITM, 2 another source; sigrok's TPIU passes stream 1 on
@@ -145,7 +145,7 @@ func TestOracleLayerTPIU(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func TestOracleLayerETMv3(t *testing.T) {
 	orcNeed(t, "uart", "arm_etmv3")
 	ps, anns := orcUARTRun(t, "arm_etmv3", "uart:rx=RX:baudrate=115200", "arm_etmv3", 115200, "none", 1, false, [][]byte{
@@ -189,7 +189,7 @@ func TestOracleLayerETMv3(t *testing.T) {
 	orcEq(t, "ETM packets", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func TestOracleLayerAmulet(t *testing.T) {
 	orcNeed(t, "uart", "amulet_ascii")
 	ps, anns := orcUARTRun(t, "amulet", "uart:rx=RX:baudrate=115200", "amulet_ascii", 115200, "none", 1, false, [][]byte{
@@ -214,7 +214,7 @@ func TestOracleLayerAmulet(t *testing.T) {
 		orcMatch(orcTexts(anns), `^Value: 0x(FF)$|^Value: 0x(1234)$`))
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func TestOracleLayerPAN1321(t *testing.T) {
 	orcNeed(t, "uart", "pan1321")
 	ps, anns := orcUARTRun(t, "pan1321", "uart:tx=RX:baudrate=115200", "pan1321", 115200, "none", 1, false, [][]byte{

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -11,7 +11,7 @@ import (
 	"github.com/labeth/open-dso-core/uimodel/wsview"
 )
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func testFrame(valid int) *sample.Frame {
 	f := &sample.Frame{
 		WinPoints: valid,
@@ -33,14 +33,14 @@ func testFrame(valid int) *sample.Frame {
 	return f
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func defaultHUD() HUD {
 	return HUD{
 		Ch: [MaxChans]Channel{{VdivV: 1}, {VdivV: 1}}, TdivS: 500e-6, TrigRising: true,
 		Running: true, SampleS: 800e-9, NumChans: 2}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func countColor(m *Image565, c Color) int {
 	n := 0
 	for y := range H {
@@ -53,7 +53,7 @@ func countColor(m *Image565, c Color) int {
 	return n
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func countColorIn(m *Image565, c Color, x0, y0, x1, y1 int) int {
 	n := 0
 	for y := y0; y < y1; y++ {
@@ -69,7 +69,7 @@ func countColorIn(m *Image565, c Color, x0, y0, x1, y1 int) int {
 // Persistence: rendering two frames with the trace at different vertical
 // positions must leave BOTH on the persist layer — the previous one faded (but
 // still non-black) and the current one bright — i.e. an afterglow.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderPersistence(t *testing.T) {
 	persist := NewImage565(m800)
 	sf := NewImage565(m800)
@@ -111,7 +111,7 @@ func TestRenderPersistence(t *testing.T) {
 // The alternate views (web parity) must each render distinct output: X-Y and
 // math draw the purple math colour; FFT draws a spectrum; the autoset banner
 // draws its amber box centred.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-070
 func TestRenderAltViews(t *testing.T) {
 	f := testFrame(2048)
 	f.Traces[1].Codes8 = make([]uint8, len(f.Codes8(1)))
@@ -174,7 +174,7 @@ func TestRenderAltViews(t *testing.T) {
 // The current choice in the F-key column is a FILLED inverted amber bar (not
 // a 1px outline): its slot must be a solid block of colTrig with dark
 // (colBG) inverted text on top.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-212
 func TestRenderKeysSelectedFilled(t *testing.T) {
 	m := NewImage565(m800)
 	h := defaultHUD()
@@ -195,7 +195,7 @@ func TestRenderKeysSelectedFilled(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderMeasPanel(t *testing.T) {
 	box := rgb(6, 10, 22) // drawMeasPanel background fill
 	// Off: no MEASURE panel box.
@@ -226,7 +226,7 @@ func TestRenderMeasPanel(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderCursors(t *testing.T) {
 	// Off: no cursor readout box.
 	box := rgb(6, 10, 22)
@@ -258,7 +258,7 @@ func TestRenderCursors(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderTraceFrame(t *testing.T) {
 	m := NewImage565(m800)
 	Render(m, testFrame(2048), defaultHUD(), true)
@@ -292,7 +292,7 @@ func TestRenderTraceFrame(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderHeldFrameStripRed(t *testing.T) {
 	m := NewImage565(m800)
 	Render(m, testFrame(2048), defaultHUD(), false) // held → red strip
@@ -305,7 +305,7 @@ func TestRenderHeldFrameStripRed(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderEnvelopeBranch(t *testing.T) {
 	f := testFrame(4096)
 	f.Flags.Set(sample.Envelope, true)
@@ -324,7 +324,7 @@ func TestRenderEnvelopeBranch(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderNilFrame(t *testing.T) {
 	m := NewImage565(m800)
 	Render(m, nil, defaultHUD(), false)
@@ -333,7 +333,7 @@ func TestRenderNilFrame(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderFlatRailNoFabrication(t *testing.T) {
 	f := testFrame(2048)
 	for i := range f.Codes8(0) {
@@ -361,7 +361,7 @@ func TestRenderFlatRailNoFabrication(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestFontMetrics(t *testing.T) {
 	if TextWidth("ABC", 1) != 18 {
 		t.Fatalf("TextWidth(ABC) = %d, want 18", TextWidth("ABC", 1))
@@ -381,7 +381,7 @@ func TestFontMetrics(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestFormatters(t *testing.T) {
 	if got := fmtTdiv(500e-6); got != "500us" {
 		t.Fatalf("fmtTdiv(500µs) = %q", got)
@@ -397,7 +397,7 @@ func TestFormatters(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderZoneMaskOverlay(t *testing.T) {
 	f := testFrame(2048)
 	hud := defaultHUD()
@@ -443,7 +443,7 @@ func TestRenderZoneMaskOverlay(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderBodeView(t *testing.T) {
 	hud := defaultHUD()
 	hud.ViewMode = 3
@@ -471,7 +471,7 @@ func TestRenderBodeView(t *testing.T) {
 
 // Decimating for the spectrum averages each block: a tone at the input's
 // Nyquist (alternating codes) must not survive as a full-scale alias.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func TestBlockMeansSuppressAlias(t *testing.T) {
 	src := make([]uint8, 64)
 	for i := range src {
@@ -486,7 +486,7 @@ func TestBlockMeansSuppressAlias(t *testing.T) {
 
 // Every printable ASCII character has a glyph: the decoded-stream text column
 // shows any byte from 0x20 to 0x7E.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestFontCoversPrintableASCII(t *testing.T) {
 	for r := rune(0x20); r < 0x7f; r++ {
 		if _, ok := glyphs[r]; !ok {
@@ -497,7 +497,7 @@ func TestFontCoversPrintableASCII(t *testing.T) {
 
 // Bode gridlines sit on round steps (not quarters of [-180,45] labelled -11.2
 // and -124).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestBodeGridStep(t *testing.T) {
 	if s := gridStep(-180, 45, []float64{15, 30, 45, 90, 180}); s != 45 {
 		t.Fatalf("phase step %g", s)
@@ -513,7 +513,7 @@ func TestBodeGridStep(t *testing.T) {
 // Both channels switched off on the panel draw no trace and no readout (CH1
 // then CH2 off must not bring both traces and readouts back). Unset flags
 // (ChanExplicit false) still mean "show both".
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderBothChannelsHidden(t *testing.T) {
 	h := defaultHUD()
 	h.ShowMeas = true
@@ -535,7 +535,7 @@ func TestRenderBothChannelsHidden(t *testing.T) {
 // The sheet writes its tab's live status under the rows in the status
 // colour: the ACQ tab says why super-res did not arm, not only while
 // super-res is active.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-212
 func TestRenderSheetStatus(t *testing.T) {
 	h := defaultHUD()
 	sh := &wsview.Sheet{WSName: "SCOPE", Rows: []wsview.Row{{Kind: wsview.Enum, Label: "Super-res", Opts: []wsview.Opt{{Text: "Off", Sel: true}, {Text: "On"}}}}}
@@ -556,7 +556,7 @@ func TestRenderSheetStatus(t *testing.T) {
 
 // The match editor covers the screen left of the F-key column with its
 // keyboard (the highlighted key filled).
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func TestRenderMatchEditor(t *testing.T) {
 	h := defaultHUD()
 	h.UI = wsview.View{
@@ -581,7 +581,7 @@ func TestRenderMatchEditor(t *testing.T) {
 }
 
 // The empty Bode plot names the reference and DUT channels chosen.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestBodeHintNamesTheChannels(t *testing.T) {
 	hud := defaultHUD()
 	hud.ViewMode, hud.BodeRef, hud.BodeDut = 3, 1, 0
@@ -602,7 +602,7 @@ func TestBodeHintNamesTheChannels(t *testing.T) {
 
 // A reference is drawn at the volts at the tip it was stored with: after a
 // x10 probe change it shows a tenth as tall, where the web draws it too.
-// TRLC-LINKS: REQ-SDS-138
+// TRLC-LINKS: REQ-DSO-138
 func TestRefDrawnThroughItsProbe(t *testing.T) {
 	hud := defaultHUD()
 	hud.NumChans, hud.Ch[0].Probe = 1, 10
@@ -629,7 +629,7 @@ func TestRefDrawnThroughItsProbe(t *testing.T) {
 
 // A packet with a fault of its own is drawn in red with the fault named, and
 // its address in the ADDR column, as the web's packet list shows them.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestBusPaneFaultAndAddress(t *testing.T) {
 	p := plotOf(m800, wsview.Layout{PlotTop: 136})
 	draw := func(ln wsview.BusLine) *Image565 {
@@ -660,7 +660,7 @@ func TestBusPaneFaultAndAddress(t *testing.T) {
 
 // The zoom tag beside the timebase cannot be misread: "Z50x" in the 5x7
 // font read as "250x".
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestZoomTagReadsTheFactor(t *testing.T) {
 	hud := defaultHUD()
 	hud.Zoom = 50
@@ -679,7 +679,7 @@ func TestZoomTagReadsTheFactor(t *testing.T) {
 
 // The trigger readout names a trigger that is no plain edge: the owner's
 // serial trigger on AA read "T C1 ^ 1.37V" as any edge does.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestTriggerReadoutNamesTheType(t *testing.T) {
 	h := defaultHUD()
 	if got := trigTag(h); got != "" {

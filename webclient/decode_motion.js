@@ -1,14 +1,14 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // decode_motion.js — quadrature encoders, stepper STEP/DIR and PWM, a
 // classic script mirroring decode_motion.go step for step. Uses
 // sliceChannel, logicAt and fail from decode.js and pspan from
 // decode_pulsewire.js. cfg.threshold slices line a, cfg.thresholdB line b.
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-250
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
 function lineOpts(thr) { return thr != null ? { threshold: thr } : {}; }
 
 // medianOf mirrors decode_motion.go medianOf.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-250
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
 function medianOf(v) {
   if (!v.length) return 0;
   // The middle element by selection (Hoare), not a full sort of a copy.
@@ -28,7 +28,7 @@ function medianOf(v) {
 }
 
 // stepPeriod mirrors decode_motion.go stepPeriod.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-250
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
 function stepPeriod(A) {
   const per = [];
   let last = -1;
@@ -42,7 +42,7 @@ function stepPeriod(A) {
 }
 
 // decodeSteps mirrors decode_motion.go decodeSteps.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-250
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
 function decodeSteps(proto, a, b, colTimeS, cfg, quad) {
   cfg = cfg || {};
   if (!b) return fail(proto, "needs both lines");
@@ -64,7 +64,7 @@ function decodeSteps(proto, a, b, colTimeS, cfg, quad) {
   let count = 0;
   let la = A.level[0];
   let lb = B.ok ? B.level[0] : 0;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-250
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
   const phase = () => { const g = la | (lb << 1); return g ^ (g >> 1); };
   let ph = phase();
   let prevA = 0, open = false, ia = 0, ib = 0, steps = 0, pulse = Infinity, riseX = -1, lastA = -1, bMid = 0, bAll = 0;
@@ -124,15 +124,15 @@ function decodeSteps(proto, a, b, colTimeS, cfg, quad) {
 }
 
 // decodeQuadrature mirrors decode_motion.go DecodeQuadrature.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-250
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
 function decodeQuadrature(a, b, colTimeS, cfg) { return decodeSteps("quad", a, b, colTimeS, cfg, true); }
 
 // decodeStepper mirrors decode_motion.go DecodeStepper.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-250
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
 function decodeStepper(a, b, colTimeS, cfg) { return decodeSteps("stepper", a, b, colTimeS, cfg, false); }
 
 // decodePWM mirrors decode_motion.go DecodePWM.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-250
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
 function decodePWM(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);

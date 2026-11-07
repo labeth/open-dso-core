@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -16,7 +16,7 @@ import (
 
 // flexFrameBytes builds a complete frame: header with CRC-11, payload and
 // the CRC-24 trailer.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func flexFrameBytes(id, cycle int, sync, startup bool, payload []int) []int {
 	n := len(payload) / 2
 	hdr := uint64(0)
@@ -40,7 +40,7 @@ func flexFrameBytes(id, cycle int, sync, startup bool, payload []int) []int {
 }
 
 // flexRenderRate lays frames out at a fractional bit width in samples.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func flexRenderRate(frames [][]int, spb float64, tssBits int) []uint8 {
 	var w []uint8
 	pos := 0.0
@@ -79,7 +79,7 @@ type flexRefFrame struct {
 }
 
 // Compare the FlexRay trigger RTL with FlexRay on the same line.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestFlexRayTriggerRTL(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {

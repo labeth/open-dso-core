@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -17,7 +17,7 @@ type rfidField struct {
 }
 
 // on adds d seconds of field; off d seconds of gap.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func (f rfidField) on(d float64) {
 	if !f.carrier {
 		f.w.add(1, d)
@@ -30,13 +30,13 @@ func (f rfidField) on(d float64) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func (f rfidField) off(d float64) { f.w.add(0, d) }
 
 // em4305Command writes an EM4305 command after a first field stop: a 0 is
 // 18 field clocks of field and a 20-clock gap, a 1 32 clocks of field; then
 // 400 clocks of field.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func em4305Command(f rfidField, bits []int) {
 	f.off(55 * rfidFC)
 	for _, b := range bits {
@@ -54,7 +54,7 @@ func em4305Command(f rfidField, bits []int) {
 // command and parity, the address (four bits least significant first, two
 // zeros, parity), the word's bytes with parities, column parity, stop 0;
 // badPar breaks the first byte's parity.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func em4305Bits(cmd, addr int, word [4]int, badPar bool) []int {
 	b := []int{0}
 	par := func(v []int) int {
@@ -91,7 +91,7 @@ func em4305Bits(cmd, addr int, word [4]int, badPar bool) []int {
 
 // t55xxCommand writes a T55xx command after a start gap: each bit 24 (0) or
 // 56 (1) field clocks of field and a 25-clock gap; then 400 clocks of field.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func t55xxCommand(f rfidField, bits []int) {
 	f.off(30 * rfidFC)
 	for _, b := range bits {
@@ -107,7 +107,7 @@ func t55xxCommand(f rfidField, bits []int) {
 
 // t55xxBits are a T55xx write: opcode, the password when pwd >= 0, the lock
 // bit, the 32-bit word and the 3-bit block, most significant bits first.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func t55xxBits(op int, pwd int64, lock int, word uint32, blk int) []int {
 	b := []int{op >> 1 & 1, op & 1}
 	if pwd >= 0 {
@@ -125,7 +125,7 @@ func t55xxBits(op int, pwd int64, lock int, word uint32, blk int) []int {
 // em4100Frame appends an EM4100 frame of five bytes (the version or
 // customer byte, then the data) as Manchester bits of hp-second halves, a
 // 1 high then low; badRow breaks the first row's parity.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func em4100Frame(w *timeline, b [5]int, hp float64, badRow bool) {
 	bits := []int{1, 1, 1, 1, 1, 1, 1, 1, 1}
 	col := 0

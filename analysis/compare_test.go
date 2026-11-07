@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -9,7 +9,7 @@ import (
 
 // squareDiv is a square wave in divisions: +-2 div, period samples long,
 // shifted by shift samples, with noise (div rms).
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func squareDiv(n, period int, shift, noise float64, seed uint64) []float64 {
 	r := rng{s: seed}
 	out := make([]float64, n)
@@ -28,7 +28,7 @@ func squareDiv(n, period int, shift, noise float64, seed uint64) []float64 {
 }
 
 // TestRefDiff: identical traces, an offset, a gap, and nothing comparable.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func TestRefDiff(t *testing.T) {
 	ref := squareDiv(1000, 100, 0, 0, 1)
 	if mx, rms, pct := RefDiff(ref, ref, 0.5); mx != 0 || rms != 0 || pct != 100 {
@@ -63,7 +63,7 @@ func TestRefDiff(t *testing.T) {
 
 // TestRepeats: captures of a repeating trigger repeat; a free-running trigger
 // (another phase each capture), a glitch, gaps and mismatched lengths.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func TestRepeats(t *testing.T) {
 	const tol, slack = 0.25, 6 // the prototype's rule: +-0.25 div, +-6 samples
 	a := squareDiv(2048, 200, 0, 0.03, 1)
@@ -108,7 +108,7 @@ func TestRepeats(t *testing.T) {
 }
 
 // BenchmarkRepeats: a 1M-sample capture against the last, mask tolerance.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func BenchmarkRepeats(b *testing.B) {
 	x := squareDiv(1<<20, 400, 0, 0.03, 1)
 	y := squareDiv(1<<20, 400, 1.5, 0.03, 2)
@@ -121,7 +121,7 @@ func BenchmarkRepeats(b *testing.B) {
 // couple of samples of trigger jitter, repeats: the first and last slack
 // samples have no full envelope (a 1 MHz square's edge sits on the window's
 // left end at 1 us/div, ten periods a window).
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func TestRepeatsAnEdgeAtTheRecordStart(t *testing.T) {
 	const tol, slack = 0.25, 1
 	a := squareDiv(400, 40, -1, 0.03, 1) // the rising edge at sample 1

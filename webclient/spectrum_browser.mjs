@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the SPECTRUM workspace (argv[2]=URL of a scope serving a
 // 50 % square of 64 samples on C1 and a small sine on C2). The FFT is large; the
 // peak table lists the square's peaks in frequency order with level (dBV),
@@ -12,11 +12,11 @@ import { openScope, run } from "./scope_po.mjs";
 run(async (t) => {
   const { page, po, browser, pageErrors } = await openScope(process.argv[2], { viewport: { width: 1600, height: 1000 } });
   t.browser = browser;
-  // TRLC-LINKS: REQ-SDS-216
+  // TRLC-LINKS: REQ-DSO-216
   const table = () => page.evaluate(() => [...document.querySelectorAll("#fftBody tr.pk")].map((r) => ({
     f: +r.dataset.freq, cells: [...r.querySelectorAll("td")].map((c) => c.textContent),
   })));
-  // TRLC-LINKS: REQ-SDS-216
+  // TRLC-LINKS: REQ-DSO-216
   const readout = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#roBody tr")].map((r) => [r.querySelector("th").textContent, r.querySelector("td").textContent])));
 
   await page.click("#tab-spectrum");

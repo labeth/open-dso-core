@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -26,7 +26,7 @@ var fuzzKinds = []string{
 var fuzzTexts = []string{"", "R", "W", "csync", "dsync", "STUFF!", "(no STOP)", "!"}
 
 // checkPacketInvariants holds for any grouping.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func checkPacketInvariants(t *testing.T, ps []Packet, n int) {
 	t.Helper()
 	for i, p := range ps {
@@ -58,7 +58,7 @@ func checkPacketInvariants(t *testing.T, ps []Packet, n int) {
 }
 
 // FuzzPackets groups arbitrary spans: any order, any position, any kind.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func FuzzPackets(f *testing.F) {
 	f.Add([]byte{0, 100, 0, 0, 10, 0, 50, 0, 0, 0x41, 0, 60, 0, 99, 0, 0, 0x42})
 	f.Add([]byte{2, 0, 2, 0, 5, 0, 5, 4, 0, 0, 0, 6, 0, 30, 6, 0x24, 1, 0, 31, 0, 31, 7, 0, 1, 0, 40, 0, 70, 0, 0x55, 0})
@@ -87,7 +87,7 @@ func FuzzPackets(f *testing.F) {
 
 // FuzzDecodedPackets runs a real decoder on an arbitrary waveform and groups
 // its output.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func FuzzDecodedPackets(f *testing.F) {
 	f.Add(byte(0), uartMsgs([][]byte{[]byte("Hi"), {0x55}}, 8, 20, 20, 20))
 	f.Add(byte(1), []byte{0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 128, 0, 255})
@@ -126,7 +126,7 @@ func FuzzDecodedPackets(f *testing.F) {
 }
 
 // FuzzEye folds arbitrary codes, sample interval and bit hint.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func FuzzEye(f *testing.F) {
 	rec := prbsRecords(1, 600, 9.5, wave{lo: 60, hi: 200, rise: 2, noise: 0.5}, nil)[0]
 	seed := make([]byte, len(rec))
@@ -166,7 +166,7 @@ func FuzzEye(f *testing.F) {
 }
 
 // FuzzEyeJitter feeds the eyejitter.js port arbitrary records.
-// TRLC-LINKS: REQ-SDS-215, REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-215, REQ-DSO-199
 func FuzzEyeJitter(f *testing.F) {
 	f.Add([]byte{60, 60, 200, 200, 60, 200, 60, 60, 60, 200, 200, 200, 60, 200, 60, 200, 200, 60, 60, 200}, uint8(1))
 	f.Add([]byte{128, 129, 127, 128}, uint8(0))
@@ -193,7 +193,7 @@ func FuzzEyeJitter(f *testing.F) {
 }
 
 // FuzzPeaks searches arbitrary spectra and numbers their harmonics.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func FuzzPeaks(f *testing.F) {
 	f.Add([]byte{0, 10, 200, 10, 0, 0, 5, 100, 5, 0, 0, 3, 50, 3, 0}, uint8(8), 0.0)
 	f.Add([]byte{255, 255, 255, 255, 255, 255}, uint8(0), 1e3)
@@ -227,7 +227,7 @@ func FuzzPeaks(f *testing.F) {
 }
 
 // FuzzCompare runs RefDiff, Repeats and Stats on arbitrary traces with gaps.
-// TRLC-LINKS: REQ-SDS-217, REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-217, REQ-DSO-218
 func FuzzCompare(f *testing.F) {
 	f.Add([]byte{1, 2, 3, 4, 5, 6, 7, 8}, []byte{1, 2, 3, 4, 5, 6, 7, 9}, 0.5, 2)
 	f.Add([]byte{}, []byte{0}, -1.0, -5)

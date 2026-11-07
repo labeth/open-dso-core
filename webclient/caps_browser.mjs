@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Drives the real page against a scope and prints what it built and asked
 // for, as JSON, for webserver.TestCapsBrowser to compare: the requests it
 // made, the channel lists, the measurement and cursor tables and the frame
@@ -28,6 +28,7 @@ page.on("request", (r) => {
 const capsDoc = await fetch(url + "/api/caps").then((r) => (r.ok ? r.json() : null)).catch(() => null);
 const wide = !!(capsDoc && capsDoc.channels && capsDoc.channels.length > 2);
 if (wide) {
+  // TRLC-LINKS: REQ-DSO-1004
   const cols = (k) => Array.from({ length: 8 }, (_, i) => 100 + 10 * k + i);
   const ref = { has: true, show: true, gen: 7, at: 0, cols: 8, c1: cols(1), c2: cols(2), c3: cols(3), c4: cols(4),
     vdiv: [0.5, 0.5, 0.5, 0.5], off: [0, 0, 0, 0], probe: [1, 1, 1, 1], tdiv_s: 1e-6, pos_frac: 0.5 };
@@ -62,7 +63,9 @@ await po.click("vdiv" + n + "Up");
 await po.click("tC" + n);
 await page.waitForTimeout(600);
 const out = await page.evaluate(() => {
+  // TRLC-LINKS: REQ-DSO-1004
   const f = frame, arr = (a) => a ? { type: a.constructor.name, n: a.length, head: Array.from(a.slice(0, 40)) } : null;
+  // TRLC-LINKS: REQ-DSO-1004
   const opts = (id) => [...document.querySelectorAll("#" + id + " > option, #" + id + " > button")].map((o) => o.textContent.trim() + "=" + (o.value || o.dataset.value));
   return {
     capsServed, chans: chanNums(), colors: chanNums().map(chanColor), wire: f.wire || 1,
@@ -117,6 +120,7 @@ const areas = await page.evaluate((k) => {
   document.getElementById("mYT").click();
   // the exports, as the files they would save
   const got = {};
+  // TRLC-LINKS: REQ-DSO-1004
   window.exportFile = (name, type, data) => { got[name.split(".").pop()] = data; };
   document.getElementById("eCSV").click(); document.getElementById("eWAV").click(); document.getElementById("eVCD").click();
   const csv = got.csv.split("\n"), w = got.wav;

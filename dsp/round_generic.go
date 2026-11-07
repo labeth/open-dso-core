@@ -1,12 +1,12 @@
 //go:build !arm
 
-// ENGMODEL-OWNER-UNIT: FU-APP-DSP
+// ENGMODEL-OWNER-UNIT: FU-DSO-DSP
 
 package dsp
 
 import "unsafe"
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func roundQ8Block(src *uint16, dst *uint8, n int) {
 	in, out := unsafe.Slice(src, n), unsafe.Slice(dst, n) //nolint:gosec // the block ABI the NEON twin shares: n samples each
 	for i, v := range in {
@@ -14,7 +14,7 @@ func roundQ8Block(src *uint16, dst *uint8, n int) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-037
+// TRLC-LINKS: REQ-DSO-037
 func splitQ8Block(b *byte, q1, q2 *uint16, c1, c2 *uint8, n int) {
 	in := unsafe.Slice(b, 4*n)                         //nolint:gosec // the block ABI the NEON twin shares: n word pairs
 	a, c := unsafe.Slice(q1, n), unsafe.Slice(q2, n)   //nolint:gosec // n samples each

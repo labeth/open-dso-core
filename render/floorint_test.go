@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -9,7 +9,7 @@ import (
 
 // floorInt agrees with math.Floor on whole, fractional, negative, huge and
 // NaN positions.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestFloorIntIsFloor(t *testing.T) {
 	for _, v := range []float64{
 		0, 0.5, 1, 1.999999, -0.000001, -0.5, -1, -1.5, 12345.678, -98765.4321,

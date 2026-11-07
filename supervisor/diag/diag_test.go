@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -16,7 +16,7 @@ import (
 )
 
 // readArchive returns the members of a written archive by name.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func readArchive(t *testing.T, b []byte) map[string][]byte {
 	t.Helper()
 	gz, err := gzip.NewReader(bytes.NewReader(b))
@@ -43,7 +43,7 @@ func readArchive(t *testing.T, b []byte) map[string][]byte {
 
 // The archive stores its members, lists every one in the manifest with its
 // hash, notes what did not fit and the collectors' errors.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func TestArchiveRoundTrip(t *testing.T) {
 	var b bytes.Buffer
 	a := NewArchive(&b, 64)
@@ -71,7 +71,7 @@ func TestArchiveRoundTrip(t *testing.T) {
 
 // The firmware inventory hashes every file, stores the small ones whole and
 // the head of a large one, lists links, and skips the stick's own mount.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func TestFirmwareInventory(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "version.txt"), []byte("1.0"), 0o600); err != nil {
@@ -112,7 +112,7 @@ func TestFirmwareInventory(t *testing.T) {
 
 // The framebuffer's geometry comes from sysfs (the visible mode inside a
 // panned buffer), and its pixels convert at each depth.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func TestFramebuffer(t *testing.T) {
 	dir := t.TempDir()
 	for name, v := range map[string]string{"virtual_size": "800,960\n", "bits_per_pixel": "16\n", "stride": "1600\n", "pan": "0,480\n", "mode": "\n", "modes": "U:800x480p-52\n"} {
@@ -140,7 +140,7 @@ func TestFramebuffer(t *testing.T) {
 
 // A process's state comes from /proc: this test's own is running or
 // sleeping, a pid no process has reads as gone.
-// TRLC-LINKS: REQ-SDS-285
+// TRLC-LINKS: REQ-DSO-285
 func TestProcState(t *testing.T) {
 	if st := ProcState(os.Getpid()); st != "R" && st != "S" {
 		t.Fatalf("own state %q", st)
@@ -151,7 +151,7 @@ func TestProcState(t *testing.T) {
 }
 
 // TestBannerDrawsTheWord: the DONE screen's word is white on its colour.
-// TRLC-LINKS: REQ-SDS-292
+// TRLC-LINKS: REQ-DSO-292
 func TestBannerDrawsTheWord(t *testing.T) {
 	b := newBanner(800, 480, doneGreen, "DONE", []string{"switch the scope off"})
 	white, green := 0, 0
@@ -205,7 +205,7 @@ func (b *stageBoard) ScreenOn() error { return nil }
 
 // Each stage runs only when the mode and the gates before it allow it, the
 // gates' checks are archived, and the board's link closes once.
-// TRLC-LINKS: REQ-SDS-284, REQ-SDS-285, REQ-SDS-287, REQ-SDS-288
+// TRLC-LINKS: REQ-DSO-284, REQ-DSO-285, REQ-DSO-287, REQ-DSO-288
 func TestStagesFollowModeAndGates(t *testing.T) {
 	for _, tc := range []struct {
 		mode                        string
@@ -246,7 +246,7 @@ func TestStagesFollowModeAndGates(t *testing.T) {
 }
 
 // A board's own child subcommand runs before any flag parsing.
-// TRLC-LINKS: REQ-SDS-285
+// TRLC-LINKS: REQ-DSO-285
 func TestRunHandsChildrenToTheBoard(t *testing.T) {
 	if code := Run([]string{"child", "x"}, io.Discard, &stageBoard{}); code != 7 {
 		t.Errorf("child exit %d, want the board's 7", code)

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-VXI11
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-VXI11
 
 package vxi11
 
@@ -9,7 +9,7 @@ import (
 )
 
 // One RPC through a pipe to an echoing peer: the takeover's SCPI round trip.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func BenchmarkRPCCall(b *testing.B) {
 	c, s := net.Pipe()
 	defer func() { _ = c.Close() }()

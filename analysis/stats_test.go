@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -9,7 +9,7 @@ import (
 
 // TestStats checks the running figures against a direct two-pass computation,
 // including the values that are skipped and an empty or single-value run.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func TestStats(t *testing.T) {
 	var s Stats
 	if s.N() != 0 || !math.IsNaN(s.Mean()) || !math.IsNaN(s.Min()) || !math.IsNaN(s.Max()) ||

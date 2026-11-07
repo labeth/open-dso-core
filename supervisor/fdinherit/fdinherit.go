@@ -7,7 +7,7 @@
 // frees the chip select for the whole tree): the supervisor keeps raw integer
 // fds — never wrapped in an *os.File — so no finalizer or Close path can ever
 // touch them.
-// ENGMODEL-OWNER-UNIT: FU-OTA-FDINHERIT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-FDINHERIT
 package fdinherit
 
 import (
@@ -20,7 +20,7 @@ import (
 
 // Find returns the number of the inherited descriptor whose /proc/self/fd
 // readlink target equals path, or -1 if not inherited.
-// TRLC-LINKS: REQ-SDS-002
+// TRLC-LINKS: REQ-DSO-002
 func Find(path string) int {
 	entries, err := os.ReadDir("/proc/self/fd")
 	if err != nil {
@@ -40,7 +40,7 @@ func Find(path string) int {
 }
 
 // Holder describes a process holding an open descriptor to a device node.
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 type Holder struct {
 	PID  int    `json:"pid"`
 	Comm string `json:"comm"`
@@ -48,13 +48,13 @@ type Holder struct {
 }
 
 // HoldersOf scans /proc/*/fd for descriptors pointing at path.
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func HoldersOf(path string) []Holder { return HoldersOfEach(path)[0] }
 
 // HoldersOfEach is HoldersOf for several paths in one /proc scan: the scan
 // is a readlink per descriptor of every process, and a probe asks for three
 // device nodes.
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func HoldersOfEach(paths ...string) [][]Holder {
 	out := make([][]Holder, len(paths))
 	d, err := os.Open("/proc")
@@ -110,7 +110,7 @@ func HoldersOfEach(paths ...string) [][]Holder {
 }
 
 // Comm returns /proc/<pid>/comm trimmed, or "".
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func Comm(pid int) string {
 	b, err := os.ReadFile(filepath.Join("/proc", strconv.Itoa(pid), "comm"))
 	if err != nil {
@@ -120,7 +120,7 @@ func Comm(pid int) string {
 }
 
 // Exe returns the readlink of /proc/<pid>/exe, or "".
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func Exe(pid int) string {
 	s, err := os.Readlink(filepath.Join("/proc", strconv.Itoa(pid), "exe"))
 	if err != nil {
@@ -130,7 +130,7 @@ func Exe(pid int) string {
 }
 
 // PPid returns the parent pid from /proc/<pid>/status, or -1.
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func PPid(pid int) int {
 	b, err := os.ReadFile(filepath.Join("/proc", strconv.Itoa(pid), "status"))
 	if err != nil {
@@ -149,7 +149,7 @@ func PPid(pid int) int {
 }
 
 // Alive reports whether /proc/<pid> still exists.
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func Alive(pid int) bool {
 	_, err := os.Stat(filepath.Join("/proc", strconv.Itoa(pid)))
 	return err == nil

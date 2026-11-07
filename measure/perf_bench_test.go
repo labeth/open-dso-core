@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-MEASURE
+// ENGMODEL-OWNER-UNIT: FU-DSO-MEASURE
 
 package measure
 
@@ -8,7 +8,7 @@ import (
 )
 
 // benchSquare is a noisy 0-3.3 V square of 40-sample cycles, raw and Q8.8.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func benchSquare(n int) ([]uint8, []uint16) {
 	r := rand.New(rand.NewSource(3))
 	raw := make([]uint8, n)
@@ -25,7 +25,7 @@ func benchSquare(n int) ([]uint8, []uint16) {
 	return raw, q
 }
 
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func BenchmarkCompute(b *testing.B) {
 	raw, _ := benchSquare(5000)
 	for b.Loop() {
@@ -33,7 +33,7 @@ func BenchmarkCompute(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func BenchmarkComputeQ8(b *testing.B) {
 	_, q := benchSquare(5000)
 	for b.Loop() {
@@ -43,7 +43,7 @@ func BenchmarkComputeQ8(b *testing.B) {
 
 // benchEnvelope is a live peak-detect frame: 1400 (min,max) buckets of a
 // noisy square with 56-bucket cycles and an edge bucket at each transition.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func benchEnvelope() []uint8 {
 	r := rand.New(rand.NewSource(4))
 	env := make([]uint8, 2*1400)
@@ -61,7 +61,7 @@ func benchEnvelope() []uint8 {
 	return env
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkEnvelopeTiming(b *testing.B) {
 	env := benchEnvelope()
 	r := Compute(env, 0.02, 0, 2e-7)
@@ -71,7 +71,7 @@ func BenchmarkEnvelopeTiming(b *testing.B) {
 }
 
 // Every channel frame is checked for clipping and its envelope's swing read.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkClippedSwing(b *testing.B) {
 	raw, _ := benchSquare(5000)
 	env := benchEnvelope()
@@ -82,7 +82,7 @@ func BenchmarkClippedSwing(b *testing.B) {
 }
 
 // An envelope longer than the timing's stack buffers takes heap ones.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestEnvelopeTimingLongEnvelope(t *testing.T) {
 	env := make([]uint8, 2*5000)
 	for i := range 5000 {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -6,7 +6,7 @@ import "testing"
 
 // The saver box stays on the screen and moves one pixel each way every step,
 // bouncing off the edges.
-// TRLC-LINKS: REQ-SDS-221
+// TRLC-LINKS: REQ-DSO-221
 func TestSaverDrifts(t *testing.T) {
 	px, py := SaverPos(m800, 0)
 	if px != 0 || py != 0 {

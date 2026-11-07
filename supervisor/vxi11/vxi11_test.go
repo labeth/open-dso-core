@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-VXI11
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-VXI11
 
 package vxi11
 
@@ -15,7 +15,7 @@ import (
 // fakeInstrument is a minimal VXI-11 server: a portmapper on the listener that
 // GETPORTs to a second core listener, which answers create_link / device_write
 // / device_read / destroy_link. It records the SCPI commands it receives.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 type fakeInstrument struct {
 	pmLn, coreLn net.Listener
 	corePort     uint32
@@ -26,7 +26,7 @@ type fakeInstrument struct {
 	readCount uint32
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func readRecord(c net.Conn) ([]byte, error) {
 	var rm [4]byte
 	if _, err := io.ReadFull(c, rm[:]); err != nil {
@@ -38,7 +38,7 @@ func readRecord(c net.Conn) ([]byte, error) {
 	return buf, err
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func writeRecord(c net.Conn, body []byte) {
 	var rm [4]byte
 	binary.BigEndian.PutUint32(rm[:], 0x80000000|uint32(len(body)))
@@ -46,7 +46,7 @@ func writeRecord(c net.Conn, body []byte) {
 }
 
 // acceptedReply builds an accepted RPC reply header for xid + result payload.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func acceptedReply(xid uint32, result []byte) []byte {
 	b := make([]byte, 24)
 	binary.BigEndian.PutUint32(b[0:], xid)
@@ -58,13 +58,13 @@ func acceptedReply(xid uint32, result []byte) []byte {
 	return append(b, result...)
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func callXID(body []byte) uint32 { return binary.BigEndian.Uint32(body[0:4]) }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func callProc(body []byte) uint32 { return binary.BigEndian.Uint32(body[20:24]) }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func newFake(t *testing.T) *fakeInstrument {
 	t.Helper()
 	pm, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
@@ -86,15 +86,15 @@ func newFake(t *testing.T) *fakeInstrument {
 	return f
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (f *fakeInstrument) host() string { return "127.0.0.1" }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (f *fakeInstrument) pmPort() int {
 	return int(netip.MustParseAddrPort(f.pmLn.Addr().String()).Port())
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (f *fakeInstrument) servePortmap() {
 	for {
 		c, err := f.pmLn.Accept()
@@ -117,7 +117,7 @@ func (f *fakeInstrument) servePortmap() {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (f *fakeInstrument) serveCore() {
 	for {
 		c, err := f.coreLn.Accept()
@@ -171,13 +171,13 @@ func (f *fakeInstrument) serveCore() {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (f *fakeInstrument) close() {
 	_ = f.pmLn.Close()
 	_ = f.coreLn.Close()
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func TestDialSendQuery(t *testing.T) {
 	f := newFake(t)
 	defer f.close()
@@ -214,7 +214,7 @@ func TestDialSendQuery(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func itoa(n int) string {
 	if n == 0 {
 		return "0"
@@ -233,7 +233,7 @@ func itoa(n int) string {
 // sent. A count of 2^31 or more must not slice past them: as an int it is
 // negative on a 32-bit target (run with GOARCH=386 to cover the device's word
 // size).
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func TestQueryClampsAnOversizedReadCount(t *testing.T) {
 	for _, count := range []uint32{64, 0x80000000, 0xffffffff} {
 		f := newFake(t)
@@ -253,7 +253,7 @@ func TestQueryClampsAnOversizedReadCount(t *testing.T) {
 }
 
 // rpcReply answers one call on a pipe with the raw reply body given.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func rpcReply(t *testing.T, body func(xid uint32) []byte) ([]byte, error) {
 	t.Helper()
 	cli, srv := net.Pipe()
@@ -272,7 +272,7 @@ func rpcReply(t *testing.T, body func(xid uint32) []byte) ([]byte, error) {
 // A reply's lengths come off the wire: a verifier longer than ONC RPC allows
 // is an error, not an offset (on 32 bits one near 2^31 wrapped negative), and
 // a fragment claiming gigabytes is refused before it is allocated.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func TestRPCReplyLengthsAreBounded(t *testing.T) {
 	_, err := rpcReply(t, func(xid uint32) []byte {
 		b := acceptedReply(xid, make([]byte, 8))
@@ -301,7 +301,7 @@ func TestRPCReplyLengthsAreBounded(t *testing.T) {
 
 // staleReplies answers one call with n late replies to earlier calls (other
 // xids) and then its own; it returns what the call got.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func staleReplies(t *testing.T, n int) ([]byte, error) {
 	t.Helper()
 	cli, srv := net.Pipe()
@@ -324,7 +324,7 @@ func staleReplies(t *testing.T, n int) ([]byte, error) {
 // A reply to an earlier call that timed out is read past: the late answer of
 // one slow call does not misread every call after it. Past maxStale of them
 // the call fails.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func TestLateRepliesAreReadPast(t *testing.T) {
 	if res, err := staleReplies(t, 2); err != nil || string(res) != "mine" {
 		t.Fatalf("after two late replies: %q %v", res, err)

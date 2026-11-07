@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -15,7 +15,7 @@ import (
 //	request:  {"cmd": "exec", "args": {...}}
 //	response: {"ok": true, "data": {...}} | {"ok": false, "err": "..."}
 //
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 type Request struct {
 	Cmd  string          `json:"cmd"`
 	Args json.RawMessage `json:"args,omitempty"`
@@ -23,19 +23,19 @@ type Request struct {
 
 // Response is the reply envelope: Data on success, Err (and any partial
 // Data) on failure.
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 type Response struct {
 	OK   bool   `json:"ok"`
 	Err  string `json:"err,omitempty"`
 	Data any    `json:"data,omitempty"`
 }
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 type handlerFn func(a *Agent, args json.RawMessage) (any, error)
 
 // Dispatch runs one request and always returns a marshalable response; a
 // panicking handler is contained (the agent must never die to a bad request).
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func (a *Agent) Dispatch(raw []byte) (resp Response) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -66,7 +66,7 @@ func (a *Agent) Dispatch(raw []byte) (resp Response) {
 // args: a file chunk is otherwise scanned twice before its handler parses it
 // again. Anything else (escapes, other spacing or key order) reports !ok for
 // the full decode, and invalid args still fail as bad request json.
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func splitRequest(raw []byte) (Request, bool) {
 	const prefix, argsKey = `{"cmd":"`, `,"args":`
 	if !bytes.HasPrefix(raw, []byte(prefix)) {
@@ -102,7 +102,7 @@ func splitRequest(raw []byte) (Request, bool) {
 
 // DispatchJSON is Dispatch with the response encoded, the form both
 // transports send.
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func (a *Agent) DispatchJSON(raw []byte) []byte {
 	resp := a.Dispatch(raw)
 	b, err := json.Marshal(resp)
@@ -113,7 +113,7 @@ func (a *Agent) DispatchJSON(raw []byte) []byte {
 	return b
 }
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func decodeArgs[T any](args json.RawMessage) (T, error) {
 	var v T
 	if len(args) == 0 {

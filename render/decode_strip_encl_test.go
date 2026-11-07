@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -11,7 +11,7 @@ import (
 
 // TestEnclosingSpans: a reading over its bytes and a length over its fields
 // are written above them; a field over its frame's start marker is not.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestEnclosingSpans(t *testing.T) {
 	sp := func(kind, text string, i0, i1 int) decode.Span {
 		return decode.Span{Kind: kind, Text: text, I0: i0, I1: i1}

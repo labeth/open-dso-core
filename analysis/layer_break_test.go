@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -12,7 +12,7 @@ import (
 // layerSane checks what a layer wrote: printable ASCII (the LCD's font), of
 // a length the list can hold, the packets' bytes left as they were, and the
 // same notes written again from the same packets.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func layerSane(t *testing.T, name string, v layerVec) {
 	t.Helper()
 	in := clonePackets(v.Packets)
@@ -46,7 +46,7 @@ func layerSane(t *testing.T, name string, v layerVec) {
 // all-one bytes, packets of other addresses, broken checks. Nothing panics,
 // every note stays printable and bounded, and the checks that fail are
 // flagged.
-// TRLC-LINKS: REQ-SDS-241, REQ-SDS-242, REQ-SDS-243, REQ-SDS-244, REQ-SDS-245, REQ-SDS-246, REQ-SDS-249
+// TRLC-LINKS: REQ-DSO-241, REQ-DSO-242, REQ-DSO-243, REQ-DSO-244, REQ-DSO-245, REQ-DSO-246, REQ-DSO-249
 func TestLayerBreak(t *testing.T) {
 	for seed := int64(10); seed < 18; seed++ {
 		for _, v := range layerRandom(seed) {
@@ -107,7 +107,7 @@ func TestLayerBreak(t *testing.T) {
 }
 
 // FuzzLayers feeds a layer random packets: no panic, printable notes.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func FuzzLayers(f *testing.F) {
 	for _, v := range layerCurated() {
 		for _, p := range v.Packets {
@@ -134,7 +134,7 @@ func FuzzLayers(f *testing.F) {
 }
 
 // layerIndexOf is a layer's place in the list (0 unknown).
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func layerIndexOf(id string) int {
 	for i, l := range Layers() {
 		if l.ID == id {
@@ -147,7 +147,7 @@ func layerIndexOf(id string) int {
 // TestLayerRandomFlagsAreStable is a seeded sweep of every layer that also
 // checks the flagged share: random bytes are mostly not a chip's protocol,
 // so a layer that flags none of them reads too much into noise.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func TestLayerRandomFlagsAreStable(t *testing.T) {
 	r := rand.New(rand.NewSource(3))
 	for _, l := range Layers()[1:] {

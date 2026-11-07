@@ -65,6 +65,7 @@ type I2C struct {
 }
 
 // Protocol is "i2c".
+// TRLC-LINKS: REQ-DSO-1001
 func (I2C) Protocol() string { return "i2c" }
 
 // SPISelect is how an SPI frame is delimited.
@@ -92,6 +93,7 @@ type SPI struct {
 }
 
 // Protocol is "spi".
+// TRLC-LINKS: REQ-DSO-1001
 func (SPI) Protocol() string { return "spi" }
 
 // UARTCondition is what a UART trigger fires on.
@@ -133,6 +135,7 @@ type UART struct {
 }
 
 // Protocol is "uart".
+// TRLC-LINKS: REQ-DSO-1001
 func (UART) Protocol() string { return "uart" }
 
 // CANCondition is what a CAN trigger fires on.
@@ -159,6 +162,7 @@ type CAN struct {
 }
 
 // Protocol is "can".
+// TRLC-LINKS: REQ-DSO-1001
 func (CAN) Protocol() string { return "can" }
 
 // LINCondition is what a LIN trigger fires on.
@@ -187,4 +191,5 @@ type LIN struct {
 }
 
 // Protocol is "lin".
+// TRLC-LINKS: REQ-DSO-1001
 func (LIN) Protocol() string { return "lin" }

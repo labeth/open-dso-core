@@ -1,10 +1,10 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
 import "testing"
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestBuildFPGATemplate(t *testing.T) {
 	sig := make([]float64, 400)
 	for i := range sig {

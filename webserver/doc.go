@@ -9,5 +9,5 @@
 //	http.ListenAndServe(addr, srv.Handler())
 //
 // and runs webtest.Run against the adapter in its tests.
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 package webserver

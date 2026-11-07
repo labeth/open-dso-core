@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -22,7 +22,7 @@ import (
 //
 // The link auto-reconnects forever; on each (re)connect it re-subscribes and
 // publishes an "online" event so the host learns the device is reachable.
-// TRLC-LINKS: REQ-SDS-108
+// TRLC-LINKS: REQ-DSO-108
 func (a *Agent) runNATS() {
 	opts := []nats.Option{
 		nats.Name("ota-agent/" + a.cfg.DeviceID),
@@ -76,7 +76,7 @@ func (a *Agent) runNATS() {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-108
+// TRLC-LINKS: REQ-DSO-108
 func (a *Agent) serveNATS(nc *nats.Conn) {
 	reply := func(m *nats.Msg) {
 		resp := a.DispatchJSON(m.Data)
@@ -129,7 +129,7 @@ func (a *Agent) serveNATS(nc *nats.Conn) {
 
 // heartbeatMsg is a heartbeat's fields, encoded from a struct rather than a
 // map: no sort of the keys and no boxing of each value every interval.
-// TRLC-LINKS: REQ-SDS-108
+// TRLC-LINKS: REQ-DSO-108
 type heartbeatMsg struct {
 	Device    string          `json:"device"`
 	Seq       int64           `json:"seq"`
@@ -142,7 +142,7 @@ type heartbeatMsg struct {
 	IPs       []string        `json:"ips"`
 }
 
-// TRLC-LINKS: REQ-SDS-108
+// TRLC-LINKS: REQ-DSO-108
 func (a *Agent) heartbeat() heartbeatMsg {
 	st := a.st.get()
 	a.appMu.Lock()

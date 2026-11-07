@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -16,7 +16,7 @@ import (
 	"github.com/labeth/open-dso-core/testenv"
 )
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func compileStackRTL(t *testing.T, dir, bench string, files ...string) string {
 	t.Helper()
 	image := filepath.Join(dir, bench+".vvp")
@@ -31,7 +31,7 @@ func compileStackRTL(t *testing.T, dir, bench string, files ...string) string {
 	return image
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestStackPositionsRTL(t *testing.T) {
 	type fixture struct {
 		p, b, k, n   uint32
@@ -144,7 +144,7 @@ func TestStackPositionsRTL(t *testing.T) {
 	t.Logf("%d position fixtures in general and power-of-two builds; general uint32 factors, boundary skips, stalls and aborts", len(fixtures))
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestStackInterpolateRTL(t *testing.T) {
 	type fixture struct {
 		v                  [4]uint64
@@ -226,7 +226,7 @@ func TestStackInterpolateRTL(t *testing.T) {
 	t.Logf("%d interpolation fixtures; maximum latency %d clocks; error below one Q24 unit per channel", len(fixtures), maxCycles)
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestStackResampleRTL(t *testing.T) {
 	type fixture struct {
 		p, b, k, n              int

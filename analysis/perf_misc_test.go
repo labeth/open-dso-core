@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func BenchmarkFinite(b *testing.B) {
 	v := []float64{1, -2.5, math.NaN(), math.Inf(1), 3e300, math.Copysign(0, -1), math.Inf(-1), 7}
 	n := 0
@@ -22,7 +22,7 @@ func BenchmarkFinite(b *testing.B) {
 }
 
 // finite is the NaN and infinity test it was.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestFiniteIsTheTest(t *testing.T) {
 	for _, x := range []float64{0, math.Copysign(0, -1), 1, -1, math.MaxFloat64, -math.MaxFloat64, math.SmallestNonzeroFloat64, math.NaN(), math.Inf(1), math.Inf(-1)} {
 		if finite(x) != (!math.IsNaN(x) && !math.IsInf(x, 0)) {
@@ -31,7 +31,7 @@ func TestFiniteIsTheTest(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func BenchmarkStatsAdd(b *testing.B) {
 	var s Stats
 	v := 0.0
@@ -42,7 +42,7 @@ func BenchmarkStatsAdd(b *testing.B) {
 }
 
 // The builtins pick what math.Min and math.Max did, signed zeros included.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func TestStatsMinMaxSignedZero(t *testing.T) {
 	for _, p := range [][2]float64{{0, math.Copysign(0, -1)}, {math.Copysign(0, -1), 0}, {1, 2}, {-3, -1}} {
 		var s Stats
@@ -56,7 +56,7 @@ func TestStatsMinMaxSignedZero(t *testing.T) {
 
 // The COMPARE repeat test as the panel runs it every frame: 400 screen
 // columns of each channel against the last.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func BenchmarkRepeatsScreen(b *testing.B) {
 	x := squareDiv(400, 40, 0, 0.03, 1)
 	y := squareDiv(400, 40, 0.2, 0.03, 2)

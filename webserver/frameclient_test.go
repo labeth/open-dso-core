@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -9,7 +9,7 @@ import (
 
 // A page is a frame client while it keeps asking: one that stopped asking
 // 5 s ago is not shown as one for 3 s.
-// TRLC-LINKS: REQ-SDS-163, REQ-SDS-168
+// TRLC-LINKS: REQ-DSO-163, REQ-DSO-168
 func TestFrameClientExpires(t *testing.T) {
 	var s Server
 	if s.FrameClient(time.Hour) {

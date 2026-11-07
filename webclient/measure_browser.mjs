@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the MEASURE workspace (argv[2]=URL of a scope serving a
 // 50 % square of 64 samples on C1 at 409.6 kSa/s, 6.4 kHz). The statistics
 // table counts every capture (now, mean, min, max, sdev, N, a unit per row),
@@ -11,7 +11,7 @@ import { openScope, run } from "./scope_po.mjs";
 run(async (t) => {
   const { page, po, browser, pageErrors } = await openScope(process.argv[2], { viewport: { width: 1600, height: 1000 } });
   t.browser = browser;
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   const stat = (key) => page.evaluate((k) => {
     const r = document.querySelector(`#statsBody tr[data-stat="${k}"]`);
     return r ? { unit: r.querySelector("th .unit").textContent, td: [...r.querySelectorAll("td")].map((c) => c.textContent) } : null;
@@ -53,7 +53,7 @@ run(async (t) => {
   await page.click("#tab-scope");
   // the count itself, read while SCOPE is shown: a frame in flight at the
   // switch may still land, then nothing more
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   const counted = () => page.evaluate(() => { const s = measStats.get("1:Freq"); return s ? s.n : 0; });
   await po.wait(300);
   const s0 = await counted();

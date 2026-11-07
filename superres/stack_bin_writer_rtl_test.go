@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestStackBinWriterRTL(t *testing.T) {
 	type moments struct {
 		s, q, a *big.Int

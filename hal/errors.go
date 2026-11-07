@@ -10,12 +10,15 @@ type Refusal struct {
 }
 
 // Error returns "feature: reason".
+// TRLC-LINKS: REQ-DSO-1001
 func (r *Refusal) Error() string { return r.Feature + ": " + r.Reason }
 
 // Refuse returns a *Refusal as an error.
+// TRLC-LINKS: REQ-DSO-1001
 func Refuse(feature, reason string) error { return &Refusal{Feature: feature, Reason: reason} }
 
 // AsRefusal returns the *Refusal in err's chain, if there is one.
+// TRLC-LINKS: REQ-DSO-1001
 func AsRefusal(err error) (*Refusal, bool) {
 	var r *Refusal
 	ok := errors.As(err, &r)

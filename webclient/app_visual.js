@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-VISUAL
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_visual.js — BUS's Visual view, its core: what the decoded bus means
 // kept as its state (visual.js, VIS_KINDS), each new frame's decode taken
 // once or, for a bus the scope streams byte for byte, its gap-free stream
@@ -19,12 +19,12 @@ const vis = {
 };
 
 // visShown reports the Visual view on screen.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visShown() { return typeof ws !== "undefined" && ws.cur === "bus" && ws.busView === "visual" && !document.hidden; }
 
 // visReset starts the view over for the protocol decoded now (the DBC file
 // and the LED order stay).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visReset() {
   vis.proto = dcfg.proto;
   vis.s = visNew(dcfg.proto === "usb" ? "usbls" : dcfg.proto);
@@ -40,7 +40,7 @@ function visReset() {
 // visOnDecode takes each new frame's decode once (busOnDecode calls it after
 // every decode): its spans into the protocol's state, a layer's notes into
 // the values table, the MIDI events into the synth.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visOnDecode() {
   if (dcfg.proto !== vis.proto || !vis.s) visReset();
   if (!frame || frame.seq === vis.seq) return;
@@ -61,7 +61,7 @@ function visOnDecode() {
 }
 
 // visSound plays the MIDI state's queued events, or drops them while silent.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function visSound() {
   if (!vis.s || !vis.s.out) return;
   midiExpire(vis.s, performance.now() / 1000);
@@ -71,7 +71,7 @@ function visSound() {
 
 // visLag is how far behind the picture and the sound go: the stream's delay
 // while following it (its lines come in late batches), else none.
-// TRLC-LINKS: REQ-SDS-278, REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-278, REQ-DSO-279
 function visLag() { return vis.stream.on && vis.stream.lag > 0 ? vis.stream.lag : 0; }
 
 // ---- the scope's stream, gap-free -------------------------------------------------
@@ -85,7 +85,7 @@ const VIS_ORD_HZ = 500e6;
 // start), gathered into frames, each stamped by its first unit's sample
 // ordinal (VIS_ORD_HZ, on the page's clock from the first line read: a
 // stream started again, or the two clocks seconds apart, anchors it again).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 async function visStreamTick() {
   const S = vis.stream;
   S.on = typeof busScopeStreaming === "function" && busScopeStreaming() && visStreamed(vis.proto);
@@ -121,7 +121,7 @@ setInterval(visStreamTick, 120);
 
 // visAskStream puts the scope on its gap-free stream of the bus (BUS Stream on
 // the scope) or back, the page staying on its Visual view.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visAskStream(on) {
   if (typeof busStreamAsk !== "undefined") busStreamAsk = { on, until: Date.now() + 5000 };
   if (typeof busScopeWas !== "undefined") busScopeWas = on;
@@ -133,7 +133,7 @@ function visAskStream(on) {
 
 // visDraw draws the view: at most every 50 ms; the canvas for the graphics,
 // the side panel's text for the figures.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDraw(force) {
   const now = performance.now();
   if (!force && now - vis.drawT < 50) return;
@@ -156,7 +156,7 @@ function visDraw(force) {
 
 // visDrawProto draws the bus's own picture (its view's), or says the view
 // has none for it.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visDrawProto(g, W, H) {
   const v = visView(vis.s.proto);
   if (v) return v.draw(g, W, H, vis.s);
@@ -167,7 +167,7 @@ function visDrawProto(g, W, H) {
 
 // visSide writes the side panel: its controls (rebuilt for a new bus, or
 // asked: rebuild) and the figures, the view's title and the stream's note.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visSide(rebuild) {
   const side = $("visSide");
   if (!side || !vis.s) return;
@@ -192,7 +192,7 @@ function visSide(rebuild) {
 // visControls are the side panel's controls for a bus: the stream's note,
 // the bus's own (its view's), Gap-free where the scope streams it, Digital
 // audio, then the figures.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visControls(p) {
   const v = visView(p);
   let h = '<div class="r"><span id="visStreamNote" class="sub grow"></span></div>';
@@ -204,15 +204,15 @@ function visControls(p) {
 
 // visWire wires the side panel's controls: the core's, the bus's (its
 // view's), the audio's.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visWire(p) {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const on = (id, ev, fn) => { const el = $(id); if (el) el[ev] = fn; };
   // the scope's own state says which way: the view's follows it a tick later
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   on("visGapless", "onclick", () => { vis.gapless = !busScopeStreaming(); visAskStream(vis.gapless); $("visGapless").classList.toggle("on", vis.gapless); });
   // the audio is read from a captured record: a streaming scope captures none, so its stream ends
-  // TRLC-LINKS: REQ-SDS-278, REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-278, REQ-DSO-280
   on("visAudio", "onclick", () => { if (busScopeStreaming()) visAskStream(false); vis.audio.on = true; visSide(true); visDraw(true); });
   const v = visView(p);
   if (v && v.wire && !vis.audio.on) v.wire(vis.s, on);
@@ -234,7 +234,7 @@ setInterval(() => {
 // visAnimate redraws the piano's notes each display frame while MIDI follows
 // the stream (they move every frame; a capture's picture and the other
 // buses' change only with the data).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visAnimate(ts) {
   vis.anim = visShown() && vis.s && vis.s.proto === "midi" && !vis.s.cap && !vis.audio.on && !dcfg.layer && visMoving(); // a capture's picture stands
   // at most VIS_ANIM_FPS pictures a second: the notes move smoothly at it, and a
@@ -246,7 +246,7 @@ function visAnimate(ts) {
 // visMoving reports the piano's notes moving: one held, or one played within
 // the seconds a note takes to rise away (or fall, with the delay behind):
 // a quiet bus's picture stands still and is not drawn each frame.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visMoving() {
   const s = vis.s;
   if (s.held && s.held.size) return true;
@@ -262,7 +262,7 @@ requestAnimationFrame(visAnimate);
 
 
 // The Full screen button puts the picture and its panel on the whole screen.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 if ($("visFull")) $("visFull").onclick = () => {
   const el = $("visGrid");
   if (document.fullscreenElement) document.exitFullscreen();

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -13,7 +13,7 @@ import (
 // An inverted channel on a live envelope frame reads the complement duty: the
 // envelope's timing comes before the invert, which would otherwise be undone
 // (a 30 % square read 30 %, not 70 %, when inverted).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestInvertedEnvelopeDuty(t *testing.T) {
 	n := 2048
 	f := &sample.Frame{WinPoints: n, SampleS: 96e-9, Seq: 0, Content: sample.PeakPairs, Flags: sample.Ordered, Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Codes8: make([]uint8, n), Valid: n}}}
@@ -36,7 +36,7 @@ func TestInvertedEnvelopeDuty(t *testing.T) {
 
 // An envelope too slow for its signal reads no mean or RMS: the readout shows
 // none rather than its (min, max) pairs' midpoint.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestAliasedEnvelopeHidesMean(t *testing.T) {
 	for _, id := range []string{"mean", "rms", "acrms"} {
 		if _, ok := measParamRow(&measure.Result{Vmean: 1.6, EnvAliased: true}, id); ok {

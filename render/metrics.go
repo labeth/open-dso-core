@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -85,5 +85,5 @@ var Metrics1280x800 = Metrics{
 }
 
 // metricsOf is the table canvas sf draws with.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func metricsOf(sf Canvas) *Metrics { return sf.Metrics() }

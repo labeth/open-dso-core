@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -29,7 +29,7 @@ import (
 
 // unpackWords is the engine's unpackBits: sixteen samples a word of line
 // ch, 0 or 255.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func unpackWords(dst []uint8, raw []byte, ch int) []uint8 {
 	o := 2 * (ch & 1)
 	for i := 0; i+4 <= len(raw); i += 4 {
@@ -43,7 +43,7 @@ func unpackWords(dst []uint8, raw []byte, ch int) []uint8 {
 
 // levelWords packs two lines of levels (0 or 1) into digital words: a on
 // CH1, b on CH2.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func levelWords(a, b []byte) []byte {
 	n := min(len(a), len(b)) / 16
 	raw := make([]byte, 4*n)
@@ -60,7 +60,7 @@ func levelWords(a, b []byte) []byte {
 
 // edgeCPURun decodes the words as the engine's stream does, over samples
 // or edges, pushing pushN samples at a time, and returns the frames.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func edgeCPURun(tc streamCPUCase, raw []byte, ss float64, edges bool, edec func(a, b *EdgeLine, s float64) Result) int {
 	closeN, maxN := int(tc.quiet/ss), int((tc.longest+tc.quiet)/ss)
 	pushN := min(int(math.Max(0.2, math.Min(1, 2*tc.quiet))/ss), 1<<18)
@@ -105,7 +105,7 @@ func edgeCPURun(tc streamCPUCase, raw []byte, ss float64, edges bool, edec func(
 
 // TestEdgeStreamCPU reports each edge protocol's decode CPU a second of
 // dense stream over samples and over edges, and the edges a second.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestEdgeStreamCPU(t *testing.T) {
 	if os.Getenv("SDS_STREAM_CPU") == "" {
 		t.Skip("SDS_STREAM_CPU=1 to measure")

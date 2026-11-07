@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -18,7 +18,7 @@ import (
 //     genuine capture)
 //   - no change for > staleness while the process lives => stale => relaunch
 //
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 type healthWatcher struct {
 	path string
 
@@ -31,13 +31,13 @@ type healthWatcher struct {
 }
 
 // healthSig is the token's stat identity; seen marks that it was read once.
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 type healthSig struct {
 	mod, size int64
 	seen      bool
 }
 
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 func newHealthWatcher(path string) *healthWatcher {
 	// Remove any stale token from a previous run: the first-report gate is
 	// only meaningful if the file starts absent.
@@ -46,7 +46,7 @@ func newHealthWatcher(path string) *healthWatcher {
 }
 
 // poll checks the token once; call every ~500ms.
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 func (h *healthWatcher) poll() {
 	fi, err := os.Stat(h.path)
 	if err != nil {
@@ -67,14 +67,14 @@ func (h *healthWatcher) poll() {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 type healthStatus struct {
 	HealthyOnce bool          `json:"healthy_once"`
 	SinceChange time.Duration `json:"since_change_ms"`
 	Token       string        `json:"token,omitempty"`
 }
 
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 func (h *healthWatcher) status() healthStatus {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -87,7 +87,7 @@ func (h *healthWatcher) status() healthStatus {
 
 // verdict returns (healthy, reason). grace = deadline for the FIRST report;
 // staleness = max quiet interval afterwards.
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 func (h *healthWatcher) verdict(grace, staleness time.Duration) (bool, string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -103,7 +103,7 @@ func (h *healthWatcher) verdict(grace, staleness time.Duration) (bool, string) {
 	return true, "ok"
 }
 
-// TRLC-LINKS: REQ-SDS-105
+// TRLC-LINKS: REQ-DSO-105
 func readPrefixInto(path string, buf []byte) []byte {
 	f, err := os.Open(path) //nolint:gosec // path is the configured health token
 	if err != nil {

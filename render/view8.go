@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -25,7 +25,7 @@ var view8Cache struct {
 // it is; a frame of wider words copied with each trace's codes mapped onto
 // the view, its words kept as Q8.8 precision for the measurements, and its
 // codes a division restated on the view.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func view8(f *sample.Frame) *sample.Frame {
 	if f == nil || !wide(f) {
 		return f
@@ -46,7 +46,7 @@ func view8(f *sample.Frame) *sample.Frame {
 }
 
 // wide reports whether any of f's traces stores words wider than 8 bits.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func wide(f *sample.Frame) bool {
 	for i := range f.Traces {
 		if f.Traces[i].Format.Storage == sample.U16 {
@@ -57,7 +57,7 @@ func wide(f *sample.Frame) bool {
 }
 
 // trace8 is trace t on the 8-bit view.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func trace8(t *sample.Trace) sample.Trace {
 	if t.Format.Storage != sample.U16 {
 		return *t
@@ -74,7 +74,7 @@ func trace8(t *sample.Trace) sample.Trace {
 }
 
 // codes8 is words w of format f on the 8-bit view; nil for none.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func codes8(f sample.CodeFormat, w []uint16) []uint8 {
 	if w == nil {
 		return nil

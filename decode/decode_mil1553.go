@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -14,7 +14,7 @@ import (
 //	          bits/s (real 1553 is 1_000_000).
 //	Threshold/HaveThr override the auto slice threshold (see sliceChannel).
 //
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type MIL1553Cfg struct {
 	Inverted  bool
 	Bitrate   int
@@ -32,7 +32,7 @@ type MIL1553Cfg struct {
 // and a rising = 0 — the Thomas convention (ieee=false) of recoverManchester.
 //
 // Kept algorithm-faithful to decode_mil1553.js so LCD and web agree byte-for-byte.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func MIL1553(codes []uint8, colTimeS float64, cfg MIL1553Cfg) Result {
 	if cfg.Inverted {
 		codes = invertLogic(codes)
@@ -85,7 +85,7 @@ func MIL1553(codes []uint8, colTimeS float64, cfg MIL1553Cfg) Result {
 // mil1553Period is the bit period of a Manchester line's edge gaps: the
 // shortest gaps' cluster is half a bit when a cluster at twice it holds an
 // eighth as many gaps or more, else a whole bit (alternating data).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func mil1553Period(gaps []float64) float64 {
 	base := shortGapCluster(gaps, 0.5) // ±0.5: absorb the {2,3} quantization spread
 	var nBase, n2 int
@@ -105,7 +105,7 @@ func mil1553Period(gaps []float64) float64 {
 
 // decodeMIL1553At finds each word's SYNC and decodes it at bit period T, returning
 // the Result plus the word count so the caller can score competing T hypotheses.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func decodeMIL1553At(sl sliced, T, colTimeS float64) (Result, int) { //nolint:gocritic // T is the bit period in samples, the name the decoder's comments use
 	var spans []Span
 	var bytesOut []int

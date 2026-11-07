@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -46,7 +46,7 @@ import (
 )
 
 // canOFrame is one classic CAN frame for the oracle generator.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type canOFrame struct {
 	id     int // 11-bit identifier (29-bit when ext)
 	dlc    int
@@ -64,7 +64,7 @@ type canOFrame struct {
 // and the transmitted CRC. Stuffing is applied over SOF..CRC of the (possibly
 // corrupted) stream, exactly like a real transmitter, so a bad-CRC frame is
 // still perfectly destuffable on both sides.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func canOracleWire(f canOFrame) (wire []int, nStuff, txCRC int) {
 	rtrBit := 0
 	if f.rtr {
@@ -108,7 +108,7 @@ func canOracleWire(f canOFrame) (wire []int, nStuff, txCRC int) {
 // bit rate (recessive=1=high level, i.e. the standard DominantLow mapping the
 // sigrok PD also assumes), with lead idle and enough trail idle for sigrok's
 // EOF annotation (which only completes 10 bit times after the ACK delimiter).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func canOracleBits(sr, baud float64, wires ...[]int) []byte {
 	w := newTimeline(sr)
 	bt := 1 / baud
@@ -128,7 +128,7 @@ var canAnnValRe = regexp.MustCompile(`: (0x[0-9a-fA-F]+|\d+)`)
 // annotation — uniform across the PD's wordy texts: "Identifier: 291 (0x123)"
 // -> 291, "Data byte 0: 0xde" -> 0xde (the byte index sits BEFORE the colon),
 // "Data length code: 3" -> 3, "CRC-15 sequence: 0x7dc2" -> 0x7dc2.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func canAnnVals(t *testing.T, anns []ann) []int {
 	t.Helper()
 	out := make([]int, 0, len(anns))
@@ -147,7 +147,7 @@ func canAnnVals(t *testing.T, anns []ann) []int {
 }
 
 // canWantTexts asserts a sigrok annotation stream is exactly the given texts.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func canWantTexts(t *testing.T, what string, anns []ann, want ...string) {
 	t.Helper()
 	if len(anns) != len(want) {
@@ -160,7 +160,7 @@ func canWantTexts(t *testing.T, what string, anns []ann, want ...string) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestOracleCAN(t *testing.T) {
 	needSigrok(t)
 	const sr = 1_000_000

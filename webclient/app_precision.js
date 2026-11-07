@@ -1,15 +1,15 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-PRECISION
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 "use strict";
 
 // Least-squares amplitude/DC for a frequency/phase candidate. Fits never alter
 // the acquisition. Their residual is shown separately, including model error.
-// TRLC-LINKS: REQ-SDS-205
+// TRLC-LINKS: REQ-DSO-205
 function precisionFitSignal(y, dt, seedHz, model) {
   if (y.length < 64 || !(dt > 0) || !(seedHz > 0) || seedHz * dt >= .4 || y.length * dt * seedHz < 2)
     throw new Error("Need at least two cycles and enough samples; check the frequency measurement.");
-  // TRLC-LINKS: REQ-SDS-205
+  // TRLC-LINKS: REQ-DSO-205
   const basis = phase => model === "sine" ? Math.sin(2 * Math.PI * phase) : 1 - 4 * Math.abs((phase - Math.floor(phase)) - .5);
-  // TRLC-LINKS: REQ-SDS-205
+  // TRLC-LINKS: REQ-DSO-205
   function trial(hz, phase) {
     let sx=0, sy=0, sxx=0, sxy=0;
     for (let i=0;i<y.length;i++) {const x=basis((i-(y.length-1)/2)*dt*hz+phase);sx+=x;sy+=y[i];sxx+=x*x;sxy+=x*y[i];}
@@ -36,12 +36,12 @@ function precisionFitSignal(y, dt, seedHz, model) {
 
 // Diagnostic periodic fit: remove harmonic content before reporting residual.
 // This deliberately excludes harmonic distortion and MUST NOT be called ENOB.
-// TRLC-LINKS: REQ-SDS-205
+// TRLC-LINKS: REQ-DSO-205
 function precisionPeriodicFit(y, dt, seedHz) {
   if(y.length<64 || !(dt>0) || !(seedHz>0) || seedHz*dt>=.4 || y.length*dt*seedHz<2)
     throw new Error("Need at least two cycles and enough samples.");
   const n=y.length, harmonics=Math.min(15,Math.floor(.44/(dt*seedHz)),Math.floor((n-8)/4)), m=2*harmonics+1;
-  // TRLC-LINKS: REQ-SDS-205
+  // TRLC-LINKS: REQ-DSO-205
   function trial(hz, keep=false) {
     const a=Array.from({length:m},()=>new Float64Array(m+1));
     const rows=new Array(n);
@@ -83,7 +83,7 @@ function precisionPeriodicFit(y, dt, seedHz) {
   return trial(fx.mse<fz.mse?x:z,true);
 }
 
-// TRLC-LINKS: REQ-SDS-099
+// TRLC-LINKS: REQ-DSO-099
 function updatePrecisionLimits(f) {
   const warning=document.getElementById("acquisitionWarning");
   if(warning) warning.textContent=(f.filter||"").includes("calibration bypassed") ? "Interleave correction unavailable at this range/input" : "";
@@ -106,7 +106,7 @@ function updatePrecisionLimits(f) {
 // most maxN points: its first 4096 samples alone can hold under a cycle of a
 // screen of raw samples. Clipping is judged on the samples before they are
 // averaged.
-// TRLC-LINKS: REQ-SDS-205
+// TRLC-LINKS: REQ-DSO-205
 function precisionWindow(sig, a, b, dt, maxN) {
   const start = Math.max(0, Math.floor(a * sig.length)), end = Math.min(sig.length, Math.ceil(b * sig.length));
   for (let i = start; i < end; i++) {
@@ -126,7 +126,7 @@ function precisionWindow(sig, a, b, dt, maxN) {
 // the eye and super-res do) when the display holds min/max pairs: a screen of
 // more samples than the page's columns. null when none comes (a stopped
 // record has no new capture).
-// TRLC-LINKS: REQ-SDS-205
+// TRLC-LINKS: REQ-DSO-205
 async function precisionSampledFrame() {
   for (let i = 0; i < 4; i++) {
     let f;
@@ -140,7 +140,7 @@ async function precisionSampledFrame() {
 
 if(typeof document!=="undefined") {
 
-  // TRLC-LINKS: REQ-SDS-205
+  // TRLC-LINKS: REQ-DSO-205
   document.getElementById("precisionFit").onclick=async()=>{
     const out=document.getElementById("precisionFitResult");
     try {
@@ -166,7 +166,7 @@ if(typeof document!=="undefined") {
       const cv=document.getElementById("precisionFitCanvas");cv.hidden=false;const ctx=cv.getContext("2d"),wd=cv.width,h=cv.height;
       ctx.fillStyle="#071014";ctx.fillRect(0,0,wd,h);
       const lo=Math.min(...y),hi=Math.max(...y),rr=Math.max(...fit.residual.map(Math.abs),.001);
-      // TRLC-LINKS: REQ-SDS-205
+      // TRLC-LINKS: REQ-DSO-205
       function line(a,color,fn){ctx.strokeStyle=color;ctx.beginPath();a.forEach((v,i)=>{const x=i/(a.length-1)*wd, yy=fn(v);if(i)ctx.lineTo(x,yy);else ctx.moveTo(x,yy);});ctx.stroke();}
       line(y,"#e8c546",v=>100-(v-lo)/(hi-lo)*80);line(fit.fitted,"#e6ecf2",v=>100-(v-lo)/(hi-lo)*80);
       line(fit.residual,"#35c8e8",v=>155-v/rr*30);ctx.fillStyle="#ddd";ctx.fillText("Captured (yellow), fit (white)",8,12);ctx.fillText("Residual (cyan), ±"+eng(rr*vpc,"V"),8,122);

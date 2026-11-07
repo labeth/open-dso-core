@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-FDINHERIT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-FDINHERIT
 
 package fdinherit
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func TestHoldersOfEachMatchesHoldersOf(t *testing.T) {
 	f, err := os.CreateTemp(t.TempDir(), "held")
 	if err != nil {
@@ -27,14 +27,14 @@ func TestHoldersOfEachMatchesHoldersOf(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func BenchmarkHolders3(b *testing.B) {
 	for b.Loop() {
 		HoldersOfEach("/dev/null", "/dev/zero", "/dev/urandom")
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func BenchmarkHolders3Ref(b *testing.B) {
 	for b.Loop() {
 		HoldersOf("/dev/null")

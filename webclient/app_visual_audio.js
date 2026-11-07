@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-VISUAL
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_visual_audio.js — the Visual view's digital audio: S/PDIF, I2S or PDM
 // taken from one whole sampled record (/api/record.bin, the timebase stepped
 // so the record fits and put back after), decoded (audio_decode.js),
@@ -7,7 +7,7 @@
 "use strict";
 
 // visAudioControls are the side panel while the audio is shown.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioControls() {
   const a = vis.audio;
   return '<div class="r"><label class="hl"><span class="lbl">source</span><select id="visAKind" aria-label="audio source">' +
@@ -21,7 +21,7 @@ function visAudioControls() {
 }
 
 // visAudioWire wires the audio's controls (on(id, event, handler)).
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioWire(on) {
   on("visAOff", "onclick", () => visAudioOff());
   on("visAKind", "onchange", () => { vis.audio.kind = $("visAKind").value; vis.audio.sampleS = 0; });
@@ -39,7 +39,7 @@ const VIS_RECORD_WORDS = 500000;
 // visAudioPlan is the sample interval a source wants: S/PDIF four samples a
 // half cell (48 kHz until the first capture measured the rate), I2S four a
 // data bit (64 bits a frame), PDM six a clock period (3 MHz).
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioPlan(kind, res) {
   const fs = res && res.ok && res.fs > 0 ? res.fs : 48000;
   if (kind === "spdif") return Math.max(2e-9, 1 / (128 * fs) / 4);
@@ -50,7 +50,7 @@ function visAudioPlan(kind, res) {
 
 // visAudioKind is the source the capture decodes: the one chosen, or S/PDIF
 // where the bus decoded is, else I2S (WS C1, SD C2).
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioKind() {
   const k = vis.audio.kind;
   if (k !== "auto") return k;
@@ -61,7 +61,7 @@ function visAudioKind() {
 // wants (the timebase stepped so its record fits the memory: the page says
 // so and puts it back when the audio view closes), decodes it and shows it;
 // Live takes the next one when this one is done.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 async function visAudioCapture() {
   const a = vis.audio;
   if (a.busy) return;
@@ -110,7 +110,7 @@ async function visAudioCapture() {
 const VIS_AUDIO_RETRY_MS = 2000;
 
 // visFetchRecord fetches a whole sampled record (/api/record.bin) as codes.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 async function visFetchRecord(sampleS) {
   try {
     const r = await fetch("/api/record.bin?sample_s=" + sampleS + "&wait_ms=6000");
@@ -131,7 +131,7 @@ async function visFetchRecord(sampleS) {
 }
 
 // visAudioDecode decodes a record as the source's audio.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioDecode(kind, rec) {
   if (kind === "spdif") {
     // the decoded S/PDIF line when the record carries it, else C1
@@ -145,12 +145,12 @@ function visAudioDecode(kind, rec) {
 }
 
 // visAudioMsg writes the audio's status line.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioMsg(t) { vis.audio.msg = t; const el = $("visAMsg"); if (el) el.textContent = t; }
 
 // visAudioPlay plays the newest capture looped (the page's own audio: a
 // click started it), or stops.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioPlay(on) {
   const a = vis.audio;
   if (a.play) { try { a.play.src.stop(); } catch (e) { /* stopped already */ } a.play = null; }
@@ -171,7 +171,7 @@ function visAudioPlay(on) {
 }
 
 // visAudioOff closes the audio view: playing and Live stop, the timebase goes back.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioOff() {
   const a = vis.audio;
   a.on = false; a.live = false;
@@ -181,21 +181,21 @@ function visAudioOff() {
 }
 
 // visAudioFigures are the capture's figures a channel.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visAudioFigures() {
   const r = vis.audio.res;
   if (!r) return '<div class="sub">Capture takes a whole record of the audio bus (the scope steps its timebase so the record fits) and decodes it; Play loops it.</div>';
   if (!r.ok) return "";
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const db = (v) => Number.isFinite(v) ? v.toFixed(1) + " dBFS" : "silent";
   const rows = [["", "left", "right"], ["rate", eng(r.fs, "Hz", 5), ""], ["level (RMS)", db(r.stats[0].rmsDb), db(r.stats[1].rmsDb)], ["peak", db(r.stats[0].peakDb), db(r.stats[1].peakDb)],
     ["clipped", r.stats[0].clip, r.stats[1].clip], ["DC", (r.stats[0].dc * 100).toFixed(2) + " %", (r.stats[1].dc * 100).toFixed(2) + " %"]];
   if (r.bits) rows.push(["bits used", r.stats[0].bitsUsed + " of " + r.bits, r.stats[1].bitsUsed + " of " + r.bits]);
   if (r.slot) rows.push(["slot", r.slot + " bits a channel", ""]);
   if (r.spec && r.spec[0].ok) {
-    // TRLC-LINKS: REQ-SDS-280
+    // TRLC-LINKS: REQ-DSO-280
     const sp = (f) => r.spec.map((s) => (s.ok ? f(s) : "-"));
-    // TRLC-LINKS: REQ-SDS-280
+    // TRLC-LINKS: REQ-DSO-280
     const num = (v, u, d) => Number.isFinite(v) ? v.toFixed(d) + u : "-";
     rows.push(["tone", ...sp((s) => eng(s.toneHz, "Hz", 4) + " " + s.toneDb.toFixed(1) + " dBFS")], ["THD", ...sp((s) => num(s.thdDb, " dB", 1))],
       ["SINAD", ...sp((s) => num(s.sinadDb, " dB", 1))], ["ENOB", ...sp((s) => num(s.enob, " bits", 1))], ["resolution", ...sp((s) => eng(s.bin, "Hz", 3) + " a bin, " + s.n + " points")]);
@@ -207,7 +207,7 @@ function visAudioFigures() {
 
 // visDrawAudio draws the capture's two channels' waveforms (min and max a
 // column), the left above the right, full scale the band's edges.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 function visDrawAudio(g, W, H) {
   const r = vis.audio.res;
   if (!r || !r.ok) return visBig(g, W, H, vis.audio.busy ? "capturing..." : "no audio yet", vis.audio.msg || "Capture takes a record of the bus");
@@ -233,14 +233,14 @@ function visDrawAudio(g, W, H) {
 
 // visDrawSpectrum draws each channel's spectrum (dBFS over a logarithmic
 // frequency, 20 Hz to half the rate), the left above the right, its tone marked.
-// TRLC-LINKS: REQ-SDS-283
+// TRLC-LINKS: REQ-DSO-283
 function visDrawSpectrum(g, W, H, r) {
   const bh = H / 2, fLo = 20, fHi = r.fs / 2, dbLo = -140, padL = 34 * dpr;
-  // TRLC-LINKS: REQ-SDS-283
+  // TRLC-LINKS: REQ-DSO-283
   const xOf = (f) => padL + (Math.log10(Math.max(fLo, f) / fLo) / Math.log10(fHi / fLo)) * (W - padL - 4 * dpr);
   r.spec.forEach((s, c) => {
     const y0 = c * bh, h = bh - 14 * dpr;
-    // TRLC-LINKS: REQ-SDS-283
+    // TRLC-LINKS: REQ-DSO-283
     const yOf = (db) => y0 + 4 * dpr + (Math.min(0, Math.max(dbLo, db)) / dbLo) * (h - 4 * dpr);
     g.fillStyle = "#0b1016"; g.fillRect(0, y0 + dpr, W, bh - 2 * dpr);
     g.font = Math.round(9 * dpr) + "px monospace"; g.textAlign = "right"; g.textBaseline = "middle";

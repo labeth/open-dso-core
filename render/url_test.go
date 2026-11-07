@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -6,7 +6,7 @@ import "testing"
 
 // The top-bar render: a URL paints dim text in the reserved top-bar span; an
 // empty URL paints nothing there (the no-network case renders nothing).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderDeviceURL(t *testing.T) {
 	region := func(m *Image565) int { return countColorIn(m, colDim, 380, 0, 670, 12) }
 

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webtest
 
@@ -18,7 +18,7 @@ import (
 // and answers a v2 frame request in v1; one with caps serves a document the
 // page can build its lists from, repeats its generation in the status, and
 // serves v2 frames exactly when the document lists them.
-// TRLC-LINKS: REQ-SDS-163, REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-163, REQ-DSO-164
 func checkCaps(t *testing.T, c client, sc webserver.Scope) {
 	t.Helper()
 	status := c.json(http.MethodGet, "/api/status", "", http.StatusOK)
@@ -106,12 +106,12 @@ func checkCaps(t *testing.T, c client, sc webserver.Scope) {
 }
 
 // jsonUint is v in decimal.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func jsonUint(v uint64) string { b, _ := json.Marshal(v); return string(b) }
 
 // frame2 fetches a v2 frame and checks its layout: the magic, the header,
 // the padding and every segment inside the payload at an aligned offset.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (c client) frame2(path string) wire.FrameHeader {
 	c.t.Helper()
 	rec := c.do(http.MethodGet, path, "")

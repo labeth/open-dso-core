@@ -22,6 +22,7 @@ type spec struct {
 	Tokens map[string]string `json:"tokens"`
 }
 
+// TRLC-LINKS: REQ-DSO-021
 func hexRGB(h string) (r, g, b uint8) {
 	h = strings.TrimPrefix(h, "#")
 	var v uint64
@@ -29,6 +30,7 @@ func hexRGB(h string) (r, g, b uint8) {
 	return uint8(v >> 16), uint8(v >> 8), uint8(v)
 }
 
+// TRLC-LINKS: REQ-DSO-021
 func main() {
 	raw, err := os.ReadFile("tokens.json")
 	must(err)
@@ -66,6 +68,7 @@ func main() {
 	fmt.Printf("generated tokens.css + palette_gen.go (%d tokens)\n", len(names))
 }
 
+// TRLC-LINKS: REQ-DSO-021
 func must(err error) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

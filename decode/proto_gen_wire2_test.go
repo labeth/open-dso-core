@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -8,7 +8,7 @@ package decode
 // clockBits appends bits on line b, each over one clock period per on line
 // a: the clock low for the first half (the data set there) and high for the
 // second (read at its rise).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func clockBits(l twoLine, bits []int, per float64) {
 	for _, b := range bits {
 		l.add(0, byte(b), per/2)
@@ -19,7 +19,7 @@ func clockBits(l twoLine, bits []int, per float64) {
 // sdToken is an SD command (host) or response's bits: start 0, the
 // transmission bit, six index bits, the 32-bit argument, CRC-7 (spoiled by
 // badCRC) and the end bit.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func sdToken(host bool, idx int, arg uint32, badCRC bool) []int {
 	b := []int{0, 0}
 	if host {
@@ -43,7 +43,7 @@ func sdToken(host bool, idx int, arg uint32, badCRC bool) []int {
 
 // sdR2 is an R2 response's 136 bits: start, transmission 0, six reserved
 // 1s, the 120-bit register (reg's bytes) with its CRC-7 and the end bit.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func sdR2(reg [15]int) []int {
 	b := []int{0, 0, 1, 1, 1, 1, 1, 1}
 	var r []int
@@ -61,7 +61,7 @@ func sdR2(reg [15]int) []int {
 }
 
 // sdIdle is n clock periods of the CMD line high.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func sdIdle(n int) []int {
 	b := make([]int, n)
 	for i := range b {
@@ -72,7 +72,7 @@ func sdIdle(n int) []int {
 
 // pdiChar is a PDI character's bits: start 0, eight bits least significant
 // first, even parity (flipped by badPar) and two stop 1s.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func pdiChar(v int, badPar bool) []int {
 	b := []int{0}
 	p := 0
@@ -96,7 +96,7 @@ type cjtagLine struct {
 
 // rise writes one TCKC cycle with TMSC at v (set a quarter period after
 // TCKC falls: a change at the fall itself would count as an escape edge).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (c *cjtagLine) rise(v int) {
 	c.l.add(0, c.tms, c.per/4)
 	c.tms = byte(v)
@@ -105,7 +105,7 @@ func (c *cjtagLine) rise(v int) {
 }
 
 // escape holds TCKC high while TMSC toggles n times, then one cycle low.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (c *cjtagLine) escape(n int) {
 	c.l.add(0, c.tms, c.per/2)
 	c.l.add(1, c.tms, c.per/2)
@@ -118,7 +118,7 @@ func (c *cjtagLine) escape(n int) {
 
 // tck writes an OScan1 TCK: nTDI, TMS and TDO on TMSC (first omits nTDI,
 // as the first after the activation code does).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (c *cjtagLine) tck(tdi, tms, tdo int, first bool) {
 	if !first {
 		c.rise(1 - tdi)
@@ -129,7 +129,7 @@ func (c *cjtagLine) tck(tdi, tms, tdo int, first bool) {
 
 // scan shifts n bits of tdi (out on tdo) through IR (ir) or DR from
 // Run-Test/Idle and back to it.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (c *cjtagLine) scan(ir bool, n int, tdi, tdo uint32) {
 	c.tck(0, 1, 0, false) // select DR
 	if ir {
@@ -157,7 +157,7 @@ type mapleLine struct {
 }
 
 // set moves the lines to a, b over one step.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (m *mapleLine) set(a, b byte) {
 	m.la, m.lb = a, b
 	m.l.add(a, b, m.st)
@@ -165,7 +165,7 @@ func (m *mapleLine) set(a, b byte) {
 
 // frame writes a start pattern, the bytes (each bit at a fall of the
 // clocking line, the other line holding it) and the end pattern.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func (m *mapleLine) frame(bytes []int) {
 	m.set(1, 1)
 	m.set(0, 1)
@@ -208,7 +208,7 @@ func (m *mapleLine) frame(bytes []int) {
 
 // mapleBytes is a Maple frame's bytes: the length in words, source,
 // destination, command, the data words' bytes and the checksum.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func mapleBytes(src, dst, cmd int, data []int, badCk bool) []int {
 	b := []int{len(data) / 4, src, dst, cmd}
 	b = append(b, data...)
@@ -225,7 +225,7 @@ func mapleBytes(src, dst, cmd int, data []int, badCk bool) []int {
 // caliperFrame writes a caliper's 24 bits (the count, then the flags,
 // least significant first) at a clock period per, then rest seconds of
 // clock low.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func caliperFrame(l twoLine, count int, neg, inch bool, per, rest float64) {
 	flags := 0
 	if neg {

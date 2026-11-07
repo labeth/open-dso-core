@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-BINFRAME
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Node tests for binframe2.js. With no argument it checks hand-built v2
 // messages; with a directory it decodes every *.bin there (frames the Go
 // encoder wrote) and prints one JSON line per file for the Go side to
@@ -10,7 +10,7 @@ const { decodeBinFrame, BIN_MAGIC } = require("./binframe.js");
 const { decodeFrameV2, frameDisplay, decodeAnyFrame } = require("./binframe2.js");
 
 // summary is a decoded frame as plain JSON: typed arrays as {type, v}.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 function summary(f) {
   if (f === null || f === undefined) return null;
   const out = {};
@@ -34,13 +34,13 @@ if (process.argv[2]) {
 }
 
 let fails = 0;
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 function check(name, ok) {
   if (!ok) { console.log("FAIL " + name); fails++; } else console.log("ok   " + name);
 }
 
 // v2 builds a v2 message: header (segs are placed here), padded payload.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 function v2(header, segs) {
   let at = 0;
   header.segs = segs.map((s) => {
@@ -64,7 +64,7 @@ function v2(header, segs) {
 }
 
 // msg1 builds a v1 message.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 function msg1(flags, hdr, payload) {
   const hj = new TextEncoder().encode(JSON.stringify(hdr));
   const buf = new Uint8Array(8 + hj.length + payload.length);
@@ -75,6 +75,7 @@ function msg1(flags, hdr, payload) {
 }
 
 const fmt8 = { bits: 8, storage: "u8", shift: 0, frac: 0, mid: 128, min: 0, max: 255 };
+// TRLC-LINKS: REQ-DSO-163
 const sc8 = (vpc, off) => ({ zero: 128, per_code_v: vpc, off_v: off, codes_per_div: 25 });
 
 // A two-channel 8-bit v2 frame reads as the same object as its v1 twin.
@@ -100,6 +101,7 @@ const sc8 = (vpc, off) => ({ zero: 128, per_code_v: vpc, off_v: off, codes_per_d
 // Four channels of 12-bit codes left-aligned in u16 about 0x8000, 7680 a
 // division: display units 128 + (w − 0x8000)/7680·25, nothing rounded.
 const fmt12 = { bits: 12, storage: "u16", shift: 4, frac: 0, mid: 0x8000, min: 0x0800, max: 0xf7f0 };
+// TRLC-LINKS: REQ-DSO-163
 const sc12 = (vdiv, off) => ({ zero: 0x8000, per_code_v: vdiv / 7680, off_v: off, codes_per_div: 7680 });
 {
   const w = [0x8000, 0x8000 + 16, 0x8000 + 7680, 0x8000 - 3 * 7680];

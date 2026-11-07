@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-ALLSET
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_allset.js — "All settings" (Ctrl+,): every control of the app in one
 // grouped, filterable list beside any workspace. Each row is a live mirror of
 // the control (app_ui.js), so an edit here is the same edit as in its pane, and
@@ -87,7 +87,7 @@ const ALL_EXCLUDE = new Set(["decodeText", "tab-scope", "tab-bus", "tab-spectrum
 // are channel 2's copies), groups of channels the scope no longer has
 // removed, and X-Y's channel choice when the page offers one. A built list
 // is built again.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function allChans() {
   const nums = chanNums(), base = ALL_GROUPS.find(([g]) => g === "Channel 2");
   for (let i = ALL_GROUPS.length - 1; i >= 0; i--) {
@@ -96,6 +96,7 @@ function allChans() {
   }
   for (const n of nums) {
     if (n <= 2 || !base || ALL_GROUPS.some(([g]) => g === "Channel " + n)) continue;
+    // TRLC-LINKS: REQ-DSO-219
     const ren = (t) => t.replace(/^(tC|vdiv|off|zero|cpl|probe|bwl|inv)2(Dn|Up)?$/, "$1" + n + "$2").replace(/\bCH2\b/g, "CH" + n);
     const list = base[1].map(([id, label, kw, also]) => [ren(id), ren(label), kw].concat(also ? [also.map(ren)] : []));
     const after = ALL_GROUPS.findIndex(([g]) => /^Channel (\d+)$/.test(g) && +g.slice(8) === n - 1);
@@ -120,7 +121,7 @@ CAPS_HOOKS.push(allChans);
 
 let allBuilt = false, allW = 380;
 let allIndex = null;
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function allEntries() { const out = []; for (const [g, list] of ALL_GROUPS) for (const e of list) out.push({ group: g, id: e[0], label: e[1], kw: e[2] || "", also: e[3] || [] }); return out; }
 
 // ALL_WHEN says when a control that is shown only in some settings shows: by
@@ -139,7 +140,7 @@ const ALL_WHEN = [
 // controls flash in place. A control shown only in some settings (a trigger
 // qualifier, a protocol's role) lands on what selects it, or says when it shows
 // — its row here edits it either way.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function allGo(id) {
   const el = $(id);
   if (!el) return false;
@@ -164,7 +165,7 @@ function allGo(id) {
   return true;
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function allBuild() {
   allBuilt = true;
   const list = $("allList");
@@ -176,7 +177,7 @@ function allBuild() {
     head.innerHTML = `<span>▾</span><span>${g}</span><span class="agn">${entries.length}</span>`;
     const box = document.createElement("div");
     box.className = "agb";
-    // TRLC-LINKS: REQ-SDS-219
+    // TRLC-LINKS: REQ-DSO-219
     head.onclick = () => { box.hidden = !box.hidden; head.setAttribute("aria-expanded", String(!box.hidden)); head.firstChild.textContent = box.hidden ? "▸" : "▾"; };
     sec.append(head, box);
     for (const [id, label, kw, also] of entries) {
@@ -196,7 +197,7 @@ function allBuild() {
       go.type = "button"; go.className = "go"; go.textContent = "→";
       go.setAttribute("aria-label", "Show " + label + " where it lives");
       go.title = "Show where it lives";
-      // TRLC-LINKS: REQ-SDS-219
+      // TRLC-LINKS: REQ-DSO-219
       go.onclick = () => allGo(id);
       row.append(l, c, go);
       box.appendChild(row);
@@ -211,16 +212,16 @@ function allBuild() {
     `<select id="allSlot" aria-label="Setup slot">${Array.from({ length: 20 }, (_, i) => `<option value="${i + 1}">Slot ${i + 1}</option>`).join("")}</select>` +
     `<button type="button" class="xs" id="allSave">Save</button><button type="button" class="xs" id="allRecall">Recall</button></span></div></div>`;
   list.appendChild(sec);
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   $("allSave").onclick = () => setupOp("save", +$("allSlot").value);
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   $("allRecall").onclick = () => setupOp("recall", +$("allSlot").value);
   syncMirrors();
 }
 
 // allIndexOf lists the built sections with their rows and search texts once:
 // the list is fixed after allBuild and every keystroke refilters all of it.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function allIndexOf() {
   const out = [];
   for (const sec of $("allList").querySelectorAll(".ag")) {
@@ -231,7 +232,7 @@ function allIndexOf() {
   return out;
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function allFilterApply() {
   const words = $("allFilter").value.toLowerCase().split(/\s+/).filter(Boolean);
   if (!allIndex) allIndex = allIndexOf();
@@ -254,7 +255,7 @@ function allFilterApply() {
 }
 
 // allFit keeps the workspace at least as wide as its panes need.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function allFit() {
   if ($("allcol").hidden || !ws.cur || !ws.trees[ws.cur]) return;
   const inner = $("wsbody").clientWidth - 12;
@@ -263,7 +264,7 @@ function allFit() {
   $("allcol").style.width = w + "px";
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function allToggle(force) {
   const open = force === undefined ? $("allcol").hidden : !!force;
   if (open && !allBuilt) allBuild();
@@ -272,9 +273,9 @@ function allToggle(force) {
   $("allBtn").setAttribute("aria-pressed", String(open));
   if (open) { allFit(); syncMirrors(); $("allFilter").focus(); }
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 $("allBtn").onclick = () => allToggle();
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 $("allClose").onclick = () => allToggle(false);
 $("allFilter").addEventListener("input", allFilterApply);
 $("allFilter").addEventListener("keydown", (ev) => { if (ev.key === "Escape" && $("allFilter").value) { $("allFilter").value = ""; allFilterApply(); ev.stopPropagation(); } });
@@ -283,9 +284,9 @@ $("allgut").addEventListener("pointerdown", (ev) => {
   ev.preventDefault();
   const x0 = ev.clientX, w0 = $("allcol").getBoundingClientRect().width;
   try { $("allgut").setPointerCapture(ev.pointerId); } catch (e) { /* synthetic */ }
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const move = (e2) => { allW = Math.max(280, Math.min(640, w0 - (e2.clientX - x0))); allFit(); };
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const end = () => { $("allgut").removeEventListener("pointermove", move); $("allgut").removeEventListener("pointerup", end); };
   $("allgut").addEventListener("pointermove", move); $("allgut").addEventListener("pointerup", end);
 });
@@ -300,7 +301,7 @@ window.addEventListener("resize", allFit);
 // ---- setups ------------------------------------------------------------------------
 // setupOp saves or recalls a whole setup in the scope's numbered slots (the
 // same store as the front panel's SAVE/RECALL and SCPI *SAV/*RCL).
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 async function setupOp(op, slot) {
   try {
     const r = await fetch("/api/setup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, slot }) });
@@ -315,7 +316,7 @@ async function setupOp(op, slot) {
 // setupsRefresh shows what each slot holds, as the scope's FILE tab does: an
 // empty slot cannot be recalled, and saving over a used one replaces it (the
 // tiles named no slot's setup, so the owner's could be overwritten unseen).
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 async function setupsRefresh() {
   let slots = null;
   try { const j = await (await fetch("/api/setup")).json(); if (j && j.ok && Array.isArray(j.slots)) slots = j.slots; } catch (e) { /* the tiles stay plain */ }
@@ -330,7 +331,7 @@ async function setupsRefresh() {
     save.setAttribute("aria-label", (used ? "Replace setup " : "Save setup ") + n);
   }
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 (function setupsInit() {
   let html = "";
   for (let n = 1; n <= 20; n++) html += `<div class="slot-t" data-slot="${n}"><div class="h"><b>Slot ${n}</b></div><div class="i"></div><div class="b">` +
@@ -342,11 +343,11 @@ async function setupsRefresh() {
     setupOp(b.dataset.op, +b.closest("[data-slot]").dataset.slot);
   });
 })();
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 $("setupsBtn").onclick = () => { popToggle($("setpop"), $("setupsBtn")); if (!$("setpop").hidden) setupsRefresh(); };
 
 // Default setup is the front panel's DEFAULT SETUP key: one implementation.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 $("defaultBtn").onclick = async () => {
   if (await panelPress("defaultsetup")) {
     toast("Default setup applied"); setTimeout(goHome, 400);

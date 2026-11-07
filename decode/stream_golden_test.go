@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -16,7 +16,7 @@ import (
 
 // streamDigest is a stream's frames hashed whole: every frame's and span's
 // sample indices, text, kind and value, alike on the PC and the scope.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamDigest(frames []StreamFrame) string {
 	h := sha256.New()
 	var buf [8]byte
@@ -43,7 +43,7 @@ func streamDigest(frames []StreamFrame) string {
 
 // streamGoldenRun is a long random stream of the case (dense or bursty)
 // pushed in random chunks around the engine's push, and its frames.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamGoldenRun(tc streamCPUCase, seed int64, secs float64, bursty bool) []StreamFrame {
 	a, b, ss := streamCPULines(tc, seed, secs, bursty)
 	d := NewStreamDecoder(func(x, y []uint8) Result { return tc.c.dec(x, y, ss) }, int(tc.quiet/ss), int((tc.longest+tc.quiet)/ss))
@@ -66,7 +66,7 @@ func streamGoldenRun(tc streamCPUCase, seed int64, secs float64, bursty bool) []
 
 // streamGoldenSecs is how long a stream each protocol's golden decodes:
 // some thousands of frames, fewer for the buses at the finest buckets.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamGoldenSecs(tc streamCPUCase) float64 {
 	switch {
 	case tc.bucket < 0.2e-6:
@@ -186,7 +186,7 @@ var streamGolden = map[string]string{
 // TestStreamDecodeGolden decodes a long random stream of every protocol,
 // dense and bursty, in random pushes, and checks its frames against the
 // digests (SDS_STREAM_GOLDEN_PRINT=1 prints the table).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestStreamDecodeGolden(t *testing.T) {
 	if testing.Short() {
 		t.Skip("long streams")

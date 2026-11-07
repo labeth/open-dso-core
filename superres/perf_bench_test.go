@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -9,7 +9,7 @@ import (
 
 // benchStack is a stack seeded and fed with the parity frames (gate as
 // given; -1 for the auto gate).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func benchStack(gateLo, gateHi int) (*Stack, [][2][]uint8) {
 	N, K, align, frames := genFrames()
 	u8 := func(a []int16) []uint8 {
@@ -32,7 +32,7 @@ func benchStack(gateLo, gateHi int) (*Stack, [][2][]uint8) {
 	return st, fr
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BenchmarkMedian(b *testing.B) {
 	r := rand.New(rand.NewSource(1))
 	a := make([]float64, 100000)
@@ -44,7 +44,7 @@ func BenchmarkMedian(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BenchmarkDecodeFPGAMoments(b *testing.B) {
 	w, _ := EncodeFPGAMoments(FPGAStackMoments{Sum: [2]uint64{0x123456789abcdef, 0x1f}, SumSquares: [2]uint64{0xfedcba987654321, 0x3ffff}, Count: 77, SumOdd: [2]uint64{0x55555, 3}, CountOdd: 30})
 	for b.Loop() {
@@ -54,7 +54,7 @@ func BenchmarkDecodeFPGAMoments(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BenchmarkFPGAStack(b *testing.B) {
 	m := make([]FPGAStackMoments, 2*16*512)
 	for i := range m {
@@ -67,7 +67,7 @@ func BenchmarkFPGAStack(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BenchmarkBuildFPGATemplate(b *testing.B) {
 	sig := make([]float64, 5000)
 	for i := range sig {
@@ -83,7 +83,7 @@ func BenchmarkBuildFPGATemplate(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BenchmarkResult(b *testing.B) {
 	st, _ := benchStack(-1, -1)
 	for b.Loop() {
@@ -91,7 +91,7 @@ func BenchmarkResult(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BenchmarkGateFind(b *testing.B) {
 	st, fr := benchStack(40, 160)
 	for b.Loop() {
@@ -99,7 +99,7 @@ func BenchmarkGateFind(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BenchmarkBuildTemplate(b *testing.B) {
 	st, _ := benchStack(-1, -1)
 	ref := st.C[st.Align].ref
@@ -108,7 +108,7 @@ func BenchmarkBuildTemplate(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BenchmarkAccumCh(b *testing.B) {
 	st, fr := benchStack(-1, -1)
 	sig := make([]float32, len(fr[1][0]))
@@ -121,7 +121,7 @@ func BenchmarkAccumCh(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 func BenchmarkCompensate(b *testing.B) {
 	m := make([]float32, 30000)
 	for i := range m {

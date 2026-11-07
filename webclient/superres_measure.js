@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-SUPERRES-MEASURE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // superres_measure.js — post-stack model fit + measurement (dual-mode).
 
 // srModelFit least-squares-fits a sum of sinusoids at the top spectral peaks
@@ -9,7 +9,7 @@
 
 if (typeof require !== "undefined") { Object.assign(globalThis, require("./superres_math.js"), require("./superres_template.js"), require("./superres_gate.js")); }
 
-// TRLC-LINKS: REQ-SDS-019
+// TRLC-LINKS: REQ-DSO-019
 function srModelFit(mean, K, sampleS, peaksLib, nPeaks) {
   // Decimate a huge stack up front: the fit's frequencies and coefficients are
   // span-limited, so the K× fine-grid points don't change the result, and a
@@ -109,7 +109,7 @@ function srModelFit(mean, K, sampleS, peaksLib, nPeaks) {
   return {
     freqs,
     coeffs: x,
-    // TRLC-LINKS: REQ-SDS-019
+    // TRLC-LINKS: REQ-DSO-019
     synth(nOut) {
       const out = new Float32Array(nOut);
       const dtOut = (mean.length * dt) / nOut;
@@ -133,7 +133,7 @@ function srModelFit(mean, K, sampleS, peaksLib, nPeaks) {
 // readouts. codes: Float32Array with -1 gaps; vpc volts/code; offV applied
 // offset; dtS seconds per element. Returns the frame.m1-shaped object every
 // existing consumer (meas panel, autoset) already reads, or null.
-// TRLC-LINKS: REQ-SDS-019
+// TRLC-LINKS: REQ-DSO-019
 function srMeasure(codes, vpc, offV, dtS) {
   // Work on the contiguous filled run (gaps only at the ends in practice).
   let a = 0, b = codes.length - 1;
@@ -158,12 +158,12 @@ function srMeasure(codes, vpc, offV, dtS) {
   if (!cnt) return null;
   const mean = sum / cnt;
   const variance = Math.max(0, sum2 / cnt - mean * mean);
-  // TRLC-LINKS: REQ-SDS-019
+  // TRLC-LINKS: REQ-DSO-019
   const toV = (code) => (code - 128) * vpc - offV;
   // Top/base via histogram modes either side of the midpoint (mirrors
   // measure.go — robust against overshoot ringing).
   const mid = Math.round((cmin + cmax) / 2);
-  // TRLC-LINKS: REQ-SDS-019
+  // TRLC-LINKS: REQ-DSO-019
   const mode = (lo, hi) => {
     let best = -1, bn = 0;
     for (let c = Math.max(0, lo); c <= Math.min(255, hi); c++) if (hist[c] > bn) { best = c; bn = hist[c]; }
@@ -198,7 +198,7 @@ function srMeasure(codes, vpc, offV, dtS) {
     if (period > 0) { m.period = period; m.freq = 1 / period; m.has_timing = true; }
   }
   // Mean pulse widths by two-pointer merge (ascending lists).
-  // TRLC-LINKS: REQ-SDS-019
+  // TRLC-LINKS: REQ-DSO-019
   const width = (from, to) => {
     let j = 0, s = 0, c = 0;
     for (const f of from) {
@@ -213,7 +213,7 @@ function srMeasure(codes, vpc, offV, dtS) {
   if (m.has_timing && m.period > 0) m.duty = m.pos_width_s / m.period * 100;
   // 10–90% rise/fall over the first clean edge.
   const lo10 = baseCode + 0.1 * amp, hi90 = baseCode + 0.9 * amp;
-  // TRLC-LINKS: REQ-SDS-019
+  // TRLC-LINKS: REQ-DSO-019
   const edge = (rising) => {
     const first = rising ? lo10 : hi90, second = rising ? hi90 : lo10;
     for (let i = 1; i < run.length; i++) {
