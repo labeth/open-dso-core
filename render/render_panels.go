@@ -29,7 +29,7 @@ const measRefresh = 250 * time.Millisecond
 
 var (
 	measMu    sync.Mutex
-	measSlots [2]struct {
+	measSlots [MaxChans]struct {
 		seq, content uint64
 		at           time.Time
 		vpc, off, ss float64
@@ -41,7 +41,7 @@ var (
 
 // TRLC-LINKS: REQ-SDS-021
 func measFor(ch int, sig []uint8, q []uint16, guard int, seq, content uint64, vpc, off, ss, probe float64, cpl int) *measure.Result {
-	if seq == 0 || ch < 0 || ch > 1 {
+	if seq == 0 || ch < 0 || ch >= MaxChans {
 		return measure.ComputeAcquisition(sig, q, vpc, off, ss, cpl, guard)
 	}
 	measMu.Lock()
@@ -66,7 +66,7 @@ func measFor(ch int, sig []uint8, q []uint16, guard int, seq, content uint64, vp
 // taken on: while measFor answers with the same measurement (the same frame,
 // or the readouts' refresh not yet due) the timing is that one's too. Taken
 // again for every readout of every picture it was a tenth of the core.
-var timedSlots [2]struct {
+var timedSlots [MaxChans]struct {
 	base, timed  *measure.Result
 	vpc, off, ss float64
 }
@@ -74,7 +74,7 @@ var timedSlots [2]struct {
 // timedFor is take(base), or the one taken on the same base and scale.
 // TRLC-LINKS: REQ-SDS-021
 func timedFor(ch int, base *measure.Result, cache bool, vpc, off, ss float64, take func(*measure.Result) *measure.Result) *measure.Result {
-	if !cache || base == nil || ch < 0 || ch > 1 {
+	if !cache || base == nil || ch < 0 || ch >= MaxChans {
 		return take(base)
 	}
 	measMu.Lock()
@@ -92,15 +92,12 @@ func timedFor(ch int, base *measure.Result, cache bool, vpc, off, ss float64, ta
 // TRLC-LINKS: REQ-SDS-021
 func chanMeasure(f *sample.Frame, hud HUD, ch int) *measure.Result {
 	valid := frameValid(f)
-	if ch == 1 && len(f.Codes8(1)) < valid {
+	if ch < 0 || ch >= MaxChans || len(f.Codes8(ch)) < valid {
 		return nil
 	}
-	sig := f.Codes8(0)[:valid]
-	vdiv, probe, off, cpl := hud.Ch[0].VdivV, hud.Ch[0].Probe, hud.Ch[0].OffV, hud.Ch[0].Cpl
-	if ch == 1 {
-		sig = f.Codes8(1)[:valid]
-		vdiv, probe, off, cpl = hud.Ch[1].VdivV, hud.Ch[1].Probe, hud.Ch[1].OffV, hud.Ch[1].Cpl
-	}
+	sig := f.Codes8(ch)[:valid]
+	c := hud.Ch[ch]
+	vdiv, probe, off, cpl := c.VdivV, c.Probe, c.OffV, c.Cpl
 	if probe < 1 {
 		probe = 1
 	}
@@ -126,7 +123,7 @@ func chanMeasure(f *sample.Frame, hud HUD, ch int) *measure.Result {
 	}
 	// After the timing: the invert swaps rise and fall and complements the
 	// duty, which the envelope's timing would otherwise put back.
-	if (ch == 0 && hud.Ch[0].Inv) || (ch == 1 && hud.Ch[1].Inv) {
+	if c.Inv {
 		m = m.Inverted() // measure what the inverted trace shows
 	}
 	return m
@@ -197,10 +194,9 @@ func drawMeasPanel(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	if f == nil || f.Len() == 0 {
 		return
 	}
-	sc1, sc2 := hud.shownChans()
 	x := 4
-	for ch, shown := range [2]bool{sc1, sc2 && hud.NumChans > 1} {
-		if !shown {
+	for ch := range hud.numChans() {
+		if !hud.shown(ch) {
 			continue
 		}
 		params := allMeasParams
@@ -239,10 +235,7 @@ func measBox(sf Canvas, p plotArea, f *sample.Frame, hud HUD, ch, x int, params 
 		}
 		rows = append(rows, r)
 	}
-	col, name := colC1, "C1"
-	if ch == 1 {
-		col, name = colC2, "C2"
-	}
+	col, name := chanColor(ch), chanName(ch)
 	y0, w := p.y0+22, 112
 	h := 14 + len(rows)*10
 	fillRect(sf, x, y0, w, h, colBoxBg)
@@ -330,14 +323,14 @@ func drawCursors(sf Canvas, p plotArea, hud HUD) {
 				dash(true, int(hud.CurX[k]*float64(p.w-1)), hud.CurSel == k)
 			}
 		}
-		label = timeCursorLabel(hud)
+		label = timeCursorLabel(hud, p.m.DivsH)
 	} else { // Y (volts) cursors — report ΔV for BOTH channels (web parity)
 		for k := range 2 {
 			if !off(false, hud.CurY[k], k) {
 				dash(false, p.top+int(hud.CurY[k]*float64(p.bot-p.top)), hud.CurSel == k)
 			}
 		}
-		label = voltCursorLabel(hud)
+		label = voltCursorLabel(hud, p.m.DivsV)
 	}
 	w := len(label)*6 + 6
 	x := p.w/2 - w/2 // top-centre, clear of the MEAS boxes (left) and the right column
@@ -348,8 +341,8 @@ func drawCursors(sf Canvas, p plotArea, hud HUD) {
 // timeCursorLabel is the X cursors' readout: their time apart, and its
 // frequency.
 // TRLC-LINKS: REQ-SDS-021
-func timeCursorLabel(hud HUD) string {
-	span := hud.TdivS * 10
+func timeCursorLabel(hud HUD, divs int) string {
+	span := hud.TdivS * float64(divs)
 	if hud.Zoom > 1 {
 		span /= float64(hud.Zoom)
 	}
@@ -364,24 +357,18 @@ func timeCursorLabel(hud HUD) string {
 // voltCursorLabel is the Y cursors' readout: their voltage apart on each
 // shown channel (web parity).
 // TRLC-LINKS: REQ-SDS-021
-func voltCursorLabel(hud HUD) string {
+func voltCursorLabel(hud HUD, divs int) string {
 	var label string
 	frac := math.Abs(hud.CurY[0] - hud.CurY[1])
-	dvOf := func(vdiv, probe float64) string {
-		if probe < 1 {
-			probe = 1
+	for ch := range hud.numChans() {
+		if !hud.shown(ch) {
+			continue
 		}
-		return fmtVolt(frac * vdiv * probe * 8) // 8 vertical divisions
-	}
-	sc1, sc2 := hud.shownChans()
-	if sc1 {
-		label = "dV1 " + dvOf(hud.Ch[0].VdivV, hud.Ch[0].Probe)
-	}
-	if sc2 && hud.NumChans > 1 {
 		if label != "" {
 			label += "  "
 		}
-		label += "dV2 " + dvOf(hud.Ch[1].VdivV, hud.Ch[1].Probe)
+		probe := max(hud.Ch[ch].Probe, 1)
+		label += "dV" + strconv.Itoa(ch+1) + " " + fmtVolt(frac*hud.Ch[ch].VdivV*probe*float64(divs)) // the plot's vertical divisions
 	}
 	return label
 }
@@ -481,9 +468,8 @@ func drawMarkers(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 			}
 		}
 	}
-	ground(hud.Ch[0].VdivV, hud.Ch[0].OffV, colC1)
-	if hud.NumChans > 1 {
-		ground(hud.Ch[1].VdivV, hud.Ch[1].OffV, colC2)
+	for ch := range hud.numChans() {
+		ground(hud.Ch[ch].VdivV, hud.Ch[ch].OffV, chanColor(ch))
 	}
 }
 
@@ -522,11 +508,11 @@ func trigFrac(f *sample.Frame, hud HUD) (float64, bool) {
 // TRLC-LINKS: REQ-SDS-021
 func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	sm := metricsOf(sf)
-	// The top bar: the channels' labels a ChanLabelDX apart, then the
-	// timebase (x tx), its zoom tag and the math legend, the trigger
-	// readout right-aligned.
-	c2x := 4 + sm.ChanLabelDX
-	tx := 4 + 2*sm.ChanLabelDX + 12
+	// The top bar: the channels' labels a ChanLabelDX apart (room for two at
+	// least), then the timebase (x tx), its zoom tag and the math legend, the
+	// trigger readout right-aligned.
+	n := hud.numChans()
+	tx := topBarTimeX(sm, hud)
 	if f != nil && f.Cond.NoiseGain > 1 {
 		label := fmt.Sprintf("Ideal +%.2f bits (not ENOB)", math.Log2(f.Cond.NoiseGain))
 		if f.Cond.PassbandHz > 0 {
@@ -534,17 +520,16 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 		}
 		DrawText(sf, tx, 14, label, colInfo, 1)
 	}
-	DrawText(sf, 4, 2, "C1 "+vdivLabel(hud.Ch[0].VdivV, hud.Ch[0].Probe)+cplTag(hud.Ch[0].Cpl), colC1, 1)
-	if hud.NumChans > 1 {
-		DrawText(sf, c2x, 2, "C2 "+vdivLabel(hud.Ch[1].VdivV, hud.Ch[1].Probe)+cplTag(hud.Ch[1].Cpl), colC2, 1)
+	for ch := range n {
+		c := hud.Ch[ch]
+		DrawText(sf, 4+ch*sm.ChanLabelDX, 2, chanName(ch)+" "+vdivLabel(c.VdivV, c.Probe)+cplTag(c.Cpl), chanColor(ch), 1)
 	}
 	if f != nil && f.Len() > 0 { // clipping warning — railed traces make readings suspect
 		clip := frameClipped(f)
-		if clip[0] {
-			DrawText(sf, 4, 14, "CLIP", colTrig, 1)
-		}
-		if hud.NumChans > 1 && clip[1] {
-			DrawText(sf, c2x, 14, "CLIP", colTrig, 1)
+		for ch := range n {
+			if clip[ch] {
+				DrawText(sf, 4+ch*sm.ChanLabelDX, 14, "CLIP", colTrig, 1)
+			}
 		}
 	}
 	// The horizontal axis is time only in Y-T; in FFT it's frequency and in X-Y
@@ -589,19 +574,15 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	// Bottom quick-readout: calibrated Vpp + frequency per channel, via the
 	// shared measure package (real probe-scaled V/div + software coupling) so it
 	// agrees with the MEASURE readouts and the web.
-	sc1, sc2 := hud.shownChans() // a hidden channel has no readout
-	for ch, shown := range [2]bool{sc1, sc2 && hud.NumChans > 1} {
-		if !shown {
+	for ch := range n {
+		if !hud.shown(ch) { // a hidden channel has no readout
 			continue
 		}
 		m := chanMeasure(f, hud, ch)
 		if m == nil {
 			continue
 		}
-		col, name, x := colC1, "C1", 4
-		if ch == 1 {
-			col, name, x = colC2, "C2", 4+sm.ReadoutDX
-		}
+		col, name, x := chanColor(ch), chanName(ch), 4+ch*sm.ReadoutDX
 		s := name + " Vpp " + fmtVolt(m.Vpp)
 		if m.HasTiming {
 			s += "  f " + fmtFreq(m.Freq)
@@ -609,6 +590,11 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 		DrawText(sf, x, sm.H-9, s, col, 1)
 	}
 }
+
+// topBarTimeX is where the top bar's timebase starts: after the channels'
+// labels, room for two at least.
+// TRLC-LINKS: REQ-SDS-021
+func topBarTimeX(sm *Metrics, hud HUD) int { return 4 + max(hud.numChans(), 2)*sm.ChanLabelDX + 12 }
 
 // trigReadout is the top bar's trigger readout: source, edge, level (or the
 // qualified trigger's tag) and the acquisition state.
@@ -646,26 +632,12 @@ func trigReadout(hud HUD) string {
 }
 
 // TRLC-LINKS: REQ-SDS-021
-func frameQ(f *sample.Frame, ch int) []uint16 {
-	if ch == 1 {
-		return f.Precision(1)
-	}
-	return f.Precision(0)
-}
+func frameQ(f *sample.Frame, ch int) []uint16 { return f.Precision(ch) }
 
 // zoomOf is a channel's display zoom: codes sit on the analog range, a
 // zoomed detent's volts per code is VdivV·zoom over its codes a division.
 // TRLC-LINKS: REQ-SDS-021
-func zoomOf(hud HUD, ch int) int {
-	z := hud.Ch[0].Zoom
-	if ch == 1 {
-		z = hud.Ch[1].Zoom
-	}
-	if z < 1 {
-		return 1
-	}
-	return z
-}
+func zoomOf(hud HUD, ch int) int { return max(hud.Ch[ch].Zoom, 1) }
 
 // clipCache holds the last published frame's rail state: scanning a stopped
 // 1 M-sample record on every repaint takes as long as drawing it. A published
@@ -674,21 +646,22 @@ var clipCache struct {
 	sync.Mutex
 	seq   uint64
 	valid int
-	clip  [2]bool
+	clip  [MaxChans]bool
 }
 
 // frameClipped reports whether each channel's codes touch a rail.
 // TRLC-LINKS: REQ-SDS-021
-func frameClipped(f *sample.Frame) [2]bool {
+func frameClipped(f *sample.Frame) [MaxChans]bool {
 	valid := frameValid(f) // clamp to len(C1) — f.Valid can exceed the slice
 	clipCache.Lock()
 	defer clipCache.Unlock()
 	if f.Seq != 0 && clipCache.seq == f.Seq && clipCache.valid == valid {
 		return clipCache.clip
 	}
-	var clip [2]bool
-	clip[0] = measure.Clipped(f.Codes8(0)[:valid])
-	clip[1] = len(f.Codes8(1)) >= valid && measure.Clipped(f.Codes8(1)[:valid])
+	var clip [MaxChans]bool
+	for ch := range min(len(f.Traces), MaxChans) {
+		clip[ch] = len(f.Codes8(ch)) >= valid && measure.Clipped(f.Codes8(ch)[:valid])
+	}
 	clipCache.seq, clipCache.valid, clipCache.clip = f.Seq, valid, clip
 	return clip
 }

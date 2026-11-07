@@ -90,6 +90,7 @@ func heat(t float64) Color {
 // sample interval.
 // TRLC-LINKS: REQ-SDS-068
 func (sg *Spectrogram) Push(f *sample.Frame, ch int, effNyq float64) {
+	f = view8(f)
 	if f == nil || len(f.Codes8(0)) == 0 {
 		return
 	}

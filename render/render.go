@@ -681,7 +681,7 @@ type denseKey struct {
 // the same frame is redrawn as the HUD changes around it.
 var denseCache struct {
 	sync.Mutex
-	slot [4]denseCols
+	slot [zoomTraceID + MaxChans]denseCols
 }
 
 // TRLC-LINKS: REQ-SDS-021
@@ -695,7 +695,7 @@ func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseC
 	if id.seq != 0 {
 		denseCache.Lock()
 		defer denseCache.Unlock()
-		c = &denseCache.slot[id.ch&3]
+		c = &denseCache.slot[id.ch%len(denseCache.slot)]
 		if c.key == key {
 			return c
 		}
@@ -850,6 +850,7 @@ func strokeRect(sf Canvas, x, y, w, h int, c Color) {
 // a held frame; the strip goes red instead.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-211
 func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
+	f = view8(f)
 	sf.Fill(colBG)
 	ui := &hud.UI
 	sheet := ui.Sheet != nil
@@ -943,7 +944,6 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 // their overlays.
 // TRLC-LINKS: REQ-SDS-021
 func drawViews(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
-	sc1, sc2 := hud.shownChans()
 	// X-Y / FFT only make sense on per-sample (native/decimated) frames — an
 	// envelope/roll frame has no paired samples or usable spectrum, so fall
 	// through to the Y-T envelope rendering (matches the web, which gates these).
@@ -975,46 +975,30 @@ func drawViews(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	case hud.ViewMode == 4:
 		drawSpectrogramMark(sf, p, hud.Spect, hud.UI.Layout.HideViewCaptions, hud.UI.Spec)
 	case f != nil && len(f.Codes8(0)) > 0:
-		drawYT(sf, traceTarget, p, f, hud, sc1, sc2)
+		drawYT(sf, traceTarget, p, f, hud)
 	}
 	if hud.StreamOn && !streamFullScreen(hud) && hud.Stream.State != streamwire.Idle {
 		drawStreamStrip(sf, p, hud)
 	}
 }
 
-// drawYT draws the Y-T view: the traces (or a live envelope's bands) and
-// their overlays.
+// drawYT draws the Y-T view: the traces (or a live envelope's bands), C1
+// on top, and their overlays.
 // TRLC-LINKS: REQ-SDS-021
-func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 bool) {
+func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	valid := frameValid(f)
 	if f.Flags.Has(sample.Envelope) && len(f.Min8(0)) > 0 {
-		drawEnvelopes(sf, p, f, hud, sc1, sc2)
+		drawEnvelopes(sf, p, f, hud)
 		return
 	}
 	win, xc, posFrac := traceWindow(f, hud, valid)
-	c1 := f.Codes8(0)[:valid]
-	if hud.Ch[0].Cpl != dsp.CoupleDC { // software coupling: AC removes DC, GND grounds
-		c1 = dsp.CoupleDisplay(c1, hud.Ch[0].Cpl)
-	}
-	if hud.Ch[0].Inv { // display-level INVS: mirror the rendered trace only
-		c1 = invertCodes(c1)
-	}
 	drawZoneMask(traceTarget, p, f, hud, win, xc, posFrac)
 	// Zoomed into a live envelope: the frame's view window holds the
 	// zoomed part at full detail, where the screen's buckets are too coarse.
 	view, vwin, vxc, zoomed := zoomView(f, hud, valid)
-	if hud.NumChans > 1 && sc2 && len(f.Codes8(1)) >= valid {
-		drawC2(traceTarget, p, f, hud, valid, ytWindow{win, xc, posFrac}, ytWindow{vwin, vxc, 0.5}, view, zoomed)
-	}
-	if sc1 {
-		if zoomed {
-			v1 := dsp.CoupleDisplayBy(view.Codes8(0)[:view.Len()], f.Codes8(0)[:valid], hud.Ch[0].Cpl)
-			if hud.Ch[0].Inv {
-				v1 = invertCodes(v1)
-			}
-			drawTraceID(traceTarget, p, traceID{f.Seq, 3, hud.Ch[0].Cpl, hud.Ch[0].Inv}, v1, vwin, vxc, false, colC1, 0.5, hud.Ch[0].Zoom)
-		} else {
-			drawTraceHeld(traceTarget, p, traceID{f.Seq, 1, hud.Ch[0].Cpl, hud.Ch[0].Inv}, c1, heldOf(f, valid), win, xc, f.Flags.Has(sample.Interp), colC1, posFrac, hud.Ch[0].Zoom)
+	for ch := hud.numChans() - 1; ch >= 0; ch-- {
+		if hud.shown(ch) && len(f.Codes8(ch)) >= valid {
+			drawChan(traceTarget, p, f, hud, ch, valid, ytWindow{win, xc, posFrac}, ytWindow{vwin, vxc, 0.5}, view, zoomed)
 		}
 	}
 	if hud.MathMode != 0 {
@@ -1026,45 +1010,46 @@ func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, s
 	}
 }
 
-// drawEnvelopes draws a live envelope frame's bands, C2 under C1.
+// drawEnvelopes draws a live envelope frame's bands, C1 on top.
 // TRLC-LINKS: REQ-SDS-021
-func drawEnvelopes(sf Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 bool) {
-	if hud.NumChans > 1 && sc2 {
-		mn2, mx2 := f.Min8(1), f.Max8(1)
-		if hud.Ch[1].Inv { // INVS mirrors the band: min'=inv(max), max'=inv(min)
-			mn2, mx2 = invertCodes(mx2), invertCodes(mn2)
+func drawEnvelopes(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
+	for ch := hud.numChans() - 1; ch >= 0; ch-- {
+		if !hud.shown(ch) {
+			continue
 		}
-		drawEnvelope(sf, p, mn2, mx2, len(f.Min8(0)), colC2, hud.Ch[1].Zoom)
-	}
-	if sc1 {
-		mn1, mx1 := f.Min8(0), f.Max8(0)
-		if hud.Ch[0].Inv {
-			mn1, mx1 = invertCodes(mx1), invertCodes(mn1)
+		mn, mx := f.Min8(ch), f.Max8(ch)
+		if hud.Ch[ch].Inv { // INVS mirrors the band: min'=inv(max), max'=inv(min)
+			mn, mx = invertCodes(mx), invertCodes(mn)
 		}
-		drawEnvelope(sf, p, mn1, mx1, len(f.Min8(0)), colC1, hud.Ch[0].Zoom)
+		drawEnvelope(sf, p, mn, mx, len(f.Min8(0)), chanColor(ch), hud.Ch[ch].Zoom)
 	}
 }
 
-// drawC2 draws C2's trace: coupled and inverted for the display, over the
-// record window rec, or over zw from the view window when the screen is
-// zoomed into a live envelope.
+// drawChan draws channel ch's trace: coupled and inverted for the display,
+// over the record window rec, or over zw from the view window when the
+// screen is zoomed into a live envelope.
 // TRLC-LINKS: REQ-SDS-021
-func drawC2(traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, valid int, rec, zw ytWindow, view *sample.Frame, zoomed bool) {
-	c2 := f.Codes8(1)[:valid]
+func drawChan(traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, ch, valid int, rec, zw ytWindow, view *sample.Frame, zoomed bool) {
+	c := hud.Ch[ch]
+	codes := f.Codes8(ch)[:valid]
 	if zoomed {
-		c2 = dsp.CoupleDisplayBy(view.Codes8(1)[:view.Len()], c2, hud.Ch[1].Cpl)
-	} else if hud.Ch[1].Cpl != dsp.CoupleDC {
-		c2 = dsp.CoupleDisplay(c2, hud.Ch[1].Cpl)
+		codes = dsp.CoupleDisplayBy(view.Codes8(ch)[:view.Len()], codes, c.Cpl)
+	} else if c.Cpl != dsp.CoupleDC { // software coupling: AC removes DC, GND grounds
+		codes = dsp.CoupleDisplay(codes, c.Cpl)
 	}
-	if hud.Ch[1].Inv {
-		c2 = invertCodes(c2)
+	if c.Inv { // display-level INVS: mirror the rendered trace only
+		codes = invertCodes(codes)
 	}
 	if zoomed {
-		drawTraceID(traceTarget, p, traceID{f.Seq, 4, hud.Ch[1].Cpl, hud.Ch[1].Inv}, c2, zw.win, zw.xc, false, colC2, zw.posFrac, hud.Ch[1].Zoom)
+		drawTraceID(traceTarget, p, traceID{f.Seq, zoomTraceID + ch, c.Cpl, c.Inv}, codes, zw.win, zw.xc, false, chanColor(ch), zw.posFrac, c.Zoom)
 	} else {
-		drawTraceHeld(traceTarget, p, traceID{f.Seq, 2, hud.Ch[1].Cpl, hud.Ch[1].Inv}, c2, heldOf(f, valid), rec.win, rec.xc, f.Flags.Has(sample.Interp), colC2, rec.posFrac, hud.Ch[1].Zoom)
+		drawTraceHeld(traceTarget, p, traceID{f.Seq, 1 + ch, c.Cpl, c.Inv}, codes, heldOf(f, valid), rec.win, rec.xc, f.Flags.Has(sample.Interp), chanColor(ch), rec.posFrac, c.Zoom)
 	}
 }
+
+// zoomTraceID is the first trace ID of the channels' zoomed views (1 + ch
+// for the record's).
+const zoomTraceID = 1 + MaxChans
 
 // ytWindow is a record window on the plot: its width in samples, centre and
 // the anchor's place across the plot (traceWindow's three).
@@ -1114,15 +1099,32 @@ func absI(x int) int {
 	return x
 }
 
-// shownChans is the per-channel display enable. Both off means "unset" (show
-// both) unless the panel set the flags: then the user hid both channels and
-// neither is drawn.
+// shownChans is C1's and C2's display enable (shown).
 // TRLC-LINKS: REQ-SDS-021
-func (h HUD) shownChans() (bool, bool) {
-	if !h.Ch[0].Show && !h.Ch[1].Show && !h.ChanExplicit {
-		return true, true
+func (h HUD) shownChans() (bool, bool) { return h.shown(0), h.shown(1) }
+
+// numChans is how many channels the HUD describes, C1 at least.
+// TRLC-LINKS: REQ-SDS-021
+func (h HUD) numChans() int { return min(max(h.NumChans, 1), MaxChans) }
+
+// shown is channel ch's display enable. All off means "unset" (show every
+// channel) unless the panel set the flags: then the user hid them all and
+// none is drawn.
+// TRLC-LINKS: REQ-SDS-021
+func (h HUD) shown(ch int) bool {
+	if ch < 0 || ch >= MaxChans {
+		return false
 	}
-	return h.Ch[0].Show, h.Ch[1].Show
+	if !h.ChanExplicit {
+		set := false
+		for _, c := range h.Ch {
+			set = set || c.Show
+		}
+		if !set {
+			return true
+		}
+	}
+	return h.Ch[ch].Show
 }
 
 // heldOf is a roll frame's held samples over its valid prefix; nil otherwise.

@@ -38,10 +38,15 @@ func fftBand(half, zoom int, zoomOff float64) (kLo, kHi int) {
 // the per-frame cost stays well under the render budget.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-070, REQ-SDS-216
 func drawFFT(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
-	sc1, sc2 := hud.shownChans()
-	shown := [2]bool{sc1, sc2 && hud.NumChans > 1}
-	src := hud.FFTSrc & 1
-	order := []int{1 - src, src} // the source last, on top
+	n := hud.numChans()
+	src := (hud.FFTSrc%n + n) % n
+	order := make([]int, 0, n) // the others from the last, the source last, on top
+	for ch := n - 1; ch >= 0; ch-- {
+		if ch != src {
+			order = append(order, ch)
+		}
+	}
+	order = append(order, src)
 	type label struct {
 		s string
 		c Color
@@ -50,7 +55,7 @@ func drawFFT(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	var effNyq float64
 	var kLo, kHi, half int
 	for _, ch := range order {
-		if !shown[ch] {
+		if !hud.shown(ch) {
 			continue
 		}
 		sp, ok := framecalc.SpectrumHeld(f, ch, hud.SampleS)
@@ -60,10 +65,7 @@ func drawFFT(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 		half = len(sp.Mags) // the bins up to the span (a filter can end it before N/2)
 		effNyq = sp.SpanHz
 		kLo, kHi = fftBand(half, hud.Zoom, hud.ZoomOff)
-		col, name := colC1, "FFT C1 peak "
-		if ch == 1 {
-			col, name = colC2, "FFT C2 peak "
-		}
+		col, name := chanColor(ch), "FFT "+chanName(ch)+" peak "
 		fpk := drawSpectrum(sf, p, sp.Mags, sp.Peak, col, effNyq, kLo, kHi)
 		labels = append([]label{{name + fmtFreq(fpk), col}}, labels...)
 	}

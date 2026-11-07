@@ -43,6 +43,7 @@ func bounce(t, span int) int {
 // its run state and time/div, and a running mask test's counts or the hint.
 // TRLC-LINKS: REQ-SDS-221
 func DrawSaver(sf Canvas, f *sample.Frame, hud HUD, step int) {
+	f = view8(f)
 	sf.Fill(RGB(0, 0, 0)) // black: a memclr on a memory canvas
 	sm := metricsOf(sf)
 	x, y := SaverPos(sm, step)

@@ -253,10 +253,11 @@ func cutText(s string, n int) string {
 // TRLC-LINKS: REQ-SDS-211, REQ-SDS-213
 func drawScopeChrome(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	tx := trigX(p, f, hud)
-	x := 410
-	if tx > 398 && tx < 448 {
+	x0 := topBarTimeX(p.m, hud) + 210 // clear of the timebase, its zoom tag and the math legend
+	x := x0
+	if tx > x0-12 && tx < x0+38 {
 		x = tx + 8
-		if tx >= 560-38 {
+		if tx >= x0+112 {
 			x = tx - 38
 		}
 	}
@@ -867,12 +868,10 @@ func drawMiniScope(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 		return min(max(y, y0), y0+h-1)
 	}
 	if f != nil && len(f.Codes8(0)) > 0 && (!f.Flags.Has(sample.Envelope) || len(f.Min8(0)) != 0) {
-		sc1, sc2 := hud.shownChans()
-		for _, ch := range []int{1, 0} {
-			if (ch == 0 && !sc1) || (ch == 1 && (!sc2 || hud.NumChans < 2)) {
-				continue
+		for ch := hud.numChans() - 1; ch >= 0; ch-- { // C1 on top
+			if hud.shown(ch) {
+				miniScopeChan(sf, f, hud, ch, x0, w, yOf)
 			}
-			miniScopeChan(sf, f, hud, ch, x0, w, yOf)
 		}
 	}
 	if frac, ok := trigFrac(f, hud); ok {
@@ -884,20 +883,14 @@ func drawMiniScope(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 	strokeRect(sf, x0, y0, w, h, colAxis)
 }
 
-// miniScopeChan draws one channel (ch 0 = C1, 1 = C2) of the mini scope over
+// miniScopeChan draws one channel (ch 0 = C1) of the mini scope over
 // columns x0..x0+w-1, yOf placing a code: an envelope's bands, else each
 // column's extremes joined to the previous column.
 // TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
 func miniScopeChan(sf Canvas, f *sample.Frame, hud HUD, ch, x0, w int, yOf func(uint8) int) {
-	col := colC1
-	if ch == 1 {
-		col = colC2
-	}
+	col := chanColor(ch)
 	if f.Flags.Has(sample.Envelope) {
-		mn, mx := f.Min8(0), f.Max8(0)
-		if ch == 1 {
-			mn, mx = f.Min8(1), f.Max8(1)
-		}
+		mn, mx := f.Min8(ch), f.Max8(ch)
 		for x := range w {
 			c := x * len(f.Min8(0)) / w
 			if c < len(mn) && c < len(mx) {
@@ -907,13 +900,10 @@ func miniScopeChan(sf Canvas, f *sample.Frame, hud HUD, ch, x0, w int, yOf func(
 		return
 	}
 	valid := frameValid(f)
-	if ch == 1 && len(f.Codes8(1)) < valid {
+	if len(f.Codes8(ch)) < valid {
 		return
 	}
-	sig := f.Codes8(0)[:valid]
-	if ch == 1 {
-		sig = f.Codes8(1)[:valid]
-	}
+	sig := f.Codes8(ch)[:valid]
 	win, xc, posFrac := traceWindow(f, hud, valid)
 	left := xc - float64(win)*posFrac
 	prev := -1
