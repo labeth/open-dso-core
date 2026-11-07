@@ -44,8 +44,11 @@ function measValue(key, m) {
 // TRLC-LINKS: REQ-SDS-217
 function measReset() { measStats.clear(); measRenderT = 0; measRender(true); }
 
-// MEAS_IDS are the readouts' statistics keys ("1:Vpp"), per channel, made once.
-const MEAS_IDS = [1, 2].map((ch) => MEAS_ALL.map((k) => ch + ":" + k));
+// MEAS_IDS are the readouts' statistics keys ("1:Vpp"), per channel number,
+// made once a channel.
+const MEAS_IDS = {};
+// TRLC-LINKS: REQ-SDS-217
+function measIds(ch) { return MEAS_IDS[ch] || (MEAS_IDS[ch] = MEAS_ALL.map((k) => ch + ":" + k)); }
 
 // measAccumulate adds a new reading's values once: by the frame measured
 // (meas_seq: the server reuses a reading for the frames of the next 100 ms
@@ -60,13 +63,14 @@ function measAccumulate() {
   const freshEdge = !frame.edge_read || frame.edge_read !== measEdge;
   measEdge = frame.edge_read || 0;
   // the scope's statKey: what changes the measured picture
-  const cfg = st ? [st.tdiv_s, st.vdiv1, st.vdiv2, st.off1_v, st.off2_v, st.probe1, st.probe2, st.cpl1, st.cpl2,
-    st.trig_source, st.trig_rising, st.trig_type, st.trig_code, st.acq_mode, st.avg_count, st.eres_len, st.inv1, st.inv2].join("|") : "";
+  const per = (k) => chanNums().map((n) => st[k.replace("#", n)]);
+  const cfg = st ? [st.tdiv_s, ...per("vdiv#"), ...per("off#_v"), ...per("probe#"), ...per("cpl#"),
+    st.trig_source, st.trig_rising, st.trig_type, capsControl("triglevel") ? st.trig_volts : st.trig_code, st.acq_mode, st.avg_count, st.eres_len, ...per("inv#")].join("|") : "";
   if (cfg !== measKeyCfg) { measKeyCfg = cfg; measStats.clear(); }
-  for (const ch of [1, 2]) {
-    const m = ch === 1 ? frame.m1 : frame.m2;
+  for (const ch of chanNums()) {
+    const m = frame["m" + ch];
     if (!m) continue;
-    const ids = MEAS_IDS[ch - 1];
+    const ids = measIds(ch);
     for (let j = 0; j < MEAS_ALL.length; j++) {
       const k = MEAS_ALL[j];
       if (!freshEdge && MEAS_WINDOW.some(([flag, set]) => m[flag] && set.has(k))) continue;
@@ -106,9 +110,9 @@ function measRender(force) {
   measRenderT = now;
   const sel = +$("measCh").value || 0;
   let html = "", total = 0;
-  for (const ch of [1, 2]) {
+  for (const ch of chanNums()) {
     if (sel && sel !== ch) continue;
-    html += `<tr class="grp"><th colspan="7" class="l cc${ch}">CH${ch}${(ch === 1 ? view.c1 : view.c2) ? "" : " (hidden)"}</th></tr>`;
+    html += `<tr class="grp"><th colspan="7" class="l cc${ch}">CH${ch}${chanShown(ch) ? "" : " (hidden)"}</th></tr>`;
     for (const k of MEAS_ALL) {
       const s = measStats.get(ch + ":" + k);
       const n = s ? s.n : 0;

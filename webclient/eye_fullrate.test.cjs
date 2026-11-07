@@ -45,6 +45,7 @@ const context = {
   ejLastUi: 0,
 };
 vm.createContext(context);
+vm.runInContext(fs.readFileSync("caps.js", "utf8"), context);
 vm.runInContext(fs.readFileSync("app_eye.js", "utf8"), context);
 context.ejRender = render;
 

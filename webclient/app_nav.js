@@ -49,12 +49,12 @@ function drawNavTrace(cols, color) {
 // WebGL, and a GL canvas can't be blit-cached the way a 2D one was).
 // TRLC-LINKS: REQ-SDS-071
 function drawNavFFT() {
-  for (const ch of [1, 2]) {
-    if (!(ch === 1 ? view.c1 : view.c2)) continue;
+  for (const ch of chanNums()) {
+    if (!chanShown(ch)) continue;
     const spec = specMemo[ch].spec;
     if (!spec) continue;
     const { mags, half, peak } = spec;
-    navCtx.fillStyle = ch === 1 ? C1COL : C2COL;
+    navCtx.fillStyle = chanColor(ch);
     navCtx.globalAlpha = 0.7;
     for (let px = 0; px < NW; px++) {
       const a = Math.floor(px / NW * half), b = Math.max(a + 1, Math.floor((px + 1) / NW * half));
@@ -80,8 +80,8 @@ function drawNavYT() {
   navCtx.strokeStyle = "#182430"; navCtx.lineWidth = 1;
   navCtx.beginPath(); navCtx.moveTo(0, NH / 2 + .5); navCtx.lineTo(NW, NH / 2 + .5); navCtx.stroke();
   if (frame && !frame.is_env) {
-    if (view.c2) drawNavTrace(frame.c2, C2COL);
-    if (view.c1) drawNavTrace(frame.c1, C1COL);
+    // the channels drawn last first, so C1 lies on top
+    for (const n of chanNums().reverse()) if (chanShown(n)) drawNavTrace(frame["c" + n], chanColor(n));
   }
   drawNavDecode(); // decode tokens across the WHOLE record (small-window view)
   // viewport rectangle = the visible [a,b] window.

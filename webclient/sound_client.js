@@ -77,6 +77,14 @@ function sndVoltsOf(c, h, q, ch) {
   return out;
 }
 
+// sndLanesOf takes the channel each lane carries from a reply's newest
+// scale, when the scope names them (a reply of no samples names them too).
+// TRLC-LINKS: REQ-SDS-265
+function sndLanesOf(c, h) {
+  const sc = h.scales || [], lanes = sc.length ? sc[sc.length - 1].chans : null;
+  if (Array.isArray(lanes) && lanes.length === 2) c.lanes = lanes.slice();
+}
+
 // sndIngest puts a reply's samples into the ring, its marks into the list,
 // and the listen source into the player.
 // TRLC-LINKS: REQ-SDS-265
@@ -88,6 +96,7 @@ function sndIngest(c, buf) {
   c.markV = h.mark_v;
   c.paused = !!h.paused;
   if (c.paused) { c.cursor = null; return; } // the stream resumes from near now
+  sndLanesOf(c, h);
   if (!n) { if (c.cursor === null || c.cursor > h.next) c.cursor = h.next; return; }
   const gap = c.cursor === null || h.first !== c.cursor || (h.gaps && h.gaps.length > 0);
   const v1 = sndVoltsOf(c, h, p.q1, 0), v2 = sndVoltsOf(c, h, p.q2, 1);
@@ -132,6 +141,7 @@ async function sndTakeFetch(c, id) {
     const p = sndParse(await r.arrayBuffer());
     if (!p) throw new Error("not a take");
     const h = p.hdr;
+    sndLanesOf(c, h);
     c.take = { id: h.id, why: h.why, first: h.first, n: h.n | 0, rate: h.rate || c.rate, c1: sndVoltsOf(c, h, p.q1, 0), c2: sndVoltsOf(c, h, p.q2, 1),
       hasTrig: !!h.has_trig, trig: h.trig, trigCh: h.trig_ch | 0, trigRising: !!h.trig_rising, trigV: h.trig_v, marks: h.marks || [], gaps: h.gaps || [] };
     // A NORMAL refresh of the same length keeps the window, the cursor and

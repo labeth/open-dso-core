@@ -295,7 +295,8 @@ function applyStatus() {
   upd($("memdepth"), "disabled", st.band === "sram");
   upd($("memdepth"), "title", st.band === "sram" ? "Full SRAM retained; RUN transfers a preview, STOP recalls the complete record" : "Memory depth");
   if (document.activeElement !== $("holdoff")) $("holdoff").value = st.holdoff_s || 0;
-  if (!lvlDragging && st.trig_code) { $("lvl").value = st.trig_volts; $("lvlv").textContent = eng(st.trig_volts, "V"); }
+  // the level in volts: a scope with caps names no DAC code
+  if (!lvlDragging && (st.trig_code || (capsServed && Number.isFinite(st.trig_volts)))) { $("lvl").value = st.trig_volts; $("lvlv").textContent = eng(st.trig_volts, "V"); }
   // the ladders the status carries, else the scope's caps'
   const tdivs = st.tdivs || (capsServed && caps.timebase && caps.timebase.tdivs);
   const vdivs = st.vdivs || (capsServed && caps.vertical && caps.vertical.vdivs);
@@ -317,6 +318,8 @@ function applyStatus() {
   }
   for (const ch of chans) setFromStatus($("probe" + ch), st["probe" + ch] || 1);
   for (const ch of chans) setFromStatus($("cpl" + ch), st["cpl" + ch] || 0);
+  // channels past C2 have no sheet rows for their limit and invert: the status's
+  for (const ch of chans) if (ch > 2) for (const k of ["bwl", "inv"]) if (st[k + ch] !== undefined) setFromStatus($(k + ch), +st[k + ch]);
   // The strip's trigger caption names the type (and the bytes of an armed serial trigger).
   {
     const types = ["Edge", "Pulse", "Slope", "Video"];
@@ -489,8 +492,9 @@ function recompute() { computeDecode(); redraw(); }
 // TRLC-LINKS: REQ-SDS-203
 function updateMathHint() {
   const h = $("mathHint");
-  if (mathFn === "res1" || mathFn === "res2")
-    h.textContent = "pick the carrier peak(s) of C" + (mathFn === "res1" ? 1 : 2) + " in SPECTRUM's peak table; the residual (minor waves) shows in purple";
+  const mp = mathParse(mathFn);
+  if (mp && mp.op === "res")
+    h.textContent = "pick the carrier peak(s) of " + chanName(mp.a) + " in SPECTRUM's peak table; the residual (minor waves) shows in purple";
   else h.textContent = "";
 }
 

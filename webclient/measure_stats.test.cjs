@@ -11,6 +11,7 @@ const code = src.slice(src.indexOf('const MEAS_UNIT'), src.indexOf('// One unit 
 const c = { RunStats, ws: { cur: "measure" }, st: { tdiv_s: 2e-4 }, frame: null,
   MEAS_ALL: ["Vpp", "Vmax", "Vmin", "Vmean", "Vrms", "Freq", "Period", "Duty", "ACrms", "Vtop", "Vbase", "Vampl", "Rise", "Fall", "+Width", "-Width", "Overshoot", "Preshoot"] };
 vm.createContext(c);
+vm.runInContext(fs.readFileSync('caps.js', 'utf8'), c);
 vm.runInContext(code + '\nthis.count = (id) => (measStats.get(id) || { n: 0 }).n;', c);
 // TRLC-LINKS: REQ-SDS-217
 const m = (rise) => ({ vpp: 3.3, rise_s: rise, edge_shape: true, has_timing: true, window_timing: true, freq: 1e6, period: 1e-6, duty: 50 });

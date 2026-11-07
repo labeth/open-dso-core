@@ -121,8 +121,12 @@ async function visFetchRecord(sampleS) {
     const b = new Uint8Array(await r.arrayBuffer());
     const hl = b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24);
     const h = JSON.parse(new TextDecoder().decode(b.subarray(4, 4 + hl)));
-    const c1 = b.subarray(4 + hl, 4 + hl + h.n), c2 = b.subarray(4 + hl + h.n, 4 + hl + 2 * h.n);
-    return { ok: true, n: h.n, sampleS: h.sample_s, c1: Array.from(c1), c2: Array.from(c2) };
+    // the codes of each channel in turn: C1's then C2's (or as many as the
+    // header's chans names, each channel's number)
+    const nums = Array.isArray(h.chans) && h.chans.length ? h.chans.map((c) => c + 1) : [1, 2];
+    const out = { ok: true, n: h.n, sampleS: h.sample_s, chans: nums };
+    nums.forEach((k, i) => { out["c" + k] = Array.from(b.subarray(4 + hl + i * h.n, 4 + hl + (i + 1) * h.n)); });
+    return out;
   } catch (e) { return { ok: false, error: "the record did not come: " + e.message }; }
 }
 
@@ -130,7 +134,8 @@ async function visFetchRecord(sampleS) {
 // TRLC-LINKS: REQ-SDS-280
 function visAudioDecode(kind, rec) {
   if (kind === "spdif") {
-    const line = dcfg.proto === "spdif" && dcfg.line === 2 ? rec.c2 : rec.c1;
+    // the decoded S/PDIF line when the record carries it, else C1
+    const line = (dcfg.proto === "spdif" && rec["c" + dcfg.line]) || rec.c1;
     return audioFromSPDIF(decodeSPDIF(line, rec.sampleS, {}));
   }
   if (kind === "pdm") return audioFromPDM(rec.c1, rec.c2, rec.sampleS);

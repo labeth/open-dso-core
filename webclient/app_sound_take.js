@@ -58,7 +58,7 @@ function sndTakeAnalyse(cols) {
   if (key !== sndTk.pendKey) { sndTk.pendKey = key; sndTk.pendAt = now; }
   if (sndTk.spec && now - sndTk.pendAt < 150) return;
   sndTk.key = key;
-  const x = set.ch === 1 ? t.c2 : t.c1, secs = v.span / t.rate;
+  const x = sndLaneOf(set.ch) === 1 ? t.c2 : t.c1, secs = v.span / t.rate;
   const n = secs >= 0.5 ? 8192 : secs >= 0.1 ? 4096 : 2048;
   sndTk.spec = sndSpectrogram(x, t.rate, v.from, v.span, cols, n);
   sndTk.pitch = sndPitchTrack(x, t.rate, v.from, v.span, cols, set.range);
@@ -103,8 +103,8 @@ function sndTakeRender(g, W, H, d) {
   if (lo < 0 && hi > 0) { g.beginPath(); g.moveTo(0, yOf(0)); g.lineTo(W, yOf(0)); g.stroke(); }
   for (const ch of [1, 0]) {
     const m = mm[ch], cw = W / m.lo.length;
-    g.fillStyle = ch === 1 ? C2COL : C1COL;
-    g.globalAlpha = ch === set.ch ? 1 : 0.55;
+    g.fillStyle = sndLaneColor(ch);
+    g.globalAlpha = ch === sndLaneOf(set.ch) ? 1 : 0.55;
     for (let i = 0; i < m.lo.length; i++) { const y1 = yOf(m.hi[i]), y2 = yOf(m.lo[i]); g.fillRect(i * cw, y1, Math.max(1, cw), Math.max(d, y2 - y1)); }
   }
   g.globalAlpha = 1;
@@ -133,7 +133,7 @@ function sndTakeRender(g, W, H, d) {
   // time axis: seconds from the trigger (or the take's start)
   g.fillStyle = DIMCOL;
   for (let k = 0; k <= 10; k += 2) { const i = v.from + k * v.span / 10; g.fillText(sndTakeTxt(sndTakeT(i)), Math.min(W - 50 * d, k * W / 10 + 2 * d), waveH + 11 * d); }
-  g.fillText(`C${set.ch + 1} spectrogram, ${eng(SND_TAKE_FMIN, "Hz")}–${eng(SND_TAKE_FMAX, "Hz")} log · white: pitch`, 4 * d, H - 3 * d);
+  g.fillText(`${chanName(set.ch + 1)} spectrogram, ${eng(SND_TAKE_FMIN, "Hz")}–${eng(SND_TAKE_FMAX, "Hz")} log · white: pitch`, 4 * d, H - 3 * d);
   // the trigger: a dashed line with its marker on top
   const ti = sndTakeTrigIdx();
   if (ti >= 0 && ti >= v.from && ti <= v.from + v.span) {
@@ -176,7 +176,7 @@ function sndTakeCursorRows() {
     const i = Math.max(0, Math.min(t.n - 1, Math.round(cu.i)));
     let f = cu.f, src = "spectrogram";
     if (!f) {
-      const x = set.ch === 1 ? t.c2 : t.c1, n = 4096, a = Math.max(0, Math.min(t.n - n, i - n / 2));
+      const x = sndLaneOf(set.ch) === 1 ? t.c2 : t.c1, n = 4096, a = Math.max(0, Math.min(t.n - n, i - n / 2));
       const p = t.n >= 256 ? sndPitch(x.subarray(a, Math.min(t.n, a + n)), t.rate, sndPitchRange(set.range)) : { ok: false };
       f = p.ok ? p.hz : 0; src = "pitch";
     }

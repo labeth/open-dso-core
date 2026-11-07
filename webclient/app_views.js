@@ -110,7 +110,7 @@ function spgPushCurrent() {
   const f = fftUseRaw() ? fftRaw : frame;
   if (!spg.armed || !f || typeof spectrum !== "function") return;
   if (f.seq === spg.lastSeq || f.is_env) return;
-  const src = spg.ch === 2 ? f.c2 : f.c1;
+  const src = chanArr(f, spg.ch);
   if (!src || src.length < 32) return;
   spg.lastSeq = f.seq;
   const g = gapFill(f.peak_detect ? pairMids(src) : src);
@@ -232,7 +232,7 @@ $("spgArm").onclick = () => {
 // TRLC-LINKS: REQ-SDS-068
 $("spgClear").onclick = () => { if (spg.sg) sgClear(spg.sg); spgRender(); spgStatus(spg.armed ? "cleared — building" : "cleared"); };
 // TRLC-LINKS: REQ-SDS-068
-$("spgCh").onchange = () => { spg.ch = +$("spgCh").value === 2 ? 2 : 1; };
+$("spgCh").onchange = () => { const n = +$("spgCh").value | 0; spg.ch = chanNums().includes(n) ? n : 1; };
 // TRLC-LINKS: REQ-SDS-068
 $("spgFloor").onchange = () => { if (spg.sg) spg.sg.floorDb = +$("spgFloor").value || -60; };
 // push + render on a fast tick so the waterfall scrolls at ~frame rate

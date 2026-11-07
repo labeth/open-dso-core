@@ -41,11 +41,61 @@ const snd = Object.assign(sndClient(() => snd.view === "cycle"), {
   abAt: 0,
 });
 
-// sndLatest is the newest n samples of channel ch that are one signal.
+// SOUND's stream carries two lanes (the sound wire's C1 and C2 segments);
+// its newest scale names the scope channel each lane carries (chans), C1
+// and C2 when it names none. The tuned channel, the A/B input and the gate
+// are scope channels: the page reads a channel's samples from the lane that
+// carries it, and the other lane is "the other channel" (the CV, the A/B
+// output).
+
+// sndLanes is the channel index (0-based) each lane carries.
+// TRLC-LINKS: REQ-SDS-265
+function sndLanes() { return Array.isArray(snd.lanes) && snd.lanes.length === 2 ? snd.lanes : [0, 1]; }
+// sndLaneOf is the lane that carries channel index ch (the first when none does).
+// TRLC-LINKS: REQ-SDS-265
+function sndLaneOf(ch) { const i = sndLanes().indexOf(ch); return i < 0 ? 0 : i; }
+// sndLaneName and sndLaneColor name and colour lane k by its channel.
+// TRLC-LINKS: REQ-SDS-265
+function sndLaneName(k) { return chanName(sndLanes()[k] + 1); }
+// TRLC-LINKS: REQ-SDS-265
+function sndLaneColor(k) { return chanColor(sndLanes()[k] + 1); }
+
+let sndChansSig = "";
+// sndChans labels the lanes' choices and meters by the channels they carry
+// and offers every channel of the scope as the envelope's gate (on C1 and C2
+// lanes of a two-channel scope, the page's own labels).
+// TRLC-LINKS: REQ-SDS-265, REQ-SDS-273
+function sndChans() {
+  const sig = sndLanes().join() + "/" + chanNums().join();
+  if (sig === sndChansSig) return;
+  sndChansSig = sig;
+  const src = $("sndSrc");
+  let relabel = false;
+  for (const k of [0, 1]) {
+    const n = sndLanes()[k] + 1, name = chanName(n);
+    for (const b of [src && src.querySelector(`:scope > button[data-value="c${k + 1}"]`), document.querySelector(`#sndMeter${k + 1} .snd-mh > b`)]) {
+      if (!b || b.textContent === name) continue;
+      b.textContent = name; b.className = "cc" + n; relabel = true;
+    }
+  }
+  if (relabel && src) mirrorRebuild(src);
+  const gate = $("sndGate");
+  if (gate) {
+    const want = [["-1", "Signal level"], ...chanNums().map((n) => [String(n - 1), "Gate " + chanName(n)])];
+    if ([...gate.options].map((o) => o.value + "=" + o.textContent).join() !== want.map(([v, t]) => v + "=" + t).join()) {
+      const keep = gate.value;
+      gate.replaceChildren(...want.map(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; return o; }));
+      gate.value = want.some(([v]) => v === keep) ? keep : "-1";
+    }
+  }
+}
+CAPS_HOOKS.push(sndChans);
+
+// sndLatest is the newest n samples of lane ch that are one signal.
 // TRLC-LINKS: REQ-SDS-265
 function sndLatest(ch, n) { return sndClientLatest(snd, ch, n); }
 
-// sndRangeOf is samples [from, from+n) of channel ch.
+// sndRangeOf is samples [from, from+n) of lane ch.
 // TRLC-LINKS: REQ-SDS-272
 function sndRangeOf(ch, from, n) { return sndClientRange(snd, ch, from, n); }
 
@@ -126,6 +176,7 @@ function sndTick() {
   const now = performance.now(), set = snd.settings, fs = snd.rate;
   if (now - snd.reportAt > (snd.mode === "live" ? 500 : 250)) { snd.reportAt = now; sndPoll(); }
   sndTakeTick();
+  sndChans();
   if (snd.next > 0 || snd.takeOn) {
     // a take: the meters over its window (at most four seconds)
     const nlev = snd.takeOn ? Math.round(Math.min(snd.tview.span, 4 * fs)) : Math.round(0.2 * fs);
@@ -135,7 +186,7 @@ function sndTick() {
     }
     // the pitch in the worker (the tuner window of a bass note is tens of
     // milliseconds of work): the newest reading feeds the tuner
-    const n = sndTunerWindow(snd.hz, fs), x = sndLatest(set.ch, n);
+    const n = sndTunerWindow(snd.hz, fs), x = sndLatest(sndLaneOf(set.ch), n);
     sndAnalyse("pitch", { x: Float64Array.from(x), fs, range: sndPitchRange(set.range), enough: x.length >= n / 2 });
     const p = snd.pitchNew;
     snd.pitchNew = null;
@@ -230,7 +281,7 @@ function sndApply(m) {
       if (prev && prev.n === sp.n) for (let i = 0; i < sp.dbv.length; i++) sp.dbv[i] = 10 * Math.log10(0.7 * Math.pow(10, prev.dbv[i] / 10) + 0.3 * Math.pow(10, sp.dbv[i] / 10));
       snd.spec[ch] = sp;
     });
-    snd.harm = snd.spec[set.ch] ? sndHarmonics(snd.spec[set.ch], snd.hz) : null;
+    snd.harm = snd.spec[sndLaneOf(set.ch)] ? sndHarmonics(snd.spec[sndLaneOf(set.ch)], snd.hz) : null;
   } else if (m.kind === "ab") {
     snd.ab = r.ab; snd.specA = r.specA; snd.specB = r.specB;
     if (r.ab.ok) { snd.audio.abMatch = r.ab.match > 0 ? 1 / r.ab.match : 1; snd.audio.abDelay = r.ab.delayOK ? Math.max(0, Math.round(r.ab.delayS * snd.rate)) : 0; }
@@ -247,8 +298,8 @@ function sndViewUpdate(now) {
       if (now - snd.modAt < 1000) break;
       snd.modAt = now;
       {
-        const x = sndLatest(set.ch, Math.round(4 * fs));
-        const codes = sndSwingCodes(x, snd.lastVpc[set.ch]);
+        const x = sndLatest(sndLaneOf(set.ch), Math.round(4 * fs));
+        const codes = sndSwingCodes(x, snd.lastVpc[sndLaneOf(set.ch)]);
         if (snd.hz > 0 && codes < SND_MOD_MIN_CODES) {
           snd.mod = { ok: false, why: `the tone spans ${codes.toFixed(0)} codes: AUTO fits the channel` };
           snd.modDemod = null; snd.lfo = null;
@@ -264,7 +315,7 @@ function sndViewUpdate(now) {
       if (now - snd.abAt < 500) break;
       snd.abAt = now;
       {
-        const a = sndLatest(set.ab_in, 16384), b = sndLatest(1 - set.ab_in, 16384);
+        const a = sndLatest(sndLaneOf(set.ab_in), 16384), b = sndLatest(1 - sndLaneOf(set.ab_in), 16384);
         snd.abA = a; snd.abB = b;
         sndAnalyse("ab", { a: Float64Array.from(a), b: Float64Array.from(b), fs, hz: snd.hz });
       }
@@ -272,7 +323,7 @@ function sndViewUpdate(now) {
   }
   if (snd.audio.src === "ab" && snd.view !== "ab" && now - snd.abAt > 1000) {
     snd.abAt = now;
-    const r = sndCompareAB(sndLatest(set.ab_in, 16384), sndLatest(1 - set.ab_in, 16384), fs, snd.hz);
+    const r = sndCompareAB(sndLatest(sndLaneOf(set.ab_in), 16384), sndLatest(1 - sndLaneOf(set.ab_in), 16384), fs, snd.hz);
     if (r.ok) { snd.audio.abMatch = r.match > 0 ? 1 / r.match : 1; snd.audio.abDelay = r.delayOK ? Math.max(0, Math.round(r.delayS * fs)) : 0; }
   }
 }
@@ -294,7 +345,7 @@ function sndCycleUpdate() {
   if (!mark) { snd.cycleWhy = h.mark_ch !== set.ch ? "the marks are on the other channel" : "no edge marked yet"; return; }
   if (mark.at === snd.cycleAt) return;
   snd.cycleAt = mark.at;
-  const r = sndRangeOf(set.ch, mark.at - 8, Math.ceil(span) + 24);
+  const r = sndRangeOf(sndLaneOf(set.ch), mark.at - 8, Math.ceil(span) + 24);
   const [at, ok] = sndPlaceMark(r.x, mark.at - r.from, snd.markV, true);
   if (!ok) { snd.cycleWhy = "the marked edge has no crossing beside it"; return; }
   const c = sndCycles(r.x, fs, at, per, set.cycles || 2, 600);
@@ -392,13 +443,13 @@ function sndRenderTuner() {
     el.textContent = "--"; el.className = "";
     $("sndCents").textContent = "— c"; $("sndHz").textContent = "no pitch";
   }
-  $("sndTunerSub").textContent = `A4 = ${set.a4} Hz · C${set.ch + 1}` + (snd.hz > 0 ? ` · clarity ${snd.clarity.toFixed(2)}` : "");
+  $("sndTunerSub").textContent = `A4 = ${set.a4} Hz · ${chanName(set.ch + 1)}` + (snd.hz > 0 ? ` · clarity ${snd.clarity.toFixed(2)}` : "");
   const cv = $("sndTunerCv");
   if (!fitCanvas(cv)) return;
   const g = glCardCtx(cv, "#05080c");
   if (!g) return;
   const W = cv.width, H = cv.height, d = window.devicePixelRatio || 1;
-  const col = set.ch === 1 ? C2COL : C1COL;
+  const col = chanColor(set.ch + 1);
   // needle
   const ny = 6 * d, nh = 30 * d;
   // TRLC-LINKS: REQ-SDS-267
@@ -466,7 +517,7 @@ function sndRenderView() {
   const g = glCardCtx(cv, "#05080c");
   if (!g) return;
   const W = cv.width, H = cv.height, d = window.devicePixelRatio || 1, set = snd.settings;
-  const col = set.ch === 1 ? C2COL : C1COL;
+  const col = chanColor(set.ch + 1);
   g.font = (11 * d) + "px monospace";
   // TRLC-LINKS: REQ-SDS-272
   const msg = (t) => { g.fillStyle = DIMCOL; g.textAlign = "center"; g.fillText(t, W / 2, H / 2); g.textAlign = "left"; };
@@ -496,7 +547,7 @@ function sndRenderView() {
       g.globalAlpha = 1;
       g.fillStyle = DIMCOL;
       g.fillText(eng(hi, "V"), W - 70 * d, 14 * d); g.fillText(eng(lo, "V"), W - 70 * d, H - 6 * d);
-      $("sndViewSub").textContent = `${set.cycles} ${set.cycles === 1 ? "cycle" : "cycles"} · trigger: FPGA edge mark C${set.ch + 1}`;
+      $("sndViewSub").textContent = `${set.cycles} ${set.cycles === 1 ? "cycle" : "cycles"} · trigger: FPGA edge mark ${chanName(set.ch + 1)}`;
       break;
     }
     case "env": {
@@ -525,7 +576,7 @@ function sndRenderView() {
       const dm = snd.modDemod;
       $("sndViewSub").textContent = snd.hz > 0 ? "amplitude (top) and pitch in cents (bottom), 4 s" : "no pitch: the LFO read directly";
       if (!dm || !dm.amp.length) {
-        if (snd.lfo && snd.lfo.ok) { grid(); const x = sndLatest(set.ch, Math.round(8 * snd.rate)); const red = sndBlockMeans(x, snd.rate, 0.005).env; let lo = Infinity, hi = -Infinity; for (const v of red) { lo = Math.min(lo, v); hi = Math.max(hi, v); } line(red, 0, W, (v) => H - (v - lo) / (hi - lo || 1) * H, col); break; }
+        if (snd.lfo && snd.lfo.ok) { grid(); const x = sndLatest(sndLaneOf(set.ch), Math.round(8 * snd.rate)); const red = sndBlockMeans(x, snd.rate, 0.005).env; let lo = Infinity, hi = -Infinity; for (const v of red) { lo = Math.min(lo, v); hi = Math.max(hi, v); } line(red, 0, W, (v) => H - (v - lo) / (hi - lo || 1) * H, col); break; }
         msg("Modulation: " + (snd.mod && snd.mod.why ? snd.mod.why : "waiting for a tone")); break;
       }
       grid();
@@ -540,7 +591,7 @@ function sndRenderView() {
       break;
     }
     case "spec": {
-      const sp = snd.spec[set.ch];
+      const lane = sndLaneOf(set.ch), sp = snd.spec[lane];
       if (!sp || !sp.dbv.length) { msg("Spectrum: waiting"); break; }
       $("sndViewSub").textContent = `log axis 10 Hz – ${eng(snd.rate / 2, "Hz")} · dBV · RBW ${eng(sp.binHz, "Hz")} · grey: the scope's own floor`;
       const top = 20, bot = -120;
@@ -550,12 +601,12 @@ function sndRenderView() {
       for (let db = 0; db >= bot; db -= 20) { g.beginPath(); g.moveTo(0, y(db)); g.lineTo(W, y(db)); g.stroke(); g.fillStyle = DIMCOL; g.fillText(db + " dBV", 4 * d, y(db) - 2 * d); }
       for (const n of sndNoteGrid(10, snd.rate / 2, set.a4)) { const x = sndAxisLog(n.f, W); g.strokeStyle = "#24364a"; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); g.fillStyle = DIMCOL; g.fillText(n.name, x + 2 * d, H - 4 * d); }
       // the floor at this range
-      const fl = sndFloorDBV(sp.binHz, snd.lastVpc[set.ch]);
+      const fl = sndFloorDBV(sp.binHz, snd.lastVpc[lane]);
       g.strokeStyle = "#7c8894"; g.setLineDash([3 * d, 3 * d]); g.beginPath(); g.moveTo(0, y(fl)); g.lineTo(W, y(fl)); g.stroke(); g.setLineDash([]);
-      for (const ch of [1 - set.ch, set.ch]) {
+      for (const ch of [1 - lane, lane]) {
         const s2 = snd.spec[ch];
         if (!s2) continue;
-        g.strokeStyle = ch === 1 ? C2COL : C1COL; g.globalAlpha = ch === set.ch ? 1 : 0.35; g.lineWidth = d; g.beginPath();
+        g.strokeStyle = sndLaneColor(ch); g.globalAlpha = ch === lane ? 1 : 0.35; g.lineWidth = d; g.beginPath();
         let lastX = -1, best = -Infinity, pen = false;
         for (let k = 1; k < s2.dbv.length; k++) {
           const x = Math.round(sndAxisLog(k * s2.binHz, W));
@@ -574,7 +625,7 @@ function sndRenderView() {
     }
     case "ab": {
       const a = snd.abA, b = snd.abB;
-      $("sndViewSub").textContent = `in C${set.ab_in + 1} → out C${2 - set.ab_in} · left: transfer curve (out against in) · right: both spectra`;
+      $("sndViewSub").textContent = `in ${chanName(set.ab_in + 1)} → out ${sndLaneName(1 - sndLaneOf(set.ab_in))} · left: transfer curve (out against in) · right: both spectra`;
       if (!a || !a.length) { msg("A/B: waiting"); break; }
       const half = W / 2;
       let al = Infinity, ah = -Infinity, bl = Infinity, bh = -Infinity;
@@ -586,7 +637,7 @@ function sndRenderView() {
       const top = 20, bot = -120;
       // TRLC-LINKS: REQ-SDS-271
       const y = (db) => H * (top - Math.max(bot, Math.min(top, db))) / (top - bot);
-      for (const [sp, c, al2] of [[snd.specA, C1COL, 0.45], [snd.specB, C2COL, 1]]) {
+      for (const [sp, c, al2] of [[snd.specA, sndLaneColor(0), 0.45], [snd.specB, sndLaneColor(1), 1]]) {
         if (!sp) continue;
         g.strokeStyle = c; g.globalAlpha = al2; g.beginPath();
         let pen = false, lastX = -1, best = -Infinity;
@@ -747,7 +798,7 @@ function sndRenderReadouts() {
     $("sndVoctBody").innerHTML = rows.map((r) => `<tr><td>${r.V.toFixed(3)} V</td><td>${r.Hz.toFixed(2)}</td><td>${r.Note}</td><td>${(r.ErrCents >= 0 ? "+" : "") + r.ErrCents.toFixed(1)} c</td><td>${(r.ResidCents >= 0 ? "+" : "") + r.ResidCents.toFixed(1)} c</td></tr>`).join("");
     $("sndVoctFit").textContent = f.OK ? `scale ${f.ScaleCents >= 0 ? "+" : ""}${f.ScaleCents.toFixed(1)} c/V · trim the scale by ${f.TrimPct >= 0 ? "+" : ""}${f.TrimPct.toFixed(2)} % · ${f.SpanOctaves.toFixed(2)} octaves` +
       (rows.length >= 4 ? ` · top against the lower half's fit ${f.HFDevCents >= 0 ? "+" : ""}${f.HFDevCents.toFixed(1)} c` : "") :
-      `CV on C${2 - snd.settings.ch}, VCO on C${snd.settings.ch + 1}: take points at several CVs`;
+      `CV on ${sndLaneName(1 - sndLaneOf(snd.settings.ch))}, VCO on ${chanName(snd.settings.ch + 1)}: take points at several CVs`;
   } else {
     const pts = rep.drift || [];
     $("sndDriftSub").textContent = pts.length ? `${Math.round(pts[pts.length - 1].t + 1)} s · now ${pts[pts.length - 1].cents.toFixed(2)} c from the first second (${pts[pts.length - 1].hz.toFixed(3)} Hz)` : "the pitch of the tuned channel, once a second";
@@ -759,7 +810,7 @@ function sndRenderReadouts() {
     let span = 2;
     for (const p of pts) if (p && Number.isFinite(p.cents)) span = Math.max(span, Math.abs(p.cents));
     g.strokeStyle = "#182430"; g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke();
-    g.strokeStyle = snd.settings.ch === 1 ? C2COL : C1COL; g.beginPath();
+    g.strokeStyle = chanColor(snd.settings.ch + 1); g.beginPath();
     const t0 = pts.length ? pts[0].t : 0;
     const tSpan = pts.length ? Math.max(1, pts[pts.length - 1].t - t0) : 1;
     pts.forEach((p, i) => { const x = W * (p.t - t0) / tSpan, y = H / 2 - (p.cents || 0) / (span * 1.1) * (H / 2); if (i) g.lineTo(x, y); else g.moveTo(x, y); });

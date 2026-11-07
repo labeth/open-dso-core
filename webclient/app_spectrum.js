@@ -61,12 +61,12 @@ function drawMiniTrace() {
     const h = homeWindow(f);
     // TRLC-LINKS: REQ-SDS-216
     const yOf = (code, zoom) => H * (1 - (0.5 + (code - 128) * zoom / 200));
-    const chans = [[2, view.c2, C2COL, (st && st.zoom2) || 1], [1, view.c1, C1COL, (st && st.zoom1) || 1]];
+    const chans = chanNums().reverse().map((n) => [n, chanShown(n), chanColor(n), (st && st["zoom" + n]) || 1]);
     for (const [ch, on, col, zoom] of chans) {
       if (!on) continue;
       g.strokeStyle = col; g.lineWidth = 1.2 * (window.devicePixelRatio || 1);
       if (f.is_env) {
-        const mn = ch === 2 ? f.e2min : f.e1min, mx = ch === 2 ? f.e2max : f.e1max;
+        const mn = f["e" + ch + "min"], mx = f["e" + ch + "max"];
         if (!mn || !mx) continue;
         g.fillStyle = col; g.globalAlpha = 0.8;
         for (let x = 0; x < W; x++) {
@@ -77,7 +77,7 @@ function drawMiniTrace() {
         g.globalAlpha = 1;
         continue;
       }
-      const src = ch === 2 ? f.c2 : f.c1;
+      const src = chanArr(f, ch);
       if (!src || src.length < 2) continue;
       const n = src.length;
       g.beginPath();

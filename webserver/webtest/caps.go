@@ -95,6 +95,15 @@ func Caps4x12() wire.Caps {
 		"measure": {OK: false, Why: "measurements of 12-bit codes are not served yet"},
 		"eye":     {OK: false, Why: "needs full-rate raw records"},
 	}
+	c.Controls = []wire.CapsControl{
+		{Name: "vdiv", Unit: "V", PerChannel: true, Ladder: "vertical.vdivs"},
+		{Name: "offset", Unit: "V", PerChannel: true},
+		{Name: "probe", PerChannel: true, Ladder: "vertical.probes"},
+		{Name: "coupling", PerChannel: true, Ladder: "vertical.couplings"},
+		{Name: "bwlimit", PerChannel: true, Ladder: "vertical.bw_limits"},
+		{Name: "invert", PerChannel: true},
+		{Name: "triglevel", Unit: "V"},
+	}
 	c.Screen = wire.CapsScreen{W: 1024, H: 600, Format: "RGB565", Touch: true}
 	return c
 }
@@ -197,10 +206,12 @@ func (w *Wide) Status() any {
 		"running": w.running, "seq": w.seq, "tdiv_s": w.tdivS, "fps": 20.0, "band": "sim", "version": "wide",
 		"tdivs": tdivLadder(), "vdivs": vdivLadder(0.0005), "trig_source": 0, "trig_rising": true,
 		"trig_volts": 0.0, "trig_pos_frac": 0.5, "mem_depth": fakeN, "cal_source": "fake", "mmap_drain": true, "mask_gen": w.maskGen,
+		"win_cols": 1000,
 	}
 	for n := 1; n <= 4; n++ {
 		k := strconv.Itoa(n)
 		st["vdiv"+k], st["probe"+k], st["cpl"+k], st["off"+k+"_v"], st["zoom"+k] = 0.5, 1, 0, 0.0, 1
+		st["bwl"+k], st["inv"+k] = 0, 0
 	}
 	return st
 }

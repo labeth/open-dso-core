@@ -57,6 +57,32 @@ function chanColor(n) {
   return (chanColorCache[n] = v);
 }
 
+// chanArr is frame f's display-domain trace of channel n (c<n>).
+// TRLC-LINKS: REQ-SDS-204
+function chanArr(f, n) { return f ? f["c" + n] : undefined; }
+
+// chanVpc and chanOff are frame f's volts per display unit and offset of
+// channel n, so (unit − 128)·vpc − off reads the tip's volts.
+// TRLC-LINKS: REQ-SDS-204
+function chanVpc(f, n) { return (f && f["vpc" + n]) || 1 / 25; }
+// TRLC-LINKS: REQ-SDS-204
+function chanOff(f, n) { return (f && f["off" + n + "_v"]) || 0; }
+
+// chanShown is whether channel n is drawn.
+// TRLC-LINKS: REQ-SDS-204
+function chanShown(n) { return !!view["c" + n]; }
+
+// rawFrame reads one reply of the raw feed (/api/frame.bin?raw=1&…): in
+// frame wire v2 when the scope lists it, so an analyzer reads every channel
+// in the page's display domain whatever the scope's code format; else v1,
+// the request as it always was. null when the reply does not decode.
+// TRLC-LINKS: REQ-SDS-023
+async function rawFrame(query) {
+  const r = await fetch("/api/frame.bin?" + query + frameWireQuery());
+  if (!r.ok) throw new Error("http " + r.status);
+  return decodeFrameReply(await r.arrayBuffer());
+}
+
 // trigSourceChan is the channel number of trigger source index src (0-based
 // as the status's trig_source), or 0 for a source that is no channel.
 // TRLC-LINKS: REQ-SDS-204
@@ -84,6 +110,13 @@ function frameWireQuery() {
 // TRLC-LINKS: REQ-SDS-023
 function decodeFrameReply(buf) {
   return capsServed ? decodeAnyFrame(buf) : decodeBinFrame(buf);
+}
+
+// capsControl is caps' entry for an /api/set control, or null when the
+// scope does not list it (a scope without caps lists none).
+// TRLC-LINKS: REQ-SDS-204
+function capsControl(name) {
+  return (capsServed && Array.isArray(caps.controls) && caps.controls.find((c) => c && c.name === name)) || null;
 }
 
 // feature is caps' entry for a feature: {ok, why}; a scope without caps,
@@ -127,15 +160,28 @@ async function capsFollow() {
   capsApply();
 }
 
+// CAPS_HOOKS are the page parts that follow the caps' channels themselves
+// (math's operands, X-Y's pair, All settings, SOUND…): each is called after
+// the channel controls are made or removed.
+const CAPS_HOOKS = [];
+
+// chanBuilt is the channels past the second whose controls the page made.
+const chanBuilt = new Set();
+
 // capsApply makes the page's channel lists, channel controls and trigger
-// choices those of the caps.
+// choices those of the caps: channels the caps add get their controls, and
+// channels a new caps document no longer lists lose theirs.
 // TRLC-LINKS: REQ-SDS-204
 function capsApply() {
   for (const k of Object.keys(chanColorCache)) delete chanColorCache[k];
   chanStyles();
-  for (const n of chanNums()) if (n > 2) chanControls(n);
+  const nums = chanNums();
+  for (const n of [...chanBuilt].sort((a, b) => b - a)) if (!nums.includes(n)) chanControlsRemove(n);
+  for (const n of nums) if (n > 2) chanControls(n);
+  chanLayout();
   chanLists();
   trigLists();
+  for (const h of CAPS_HOOKS) h();
   // the instrument's name, and why a feature the page shows is missing
   const brand = document.querySelector(".brand > span");
   if (brand && caps.identity && caps.identity.model) brand.textContent = caps.identity.model;
@@ -290,11 +336,12 @@ function chanControls(n) {
     for (let r = kids.length / cols - 1; r >= 0; r--) {
       const cell = kids[r * cols + 2].cloneNode(true);
       chanRename(cell, n);
+      cell.dataset.ch = String(n);
       kids[r * cols + cols - 1].after(cell);
     }
     vg._cols = cols + 1;
-    vg.style.gridTemplateColumns = "58px" + " minmax(0, 1fr)".repeat(cols);
   }
+  chanBuilt.add(n);
   view["c" + n] = true;
   // its key shows and hides it, as 1 and 2 do channels 1 and 2
   if (n <= 9 && typeof KEYMAP !== "undefined" && !KEYMAP.some((k) => k.key === String(n))) {
@@ -305,6 +352,50 @@ function chanControls(n) {
   for (const el of document.querySelectorAll(`[id$="${n}"].seg`)) segInit(el);
   mirrorInit();
   if (typeof wireChannel === "function") wireChannel(n);
+}
+
+// chanControlsRemove takes channel n's controls away (a caps document that
+// no longer lists it): its strip group, its Vertical column, its key, its
+// mirrors and its display state.
+// TRLC-LINKS: REQ-SDS-204
+function chanControlsRemove(n) {
+  const gone = [];
+  const strip = document.querySelector(`.sg[aria-label="CH${n}"]`);
+  if (strip) gone.push(strip);
+  const vg = document.querySelector("#p-vert .vg") || document.querySelector(".vg");
+  if (vg) {
+    const cells = vg.querySelectorAll(`:scope > [data-ch="${n}"]`);
+    if (cells.length) { gone.push(...cells); vg._cols = (vg._cols || 3) - 1; }
+  }
+  // the mirrors of its controls (in All settings too) and the mirrors in it go
+  // TRLC-LINKS: REQ-SDS-204
+  const inGone = (el) => gone.some((g) => g.contains(el));
+  if (typeof MIRRORS !== "undefined") {
+    for (let i = MIRRORS.length - 1; i >= 0; i--) {
+      const r = MIRRORS[i];
+      if (inGone(r.src) || inGone(r.m)) { if (!inGone(r.m)) r.m.remove(); MIRRORS.splice(i, 1); }
+    }
+  }
+  for (const el of gone) el.remove();
+  if (typeof KEYMAP !== "undefined") {
+    const at = KEYMAP.findIndex((k) => k.key === String(n) && /channel \d+$/.test(k.desc));
+    if (at >= 0) KEYMAP.splice(at, 1);
+  }
+  delete view["c" + n];
+  chanBuilt.delete(n);
+}
+
+// chanLayout sizes the Vertical pane's grid to its channels: the label
+// column and one equal column each. Past two channels the grid is marked
+// "vg-n", whose segmented controls wrap in their cell instead of overflowing
+// it (design/base.css).
+// TRLC-LINKS: REQ-SDS-204
+function chanLayout() {
+  const vg = document.querySelector("#p-vert .vg") || document.querySelector(".vg");
+  if (!vg) return;
+  const cols = vg._cols || 3;
+  vg.style.gridTemplateColumns = cols > 3 ? "58px" + " minmax(0, 1fr)".repeat(cols - 1) : "";
+  vg.classList.toggle("vg-n", cols > 3);
 }
 
 if (typeof module !== "undefined") {

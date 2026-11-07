@@ -170,7 +170,7 @@ function eng(x, unit, digits) {
 // and the shared key dedups the overlay and residual calls onto one fit.
 let compMemo = { src: null, map: new Map() };
 
-// Math trace: arithmetic on C1/C2, or a RESIDUAL — a channel minus its selected
+// Math trace: arithmetic on two channels, or a RESIDUAL — a channel minus its selected
 // FFT peaks — so you can null out a carrier and see the minor waves underneath.
 let mathFn = "off";
 // The math trace rebuilds a full-length array (a copy + a subtraction loop per
@@ -179,7 +179,7 @@ let mathFn = "off";
 // math mode, or (for the residual) the picked frequencies change, so memoize the
 // result and let pan/zoom/hover reuse it. Same self-clearing (by-identity) scheme
 // as componentMemo.
-let mathMemo = { c1: null, c2: null, fn: null, sel: "", out: null };
+let mathMemo = { a: null, b: null, fn: null, sel: "", out: null };
 
 // Reference waveforms: the scope's REF A and B (GET /api/refs), overlaid for
 // comparison; the page keeps no references of its own. A ref stays at its

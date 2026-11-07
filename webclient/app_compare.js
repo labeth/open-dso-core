@@ -18,9 +18,9 @@ let cmpT = 0;
 // either side it maps index-proportionally.
 // TRLC-LINKS: REQ-SDS-218, REQ-SDS-227
 function liveOnRef(r, ch, live) {
-  const codes = ch === 2 ? r.c2 : r.c1;
-  const vpcR = ch === 2 ? r.vpc2 : r.vpc1, offR = ch === 2 ? r.off2 : r.off1;
-  const vpcL = (ch === 2 ? frame.vpc2 : frame.vpc1) || 1 / 25, offL = (ch === 2 ? frame.off2_v : frame.off1_v) || 0;
+  const codes = r["c" + ch];
+  const vpcR = r["vpc" + ch], offR = r["off" + ch];
+  const vpcL = chanVpc(frame, ch), offL = chanOff(frame, ch);
   const m = codes ? codes.length : 0, n = live.length;
   const lv = new Float64Array(m).fill(NaN), rv = new Float64Array(m).fill(NaN);
   const dtL = frameDtS(frame, n), edgeL = frame.edge_frac >= 0 ? frame.edge_frac * n : -1;
@@ -51,14 +51,13 @@ function cmpRender() {
   for (const slot of ["A", "B"]) {
     const r = refs[slot];
     if (!r || !r.show) continue;
-    for (const ch of [1, 2]) {
-      if (!(ch === 1 ? r.c1 : r.c2)) continue;
-      const name = `REF ${slot} vs C${ch}`;
-      const live = frame && !frame.is_env ? (ch === 1 ? frame.c1 : frame.c2) : null;
-      if (!(ch === 1 ? view.c1 : view.c2) || !live) { rows.push([slot, name, "C" + ch + (live ? " is hidden — show it to compare" : " has no sampled record now")]); continue; }
+    for (const ch of refChans(r)) {
+      const name = `REF ${slot} vs ${chanName(ch)}`;
+      const live = frame && !frame.is_env ? chanArr(frame, ch) || null : null;
+      if (!chanShown(ch) || !live) { rows.push([slot, name, chanName(ch) + (live ? " is hidden — show it to compare" : " has no sampled record now")]); continue; }
       if (r.tdiv && frame.tdiv_s && Math.abs(r.tdiv - frame.tdiv_s) > r.tdiv * 1e-6) { rows.push([slot, name, "saved at " + fmtTdiv(r.tdiv) + "/div — set that timebase to compare"]); continue; }
-      const vpc = (ch === 2 ? frame.vpc2 : frame.vpc1) || 1 / 25;
-      const div = (st && (ch === 2 ? st.vdiv2 * probeOf(2) : st.vdiv1 * probeOf(1))) || 25 * vpc;
+      const vpc = chanVpc(frame, ch);
+      const div = (st && st["vdiv" + ch] * probeOf(ch)) || 25 * vpc;
       const { lv, rv } = liveOnRef(r, ch, live);
       const d = refDiff(lv, rv, 0.5 * div);
       if (!d.n) { rows.push([slot, name, "no overlap with the reference in time"]); continue; }
@@ -140,22 +139,43 @@ async function masterRow() {
 // still holding the same store keeps its label.
 // TRLC-LINKS: REQ-SDS-218, REQ-SDS-203, REQ-SDS-227
 function loadScopeRef(slot, a, label) {
-  const n = a.cols || (a.c1 || a.c2 || []).length;
+  const ks = refKeys(a), vdiv = a.vdiv || [], off = a.off || [];
+  const n = a.cols || (ks.map((k) => a["c" + k]).find(Boolean) || []).length;
   const prev = refs[slot];
+  // each channel the reference holds (c1…cN), with the tip volts it was
+  // stored at: vdiv[k-1] V a division, 25 display units a division
+  const chans = {};
+  for (const k of ks) Object.assign(chans, { ["c" + k]: a["c" + k] || null, ["vpc" + k]: (vdiv[k - 1] || 1) / 25, ["off" + k]: off[k - 1] || 0, ["vdiv" + k]: vdiv[k - 1] || 0 });
   refs[slot] = {
-    c1: a.c1 || null, c2: a.c2 || null,
-    vpc1: (a.vdiv[0] || 1) / 25, vpc2: (a.vdiv[1] || 1) / 25,
-    off1: a.off[0] || 0, off2: a.off[1] || 0,
+    ...chans,
     show: a.show !== false,
     dt: n ? 10 * a.tdiv_s / n : 0,
     edge: n ? a.pos_frac * n : -1, // column x sits x - pos_frac·n columns from the trigger (the LCD's screen)
     tdiv: a.tdiv_s || 0,
-    vdiv1: a.vdiv[0] || 0, vdiv2: a.vdiv[1] || 0,
     probe: a.probe || [1, 1], setup: a.setup || null,
     gen: a.gen || 0,
     at: a.at || Date.now(), label: label !== undefined ? label : prev && prev.gen === a.gen ? prev.label : "",
   };
   updateRefRows(); redraw();
+}
+
+// refKeys is the channel numbers a reference as the scope exports it may
+// hold: the scope's channels, and any further its vdiv list or a c<n> trace
+// names (an export from before a channel change).
+// TRLC-LINKS: REQ-SDS-227
+function refKeys(a) {
+  const ks = new Set([1, 2, ...chanNums()]);
+  (a.vdiv || []).forEach((_, i) => ks.add(i + 1));
+  for (const k of Object.keys(a)) { const m = /^c(\d+)$/.exec(k); if (m) ks.add(+m[1]); }
+  return [...ks].sort((x, y) => x - y);
+}
+
+// refChans is the channel numbers whose trace reference r holds.
+// TRLC-LINKS: REQ-SDS-227
+function refChans(r) {
+  const out = [];
+  for (const k of Object.keys(r)) { const m = /^c(\d+)$/.exec(k); if (m && r[k]) out.push(+m[1]); }
+  return out.sort((x, y) => x - y);
 }
 
 // takeScopeRefs makes the scope's two reference slots (GET /api/refs) this

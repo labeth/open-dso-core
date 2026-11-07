@@ -21,11 +21,10 @@ function srGateDefaultFromView() {
   srGate.a = w.a + 0.1 * s - anchor; srGate.b = w.a + 0.9 * s - anchor;
   const f = frame;
   if (!f || !f.cols || f.is_env) return;
-  // Propose on the channel that will drive the matching: C1/C2 as selected, or
+  // Propose on the channel that will drive the matching: the one selected, or
   // (both) the trigger-source channel — the one the user is triggering on.
   const sel = +$("srCh").value || 0;
-  const alignIdx = sel === 2 ? 1 : sel === 1 ? 0 : (st && st.trig_source === 1 ? 1 : 0);
-  const ch = alignIdx === 1 ? f.c2 : f.c1;
+  const ch = chanArr(f, sel || trigChan());
   if (!ch) return;
   // Visible slice, clamped to the record: the deep home window can now run past
   // the record ends (blank margin, no samples), so view.win maps outside [0,1].
@@ -168,7 +167,7 @@ function moveMarker(ev) {
 
 // TRLC-LINKS: REQ-SDS-202
 function commitMarker() {
-  if (mk.kind === "level") send("triglevelcode", trigCodeFor(st.trig_volts));
+  if (mk.kind === "level") sendTrigLevel(st.trig_volts);
   else { const ch = +mk.kind.slice(3); sendChan("offset", ch, st["off" + ch + "_v"] / probeOf(ch)); }
 }
 

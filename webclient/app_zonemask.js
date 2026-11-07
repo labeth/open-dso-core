@@ -92,7 +92,7 @@ function drawZones(g) {
 // Refuse to create misaligned artifacts (review finding).
 // TRLC-LINKS: REQ-SDS-014
 function zmCplOK(ch) {
-  const cpl = ch === 1 ? (st && st.cpl2) : (st && st.cpl1);
+  const cpl = st && st["cpl" + (ch + 1)];
   if (cpl) {
     zmStatus("zone/mask test the RAW capture — set C" + (ch + 1) + " coupling to DC first");
     return false;
@@ -176,7 +176,7 @@ function zmStatus(m) { if (m !== undefined) $("zmStats").textContent = m || "—
 // TRLC-LINKS: REQ-SDS-014
 function zmVctx(ch) { // live vertical context; null while frozen/env (no authority)
   if (!frame || frozen || frame.is_env || !(frame.vpc1 > 0)) return null;
-  return ch === 1 ? { vpc: frame.vpc2, off: frame.off2_v || 0 } : { vpc: frame.vpc1, off: frame.off1_v || 0 };
+  return { vpc: frame["vpc" + (ch + 1)], off: frame["off" + (ch + 1) + "_v"] || 0 };
 }
 
 // TRLC-LINKS: REQ-SDS-014
@@ -310,12 +310,11 @@ $("zmBuild").onclick = async () => {
   while (got < N && tries < N * 6) {
     tries++;
     try {
-      const r = await fetch("/api/frame.bin?since=" + lastSeq + "&waitms=1000&raw=1");
-      const f = decodeBinFrame(await r.arrayBuffer());
+      const f = await rawFrame("since=" + lastSeq + "&waitms=1000&raw=1");
       if (!f || f.unchanged || f.seq === lastSeq) continue;
       lastSeq = f.seq;
       if (!(f.edge_x >= 0) || !(f.sample_s > 0) || (f.peak_detect && !f.ordered && st.acq_mode !== 3)) continue;
-      const sig = ch === 1 ? f.c2 : f.c1;
+      const sig = chanArr(f, ch + 1);
       if (!sig) continue;
       const fw = Math.min(f.win_cols || st.win_cols, f.cols);
       const key = [fw, f.tdiv_s, f.sample_s, !!f.peak_detect].join(":");
@@ -329,9 +328,11 @@ $("zmBuild").onclick = async () => {
       for (let j = 0; j < win; j++) {
         const s = left + j;
         if (s < 0 || s >= f.cols) continue;
-        const v = sig[s];
-        if (v < lo[j]) lo[j] = v;
-        if (v > hi[j]) hi[j] = v;
+        // the mask is whole display units: a finer code (a v2 frame of more
+        // bits) widens it to the units about it
+        const v = sig[s], vl = Math.floor(v), vh = Math.ceil(v);
+        if (vl < lo[j]) lo[j] = vl;
+        if (vh > hi[j]) hi[j] = vh;
       }
       got++;
       if (got % 8 === 0) zmStatus("building mask " + got + "/" + N + "…");

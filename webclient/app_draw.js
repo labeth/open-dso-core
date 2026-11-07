@@ -256,25 +256,39 @@ function componentMemo(src, cyclesPerLen) {
   return out;
 }
 
+// mathParse reads a math function's value: "c<a><op>c<b>" (op "-", "+" or
+// "*") is arithmetic on channels a and b, "res<n>" channel n less its picked
+// FFT peaks; null for "off" or anything else.
 // TRLC-LINKS: REQ-SDS-203
-function computeMath() {
-  if (mathFn === "off" || !frame || frame.is_env || !frame.c1) return null;
-  const selSig = (mathFn === "res1")
-    ? fftCh[1].sel.join(",") : (mathFn === "res2") ? fftCh[2].sel.join(",") : "";
-  if (mathMemo.c1 === frame.c1 && mathMemo.c2 === frame.c2 &&
-      mathMemo.scale === mathScale() && mathMemo.frame === frame && mathMemo.fn === mathFn && mathMemo.sel === selSig) return mathMemo.out;
-  const out = computeMathRaw();
-  mathMemo = { scale: mathScale(), frame, c1: frame.c1, c2: frame.c2, fn: mathFn, sel: selSig, out };
-  return out;
+function mathParse(fn) {
+  let m = /^c(\d+)([-+*])c(\d+)$/.exec(fn);
+  if (m) return { op: m[2], a: +m[1], b: +m[3] };
+  m = /^res(\d+)$/.exec(fn);
+  return m ? { op: "res", a: +m[1] } : null;
 }
 
 // TRLC-LINKS: REQ-SDS-203
-function computeMathRaw() {
-  const a = frame.c1, b = frame.c2, n = a.length, out = new Array(n);
+function computeMath() {
+  const p = mathParse(mathFn);
+  if (!p || !frame || frame.is_env || !frame.c1) return null;
+  const a = chanArr(frame, p.a), b = p.op === "res" ? null : chanArr(frame, p.b);
+  const selSig = p.op === "res" && fftCh[p.a] ? fftCh[p.a].sel.join(",") : "";
+  if (mathMemo.a === a && mathMemo.b === b &&
+      mathMemo.scale === mathScale() && mathMemo.frame === frame && mathMemo.fn === mathFn && mathMemo.sel === selSig) return mathMemo.out;
+  const out = computeMathRaw(p);
+  mathMemo = { scale: mathScale(), frame, a, b, fn: mathFn, sel: selSig, out };
+  return out;
+}
+
+// computeMathRaw is the math trace of p (mathParse) on the frame, in the
+// display domain at mathScale() a division.
+// TRLC-LINKS: REQ-SDS-203
+function computeMathRaw(p) {
+  const n = frame.c1.length, out = new Array(n);
   // TRLC-LINKS: REQ-SDS-203
   const clip = v => v < 0 ? 0 : v > 255 ? 255 : v;
-  if (mathFn === "res1" || mathFn === "res2") {
-    const ch = mathFn === "res1" ? 1 : 2, src = ch === 1 ? a : b, S = fftCh[ch];
+  if (p.op === "res") {
+    const src = chanArr(frame, p.a), S = fftCh[p.a];
     if (!src || !S || !S.sel.length) return null;   // nothing selected → nothing to remove
     let mean = 0, cnt = 0; for (const v of src) if (v >= 0) { mean += v; cnt++; }
     mean = cnt ? mean / cnt : 128;
@@ -287,38 +301,65 @@ function computeMathRaw() {
     for (let i = 0; i < n; i++) out[i] = (src[i] < 0) ? -1 : clip(res[i]);
     return out;
   }
-  if (!b) return null;
-  const v1 = frame.vpc1 || 1 / 25, v2 = frame.vpc2 || 1 / 25;
+  const a = chanArr(frame, p.a), b = chanArr(frame, p.b);
+  if (!a || !b) return null;
+  const v1 = chanVpc(frame, p.a), v2 = chanVpc(frame, p.b), o1 = chanOff(frame, p.a), o2 = chanOff(frame, p.b);
   const scale = mathScale() / 25;
   for (let i = 0; i < n; i++) {
     if (!(a[i] >= 0) || !(b[i] >= 0)) { out[i] = -1; continue; }
-    const x = (a[i]-128)*v1-(frame.off1_v || 0);
-    const y = (b[i]-128)*v2-(frame.off2_v || 0);
+    const x = (a[i]-128)*v1-o1;
+    const y = (b[i]-128)*v2-o2;
     let volts;
-    if (mathFn === "c1-c2") volts = x-y;
-    else if (mathFn === "c2-c1") volts = y-x;
-    else if (mathFn === "c1+c2") volts = x+y;
+    if (p.op === "-") volts = x-y;
+    else if (p.op === "+") volts = x+y;
     else volts = x*y;
     out[i] = clip(128 + volts/scale);
   }
   return out;
 }
 
+// mathScale is the math trace's units a division: the V/div of the
+// lower-numbered operand (C1's for C2 − C1, as the page always drew it), or
+// for a product 4× the product of both operands' V/div.
 // TRLC-LINKS: REQ-SDS-203
 function mathScale() {
-  const a = (frame.vpc1 || 1/25)*25/((st && st.zoom1) || 1);
-  const b = (frame.vpc2 || 1/25)*25/((st && st.zoom2) || 1);
-  return mathFn === "c1*c2" ? 4*a*b : a;
+  const p = mathParse(mathFn) || { op: "-", a: 1, b: 2 };
+  // TRLC-LINKS: REQ-SDS-203
+  const vd = (n) => chanVpc(frame, n)*25/((st && st["zoom" + n]) || 1);
+  return p.op === "*" ? 4*vd(p.a)*vd(p.b) : vd(p.op === "res" ? 1 : Math.min(p.a, p.b));
 }
 
 // TRLC-LINKS: REQ-SDS-203
 function drawMath(g) {
-  const m = computeMath();
-  const residual = mathFn === "res1" || mathFn === "res2";
+  const m = computeMath(), p = mathParse(mathFn);
+  const residual = !!p && p.op === "res";
   const label = $("mathScale");
-  if (label) label.textContent = m && !residual ? `${eng(mathScale(), mathFn === "c1*c2" ? "V²" : "V")}/div · zero at centre` : "";
-  if (m) drawTrace(g, m, MATHCOL, residual ? ((st && st[mathFn === "res2" ? "zoom2" : "zoom1"]) || 1) : 1);
+  if (label) label.textContent = m && !residual ? `${eng(mathScale(), p && p.op === "*" ? "V²" : "V")}/div · zero at centre` : "";
+  if (m) drawTrace(g, m, MATHCOL, residual ? ((st && st["zoom" + p.a]) || 1) : 1);
 }
+
+// mathOptions offers the math functions of the caps' channels: for each
+// pair a < b, a − b, b − a, a + b and a × b, then each channel less its
+// picked FFT peaks (on two channels exactly the page's own list). A
+// function whose channel is gone turns the math off.
+// TRLC-LINKS: REQ-SDS-203
+function mathOptions() {
+  const el = $("mathFn");
+  if (!el) return;
+  const nums = chanNums(), want = [["off", "Off"]];
+  for (let i = 0; i < nums.length; i++) for (let j = i + 1; j < nums.length; j++) {
+    const a = nums[i], b = nums[j], A = chanName(a), B = chanName(b);
+    want.push([`c${a}-c${b}`, `${A} − ${B}`], [`c${b}-c${a}`, `${B} − ${A}`], [`c${a}+c${b}`, `${A} + ${B}`], [`c${a}*c${b}`, `${A} × ${B}`]);
+  }
+  for (const n of nums) want.push(["res" + n, chanName(n) + " − picked FFT peaks (remove carrier)"]);
+  const have = [...el.options].map((o) => o.value + "=" + o.textContent).join("|");
+  if (have === want.map(([v, t]) => v + "=" + t).join("|")) return;
+  const keep = el.value;
+  el.replaceChildren(...want.map(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = t; return o; }));
+  el.value = want.some(([v]) => v === keep) ? keep : "off";
+  if (el.value !== keep) { mathFn = "off"; if (typeof updateMathHint === "function") updateMathHint(); }
+}
+CAPS_HOOKS.push(mathOptions);
 
 // drawRefTrace overlays a reference. With `tm` ({edge, dt} of the reference and
 // the live record's) the reference is placed by time from the trigger, so one
@@ -370,13 +411,16 @@ function drawRefs(g) {
         Math.abs(r.srSpanS - frame.col_span_s) > 0.01 * r.srSpanS) continue;
     // time placement when both the reference and the live record know their trigger
     let tm = null;
-    const live = frame && (frame.c1 || frame.c2);
+    const live = frame && chanNums().map((n) => frame["c" + n]).find(Boolean);
     if (live && !frame.is_env && r.dt > 0 && r.edge >= 0 && frame.edge_frac >= 0) {
       const nL = live.length, dtL = frameDtS(frame, nL);
       if (dtL > 0) tm = { edge: r.edge, dt: r.dt, edgeL: frame.edge_frac * (nL - 1), dtL, nL };
     }
-    if (r.c1) drawRefTrace(g, r.c1, r.vpc1, r.off1, frame ? frame.vpc1 : r.vpc1, frame ? frame.off1_v || 0 : 0, REFCOL[slot], st ? st.zoom1 : 1, tm && Object.assign({}, tm));
-    if (r.c2) drawRefTrace(g, r.c2, r.vpc2, r.off2, frame ? frame.vpc2 : r.vpc2, frame ? frame.off2_v || 0 : 0, REFCOL[slot], st ? st.zoom2 : 1, tm && Object.assign({}, tm));
+    // each channel the reference holds, on that channel's live scale
+    for (const k of refChans(r)) {
+      const v = r["vpc" + k];
+      drawRefTrace(g, r["c" + k], v, r["off" + k], frame ? frame["vpc" + k] : v, frame ? frame["off" + k + "_v"] || 0 : 0, REFCOL[slot], st ? st["zoom" + k] : 1, tm && Object.assign({}, tm));
+    }
   }
 }
 
@@ -410,21 +454,22 @@ function updateRefRows() {
     show.disabled = !r; clr.disabled = !r;
     show.classList.toggle("on", !!(r && r.show));
     show.setAttribute("aria-pressed", r && r.show ? "true" : "false");
-    const chans = r ? [r.c1 ? "C1" : "", r.c2 ? "C2" : ""].filter(Boolean).join("+") : "";
+    const held = r ? refChans(r) : [];
+    const chans = held.map(chanName).join("+");
     // each channel's V/div at the tip as stored, with its probe when not 1x
     // TRLC-LINKS: REQ-SDS-227
     const scale = (ch) => {
-      const v = ch === 1 ? r.vdiv1 : r.vdiv2, p = (r.probe || [1, 1])[ch - 1] || 1;
-      return v > 0 && (ch === 1 ? r.c1 : r.c2) ? "C" + ch + " " + fmtVdiv(+v.toPrecision(3)) + (p !== 1 ? " ×" + p : "") : "";
+      const v = r["vdiv" + ch], p = (r.probe || [1, 1])[ch - 1] || 1;
+      return v > 0 && r["c" + ch] ? chanName(ch) + " " + fmtVdiv(+v.toPrecision(3)) + (p !== 1 ? " ×" + p : "") : "";
     };
-    const vdivs = r ? [scale(1), scale(2)].filter(Boolean).join(", ") : "";
+    const vdivs = held.map(scale).filter(Boolean).join(", ");
     const text = !r ? "empty" : (r.label ? r.label + " · " : "") + (chans || "no trace") +
       (r.tdiv ? " · " + fmtTdiv(r.tdiv) + "/div" : "") + (vdivs ? " · " + vdivs : "") + " · " + new Date(r.at || Date.now()).toLocaleTimeString();
     if (info.textContent !== text) info.textContent = text;
     // the setup it was stored at, which AUTO in COMPARE puts the scope back on
     const su = r && r.setup;
     const tip = su ? "Stored at " + fmtTdiv(su.tdiv_s) + "/div, trigger C" + (su.trig_src + 1) + (su.rising ? " rising" : " falling") +
-      " at " + Math.round(su.pos_frac * 100) + " %, C1 " + fmtVdiv(+su.vdiv[0].toPrecision(3)) + ", C2 " + fmtVdiv(+su.vdiv[1].toPrecision(3)) +
+      " at " + Math.round(su.pos_frac * 100) + " %, " + su.vdiv.map((v, i) => chanName(i + 1) + " " + fmtVdiv(+v.toPrecision(3))).join(", ") +
       " (AUTO in COMPARE restores it)" : "";
     if (info.title !== tip) info.title = tip;
   }
@@ -462,24 +507,59 @@ function drawYT(g) {
   drawTrigMarkers(g);
 }
 
+// xyPair is X-Y's channels, [x, y]: C1 against C2, or the pair chosen on a
+// scope of more channels (xyOptions).
+const xyPair = [1, 2];
+
 // TRLC-LINKS: REQ-SDS-071
 function drawXY() {
   drawGrid(ctx);
-  if (!frame || !frame.c1 || !frame.c2) return;
+  const [cx, cy] = xyPair, X = chanArr(frame, cx), Y = chanArr(frame, cy);
+  if (!frame || !X || !Y) return;
   ctx.strokeStyle = MATHCOL; ctx.lineWidth = 1.2 * dpr; ctx.lineJoin = "round";
   ctx.beginPath(); let pen = false;
-  const n = Math.min(frame.c1.length, frame.c2.length);
+  const n = Math.min(X.length, Y.length);
   const step = Math.max(1, Math.floor(n / 20000)); // dense stacks: stride the Lissajous
   for (let i = 0; i < n; i += step) {
-    const a = frame.c1[i], b = frame.c2[i];
+    const a = X[i], b = Y[i];
     if (a < 0 || b < 0) { pen = false; continue; }
     const x = a / 255 * CW, y = CH * (1 - b / 255);
     if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; }
   }
   ctx.stroke();
   ctx.fillStyle = DIMCOL; ctx.font = (12 * dpr) + "px system-ui";
-  ctx.fillText("X: C1   Y: C2", 8 * dpr, 16 * dpr);
+  ctx.fillText("X: " + chanName(cx) + "   Y: " + chanName(cy), 8 * dpr, 16 * dpr);
 }
+
+// xyOptions gives X-Y a choice of its two channels when the scope has more
+// than two (beside the Scope pane's view choice); with two it is C1 against
+// C2 and the pane has no choice. A pair whose channel is gone goes back to
+// the first two.
+// TRLC-LINKS: REQ-SDS-071
+function xyOptions() {
+  const nums = chanNums();
+  if (!nums.includes(xyPair[0]) || !nums.includes(xyPair[1])) { xyPair[0] = nums[0]; xyPair[1] = nums[1] || nums[0]; }
+  let box = $("xyPair");
+  if (nums.length <= 2) { if (box) box.remove(); return; }
+  if (!box) {
+    const at = $("viewScope") && $("viewScope").closest(".hl");
+    if (!at) return;
+    box = document.createElement("span");
+    box.className = "hl"; box.id = "xyPair";
+    box.innerHTML = '<span class="lbl">X</span><select id="xyX" aria-label="X-Y horizontal channel"></select><span class="lbl">Y</span><select id="xyY" aria-label="X-Y vertical channel"></select>';
+    at.after(box);
+    for (const [id, k] of [["xyX", 0], ["xyY", 1]]) {
+      // TRLC-LINKS: REQ-SDS-071
+      $(id).onchange = () => { xyPair[k] = +$(id).value; redraw(); };
+    }
+  }
+  for (const [id, k] of [["xyX", 0], ["xyY", 1]]) {
+    const sel = $(id);
+    sel.replaceChildren(...nums.map((n) => { const o = document.createElement("option"); o.value = String(n); o.textContent = chanName(n); return o; }));
+    sel.value = String(xyPair[k]);
+  }
+}
+CAPS_HOOKS.push(xyOptions);
 
 // TRLC-LINKS: REQ-SDS-071
 function drawCursors() {

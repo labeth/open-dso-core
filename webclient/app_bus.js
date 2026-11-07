@@ -246,7 +246,7 @@ function busEyeOn() {
   const p = dcfg.proto;
   const ch = p === "spi" || DEC_CLOCKED.includes(p) ? dcfg.data : p === "i2c" ? dcfg.sda : p !== "off" ? dcfg.line : +$("ejCh").value;
   if (ej.armed && ej.ch && ej.ch !== ch) ejStop("channel changed");
-  $("ejCh").value = String(ch === 2 ? 2 : 1);
+  $("ejCh").value = String(chanNums().includes(ch) ? ch : 1);
   if (!ej.armed) $("ejArm").click();
   setTimeout(() => ejRender(true), 60);
 }

@@ -62,20 +62,44 @@ function srTargetReached() {
   return false;
 }
 
+// sr.lanes are the channels of the stacker's two lanes (its c[0] and c[1]):
+// C1 and C2 unless ARM chose a channel past C2 to align on.
+sr.lanes = [1, 2];
+
+// srL, srVpc and srOff are raw frame f's trace, volts per unit and offset
+// of the stacker's lane k.
+// TRLC-LINKS: REQ-SDS-019
+function srL(f, k) { return f["c" + sr.lanes[k]]; }
+// TRLC-LINKS: REQ-SDS-019
+function srVpc(f, k) { return f["vpc" + sr.lanes[k]]; }
+// TRLC-LINKS: REQ-SDS-019
+function srOff(f, k) { return f["off" + sr.lanes[k] + "_v"] || 0; }
+
+// srRelabel puts a stack's view frame, built with its lanes as channels 1
+// and 2, on the lanes' own channels.
+// TRLC-LINKS: REQ-SDS-019
+function srRelabel(f) {
+  if (sr.lanes[0] === 1 && sr.lanes[1] === 2) return;
+  const moves = [];
+  sr.lanes.forEach((n, k) => { for (const [a, b] of [["c", ""], ["vpc", ""], ["off", "_v"], ["m", ""], ["clip", ""]]) moves.push([a + (k + 1) + b, a + n + b, f[a + (k + 1) + b]]); });
+  for (const [from] of moves) delete f[from];
+  for (const [, to, v] of moves) f[to] = v;
+}
+
 // ==== ETS: phase-coherent equivalent-time reconstruction of a free-run clock ==
 // TRLC-LINKS: REQ-SDS-019
 function srEtsInit(f, fref, dt) {
   const nbins = 4 * (+$("srK").value || 32); // K16→64, K32→128, K64→256 phase bins
   sr.etsSt = srEtsNew(nbins, dt);
   sr.etsSt.f = fref; sr.etsSt.align = sr.alignCh;
-  sr.etsSt.c[0].vpc = f.vpc1 || 1 / 25; sr.etsSt.c[0].offV = f.off1_v || 0;
-  sr.etsSt.c[1].vpc = f.vpc2 || 1 / 25; sr.etsSt.c[1].offV = f.off2_v || 0;
+  sr.etsSt.c[0].vpc = srVpc(f, 0) || 1 / 25; sr.etsSt.c[0].offV = srOff(f, 0);
+  sr.etsSt.c[1].vpc = srVpc(f, 1) || 1 / 25; sr.etsSt.c[1].offV = srOff(f, 1);
   sr.meta = { tdiv_s: f.tdiv_s, cols: f.cols, sample_s: dt };
 }
 
 // TRLC-LINKS: REQ-SDS-019
 function srEtsIngest(f) {
-  const alignSig = sr.alignCh === 1 ? f.c2 : f.c1;
+  const alignSig = srL(f, sr.alignCh);
   if (!alignSig || f.is_env || f.peak_detect) { srStop("band unsupported for ETS — select a sampled waveform timebase"); return; }
   const dt = f.sample_s;
   if (!(dt > 0)) { srStop("no sample interval on the raw feed"); return; }
@@ -102,7 +126,7 @@ function srEtsIngest(f) {
   } else if (f.sample_s !== sr.meta.sample_s) {
     srStop("acquisition changed (t/div or depth) — reconstruction kept"); return;
   }
-  srEtsFeed(sr.etsSt, f.c1, f.c2);
+  srEtsFeed(sr.etsSt, srL(f, 0), srL(f, 1));
   srEtsUpdateStats(false);
   if (sr.stopMode === "stacks" && sr.stopVal > 0 && sr.etsSt.frames >= sr.stopVal) { srStop("target reached"); return; }
   if (sr.stopMode === "time" && sr.stopVal > 0 && (performance.now() - sr.t0) / 1000 >= sr.stopVal) { srStop("target reached"); return; }
@@ -157,7 +181,7 @@ function srEvtDecode(sig, sampleS, target) {
 
 // TRLC-LINKS: REQ-SDS-019
 function srEvtIngest(f) {
-  const alignSig = sr.alignCh === 1 ? f.c2 : f.c1;
+  const alignSig = srL(f, sr.alignCh);
   if (!alignSig || f.is_env || f.peak_detect) { srStop("band unsupported for decode-trig — select a sampled waveform timebase"); return; }
   const dt = f.sample_s;
   if (!(dt > 0)) { srStop("no sample interval on the raw feed"); return; }
@@ -184,15 +208,15 @@ function srEvtIngest(f) {
     sr.st = srNew(f.cols, K);
     sr.st.kernel = $("srKernel").value || "interp";
     sr.st.align = sr.alignCh; sr.st.sampleS = dt;
-    sr.st.c[0].vpc = f.vpc1 || 1 / 25; sr.st.c[0].offV = f.off1_v || 0;
-    sr.st.c[1].vpc = f.vpc2 || 1 / 25; sr.st.c[1].offV = f.off2_v || 0;
-    sr.meta = { tdiv_s: f.tdiv_s, cols: f.cols, sample_s: dt, vpc1: f.vpc1, vpc2: f.vpc2 };
+    sr.st.c[0].vpc = srVpc(f, 0) || 1 / 25; sr.st.c[0].offV = srOff(f, 0);
+    sr.st.c[1].vpc = srVpc(f, 1) || 1 / 25; sr.st.c[1].offV = srOff(f, 1);
+    sr.meta = { tdiv_s: f.tdiv_s, cols: f.cols, sample_s: dt, vpc1: srVpc(f, 0), vpc2: srVpc(f, 1) };
     const h = d.occ[0];
     // UART data spans end before parity/stop. Retain both plus decoder
     // guard samples so the stacked review is itself a complete frame.
     sr.evtMargin = Math.max(8, Math.ceil(2 * (d.spb || (h.i1 - h.i0) / 10)) + 8);
     const gLo = Math.max(0, h.i0 - sr.evtMargin), gHi = Math.min(f.cols, h.i1 + sr.evtMargin);
-    if (gHi - gLo < 8 || !srSeedRef(sr.st, f.c1, f.c2, -1, { lo: gLo, hi: gHi })) { sr.st = null; srStatus("decode-trig: reference byte unusable (raise V/div for headroom)"); return; }
+    if (gHi - gLo < 8 || !srSeedRef(sr.st, srL(f, 0), srL(f, 1), -1, { lo: gLo, hi: gHi })) { sr.st = null; srStatus("decode-trig: reference byte unusable (raise V/div for headroom)"); return; }
     firstFrame = true; // srSeedRef already stacked occ[0]
   } else if (f.sample_s !== sr.meta.sample_s) {
     srStop("acquisition changed (t/div or depth) — stack kept"); return;
@@ -200,7 +224,7 @@ function srEvtIngest(f) {
   const list = firstFrame ? d.occ.slice(1) : d.occ;
   if (list.length) {
     const centers = list.map(o => Math.max(0, o.i0 - sr.evtMargin));
-    srGateFeed(sr.st, f.c1, f.c2, { hitCenters: centers, centerR: sr.evtMargin });
+    srGateFeed(sr.st, srL(f, 0), srL(f, 1), { hitCenters: centers, centerR: sr.evtMargin });
   }
   srUpdateStats(false);
   if (sr.stopVal > 0 && srTargetReached()) { srStop("target reached"); return; }
@@ -211,7 +235,7 @@ function srIngest(f) {
   if (sr.ets) { srEtsIngest(f); return; }
   if (sr.evt) { srEvtIngest(f); return; }
   if (+$("srCh").value !== sr.ch) { srStop("channel changed — stack kept"); return; }
-  const sig = sr.alignCh === 1 ? f.c2 : f.c1;
+  const sig = srL(f, sr.alignCh);
   if (!sig || f.is_env || f.peak_detect) { srStop("band became unsupported"); return; }
   if (!sr.st) {
     const K = +$("srK").value || 32;
@@ -219,11 +243,11 @@ function srIngest(f) {
     sr.st.kernel = $("srKernel").value || "interp"; // resample vs deposit (near-Nyquist)
     sr.st.align = sr.alignCh; // matching/alignment channel; BOTH channels stack
     sr.st.sampleS = f.sample_s || 0;
-    sr.st.c[0].vpc = f.vpc1 || 1 / 25;
-    sr.st.c[0].offV = f.off1_v || 0;
-    sr.st.c[1].vpc = f.vpc2 || 1 / 25;
-    sr.st.c[1].offV = f.off2_v || 0;
-    sr.meta = { tdiv_s: f.tdiv_s, cols: f.cols, sample_s: f.sample_s, vpc1: f.vpc1, vpc2: f.vpc2 };
+    sr.st.c[0].vpc = srVpc(f, 0) || 1 / 25;
+    sr.st.c[0].offV = srOff(f, 0);
+    sr.st.c[1].vpc = srVpc(f, 1) || 1 / 25;
+    sr.st.c[1].offV = srOff(f, 1);
+    sr.meta = { tdiv_s: f.tdiv_s, cols: f.cols, sample_s: f.sample_s, vpc1: srVpc(f, 0), vpc2: srVpc(f, 1) };
     if (sr.lockRef) {
       // Seed THIS frame as the match reference, then run so matching frames stack.
       // When the GATE markers are set, THEY are the region. sr.gateDt is the marked
@@ -240,7 +264,7 @@ function srIngest(f) {
         if (hi - lo < 8) { srStop("gate lies outside the captured record — move the markers nearer the trigger"); return; }
         gate = { lo, hi };
       }
-      if (!srSeedRef(sr.st, f.c1, f.c2, f.edge_x != null ? f.edge_x : -1, gate)) {
+      if (!srSeedRef(sr.st, srL(f, 0), srL(f, 1), f.edge_x != null ? f.edge_x : -1, gate)) {
         srStop("reference frame unusable (flat/clipped) — freeze a cleaner one"); return;
       }
       send("run", 1);
@@ -250,7 +274,7 @@ function srIngest(f) {
   } else if (f.cols !== sr.meta.cols || f.sample_s !== sr.meta.sample_s) {
     srStop("acquisition changed (t/div or depth) — stack kept");
     return;
-  } else if (f.vpc1 !== sr.meta.vpc1 || f.vpc2 !== sr.meta.vpc2) {
+  } else if (srVpc(f, 0) !== sr.meta.vpc1 || srVpc(f, 1) !== sr.meta.vpc2) {
     // NCC is gain-invariant and the drift fit clamps >10×, so a V/div change
     // would silently corrupt code-space stacking — stop instead.
     srStop("vertical scale changed — stack kept");
@@ -272,13 +296,13 @@ function srIngest(f) {
       dz.framesAtStep = 0;
       dz.idx = (dz.idx + 1) % dz.steps;
       const target = dz.base - (dz.idx / dz.steps) * sr.st.c[sr.st.align].vpc; // tip volts, 0..−1 LSB
-      const dch = sr.alignCh + 1; // dither sweeps the ALIGN channel's offset DAC
-      send("offset" + dch, target / probeOf(dch));
+      const dch = sr.lanes[sr.alignCh]; // dither sweeps the ALIGN channel's offset DAC
+      sendChan("offset", dch, target / probeOf(dch));
       dz.pending = 1;
     }
   }
   // BOTH channels stack (the align channel drives alignment/lucky-select).
-  srFeed(sr.st, f.c1, f.c2, { maxLag: 8, edgeX: f.edge_x });
+  srFeed(sr.st, srL(f, 0), srL(f, 1), { maxLag: 8, edgeX: f.edge_x });
   srUpdateStats(false);
   // Stop when the target is reached. stacks (exact) and bits are acquisition-rate
   // INDEPENDENT — the device, crunching slower than the engine, reaches the same
@@ -297,8 +321,8 @@ function srStop(why) {
   sr.armed = false;
   srEvtRestore();
   if (sr.dither.on && sr.dither.idx !== 0) {
-    const dch = (sr.alignCh || 0) + 1;
-    send("offset" + dch, sr.dither.base / probeOf(dch)); // restore the pre-dither offset
+    const dch = sr.lanes[sr.alignCh || 0];
+    sendChan("offset", dch, sr.dither.base / probeOf(dch)); // restore the pre-dither offset
     sr.dither.idx = 0;
   }
   $("srArm").textContent = "ARM";
@@ -328,9 +352,7 @@ function srExitView() {
 async function srLoop(gen) {
   if (!sr.armed || gen !== sr.gen) return;
   try {
-    const r = await fetch("/api/frame.bin?since=" + sr.lastSeq + "&waitms=1000&raw=1&lease=raw");
-    if (!r.ok) throw new Error("http " + r.status);
-    const f = decodeBinFrame(await r.arrayBuffer());
+    const f = await rawFrame("since=" + sr.lastSeq + "&waitms=1000&raw=1&lease=raw");
     if (f === null) throw new Error("decode");
     // Re-check AFTER the await: the fetch parks server-side for up to 1 s
     // and a reset/stop click mid-flight must not resurrect the stack.
@@ -444,10 +466,14 @@ $("srArm").onclick = async () => {
     }
   }
   sr.ch = +$("srCh").value || 0; // latched — a mid-capture change stops the stack
-  // "both" (0) aligns on the trigger-source channel; C1/C2 lock the alignment.
-  sr.alignCh = sr.ch === 2 ? 1 : sr.ch === 1 ? 0 : (st && st.trig_source === 1 ? 1 : 0);
+  // "both" (0) aligns on the trigger-source channel; a channel chosen locks
+  // the alignment. The stack's two lanes are C1 and C2, or C1 and the
+  // aligning channel when that is past C2.
+  const alignNum = sr.ch || trigChan();
+  sr.lanes = alignNum > 2 ? [1, alignNum] : [1, 2];
+  sr.alignCh = alignNum === 1 ? 0 : 1;
   sr.dither.on = $("srDither").checked;
-  sr.dither.base = (st && (sr.alignCh === 1 ? st.off2_v : st.off1_v)) || 0;
+  sr.dither.base = (st && st["off" + sr.lanes[sr.alignCh] + "_v"]) || 0;
   sr.dither.idx = 0; sr.dither.pending = 0; sr.dither.framesAtStep = 0;
   sr.t0 = performance.now();
   sr.armed = true;
@@ -547,6 +573,7 @@ function srMakeViewFrame() {
     clip1: false, clip2: false,
     trigd: true, interp: false, coherent: true, ptp: 0,
   };
+  srRelabel(frame);
 }
 
 // srMakeEtsViewFrame builds the ONE-PERIOD equivalent-time reconstruction into
@@ -585,6 +612,7 @@ function srMakeEtsViewFrame() {
     m1: meas(c1t, 0), m2: meas(c2t, 1),
     clip1: false, clip2: false, trigd: true, interp: false, coherent: true, ptp: 0,
   };
+  srRelabel(frame);
 }
 
 // srUpdateCompInfo writes the compensation readout (measured → recovered −3 dB
