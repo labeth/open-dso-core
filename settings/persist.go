@@ -85,22 +85,9 @@ func Load(kv hal.KV, key string, logf func(string, ...any)) (Settings, bool) {
 	if kv == nil {
 		return Settings{}, false
 	}
-	var raw []byte
-	if r, ok := kv.(reader); ok {
-		b, err := r.Read(key)
-		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				logf("settings: read %s: %v — using defaults", nameOf(kv, key), err)
-			}
-			return Settings{}, false
-		}
-		raw = b
-	} else {
-		b, ok := kv.Get(key)
-		if !ok {
-			return Settings{}, false
-		}
-		raw = b
+	raw, ok := read(kv, key, logf)
+	if !ok {
+		return Settings{}, false
 	}
 	s, err := Parse(raw)
 	if err != nil {
@@ -108,6 +95,21 @@ func Load(kv hal.KV, key string, logf func(string, ...any)) (Settings, bool) {
 		return Settings{}, false
 	}
 	return s, true
+}
+
+// read is key's value in kv; a reason it could not be read other than its
+// absence is logged.
+// TRLC-LINKS: REQ-DSO-089
+func read(kv hal.KV, key string, logf func(string, ...any)) ([]byte, bool) {
+	r, ok := kv.(reader)
+	if !ok {
+		return kv.Get(key)
+	}
+	b, err := r.Read(key)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		logf("settings: read %s: %v — using defaults", nameOf(kv, key), err)
+	}
+	return b, err == nil
 }
 
 // Save stores s under key. A store that already holds these bytes is left
@@ -156,7 +158,7 @@ func (kv FileKV) Read(key string) ([]byte, error) {
 	if key != filepath.Base(key) {
 		return nil, fs.ErrNotExist
 	}
-	return os.ReadFile(kv.Name(key)) //nolint:gosec // G304: a plain file name in the scope's own state directory
+	return os.ReadFile(kv.Name(key))
 }
 
 // Get is the key's file.

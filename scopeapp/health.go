@@ -61,7 +61,7 @@ func writeHealth(path string, h health, stop <-chan struct{}, logf func(string, 
 			mode, s.Frames, beats, s.Coherent, s.Published, time.Now().UnixNano())
 		tmp := path + ".tmp"
 		if err := os.WriteFile(tmp, []byte(tok), 0o644); err == nil { //nolint:gosec // G306: the supervisor reads the token
-			if os.Rename(tmp, path) == nil { //nolint:gosec // G703: the path is the app's own health token, never a client's
+			if os.Rename(tmp, path) == nil {
 				lastBeats, lastWrite = beats, time.Now()
 			}
 		}

@@ -179,7 +179,7 @@ func newWebServer(listen string, h http.Handler) *http.Server {
 // Run is the scope's application on board b until ctx ends; it returns an
 // error when the board does not come up.
 // TRLC-LINKS: REQ-DSO-295
-func Run(ctx context.Context, b hal.Board, o Options) error { //nolint:gocyclo // the composition, in the order its parts depend on each other
+func Run(ctx context.Context, b hal.Board, o Options) error {
 	start := time.Now()
 	logf := o.Logf
 	if logf == nil {
@@ -251,24 +251,8 @@ func Run(ctx context.Context, b hal.Board, o Options) error { //nolint:gocyclo /
 	env.display = newDisplay(env, o.Display)
 
 	// SCPI with the scope's dialect.
-	if o.SCPI != nil {
-		s, err := o.SCPI(env)
-		if err != nil {
-			return err
-		}
-		env.SCPI = s
-		if s.Report != nil && env.Model != nil {
-			env.Model.OnRefused(s.Report)
-		}
-		if s.Exec != nil {
-			cfg := o.SCPIHost
-			if cfg.Telnet != "" && cfg.Banner == "" {
-				cfg.Banner = "Welcome to the SCPI instrument '" + id.Vendor + " " + id.Model + "'"
-			}
-			if _, err := scpihost.Serve(ctx, s.Exec, cfg, logf); err != nil {
-				logf("scpi: %v", err)
-			}
-		}
+	if err := startSCPI(ctx, env, o); err != nil {
+		return err
 	}
 	scr, displayDone := startDisplay(env, o.Display, stop)
 
@@ -324,6 +308,34 @@ func Run(ctx context.Context, b hal.Board, o Options) error { //nolint:gocyclo /
 		sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 		defer cancel()
 		_ = srv.Shutdown(sctx) // the process is ending; a slow client is cut off
+	}
+	return nil
+}
+
+// startSCPI builds the SCPI engine with the scope's dialect, hands it the
+// instrument's refusals and serves it on the scope's transports.
+// TRLC-LINKS: REQ-DSO-024, REQ-DSO-295
+func startSCPI(ctx context.Context, env *Env, o Options) error {
+	if o.SCPI == nil {
+		return nil
+	}
+	s, err := o.SCPI(env)
+	if err != nil {
+		return err
+	}
+	env.SCPI = s
+	if s.Report != nil && env.Model != nil {
+		env.Model.OnRefused(s.Report)
+	}
+	if s.Exec == nil {
+		return nil
+	}
+	cfg := o.SCPIHost
+	if cfg.Telnet != "" && cfg.Banner == "" {
+		cfg.Banner = "Welcome to the SCPI instrument '" + env.Identity.Vendor + " " + env.Identity.Model + "'"
+	}
+	if _, err := scpihost.Serve(ctx, s.Exec, cfg, env.Logf); err != nil {
+		env.Logf("scpi: %v", err)
 	}
 	return nil
 }
