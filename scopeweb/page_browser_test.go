@@ -28,9 +28,15 @@ type pageLoad struct {
 		Vpc float64 `json:"vpc"`
 		Off float64 `json:"off"`
 	} `json:"drawn"`
-	Vdiv1  []float64 `json:"vdiv1"`
-	Errors []string  `json:"errors"`
-	Failed []string  `json:"failed"`
+	Vdiv1 []float64 `json:"vdiv1"`
+	Trig  *struct {
+		Types, Disabled int
+		Why, Pick       string
+		Type, Setting   string
+		Value           float64
+	} `json:"trig"`
+	Errors []string `json:"errors"`
+	Failed []string `json:"failed"`
 }
 
 // The shared page runs against the web scope of a four-channel 12-bit
@@ -75,5 +81,13 @@ func TestPageBrowser(t *testing.T) {
 	}
 	if len(p.Errors) > 0 || len(p.Failed) > 0 {
 		t.Fatalf("page errors %v, failed replies %v", p.Errors, p.Failed)
+	}
+	// The trigger's types from caps: the fake board runs edge and pulse.
+	if tr := p.Trig; tr == nil || tr.Types != 18 || tr.Disabled != 16 || !strings.Contains(tr.Why, "node") ||
+		tr.Pick != "pulse" || tr.Type != "pulse" || tr.Value != 0.125 {
+		t.Fatalf("trigger %+v", p.Trig)
+	}
+	if st := r.m.State(); st.Trigger.Type.String() != "pulse" {
+		t.Fatalf("instrument trigger %v", st.Trigger.Type)
 	}
 }
