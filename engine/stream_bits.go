@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -24,7 +24,7 @@ var bitWords = func() (t [256][2]uint32) {
 // samples a word of line ch (0 CH1, 1 CH2) to dst, 0 or 255 each, so the
 // decoders read them as they read sliced 8-bit samples. Word stores: the ARM
 // compiler writes binary.LittleEndian's a byte at a time.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func UnpackBits(dst []uint8, raw []byte, ch int) []uint8 {
 	n := len(raw) / 4
 	at := len(dst)

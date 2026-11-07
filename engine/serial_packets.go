@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -10,7 +10,7 @@ import (
 // Check the whole packet before matching: CRC/parity errors can follow its data.
 // This only enforces errors emitted by the decoder; it does not add validation
 // for protocol fields that the decoder does not inspect.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func matchPackets(sp []decode.Span, want []int) (bool, int) {
 	start := 0
 	bad := false

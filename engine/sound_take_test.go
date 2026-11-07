@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -9,7 +9,7 @@ import (
 
 // The take times stay inside the ring: pre at most 10 s, post at least a
 // tenth, the two at most 16 s.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func TestSoundTakeTimes(t *testing.T) {
 	for _, c := range []struct{ pre, post, wp, wq float64 }{
 		{1, 4, 1, 4}, {-1, 0, 1, 4}, {math.NaN(), math.Inf(1), 1, 4}, {12, 3, 10, 3}, {8, 15, 1, 15}, {0, 0.01, 0, 4},
@@ -23,7 +23,7 @@ func TestSoundTakeTimes(t *testing.T) {
 // The comparator's first crossing: armed at or below the level less the
 // hysteresis, firing at or above it; falling mirrored; a crossing before
 // start disarms as in the fabric.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func TestFirstCrossing(t *testing.T) {
 	codes := []int{130, 130, 120, 125, 129, 131, 140, 120, 135, 150, 110}
 	q := make([]uint16, len(codes))

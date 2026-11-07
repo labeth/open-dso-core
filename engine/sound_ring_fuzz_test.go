@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -13,7 +13,7 @@ import (
 // request may ask): a read holds what it says - samples First..First+N-1
 // of what the ring still holds, the scale in force at First first, and only
 // the gaps and marks inside it.
-// TRLC-LINKS: REQ-SDS-265, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-265, REQ-DSO-272
 func FuzzSoundRing(f *testing.F) {
 	f.Add([]byte{10, 0, 0, 200, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255})
 	f.Add([]byte{255, 3, 1, 5, 7, 9, 2, 80, 80, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15})

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -18,7 +18,7 @@ const (
 )
 
 // BodePoint is one accumulated transfer-function sample.
-// TRLC-LINKS: REQ-SDS-066
+// TRLC-LINKS: REQ-DSO-066
 type BodePoint struct {
 	FreqHz   float64
 	GainDB   float64
@@ -26,7 +26,7 @@ type BodePoint struct {
 	Seq      uint64 // capture ordinal of the frame that set this bin (freshness)
 }
 
-// TRLC-LINKS: REQ-SDS-066
+// TRLC-LINKS: REQ-DSO-066
 type BodeState struct {
 	Mu    sync.Mutex
 	RefCh int // 0 = C1, 1 = C2 (DUT input reference)
@@ -45,7 +45,7 @@ type BodeState struct {
 // mean-level crossing spacing (works for square or sine stimuli; no FFT). The
 // single-bin DFT that follows only needs this as an f0 estimate — the gain/
 // phase come from the X2/X1 ratio, which is robust to a small f0 error.
-// TRLC-LINKS: REQ-SDS-066
+// TRLC-LINKS: REQ-DSO-066
 func FundamentalHz(sig []uint8, sampleS float64) float64 {
 	n := len(sig)
 	if n < 8 {
@@ -94,7 +94,7 @@ func FundamentalHz(sig []uint8, sampleS float64) float64 {
 // SingleBinDFT returns the real/imag parts of the DFT coefficient at frequency
 // f0: Σ (v[n]−mean)·exp(−j·2π·f0·n·dt). Mean-subtracted so the DC term does not
 // leak into the fundamental.
-// TRLC-LINKS: REQ-SDS-066
+// TRLC-LINKS: REQ-DSO-066
 func SingleBinDFT(sig []uint8, f0, sampleS float64) (re, im float64) {
 	n := len(sig)
 	var sum float64

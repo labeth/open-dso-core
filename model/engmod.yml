@@ -96,13 +96,18 @@ publications:
   - DO-HEALTH
   - DO-UPDATE
   requirements:
+  - REQ-DSO-001
   - REQ-DSO-002
   - REQ-DSO-007
+  - REQ-DSO-008
   - REQ-DSO-009
   - REQ-DSO-010
   - REQ-DSO-011
+  - REQ-DSO-012
   - REQ-DSO-013
   - REQ-DSO-014
+  - REQ-DSO-015
+  - REQ-DSO-016
   - REQ-DSO-017
   - REQ-DSO-018
   - REQ-DSO-019
@@ -157,6 +162,8 @@ publications:
   - REQ-DSO-122
   - REQ-DSO-123
   - REQ-DSO-125
+  - REQ-DSO-126
+  - REQ-DSO-127
   - REQ-DSO-138
   - REQ-DSO-139
   - REQ-DSO-141
@@ -192,11 +199,13 @@ publications:
   - REQ-DSO-220
   - REQ-DSO-221
   - REQ-DSO-222
+  - REQ-DSO-223
   - REQ-DSO-226
   - REQ-DSO-227
   - REQ-DSO-228
   - REQ-DSO-229
   - REQ-DSO-230
+  - REQ-DSO-231
   - REQ-DSO-232
   - REQ-DSO-233
   - REQ-DSO-234

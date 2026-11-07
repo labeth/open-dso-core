@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -35,7 +35,7 @@ const viewMaxBuckets = 1024
 // it) has a bucket at least every second column there already. Magnified
 // further, a bucket spans many columns and its (min, max) pair draws as a
 // slope: the 1 MHz square at 200us/div zoomed 50x read as a slow wave.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func ViewBuckets(a, b float64, cols int, screen uint32) uint32 {
 	if !(b > a) || cols < 2 || 2*float64(screen)*(b-a) >= float64(cols) {
 		return 0
@@ -53,13 +53,13 @@ type ViewPlan struct {
 
 // EnvelopeValue maps a record word to the value index of an envelope frame
 // read from word offset in buckets of bucket words: a value a half bucket.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func EnvelopeValue(offset, bucket uint32) func(w uint32) float64 {
 	return func(w uint32) float64 { return (float64(w) - float64(offset)) * 2 / float64(bucket) }
 }
 
 // ViewDetail is frame f's view window for surface s, or nil.
-// TRLC-LINKS: REQ-SDS-010, REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-010, REQ-DSO-021
 func ViewDetail(f *sample.Frame, s ViewSurface) *sample.Detail {
 	return f.Detail(sample.RoleView(int(s)))
 }

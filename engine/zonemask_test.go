@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 func TestBuildMaskFromEnvelope(t *testing.T) {
 	win := 100
 	lo := make([]uint8, win)

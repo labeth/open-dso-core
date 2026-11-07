@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -110,14 +110,14 @@ type ClientSpan struct {
 const rleRun = 3
 
 // RLEBound is the most bytes appendWordsRLE writes for n words.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func RLEBound(n int) int { return 4*n + 4*(n/rleRun+1) + 8 }
 
 // AppendWordsRLE appends raw's words (each masked) as tokens: a little-endian
 // word k < 2^31 then k words as they are, or 2^31 | k then one word that
 // comes k times. Only a quiet word - each line at 0 or 0xFFFF - is coded as
 // a run: a bus at rest costs eight bytes, a busy one its words.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func AppendWordsRLE(dst, raw []byte, mask uint32) []byte {
 	n := len(raw) / 4
 	at := len(dst)
@@ -168,7 +168,7 @@ func AppendWordsRLE(dst, raw []byte, mask uint32) []byte {
 
 // words32 is b's words in place, nil where they are not aligned or the
 // machine is not little-endian.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func words32(b []byte) []uint32 {
 	if len(b) < 4 || uintptr(unsafe.Pointer(unsafe.SliceData(b)))%4 != 0 || !littleEndian { //nolint:gosec // G103: the alignment check that makes the view below safe
 		return nil
@@ -184,7 +184,7 @@ var littleEndian = func() bool {
 
 // rleBytes is appendWordsRLE a byte at a time (dst grown, its tokens from
 // at), for words that are not aligned.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func rleBytes(dst []byte, at int, raw []byte, mask uint32) []byte {
 	n := len(raw) / 4
 	o := at
@@ -232,7 +232,7 @@ const ClientChunkHead = 20
 
 // AppendClientChunkHeads appends the chunks' heads; their coded words follow
 // them in a reply, in the same order.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func AppendClientChunkHeads(dst []byte, chunks []ClientChunk) []byte {
 	for _, c := range chunks {
 		flags := uint32(0)

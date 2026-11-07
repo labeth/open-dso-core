@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -22,7 +22,7 @@ type OwnerReply struct {
 }
 
 // Serve runs the job on the owner and reports whether it ran.
-// TRLC-LINKS: REQ-SDS-001
+// TRLC-LINKS: REQ-DSO-001
 func (j OwnerJob) Serve() bool {
 	if err := j.Cancelled(); err != nil {
 		j.Done <- OwnerReply{Err: err}
@@ -34,7 +34,7 @@ func (j OwnerJob) Serve() bool {
 }
 
 // OwnerResult converts an owner call's reply to the type its run returns.
-// TRLC-LINKS: REQ-SDS-001
+// TRLC-LINKS: REQ-DSO-001
 func OwnerResult[T any](value any, err error) (T, error) {
 	var zero T
 	if err != nil {

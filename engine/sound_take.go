@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -31,7 +31,7 @@ type SoundTake struct {
 }
 
 // SoundTakeTimes bounds pre- and post-trigger seconds.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func SoundTakeTimes(pre, post float64) (float64, float64) {
 	if !(pre >= 0) || math.IsInf(pre, 0) {
 		pre = 1
@@ -50,7 +50,7 @@ func SoundTakeTimes(pre, post float64) (float64, float64) {
 // FirstCrossingFrom is the first crossing at index start or later; the
 // comparator's arming runs from the start of q (a crossing before start
 // disarms it as in the fabric).
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func FirstCrossingFrom(q []uint16, level, hyst int, rising bool, start int) (int, bool) {
 	armed := false
 	if !rising { // the rising test on negated codes: arm at or above level+hyst, fire at or below level

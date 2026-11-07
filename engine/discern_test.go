@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func TestMidLevel(t *testing.T) {
 	if got := MidLevel(nil); got != 128 {
 		t.Errorf("midLevel(nil) = %d, want 128", got)
@@ -16,7 +16,7 @@ func TestMidLevel(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-009, REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-009, REQ-DSO-011
 func TestPtp(t *testing.T) {
 	lo, hi, p := Ptp([]uint8{100, 50, 220, 128})
 	if lo != 50 || hi != 220 || p != 170 {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -9,7 +9,7 @@ import (
 	"github.com/labeth/open-dso-core/sample"
 )
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func TestQualifyPulseFlatReject(t *testing.T) {
 	flat := make([]uint8, 500)
 	for i := range flat {
@@ -20,7 +20,7 @@ func TestQualifyPulseFlatReject(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func TestQualifySlope(t *testing.T) {
 	// A slow ramp (100 samples lo→hi) and a fast step, both rising.
 	sig := make([]uint8, 2000)
@@ -54,7 +54,7 @@ func TestQualifySlope(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func TestQualifySlopeSingleStepEdge(t *testing.T) {
 	// A hard square edge that spans lo→hi in ONE sample step (the decimated
 	// cal-square case): the traversal exists at index c with time 0 and must
@@ -80,7 +80,7 @@ func TestQualifySlopeSingleStepEdge(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func TestQualifyVideo(t *testing.T) {
 	// Composite-ish: negative sync pulses every 200 samples dipping to 20
 	// from a 150 rail; "video" content rides above.
@@ -134,7 +134,7 @@ func TestQualifyVideo(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestEresBoxcar(t *testing.T) {
 	// A boxcar of 15 shrinks σ ≈ √15; check it smooths an alternating signal
 	// to near its mean and preserves the ends without wrap.
@@ -159,7 +159,7 @@ func TestEresBoxcar(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestEresLenForBits(t *testing.T) {
 	cases := map[float64]int{0.5: 1, 1.0: 3, 1.5: 7, 2.0: 15, 2.5: 31, 3.0: 63}
 	for b, want := range cases {
@@ -169,7 +169,7 @@ func TestEresLenForBits(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestAverageRing(t *testing.T) {
 	r := &AvgRing{}
 	r.Reset(4, 100)
@@ -198,7 +198,7 @@ func TestAverageRing(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestAverageRingNoOffRecordBias(t *testing.T) {
 	// Frames whose edge is far off centre contribute off-record columns at
 	// one window end; those must NOT be averaged as a fabricated 128 —
@@ -228,7 +228,7 @@ func TestAverageRingNoOffRecordBias(t *testing.T) {
 
 // A stopped record re-expressed at a new V/div and offset reads the same
 // volts there; codes beyond the screen clip.
-// TRLC-LINKS: REQ-SDS-015, REQ-SDS-040
+// TRLC-LINKS: REQ-DSO-015, REQ-DSO-040
 func TestRescaleCodesKeepsVolts(t *testing.T) {
 	volts := func(code float64, s ChScale) float64 { return (code-128)*s.Vdiv/25 - s.Off }
 	from, to := ChScale{Vdiv: 2, Off: 0}, ChScale{Vdiv: 1, Off: -1}
@@ -255,7 +255,7 @@ func TestRescaleCodesKeepsVolts(t *testing.T) {
 // A hardware trigger stands only where the calibrated record crosses the
 // level in the trigger's direction; converter noise on a flat baseline does
 // not.
-// TRLC-LINKS: REQ-SDS-011, REQ-SDS-016
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-016
 func TestConfirmTriggerEdge(t *testing.T) {
 	edge := make([]uint8, 200)
 	flat := make([]uint8, 200)
@@ -285,7 +285,7 @@ func TestConfirmTriggerEdge(t *testing.T) {
 
 // A step in averaged samples reads as a one-interval ramp: SLOPE > min must
 // not fire on it, while a genuinely slow ramp still qualifies.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func TestSlopeStepIsNotSlow(t *testing.T) {
 	p := TrigParams{Typ: TrigSlope, SlopeLoFrac: 0.2, SlopeHiFrac: 0.8, SlopeTMaxNs: 1000, SlopeCond: CondGreater} // > max
 	step := make([]uint8, 200)

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -9,7 +9,7 @@ import (
 
 // Zone is one qualification rectangle. Times are SECONDS RELATIVE TO THE
 // TRIGGER EDGE (portable across bands); codes are display codes (0..255).
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 type Zone struct {
 	DtLoS, DtHiS   float64
 	CodeLo, CodeHi int
@@ -20,7 +20,7 @@ type Zone struct {
 // Mask is a per-display-column envelope: a frame FAILS if any sample in
 // column j falls outside [Lo[j], Hi[j]]. Columns are the same edge-anchored
 // display window the renderer uses (WinCols samples, edge at PosFrac).
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 type Mask struct {
 	Lo, Hi  []uint8
 	WinCols int
@@ -54,7 +54,7 @@ const (
 )
 
 // MaskFail is one captured failing frame (ring entry).
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 type MaskFail struct {
 	C1, C2 []uint8
 	Valid  int
@@ -72,7 +72,7 @@ type MaskFail struct {
 	FailSample int   // raw sample index of the violation
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 type ZoneMaskState struct {
 	// LOCK ORDER: e.mu is acquired BEFORE zm.mu (Snapshot nests that way).
 	// Never take e.mu while holding zm.mu — that is an ABBA deadlock against
@@ -105,7 +105,7 @@ type MaskMapState struct {
 // BuildMaskFromEnvelope dilates a per-column [lo,hi] envelope by ±tolCols
 // horizontally and ±tolCodes vertically — the standard mask morphology. The
 // input envelopes must be winCols long.
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 func BuildMaskFromEnvelope(lo, hi []uint8, winCols, tolCols, tolCodes, ch int) *Mask {
 	if len(lo) != winCols || len(hi) != winCols || winCols <= 0 {
 		return nil
@@ -151,7 +151,7 @@ func BuildMaskFromEnvelope(lo, hi []uint8, winCols, tolCols, tolCodes, ch int) *
 // blocks of the window's width, a running minimum from each block's left and
 // from its right, and the two read at a window's ends - three steps a column
 // whatever r is (van Herk/Gil-Werman).
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 func slideExtreme(x []uint8, r int, high bool) []uint8 {
 	n, w := len(x), 2*r+1
 	m := n + 2*r

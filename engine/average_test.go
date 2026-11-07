@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -9,7 +9,7 @@ import (
 	"github.com/labeth/open-dso-core/sample"
 )
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestERESQ8(t *testing.T) {
 	for _, n := range []int{1, 2, 9, 100} {
 		src := make([]uint16, n)
@@ -43,7 +43,7 @@ func TestERESQ8(t *testing.T) {
 // average in which each record weighs 1/target: a fourth record moves a full
 // average of three by a third of its difference, not a restart that shows it
 // alone (every target-th frame was one raw capture).
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestSRAMAverageFractionsRunningAndReset(t *testing.T) {
 	var a SramAverage
 	for i, want := range []uint16{25600, 25728, 25856, 26027} {
@@ -68,7 +68,7 @@ func TestSRAMAverageFractionsRunningAndReset(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestSRAMAverageAlignsShiftedRecordWithoutWrapping(t *testing.T) {
 	var a SramAverage
 	for k, shift := range []int{0, 3, -2} {
@@ -89,7 +89,7 @@ func TestSRAMAverageAlignsShiftedRecordWithoutWrapping(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestAverageAlignsToFractionOfSample(t *testing.T) {
 	ramp := func(edge float64) sample.Frame {
 		n := 64
@@ -122,7 +122,7 @@ func TestAverageAlignsToFractionOfSample(t *testing.T) {
 // joins the block over the samples both hold, or the average restarts on each
 // change, never reaches 64, and a master never finishes. A record of another
 // plan still starts a new block.
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func TestSRAMAverageKeepsItsBlockOverALengthWobble(t *testing.T) {
 	var a SramAverage
 	frame := func(n int) *sample.Frame {

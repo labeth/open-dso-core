@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -8,7 +8,7 @@ import (
 
 // A view is read only where the screen's envelope is coarser than the display
 // draws it: a bucket every second column or fewer.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestViewBuckets(t *testing.T) {
 	for _, c := range []struct {
 		name         string

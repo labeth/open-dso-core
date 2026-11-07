@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func TestRefineTriggerEdgeFindsExactCrossing(t *testing.T) {
 	// A 30 ns ramp from code 87 to 169 sampled every 2 ns; the 128 crossing is
 	// at a known fractional index whatever word the hardware reported.

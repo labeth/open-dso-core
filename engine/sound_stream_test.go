@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -8,7 +8,7 @@ import (
 
 // Mark words are 32-bit counts: they extend to the stream's ordinal near
 // the words drained, before and after a wrap.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func TestUnwrapWord(t *testing.T) {
 	cases := []struct {
 		w    uint32

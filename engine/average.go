@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -11,7 +11,7 @@ import (
 
 // EresQ8 keeps fractional codes through a centred moving average. The
 // shrinking end windows never wrap or introduce fabricated samples.
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func EresQ8(src, scratch []uint16, length int) {
 	length = ClampEresLen(length)
 	if length <= 1 || len(src) == 0 {
@@ -43,7 +43,7 @@ func EresQ8(src, scratch []uint16, length int) {
 
 // SramAverage accumulates disjoint blocks, retaining Q8 fractions with memory
 // independent of the requested count. Callers admit only matching captures.
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 type SramAverage struct {
 	sum1, sum2 []uint32
 	count      int
@@ -52,7 +52,7 @@ type SramAverage struct {
 	Key        string // the settings the sums are for
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func (a *SramAverage) Reset() { a.count = 0 }
 
 // averageLengthSlack is how far a record's length may stray from its block's
@@ -67,7 +67,7 @@ const averageLengthSlack = 8
 // each record weighs 1/target. Restarting after target showed every target-th
 // frame as one raw capture, as noisy as Normal. It returns the records the
 // average holds (at most target).
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func (a *SramAverage) Push(f *sample.Frame, target int) int {
 	n := f.Len()
 	target = max(target, 1)
@@ -170,7 +170,7 @@ type recip struct {
 }
 
 // NewRecip is division by d (at least 1).
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func NewRecip(d uint32) recip {
 	l := uint(bits.Len32(d - 1)) // ⌈log₂d⌉
 	s := 17 + 2*l
@@ -178,5 +178,5 @@ func NewRecip(d uint32) recip {
 }
 
 // Div is x/d, rounded down.
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func (r recip) Div(x uint32) uint32 { return uint32(uint64(x) * r.m >> r.s) } //nolint:gosec // G115: newRecip picks m and s so the quotient fits 32 bits

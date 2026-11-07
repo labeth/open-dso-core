@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -14,7 +14,7 @@ import (
 // SYNC or the idle gap before an SPI word), so [start, any unit] fires on a
 // frame's first unit. A MIL-1553 unit may also require the command sync
 // (MILCommand in Value and Mask).
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 type PatternElem struct {
 	Kind  int `json:"kind"`
 	Value int `json:"value"`
@@ -34,7 +34,7 @@ const MILCommand = 1 << 16
 
 // UnitFlags are the event metadata bits a pattern unit may require beside
 // the unit (the MIL command sync).
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func UnitFlags(p SerialParams) int {
 	if p.Proto == SerMIL1553 {
 		return MILCommand
@@ -44,7 +44,7 @@ func UnitFlags(p SerialParams) int {
 
 // nativeLimit is the longest plain pattern the protocol's own hardware
 // matcher takes; longer ones and any Pattern use the sequence trigger.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func nativeLimit(proto int) int {
 	switch proto {
 	case SerMIL1553, SerARINC:
@@ -56,13 +56,13 @@ func nativeLimit(proto int) int {
 }
 
 // SequenceNeeded reports a request beyond the protocol's native matcher.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func SequenceNeeded(p SerialParams) bool {
 	return len(p.Pattern) != 0 || len(p.Bytes) > nativeLimit(p.Proto)
 }
 
 // PatternOf is the request as tokens: Pattern, or Bytes as exact units.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func PatternOf(p SerialParams) []PatternElem {
 	if len(p.Pattern) != 0 {
 		return p.Pattern
@@ -75,7 +75,7 @@ func PatternOf(p SerialParams) []PatternElem {
 }
 
 // UnitMask covers one decoded unit of the protocol.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func UnitMask(p SerialParams) int {
 	switch p.Proto {
 	case SerMIL1553:
@@ -110,7 +110,7 @@ func UnitMask(p SerialParams) int {
 
 // FramedProtocol decoders validate whole frames; a data sequence on them
 // triggers only when its frame ends valid, as their native matchers do.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func FramedProtocol(proto int) bool {
 	switch proto {
 	case SerCAN, SerFlexRay, SerUSB, SerSENT, SerManchester, SerARINC:
@@ -122,7 +122,7 @@ func FramedProtocol(proto int) bool {
 // i2cSelected reports whether the I2C address span sp[i] opens a
 // transaction p asks for: its address (any when p.Addr < 0) and direction
 // (p.RW 0 write, 1 read, 2 either).
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func i2cSelected(sp []decode.Span, i int, p SerialParams) bool {
 	rw := "" // the direction's text: W, R (none for another RW)
 	switch p.RW {
@@ -139,7 +139,7 @@ func i2cSelected(sp []decode.Span, i int, p SerialParams) bool {
 // errors, and packet boundaries break contiguity. On framed protocols a data
 // sequence counts only in a packet without errors, like matchPackets. I2C
 // counts only data in transactions whose address and direction match.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func MatchSequence(sp []decode.Span, p SerialParams) (bool, int) {
 	elems := PatternOf(p)
 	if len(elems) == 0 {

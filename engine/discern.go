@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -7,7 +7,7 @@ import (
 )
 
 // Ptp returns min, max and peak-to-peak of sig.
-// TRLC-LINKS: REQ-SDS-009, REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-009, REQ-DSO-011
 func Ptp(sig []uint8) (lo, hi, p int) {
 	if len(sig) == 0 {
 		return 0, 0, 0
@@ -26,7 +26,7 @@ func Ptp(sig []uint8) (lo, hi, p int) {
 // every timebase. Exact median via a histogram over the small integer |Δ²|
 // values: O(n) time, O(1) space. Floored at 0.5 (a perfectly clean slow ramp has
 // median |Δ²| = 0 because adjacent codes repeat).
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func NoiseFloor(sig []uint8) float64 {
 	n := len(sig)
 	if n < 3 {
@@ -66,7 +66,7 @@ func NoiseFloor(sig []uint8) float64 {
 // ptp-relative-to-noise separates them cleanly at ANY timebase (a real signal
 // has ptp ≫ noise; a rail's ptp IS its noise, ~5σ). Used as the DECIMATED lock
 // gate; native-fast keeps the raw-ptp test (its record spans < 1 period).
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func SignalPresent(sig []uint8, k float64) bool {
 	_, _, p := Ptp(sig)
 	return float64(p) >= k*NoiseFloor(sig)
@@ -74,7 +74,7 @@ func SignalPresent(sig []uint8, k float64) bool {
 
 // MidLevel is the crossing threshold: (min+max)/2 over the drained samples
 // (128 for an empty slice). It floats with amplitude so it works at any V/div.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func MidLevel(sig []uint8) int {
 	if len(sig) == 0 {
 		return 128

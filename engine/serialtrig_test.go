@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -8,7 +8,7 @@ import (
 	"github.com/labeth/open-dso-core/decode"
 )
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func TestMatchBytesUnit(t *testing.T) {
 	// contiguous bytes ~10 samples wide, abutting (like a continuous UART stream)
 	spans := []decode.Span{
@@ -69,7 +69,7 @@ func TestMatchBytesUnit(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func TestIndexSeqUnit(t *testing.T) {
 	hay := []int{1, 2, 3, 2, 3, 4}
 	if indexSeq(hay, []int{2, 3, 4}) != 3 {
@@ -86,7 +86,7 @@ func TestIndexSeqUnit(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func TestSerialRegistryCapabilities(t *testing.T) {
 	ds := SerialDecoderList()
 	if len(ds) < 10 {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -9,7 +9,7 @@ import (
 // The edge after the trigger edge, the other way: past the trigger edge's
 // own bucket, the first bucket that comes back from the trigger edge's new
 // level; none on a flat envelope or before it settles.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestOppositeEdgeBucket(t *testing.T) {
 	// A square of 20-bucket periods: high from bucket 10 to 19, low 0-9.
 	pairs := make([]uint8, 0, 200)
@@ -47,7 +47,7 @@ func TestOppositeEdgeBucket(t *testing.T) {
 // edge nearest the trigger point, either way, and the next one the other way
 // (the owner's UART trigger read no rise, ever: the trigger window held the
 // flat stop bit and the opposite one was sought in the edge trigger's sense).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestNearestEdgeBucket(t *testing.T) {
 	pairs := make([]uint8, 0, 200)
 	for b := range 100 { // low 0-29, a rise inside 30, high 31-59, a fall between 59 and 60

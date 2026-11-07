@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -9,7 +9,7 @@ import (
 )
 
 // The software form follows the hardware contract on decoded spans.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func TestMatchSequence(t *testing.T) {
 	data := func(i, v int) decode.Span { return decode.Span{I0: i, I1: i, Kind: "data", Val: v} }
 	sof := func(i int) decode.Span { return decode.Span{I0: i, I1: i, Kind: "sof"} }
@@ -56,7 +56,7 @@ func TestMatchSequence(t *testing.T) {
 
 // The frame a frame-start trigger fires in opens at its SOF, SYNC or START,
 // past its own fields; a unit with nothing marked before it opens itself.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-223
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-223
 func TestFrameOpening(t *testing.T) {
 	can := []decode.Span{
 		{I0: 0, I1: 9, Kind: "data"},
@@ -106,7 +106,7 @@ func TestFrameOpening(t *testing.T) {
 
 // A word bus's matched word begins before its data field: an ARINC 429 word
 // at its label, a MIL-1553 word at its sync. Other fields stay where they are.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-223
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-223
 func TestWordOpening(t *testing.T) {
 	arinc := []decode.Span{{I0: 0, I1: 80, Kind: "addr"}, {I0: 100, I1: 290, Kind: "data"}, {I0: 290, I1: 310, Kind: "gap"}}
 	if at := wordOpening(arinc, 100); at != 0 {

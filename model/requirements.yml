@@ -4649,3 +4649,196 @@ requirements:
   verificationMethods:
   - test
   verificationCriteria: Run the caps node checks over a two-channel and a four-channel scope.
+- id: REQ-DSO-001
+  title: Single bus owner
+  text: The instrument shall serialize acquisition and staged GPMC operations through one engine owner.
+  status: implemented
+  derived: true
+  derivedRationale: 'Design constraint from the bus hazard (RISK-BUS, CTRL-BUS): overlapping GPMC transactions stall
+    the processor, so one owner serializes them. It serves every capability that touches the FPGA rather than one
+    of them.'
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-OWNER-JOB-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  notes: Source-derived contract; source presence is not evidence of a passing hardware qualification.
+  verificationMethods:
+  - inspection
+  - test
+  verificationCriteria: Inspect the linked implementation and run the corresponding offline tests; hardware claims
+    require independently identified device evidence.
+- id: REQ-DSO-008
+  title: Responsive capture control
+  text: The instrument shall service control requests during bounded capture waits.
+  status: implemented
+  realizes:
+  - CAP-DSO-ACQUISITION
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-CLOCK-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  notes: Source-derived contract; source presence is not evidence of a passing hardware qualification.
+  verificationMethods:
+  - inspection
+  - test
+  verificationCriteria: Inspect the linked implementation and run the corresponding offline tests; hardware claims
+    require independently identified device evidence.
+- id: REQ-DSO-012
+  title: Acquisition modes
+  text: The instrument shall apply the supported averaging, enhanced-resolution and peak policies for the active
+    acquisition path.
+  status: implemented
+  realizes:
+  - CAP-DSO-ACQUISITION
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-AVERAGE-GO
+  - CODE-ENGINE-AVERAGE-TEST-GO
+  - CODE-ENGINE-MODES-GO
+  - CODE-ENGINE-PERF-BENCH-TEST-GO
+  - CODE-ENGINE-QUALIFY-TEST-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  notes: Source-derived contract; source presence is not evidence of a passing hardware qualification. Average is
+    the mean of the captures until the count is reached, then a running average in which each capture weighs
+    1/count, so every shown frame holds the full count. SINGLE in Average, Precision and ERES runs on the
+    decimated capture the preview uses and stops with the completed result; a stop keeps an averaged frame.
+  verificationMethods:
+  - inspection
+  - test
+  verificationCriteria: Inspect the linked implementation and run the corresponding offline tests; hardware claims
+    require independently identified device evidence.
+- id: REQ-DSO-015
+  title: Absolute analog state
+  text: The instrument shall emit seeded absolute analog range and gain settings through SPI.
+  status: implemented
+  realizes:
+  - CAP-DSO-ANALOG-FRONT-END
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-CAPTURE-GO
+  - CODE-ENGINE-QUALIFY-TEST-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  notes: Source-derived contract; source presence is not evidence of a passing hardware qualification.
+  verificationMethods:
+  - inspection
+  - test
+  verificationCriteria: Inspect the linked implementation and run the corresponding offline tests; hardware claims
+    require independently identified device evidence.
+- id: REQ-DSO-016
+  title: Calibration
+  text: The instrument shall decode and validate per-unit calibration data with a fallback path.
+  status: implemented
+  realizes:
+  - CAP-DSO-ANALOG-FRONT-END
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-QUALIFY-TEST-GO
+  - CODE-ENGINE-TRIGGER-REFINE-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  notes: Source-derived contract; source presence is not evidence of a passing hardware qualification.
+  verificationMethods:
+  - inspection
+  - test
+  verificationCriteria: Check the 2752-byte length, word-zero checksum, descrambling, record offsets and compiled
+    defaults. Parsing tests do not establish coefficient finiteness or physical calibration accuracy.
+- id: REQ-DSO-126
+  title: Cross-frame uniformity telemetry
+  text: The instrument shall report cross-frame sample dispersion for centred and fixed-position windows.
+  status: implemented
+  realizes:
+  - CAP-DSO-ACQUISITION
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-MODES-GO
+  - CODE-ENGINE-PERF-BENCH-TEST-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  verificationMethods:
+  - inspection
+  - test
+  verificationCriteria: Inspect the sixteen-frame, 256-column population-standard-deviation calculation and publication
+    admission. TestUniformityStats checks only an upper bound on centred dispersion for a repeated fake waveform;
+    it does not prove telemetry updates, ring wrap or raw-versus-centred improvement.
+  notes: Source-derived legacy telemetry contract. Endpoint-clamped sample extraction and a negative-anchor fallback
+    to record centre are implementation policies. Fewer than two frames report zero. This is not proof of physical
+    trigger locking or measured noise performance; the original test provides partial evidence only.
+- id: REQ-DSO-127
+  title: Engine diagnostics and tuning
+  text: The instrument shall expose engine snapshots, acquisition and command history, owner-serviced diagnostics
+    and device-clock tuning controls.
+  status: implemented
+  realizes:
+  - CAP-DSO-ACQUISITION
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-QUALIFY-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  verificationMethods:
+  - inspection
+  - test
+  verificationCriteria: Inspect snapshot/ring bounds, tuning predicates and diagnostic queue/timeout behavior. Direct
+    ring, tuning, callback panic and timeout tests remain absent from this reviewed batch.
+  notes: Diagnostic timeouts do not cancel queued work. Tuning is ignored under the fake clock. Snapshot FPS is
+    capped by the64 stored timestamps. Source presence is not passing behavioral qualification.
+- id: REQ-DSO-223
+  title: AUTO in BUS frames the bus for reading
+  text: The instrument shall, when AUTO is pressed in the BUS workspace, forget the bus decoded, fit the vertical with
+    the threshold midway, detect the bus again and fill in the decoder settings, and put the hardware trigger on the
+    start of the bus's frames with a timebase that shows whole messages with every bit resolved.
+  status: implemented
+  realizes:
+  - CAP-DSO-PROTOCOL-DECODE
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-SERIAL-LEVELS-GO
+  - CODE-ENGINE-SERIAL-SEQUENCE-TEST-GO
+  - CODE-ENGINE-SERIALTRIG-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  verificationMethods:
+  - test
+  verificationCriteria: Panel tests check that AUTO in BUS scans anew (a bus set by hand is replaced by the bus on the
+    inputs), frames it (the trigger near the left, the UART idle qualifier between a message's longest high time and
+    its idle), that AUTO elsewhere stays the autoset, the frame-start match of each bus and that a match the user set
+    wins. Engine tests check the frame-start and MIL-1553 command elements of the sequence trigger. On the device,
+    AUTO in BUS on every bench bus names it, triggers in hardware on its frame starts and re-detects a moved source.
+  notes: The FPGA decides the trigger (ADR-SERIAL-HARDWARE-TRIGGER). I2C uses its own matcher with no bytes (the
+    address byte after every START); SPI, Manchester, SENT, CAN, USB and FlexRay the sequence trigger on START then any
+    unit; ARINC 429 any word (each is a frame); MIL-1553 a command word; UART, whose matcher fires on every character,
+    the pulse qualifier on an idle longer than any high time inside a message. BUS entry's detection sets the same
+    trigger. AUTO in the other workspaces is the autoset framed for the workspace (REQ-SDS-224).
+- id: REQ-DSO-231
+  title: Converters brought up and checked after every image load
+  text: The instrument shall, after every configuration of the acquisition FPGA (at start and after every image
+    load), restart the converters' encode clocks and check that every converter core converts, check again every
+    minute while acquiring and on a full-rate record with a held core, bring cores that hold one code under a moving
+    input back by restarting the encode clocks and then by loading the image again, and show a notice and a status
+    flag naming the converters that stay stuck.
+  status: implemented
+  realizes:
+  - CAP-DSO-ACQUISITION
+  category: functional
+  sourceRefs:
+  - CODE-ENGINE-PERF-BENCH-TEST-GO
+  appliesTo:
+  - FU-DSO-ENGINE
+  verificationMethods:
+  - test
+  verificationCriteria: Snapshots of a moving input with held cores find exactly the held cores, and a quiet, flat,
+    clipped or slow input finds none; an image load is followed by an encode restart and a check, then for stuck
+    cores by another encode restart and a check and then reloads with an encode restart and a check each, stopping
+    at the first healthy check; cores still stuck set the notice until a later check finds them converting, and a
+    full-rate record with a held core brings the next check forward. On the device, a loop of image switches leaves
+    no capture with stuck cores, and an encode stopped by hand is found and restarted within a second.
+  notes: About one configuration in a hundred left some converters' cores holding a code while the other cores
+    follow the signal, a pattern at a fifth of the sample rate under every capture; the encode clocks start with the
+    configuration as its PLL locks, and stopping and starting them again (register 15) brought the converters back,
+    as another configuration did. A held core is told from a live one only while the input moves (a snapshot of the
+    ten cores at 64 instants, three codes off a core's median in an eighth of them); 64 snapshots take about 80 to
+    130 ms of bus reads, so between checks the full-rate records' own samples are looked at once a second.

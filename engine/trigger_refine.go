@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -19,7 +19,7 @@ const triggerRefineSpan = 12
 // unchanged when no crossing lies within triggerRefineSpan. Word-level
 // placement leaves the displayed edge wandering 4 ns peak to peak, 0.8
 // divisions at 5 ns/div.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func RefineTriggerEdge(sig []uint8, q []uint16, valid int, edgeX, level float64, rising bool) float64 {
 	if valid < 2 || !(edgeX >= 0) || math.IsInf(edgeX, 0) {
 		return edgeX
@@ -68,7 +68,7 @@ func RefineTriggerEdge(sig []uint8, q []uint16, valid int, edgeX, level float64,
 // check a trigger the FPGA pointed out, never search data it did not point
 // at (owner rule). An envelope (min, max pairs) confirms when the buckets
 // beside the index reach both sides of the level.
-// TRLC-LINKS: REQ-SDS-011, REQ-SDS-016
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-016
 func ConfirmTriggerEdge(sig []uint8, q []uint16, valid int, edgeX, level float64, rising, envelope bool) bool {
 	if valid < 2 || !(edgeX >= 0) || edgeX >= float64(valid) {
 		return false

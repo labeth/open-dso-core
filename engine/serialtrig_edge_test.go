@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -9,7 +9,7 @@ import (
 )
 
 // adversarial matchI2C span sequences (repeated-START, missing R/W, cross-txn data).
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func TestMatchI2CEdges(t *testing.T) {
 	sp := func(kind string, val, i0 int, text string) decode.Span {
 		return decode.Span{Kind: kind, Val: val, I0: i0, Text: text}

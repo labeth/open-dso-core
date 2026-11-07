@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -93,7 +93,7 @@ type SoundRing struct {
 }
 
 // NewSoundRing makes an empty ring of 2^log2 samples a channel.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func NewSoundRing(log2 int) *SoundRing {
 	n := 1 << log2
 	return &SoundRing{Q: [2][]uint16{make([]uint16, n), make([]uint16, n)}, wake: make(chan struct{}), size: n}
@@ -101,7 +101,7 @@ func NewSoundRing(log2 int) *SoundRing {
 
 // Release lets the samples go (4 MB) while no stream runs; the next push
 // allocates them again. Ordinals go on from where they were.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (r *SoundRing) Release() {
 	r.Mu.Lock()
 	r.Q = [2][]uint16{}
@@ -111,7 +111,7 @@ func (r *SoundRing) Release() {
 }
 
 // oldest is the oldest ordinal held (r.mu held).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (r *SoundRing) OldestLocked() uint64 {
 	old := uint64(0)
 	if size := uint64(len(r.Q[0])); r.Next > size {
@@ -122,7 +122,7 @@ func (r *SoundRing) OldestLocked() uint64 {
 
 // PushWords appends stream words (CH1 Q8.8, CH2 Q8.8, little-endian) at
 // scale sc; gap says words were lost before them.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (r *SoundRing) PushWords(raw []byte, sc SoundScale, gap bool, now time.Time) {
 	n := len(raw) / 4
 	if n == 0 && !gap {
@@ -157,7 +157,7 @@ func (r *SoundRing) PushWords(raw []byte, sc SoundScale, gap bool, now time.Time
 }
 
 // AddMarks records marks (ordinals already in the stream's sample count).
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func (r *SoundRing) AddMarks(ms []SoundMark) {
 	if len(ms) == 0 {
 		return
@@ -170,7 +170,7 @@ func (r *SoundRing) AddMarks(ms []SoundMark) {
 
 // trimLocked drops scales, gaps and marks older than the ring (keeping the
 // scale in force at its oldest sample).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (r *SoundRing) trimLocked() {
 	old := r.OldestLocked()
 	for len(r.scales) > 1 && r.scales[1].From <= old {
@@ -189,7 +189,7 @@ func (r *SoundRing) trimLocked() {
 
 // Read copies up to limit samples from ordinal from (moved up to the oldest
 // held) into q1, q2 (grown as needed).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (r *SoundRing) Read(from uint64, limit int, q1, q2 []uint16, rate float64) SoundBlock {
 	r.Mu.Lock()
 	defer r.Mu.Unlock()
@@ -230,7 +230,7 @@ func (r *SoundRing) Read(from uint64, limit int, q1, q2 []uint16, rate float64) 
 }
 
 // grow16 is q with n entries, reallocated only when too small.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func grow16(q []uint16, n int) []uint16 {
 	if cap(q) < n {
 		return make([]uint16, n)
@@ -239,7 +239,7 @@ func grow16(q []uint16, n int) []uint16 {
 }
 
 // Latest copies the newest n samples.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (r *SoundRing) Latest(n int, q1, q2 []uint16, rate float64) SoundBlock {
 	r.Mu.Lock()
 	next := r.Next
@@ -252,7 +252,7 @@ func (r *SoundRing) Latest(n int, q1, q2 []uint16, rate float64) SoundBlock {
 }
 
 // Wait returns once the ring holds samples past after, or at timeout.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (r *SoundRing) Wait(after uint64, timeout time.Duration) uint64 {
 	deadline := time.NewTimer(timeout)
 	defer deadline.Stop()
@@ -273,7 +273,7 @@ func (r *SoundRing) Wait(after uint64, timeout time.Duration) uint64 {
 
 // UnwrapWord extends the image's 32-bit word count w to the stream's
 // ordinal near ref (marks can run ahead of the words drained).
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func UnwrapWord(w uint32, ref uint64) uint64 {
 	v := ref&^0xffffffff | uint64(w)
 	switch {
@@ -289,7 +289,7 @@ func UnwrapWord(w uint32, ref uint64) uint64 {
 
 // SoundVolts is the scale's volts per code and offset at the analog input
 // for channel ch (times the probe factor at the tip).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (s SoundScale) SoundVolts(ch int) (vpc, off float64) {
 	ch &= 1
 	if !(s.VdivV[ch] > 0) || math.IsInf(s.VdivV[ch], 0) {

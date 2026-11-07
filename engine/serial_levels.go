@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -39,7 +39,7 @@ type FrameLevels struct {
 }
 
 // Of measures channel ch (its codes) into lv once.
-// TRLC-LINKS: REQ-SDS-011, REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-013
 func (lv *FrameLevels) Of(ch int, codes []uint8) {
 	if !lv.done[ch] {
 		lv.Thr[ch], lv.ThrOK[ch], lv.ExtLo[ch], lv.ExtHi[ch], lv.ExtOK[ch] = decode.AutoThresholdExtent(codes)
@@ -54,7 +54,7 @@ func (lv *FrameLevels) Of(ch int, codes []uint8) {
 // median 56th, the nibbles the run of nibble pulses after a SYNC most often
 // seen (a pause pulse or the next SYNC ends it). 0, 0 when the line shows no
 // two frames.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func SentShape(codes []uint8, sampleS float64) (tickNs float64, nibbles int) {
 	thr, ok := decode.AutoThreshold(codes)
 	if !ok || !(sampleS > 0) || len(codes) == 0 {
@@ -113,7 +113,7 @@ var standardBauds = []float64{1200, 2400, 4800, 9600, 19200, 38400, 57600, 11520
 // edges is one bit (the median of the shortest fifth of the runs, from at
 // least sixteen edges), snapped to a standard rate within 3 %. 0 when the
 // line's bits are not resolved at this sample interval (under four samples).
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func UARTBaud(codes []uint8, sampleS float64) float64 {
 	thr, ok := decode.AutoThreshold(codes)
 	if !ok || !(sampleS > 0) || len(codes) == 0 {
@@ -152,7 +152,7 @@ func UARTBaud(codes []uint8, sampleS float64) float64 {
 // gaps between words), from at least eight edges each four or more samples
 // apart; extremes says the codes are bucket extremes (peak detect). 0 when
 // the line shows no clock at this sample interval.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-229
 func ClockRate(codes []uint8, sampleS float64, extremes bool) float64 {
 	thr, ok := decode.AutoThreshold(codes)
 	if !ok || !(sampleS > 0) {
@@ -212,7 +212,7 @@ const SPIQuietNs = int64(2 * time.Second)
 // filtered record a 10 MHz SPI clock measured as its alias, far slower: the
 // gap planned for that split nothing, and no capture triggered again (the
 // quiet check measuring again on the same records).
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-229
 func ResolvesClock(hz float64, f *sample.Frame) bool {
 	return !(hz > 0) || uint32(f.AcqDecim) <= 1 || (f.SampleS > 0 && 1/(hz*f.SampleS) >= minClockSamples)
 }
@@ -223,7 +223,7 @@ const minClockSamples = 4
 
 // JoinUnits is p's match bytes as the matcher's units where the scope's
 // match editor holds a unit as several bytes.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func JoinUnits(p SerialParams) SerialParams {
 	// A MIL-1553 word typed as two bytes, an ARINC 429 data field as up to
 	// three (the scope's match editor holds bytes, as its BUS table shows them);
@@ -258,7 +258,7 @@ const ArincOneWord = "an ARINC 429 match is one word (00 AB CD: its data field)"
 // data element, values and masks big-endian within limit; n errors one error
 // (the BUS table writes a bad word as ERR for each of its bytes). The
 // pattern unchanged when a unit mixes them or does not fit.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func groupPattern(pat []PatternElem, n, limit int) []PatternElem {
 	if len(pat)%n != 0 {
 		return pat
@@ -289,7 +289,7 @@ func groupPattern(pat []PatternElem, n, limit int) []PatternElem {
 }
 
 // allKind reports whether every element of g is of kind k.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func allKind(g []PatternElem, k int) bool {
 	for _, e := range g {
 		if e.Kind != k {
@@ -301,7 +301,7 @@ func allKind(g []PatternElem, k int) bool {
 
 // joinGroups is bytes as big-endian values of n bytes each (joinBytes of
 // each group); bytes unchanged when a group does not join.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func joinGroups(bytes []int, n, limit int) []int {
 	var out []int
 	for i := 0; i+n <= len(bytes); i += n {
@@ -316,7 +316,7 @@ func joinGroups(bytes []int, n, limit int) []int {
 
 // joinBytes is bytes as one big-endian value when every one is a byte and the
 // value fits limit; bytes unchanged otherwise.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func joinBytes(bytes []int, limit int) []int {
 	v := 0
 	for _, b := range bytes {
@@ -353,7 +353,7 @@ const (
 // decoded unit ending nearest the FPGA's trigger at, and the frame's opening
 // right before it (its start of a decoder that marks none: SPI's idle gap).
 // -1 when no unit ends near it.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-223
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-223
 func FrameUnitStart(a, b []uint8, sampleS float64, p SerialParams, at, lo int) float64 {
 	d, ok := LookupSerialDecoder(p.Proto)
 	if !ok {
@@ -367,7 +367,7 @@ func FrameUnitStart(a, b []uint8, sampleS float64, p SerialParams, at, lo int) f
 
 // frameOpening is frameUnitStart on a decode's spans: the start of the frame
 // whose first unit ends nearest at, -1 for none.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-223
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-223
 func frameOpening(spans []decode.Span, at int) int {
 	best, bestD := -1, math.MaxInt
 	for k, sp := range spans {
@@ -414,7 +414,7 @@ func frameOpening(spans []decode.Span, at int) int {
 // 429 word with its gap, a CAN, FlexRay or USB byte with its stuffing or
 // framing, SENT's longest nibble), 0 when it is not known (I2C's clock): a
 // match is then sought over the whole capture.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func SerialUnitSamples(p SerialParams, sampleS, spiHz float64) int {
 	if !(sampleS > 0) {
 		return 0

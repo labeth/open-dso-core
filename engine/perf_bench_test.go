@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -12,7 +12,7 @@ import (
 )
 
 // packetSpans is a decode of n packets: a start of frame, then size bytes.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func packetSpans(n, size int) []decode.Span {
 	var sp []decode.Span
 	x := 0
@@ -26,7 +26,7 @@ func packetSpans(n, size int) []decode.Span {
 	return sp
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func BenchmarkMatchPackets(b *testing.B) {
 	sp := append(packetSpans(150, 2), packetSpans(50, 8)...)
 	want := []int{0x55, 0xAA, 0x01}
@@ -35,7 +35,7 @@ func BenchmarkMatchPackets(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func BenchmarkMatchBytes(b *testing.B) {
 	sp := packetSpans(1, 12)
 	want := []int{0x03, 0x04}
@@ -44,7 +44,7 @@ func BenchmarkMatchBytes(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-126
+// TRLC-LINKS: REQ-DSO-126
 func BenchmarkUniRingStats(b *testing.B) {
 	var u UniRing
 	u.Reset()
@@ -61,7 +61,7 @@ func BenchmarkUniRingStats(b *testing.B) {
 }
 
 // uniRing.stats reads as the column-by-column float sums did, bit for bit.
-// TRLC-LINKS: REQ-SDS-126
+// TRLC-LINKS: REQ-DSO-126
 func TestUniRingStatsExact(t *testing.T) {
 	ref := func(u *UniRing) (std, stdRaw, worst float64) {
 		colStd := func(ring [][]uint8, col int) float64 {
@@ -105,7 +105,7 @@ func TestUniRingStatsExact(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func BenchmarkEresQ8(b *testing.B) {
 	src := make([]uint16, 20000)
 	for i := range src {
@@ -118,7 +118,7 @@ func BenchmarkEresQ8(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-012
+// TRLC-LINKS: REQ-DSO-012
 func BenchmarkSramAverage(b *testing.B) {
 	const n = 20000
 	f := &sample.Frame{TriggerAt: 9000.25, WinPoints: n, Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Codes8: make([]uint8, n), Valid: n}}}
@@ -137,7 +137,7 @@ func BenchmarkSramAverage(b *testing.B) {
 }
 
 // buildMaskRef is the column-by-column dilation BuildMaskFromEnvelope replaced.
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 func buildMaskRef(lo, hi []uint8, winCols, tolCols, tolCodes int) (outLo, outHi []uint8) {
 	nLo, nHi := make([]uint8, winCols), make([]uint8, winCols)
 	for j := range winCols {
@@ -159,7 +159,7 @@ func buildMaskRef(lo, hi []uint8, winCols, tolCols, tolCodes int) (outLo, outHi 
 }
 
 // The running dilation builds the mask the column-by-column one did.
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 func TestBuildMaskDilation(t *testing.T) {
 	for _, w := range []int{1, 2, 7, 50, 333} {
 		lo, hi := make([]uint8, w), make([]uint8, w)
@@ -178,7 +178,7 @@ func TestBuildMaskDilation(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 func BenchmarkBuildMask(b *testing.B) {
 	lo, hi := make([]uint8, 12000), make([]uint8, 12000)
 	for j := range lo {
@@ -190,7 +190,7 @@ func BenchmarkBuildMask(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-229
 func BenchmarkClockRate(b *testing.B) {
 	codes := make([]uint8, 20000)
 	for i := range codes {
@@ -201,7 +201,7 @@ func BenchmarkClockRate(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func BenchmarkMatchSequence(b *testing.B) {
 	var sp []decode.Span
 	for t := range 100 { // I2C transactions: start, address, direction, two bytes, stop
@@ -216,7 +216,7 @@ func BenchmarkMatchSequence(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func BenchmarkSerialDecoder(b *testing.B) {
 	for b.Loop() {
 		LookupSerialDecoder(SerUART)
@@ -225,7 +225,7 @@ func BenchmarkSerialDecoder(b *testing.B) {
 }
 
 // The stepped snapshot index is j·periods/m for every record length.
-// TRLC-LINKS: REQ-SDS-231
+// TRLC-LINKS: REQ-DSO-231
 func TestRecordStuckIndex(t *testing.T) {
 	for periods := 1; periods < 3000; periods += 7 {
 		m := min(periods, 512)
@@ -245,7 +245,7 @@ func TestRecordStuckIndex(t *testing.T) {
 }
 
 // fundamentalHzRef is the float-compare reading fundamentalHz replaced.
-// TRLC-LINKS: REQ-SDS-066
+// TRLC-LINKS: REQ-DSO-066
 func fundamentalHzRef(sig []uint8, sampleS float64) float64 {
 	n := len(sig)
 	if n < 8 {
@@ -283,7 +283,7 @@ func fundamentalHzRef(sig []uint8, sampleS float64) float64 {
 	return 1.0 / (p * sampleS)
 }
 
-// TRLC-LINKS: REQ-SDS-066
+// TRLC-LINKS: REQ-DSO-066
 func TestFundamentalHzSame(t *testing.T) {
 	for seed := range 200 {
 		n := 50 + seed*37
@@ -297,7 +297,7 @@ func TestFundamentalHzSame(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func BenchmarkSoundRingRead(b *testing.B) {
 	r := NewSoundRing(16)
 	raw := make([]byte, 4*40000)
@@ -315,7 +315,7 @@ func BenchmarkSoundRingRead(b *testing.B) {
 }
 
 // The ring reads back what was pushed, across its wrap.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func TestSoundRingReadWraps(t *testing.T) {
 	r := NewSoundRing(8)
 	for k := range 5 {
@@ -337,7 +337,7 @@ func TestSoundRingReadWraps(t *testing.T) {
 }
 
 // firstCrossingFromRef is the negating loop firstCrossingFrom replaced.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func firstCrossingFromRef(q []uint16, level, hyst int, rising bool, start int) (int, bool) {
 	armed := false
 	for i, w := range q {
@@ -358,7 +358,7 @@ func firstCrossingFromRef(q []uint16, level, hyst int, rising bool, start int) (
 	return 0, false
 }
 
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func TestFirstCrossingFromSame(t *testing.T) {
 	q := make([]uint16, 3000)
 	for i := range q {
@@ -379,7 +379,7 @@ func TestFirstCrossingFromSame(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func BenchmarkFirstCrossing(b *testing.B) {
 	q := make([]uint16, 30000)
 	for i := range q {

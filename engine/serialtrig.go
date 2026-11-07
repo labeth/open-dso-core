@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -94,7 +94,7 @@ const (
 // channel roles + decode params to use, and the byte/address pattern to match.
 // Copied by value into the engine under ser.mu; Bytes is replaced wholesale by
 // the setter (never mutated in place).
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 type SerialParams struct {
 	SPIClockHz int `json:"spiClockHz"` // explicit clock for acquisition-time SPI gap framing; zero uses software inference
 	// I2CClockHz is the I2C clock rate (0: measured on SCL); past the general
@@ -142,10 +142,10 @@ type SerialParams struct {
 	Pattern []PatternElem `json:"pattern,omitempty"`
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func (p SerialParams) Empty() bool { return p.Proto == 0 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 type SerialState struct {
 	// LOCK ORDER: e.mu is acquired BEFORE ser.mu (Snapshot nests that way), same
 	// rule as zoneMaskState — never take e.mu while holding ser.mu.
@@ -160,7 +160,7 @@ const AutoLiveMax = time.Second
 
 // SerialMatchIn decodes the two lines (a request's first and second line)
 // and finds its match nearest at.target.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func SerialMatchIn(chA, chB []uint8, sampleS float64, p SerialParams, at AnchorSpan) (bool, int) {
 	d, ok := LookupSerialDecoder(p.Proto)
 	if !ok {
@@ -186,7 +186,7 @@ func SerialMatchIn(chA, chB []uint8, sampleS float64, p SerialParams, at AnchorS
 // decoder marks one right before the field (an ARINC 429 word's trigger point
 // sat on its data field, 100 us into the word; a MIL-1553 command word's 3 us
 // after its sync). at itself otherwise.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-223
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-223
 func wordOpening(spans []decode.Span, at int) int {
 	for k, sp := range spans {
 		if sp.I0 != at || sp.Kind != SpanData {
@@ -214,7 +214,7 @@ func wordOpening(spans []decode.Span, at int) int {
 // flat 0 V tail on a repeating UART message). When no
 // match fits - at slow timebases one SRAM read holds little more than the
 // screen - the match nearest the target leaves the least of it off.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func pickSerialMatch(sp []decode.Span, p SerialParams, match func([]decode.Span, SerialParams) (bool, int), at AnchorSpan) (bool, int) {
 	ok, first := match(sp, p)
 	if !ok || first < 0 {
@@ -255,7 +255,7 @@ func pickSerialMatch(sp []decode.Span, p SerialParams, match func([]decode.Span,
 // matchI2C finds a transaction addressing p.Addr (or any if <0) with the wanted
 // R/W direction; when p.Bytes is set, the transaction's data bytes must also
 // contain that sequence. Anchors on the address span (the transaction start).
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func matchI2C(sp []decode.Span, p SerialParams) (bool, int) {
 	for i := range sp {
 		if sp[i].Kind != "addr" {
@@ -304,7 +304,7 @@ func matchI2C(sp []decode.Span, p SerialParams) (bool, int) {
 // pattern must be CONTIGUOUS on the wire — consecutive matched bytes must abut
 // (no large idle gap / burst boundary between them), so "AB" cannot be forged
 // from an 'A' and a 'B' emitted far apart in separate transmissions.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func matchBytes(sp []decode.Span, want []int) (bool, int) {
 	type db struct{ val, i0, i1, segment int }
 	var buf [32]db // a packet's bytes: on the stack up to 32
@@ -350,7 +350,7 @@ func matchBytes(sp []decode.Span, want []int) (bool, int) {
 
 // indexSeq returns the start index of the first occurrence of needle in hay, or
 // -1. Empty needle matches at 0.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func indexSeq(hay, needle []int) int {
 	if len(needle) == 0 {
 		return 0

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestUnpackBits(t *testing.T) {
 	raw := make([]byte, 4*257)
 	r := rand.New(rand.NewPCG(1, 2))
@@ -36,7 +36,7 @@ func TestUnpackBits(t *testing.T) {
 
 // One second of a 2^9 digital stream (976,563 words) per op, one line, into
 // a reused buffer.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func BenchmarkUnpackBits(b *testing.B) {
 	const words = 976563
 	raw := make([]byte, 4*words)

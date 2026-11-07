@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -15,7 +15,7 @@ import (
 // SerialDecoder receives chronological samples with their acquisition interval.
 // It must not retain or mutate the sample slices. Registration is independent
 // of acquisition, so additional decoders need no changes to the capture loop.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 type SerialDecoder struct {
 	ID     int                                                               `json:"id"`
 	Name   string                                                            `json:"name"`
@@ -35,7 +35,7 @@ var serialDecoders = struct {
 
 // RegisterSerialDecoder refuses replacement: an existing saved protocol ID
 // must never silently acquire a different meaning.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func RegisterSerialDecoder(d SerialDecoder) error {
 	if d.ID <= 0 || d.Name == "" || d.Decode == nil || d.Match == nil {
 		return errors.New("invalid serial decoder registration")
@@ -50,7 +50,7 @@ func RegisterSerialDecoder(d SerialDecoder) error {
 }
 
 // SerialDecoderList is a sorted snapshot suitable for capability discovery.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func SerialDecoderList() []SerialDecoder {
 	serialDecoders.RLock()
 	defer serialDecoders.RUnlock()
@@ -62,7 +62,7 @@ func SerialDecoderList() []SerialDecoder {
 	return result
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func LookupSerialDecoder(id int) (SerialDecoder, bool) {
 	serialDecoders.RLock()
 	d, ok := serialDecoders.byID[id]
@@ -70,7 +70,7 @@ func LookupSerialDecoder(id int) (SerialDecoder, bool) {
 	return d, ok
 }
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func init() {
 	byteMatch := func(s []decode.Span, p SerialParams) (bool, int) { return matchBytes(s, p.Bytes) }
 	for _, d := range serialDecoderTable() {
@@ -99,7 +99,7 @@ func init() {
 // Nil: at the delay asked.
 var SPIDataDelayNs func(ns float64, clockCh int) float64
 
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func serialDecoderTable() []SerialDecoder {
 	return []SerialDecoder{
 		{ID: SerUART, Name: "UART", Decode: func(a, _ []uint8, sampleS float64, p SerialParams) decode.Result {
@@ -212,7 +212,7 @@ func serialDecoderTable() []SerialDecoder {
 // lineDecoder is a single-line decoder: samples reads the first line's
 // samples, edges (nil for none) its edges, each with the settings cfg makes
 // of the request.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func lineDecoder[C any](id int, name string, cfg func(SerialParams) C,
 	samples func([]uint8, float64, C) decode.Result, edges func(*decode.EdgeLine, float64, C) decode.Result,
 ) SerialDecoder {
@@ -228,7 +228,7 @@ func lineDecoder[C any](id int, name string, cfg func(SerialParams) C,
 }
 
 // clockedDecoder is a clocked two-line decoder, from samples or edges.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func clockedDecoder(id int, name string,
 	samples func(a, b []uint8, sampleS float64, cfg decode.ClockedCfg) decode.Result,
 	edges func(a, b *decode.EdgeLine, sampleS float64, cfg decode.ClockedCfg) decode.Result,
@@ -245,21 +245,21 @@ func clockedDecoder(id int, name string,
 }
 
 // irCfg is a request's threshold as the infrared decoders take it.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func irCfg(p SerialParams) decode.IRCfg {
 	return decode.IRCfg{Threshold: p.Threshold, HaveThr: p.HaveThr}
 }
 
 // lineCfgFixed is lineCfg for a decoder that measures its own rate.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func lineCfgFixed(p SerialParams) decode.LineCfg { return lineCfg(p, false) }
 
 // lineCfgRate is lineCfg for a decoder that takes the request's rate.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func lineCfgRate(p SerialParams) decode.LineCfg { return lineCfg(p, true) }
 
 // clockedCfg is a request's two thresholds as the clocked decoders take them.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func clockedCfg(p SerialParams) decode.ClockedCfg {
 	return decode.ClockedCfg{Threshold: p.Threshold, HaveThr: p.HaveThr, ThresholdB: p.ThresholdB, HaveThrB: p.HaveThrB}
 }
@@ -268,7 +268,7 @@ func clockedCfg(p SerialParams) decode.ClockedCfg {
 // first thirty take them: Bits their sub-protocol, Baud the rate they would
 // otherwise measure where rate says the decoder takes one (DCF77's scale,
 // a Miller, EM4100 or SDQ bit rate, a reader's field frequency).
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func lineCfg(p SerialParams, rate bool) decode.LineCfg {
 	c := decode.LineCfg{Threshold: p.Threshold, HaveThr: p.HaveThr, Variant: p.Bits}
 	if rate {
@@ -281,7 +281,7 @@ func lineCfg(p SerialParams, rate bool) decode.LineCfg {
 // I2C: PS/2, SWD and MDIO (clock and data), Wiegand (D0 and D1), a
 // quadrature encoder (A and B), a stepper (STEP and DIR), an SD card's CLK
 // and CMD, PDI, cJTAG, Maple (SDCKA and SDCKB) and calipers.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func ClockedTwoLine(proto int) bool {
 	switch proto {
 	case SerPS2, SerSWD, SerMDIO, SerWiegand, SerQuad, SerStepper, SerSDCard, SerPDI, SerCJTAG, SerMaple, SerCaliper:

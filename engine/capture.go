@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// TRLC-LINKS: REQ-SDS-040
+// TRLC-LINKS: REQ-DSO-040
 func RoundQ8(x uint16) uint8 {
 	v := min((uint32(x)+128)>>8, 255)
 	return uint8(v)
@@ -17,7 +17,7 @@ func RoundQ8(x uint16) uint8 {
 // larger than needed (a deep stopped record's, under live frames again) is
 // let go: the frame slots kept a 1 M-sample record's Q8.8 codes for good,
 // and with the other held copies the heap sat at the memory limit.
-// TRLC-LINKS: REQ-SDS-040
+// TRLC-LINKS: REQ-DSO-040
 func QBuffer(q []uint16, n int) []uint16 {
 	if cap(q) < n || cap(q) >= 1<<18 && cap(q) > 4*n {
 		return make([]uint16, n)
@@ -29,7 +29,7 @@ func QBuffer(q []uint16, n int) []uint16 {
 // stopped scope's SINGLE served at once), waited past autoWait, and the
 // hardware not triggered - a triggered record only fills its post-trigger
 // part, which at slow timebases outlasts the wait (10ms/div: 135 ms).
-// TRLC-LINKS: REQ-SDS-010, REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-010, REQ-DSO-011
 func AutoForceDue(norm, running, triggered bool, waited, autoWait time.Duration) bool {
 	return (!norm || !running) && !triggered && waited >= autoWait
 }
@@ -39,7 +39,7 @@ func AutoForceDue(norm, running, triggered bool, waited, autoWait time.Duration)
 // trigger are still due, longer for one that goes on waiting (a slow or
 // NORMAL trigger, a serial match). Each poll is a bus read on the worker;
 // a capture past 10 ms is seen at most 2 ms later.
-// TRLC-LINKS: REQ-SDS-010, REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-010, REQ-DSO-011
 func StatusPollWait(waited time.Duration) time.Duration {
 	if waited < 10*time.Millisecond {
 		return time.Millisecond
@@ -59,7 +59,7 @@ type ChScale struct{ Vdiv, Off float64 }
 // RescaleCodes re-expresses codes captured at one scale at another, so every
 // consumer that reads them at the live V/div and offset sees the captured
 // volts. Codes that leave the 8-bit range clip, as on the screen.
-// TRLC-LINKS: REQ-SDS-015, REQ-SDS-040
+// TRLC-LINKS: REQ-DSO-015, REQ-DSO-040
 func RescaleCodes(c []uint8, q []uint16, from, to ChScale) {
 	if !(from.Vdiv > 0) || !(to.Vdiv > 0) {
 		return

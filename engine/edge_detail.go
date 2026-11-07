@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -12,7 +12,7 @@ import (
 // trigger channel's envelope - unordered (min, max) pairs - comes back from
 // the level the trigger edge went to: the next edge the other way. -1 when the
 // window has none.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func OppositeEdgeBucket(pairs []uint8, trig int, rising bool) int {
 	n := len(pairs) / 2
 	if trig < 0 || trig >= n {
@@ -52,7 +52,7 @@ func OppositeEdgeBucket(pairs []uint8, trig int, rising bool) int {
 // which way the line goes there. A serial, pulse or video trigger points at no
 // edge of the trigger's own direction (a UART match ends in its stop bit), so
 // the edge windows go to the nearest edges instead. -1 when there is none.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func NearestEdgeBucket(pairs []uint8, trig int) (int, bool) {
 	n := len(pairs) / 2
 	if trig < 0 || trig >= n {
@@ -109,7 +109,7 @@ func NearestEdgeBucket(pairs []uint8, trig int) (int, bool) {
 
 // EdgeRead numbers the read frame f's edge windows come from (0: none):
 // they are carried to the frames between reads.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func EdgeRead(f *sample.Frame) uint64 {
 	for _, r := range [2]sample.Role{sample.Edge, sample.EdgeOpp} {
 		if d := f.Detail(r); d != nil {

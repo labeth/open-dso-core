@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package engine
 
@@ -8,7 +8,7 @@ import (
 )
 
 // TrigType selects the discrimination pipeline.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 type TrigType int
 
 // The trigger types (SetTrigType).
@@ -30,7 +30,7 @@ const (
 )
 
 // TrigParams is the staged qualifier parameter set (command mutex).
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 type TrigParams struct {
 	Typ TrigType
 
@@ -50,7 +50,7 @@ type TrigParams struct {
 	VideoNeg  bool
 }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func DefaultTrigParams() TrigParams {
 	return TrigParams{
 		Typ:          TrigEdge,
@@ -60,7 +60,7 @@ func DefaultTrigParams() TrigParams {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func condOK(m, lo, hi float64, cond int) bool {
 	switch cond {
 	case CondLess:
@@ -82,15 +82,15 @@ func condOK(m, lo, hi float64, cond int) bool {
 type AnchorSpan struct{ Target, Lo, Hi int }
 
 // centreAnchor is the band pipeline's rule: nearest the frame centre, anywhere.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func centreAnchor(n int) AnchorSpan { return AnchorSpan{Target: n / 2, Lo: 0, Hi: n} }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func (a AnchorSpan) holds(i int) bool { return i >= a.Lo && i <= a.Hi }
 
 // closer reports whether i is an allowed anchor nearer the target than best,
 // and if so records its distance in best.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func (a AnchorSpan) closer(i int, best *int) bool {
 	if !a.holds(i) {
 		return false
@@ -111,7 +111,7 @@ func (a AnchorSpan) closer(i int, best *int) bool {
 const FlatRejectSpan = 40
 
 // CrossFrac interpolates the sub-sample position of a crossing at index c.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func CrossFrac(disc []uint8, c, lvl int) float64 {
 	a, b := int(disc[c-1]), int(disc[c])
 	frac := 0.0
@@ -128,12 +128,12 @@ func CrossFrac(disc []uint8, c, lvl int) float64 {
 // level between a rising entry and the next falling exit); false mirrored.
 // The anchor is the COMPLETING edge of the qualifying pulse nearest the
 // frame centre — only when the pulse completes is its width known.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func QualifyPulse(disc []uint8, intervalNs float64, p TrigParams, rising bool) float64 {
 	return QualifyPulseAt(disc, intervalNs, p, rising, centreAnchor(len(disc)))
 }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func QualifyPulseAt(disc []uint8, intervalNs float64, p TrigParams, rising bool, at AnchorSpan) float64 {
 	n := len(disc)
 	mn, _, span := Ptp(disc)
@@ -176,12 +176,12 @@ func QualifyPulseAt(disc []uint8, intervalNs float64, p TrigParams, rising bool,
 // QualifySlope (spec 05: SLEW): a monotone lo→hi (rising) or hi→lo
 // (falling) traversal whose time qualifies. Anchor = the second-threshold
 // crossing nearest the frame centre.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func QualifySlope(disc []uint8, intervalNs float64, p TrigParams, rising bool) float64 {
 	return qualifySlopeAt(disc, intervalNs, p, rising, centreAnchor(len(disc)))
 }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func qualifySlopeAt(disc []uint8, intervalNs float64, p TrigParams, rising bool, at AnchorSpan) float64 {
 	n := len(disc)
 	mn, _, span := Ptp(disc)
@@ -244,7 +244,7 @@ const (
 
 // videoSyncWidthOK reports whether the sync pulse entered at c leaves the
 // sync region after a line sync's width.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func videoSyncWidthOK(disc []uint8, c, syncLvl int, neg bool, intervalNs float64) bool {
 	for k := c + 1; k < len(disc); k++ {
 		a, b := int(disc[k-1]), int(disc[k])
@@ -267,7 +267,7 @@ func videoSyncWidthOK(disc []uint8, c, syncLvl int, neg bool, intervalNs float64
 // crossings sit up to 2*(hi-lo) intervals apart. Counting samples times every
 // fast edge at 0 or one interval (SLOPE > 1 us would fire on ns edges at
 // 500 us/div, 4.86 us samples). A slow ramp reads short by that allowance.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func slopeTimeNs(disc []uint8, c, first, k, second int, p TrigParams, intervalNs float64) float64 {
 	d := math.Abs(CrossFrac(disc, k, second) - CrossFrac(disc, c, first))
 	return math.Max(0, d-2*math.Abs(p.SlopeHiFrac-p.SlopeLoFrac)) * intervalNs
@@ -278,12 +278,12 @@ func slopeTimeNs(disc []uint8, c, first, k, second int, p TrigParams, intervalNs
 // the selected line's sync edge. Only all-lines (line=0) and line-N exist;
 // odd/even field discrimination is NOT implementable here (needs a full
 // video frame in the record) and must never silently mis-trigger.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func QualifyVideo(disc []uint8, intervalNs float64, p TrigParams) float64 {
 	return qualifyVideoAt(disc, intervalNs, p, centreAnchor(len(disc)))
 }
 
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func qualifyVideoAt(disc []uint8, intervalNs float64, p TrigParams, at AnchorSpan) float64 {
 	n := len(disc)
 	mn, mx, span := Ptp(disc)
@@ -353,7 +353,7 @@ type TrigQual struct {
 }
 
 // QualOf is the reported view of trigger parameters.
-// TRLC-LINKS: REQ-SDS-127
+// TRLC-LINKS: REQ-DSO-127
 func QualOf(p TrigParams) TrigQual {
 	return TrigQual{VideoStd: p.VideoStd, VideoLine: p.VideoLine, VideoNeg: p.VideoNeg, PulseLvl: p.PulseLvlFrac, PulseMinNs: p.PulseWMinNs, PulseMaxNs: p.PulseWMaxNs, PulseCond: p.PulseCond, SlopeLo: p.SlopeLoFrac, SlopeHi: p.SlopeHiFrac, SlopeMinNs: p.SlopeTMinNs, SlopeMaxNs: p.SlopeTMaxNs, SlopeCond: p.SlopeCond}
 }
@@ -362,7 +362,7 @@ func QualOf(p TrigParams) TrigQual {
 // they came: an inverted pair (W max under W min, slope High under Low, from
 // the web or SCPI) would never trigger. A zero limit is "unset"
 // (e.g. T max under "<min") and is left where it is.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func OrderPair(lo, hi float64) (float64, float64) {
 	if lo > hi && hi > 0 {
 		return hi, lo
@@ -371,7 +371,7 @@ func OrderPair(lo, hi float64) (float64, float64) {
 }
 
 // ClampFrac clamps a level fraction to [0, 1].
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func ClampFrac(f float64) float64 {
 	if f < 0 {
 		return 0
