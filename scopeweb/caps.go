@@ -41,7 +41,7 @@ func (s *Scope) capsDoc() wire.Caps {
 	st := s.state()
 	n := p.Channels
 	c := wire.Caps{
-		Identity: wire.Identity{Vendor: p.Identity.Vendor, Model: p.Identity.Model, Firmware: s.cfg.Version, Stage: p.Stage},
+		Identity: wire.Identity{Vendor: p.Identity.Vendor, Model: p.Identity.Model, Product: s.cfg.Product, Firmware: s.cfg.Version, Stage: p.Stage},
 	}
 	if !s.v1Wire() {
 		c.Wire.Frame = []int{2}

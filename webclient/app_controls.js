@@ -238,7 +238,7 @@ $("eCSV").onclick = () => {
   // negative) when the frame places one; it started at the left edge.
   const t0 = frame.edge_frac >= 0 ? frame.edge_frac * N * dt : 0;
   const invd = cols.filter((c) => c.inv).map((c) => "c" + c.k);
-  rows[0] = "# open-sds1000cml capture seq=" + frame.seq +
+  rows[0] = "# " + scopeName() + " capture seq=" + frame.seq +
     " tdiv_s=" + (frame.tdiv_s || 0) + cols.map((c) => " probe_c" + c.k + "=" + (st ? st["probe" + c.k] || 1 : 1)).join("") +
     (frame.edge_frac >= 0 ? " t0=trigger" : " t0=first_point") +
     (frame.peak_detect ? " peak_detect=1_rows_alternate_bucket_min_max" : "") +
@@ -286,7 +286,7 @@ $("eSR").onclick = () => {
 // TRLC-LINKS: REQ-DSO-069
 $("eVCD").onclick = () => {
   const s = sigrokSeries(frame, exportInvert());
-  if (s) exportFile(exportName(s.seq, "vcd"), "text/plain", sigrokVCD(s));
+  if (s) exportFile(exportName(s.seq, "vcd"), "text/plain", sigrokVCD(s, scopeName()));
 };
 // TRLC-LINKS: REQ-DSO-069
 $("eWAV").onclick = () => {

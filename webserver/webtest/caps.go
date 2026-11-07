@@ -89,7 +89,7 @@ func Caps2x8() wire.Caps {
 // TRLC-LINKS: REQ-DSO-164
 func Caps4x12() wire.Caps {
 	c := Caps2x8()
-	c.Identity = wire.Identity{Model: "fake four-channel 12-bit"}
+	c.Identity = wire.Identity{Model: "fake four-channel 12-bit", Product: "fake firmware"}
 	c.Channels = []wire.CapsChannel{
 		{Ch: 0, Name: "C1", Color: "c1"},
 		{Ch: 1, Name: "C2", Color: "c2"},
