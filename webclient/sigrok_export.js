@@ -101,25 +101,29 @@ function sigrokZip(entries) {
 // trimmed; interior gaps (unfilled superres bins) stay NaN and each encoder
 // documents its own gap policy. Returns null when there is nothing to
 // export (no frame, envelope/roll frame, no time base, all margin).
-// inv (optional, [CH1, CH2]): channels displayed inverted (Cn:INVS) export
+// inv (optional, [CH1, CH2, …]): channels displayed inverted (Cn:INVS) export
 // as shown, their volts negated as the measurements negate them; the
-// series names them (inverted) for the encoders' headers.
+// series names them (inverted) for the encoders' headers. Every channel the
+// frame carries (c1…cN) of the first one's length is exported, CH<n> in
+// channel order.
 // TRLC-LINKS: REQ-SDS-069
 function sigrokSeries(frame, inv) {
-  if (!frame || !frame.c1 || !frame.c1.length) return null;
-  const n = frame.c1.length;
+  const nums = frame ? Object.keys(frame).map((k) => /^c(\d+)$/.exec(k)).filter(Boolean).map((m) => +m[1])
+    .filter((k) => frame["c" + k] && frame["c" + k].length).sort((x, y) => x - y) : [];
+  if (!nums.length) return null;
+  const n = frame["c" + nums[0]].length;
   const dt = frame.dt_s > 0 ? frame.dt_s : (frame.col_span_s || 0) / n;
   if (!(dt > 0 && isFinite(dt))) return null;
-  const chans = [["CH1", frame.c1, frame.vpc1 || 1 / 25, frame.off1_v || 0]];
-  if (frame.c2 && frame.c2.length === n) chans.push(["CH2", frame.c2, frame.vpc2 || 1 / 25, frame.off2_v || 0]);
+  const chans = nums.filter((k) => frame["c" + k].length === n)
+    .map((k) => ["CH" + k, frame["c" + k], frame["vpc" + k] || 1 / 25, frame["off" + k + "_v"] || 0, k]);
   // A peak-detect frame holds (min, max) per bucket, not samples in time
   // order: its falling-edge buckets read high-low-high-low, a false pulse at
   // every edge for PulseView's decoders. Export the bucket midpoints instead,
   // one per bucket, at the bucket interval.
   const pd = !!frame.peak_detect;
   const m = pd ? n >> 1 : n;
-  const ch = chans.map(([name, codes, vpc, off], k) => {
-    const sign = inv && inv[k] ? -1 : 1;
+  const ch = chans.map(([name, codes, vpc, off, num]) => {
+    const sign = inv && inv[num - 1] ? -1 : 1;
     const v = new Float64Array(m);
     for (let i = 0; i < m; i++) {
       const a = pd ? codes[2 * i] : codes[i], b = pd ? codes[2 * i + 1] : a;
