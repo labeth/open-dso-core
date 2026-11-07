@@ -58,6 +58,15 @@ type Panel interface {
 // TRLC-LINKS: REQ-DSO-089
 func chIn(ch, n int) int { return (ch%n + n) % n }
 
+// channelsOrTwo is channelsOf, two without a front end.
+// TRLC-LINKS: REQ-DSO-089
+func channelsOrTwo(fe Analog) int {
+	if fe == nil {
+		return 2
+	}
+	return channelsOf(fe)
+}
+
 // channelsOf is the channels fe has, at least 2 and at most MaxChannels.
 // TRLC-LINKS: REQ-DSO-089
 func channelsOf(fe Analog) int {
@@ -109,10 +118,7 @@ func Collect(eng Engine, fe Analog, pc Panel, ext Extension) Settings {
 		s.Ch[0].OffsetSet = st.OffC1 != 0
 		s.Ch[1].OffsetSet = st.OffC2 != 0
 		if _, ok := eng.(interface{ SetBodeMode(bool, int, int) }); ok {
-			n := 2
-			if fe != nil {
-				n = channelsOf(fe)
-			}
+			n := channelsOrTwo(fe)
 			s.Bode = Bode{Set: true, Ref: chIn(st.BodeRef, n), Dut: chIn(st.BodeDut, n)}
 		}
 	}
@@ -178,10 +184,7 @@ func Apply(s Settings, eng Engine, fe Analog, pc Panel, ext Extension, logf func
 		applyChannels(s, fe, logf)
 	}
 	if b, ok := eng.(interface{ SetBodeMode(bool, int, int) }); ok && s.Bode.Set {
-		n := 2
-		if fe != nil {
-			n = channelsOf(fe)
-		}
+		n := channelsOrTwo(fe)
 		ref, dut := chIn(s.Bode.Ref, n), chIn(s.Bode.Dut, n)
 		if ref == dut {
 			dut = chIn(ref+1, n)

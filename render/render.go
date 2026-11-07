@@ -1219,10 +1219,6 @@ func absI(x int) int {
 	return x
 }
 
-// shownChans is C1's and C2's display enable (shown).
-// TRLC-LINKS: REQ-DSO-021
-func (h HUD) shownChans() (bool, bool) { return h.shown(0), h.shown(1) }
-
 // numChans is how many channels the HUD describes, C1 at least.
 // TRLC-LINKS: REQ-DSO-021
 func (h HUD) numChans() int { return min(max(h.NumChans, 1), MaxChans) }

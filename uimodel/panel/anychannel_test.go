@@ -119,7 +119,6 @@ func TestReferencesRoundTripTheirStore(t *testing.T) {
 	}
 }
 
-
 // The mask's tolerance and autoset's clip window are fractions of a
 // division: the 8-bit converter's numbers at 25 codes, scaled at 30.
 // TRLC-LINKS: REQ-DSO-139, REQ-DSO-225

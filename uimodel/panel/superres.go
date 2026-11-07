@@ -631,7 +631,7 @@ func srFrameCopy(f *sample.Frame, v int, lanes [2]int, b1, b2 []uint8) (c1, c2 [
 	a, b := f.Codes8(lanes[0]), f.Codes8(lanes[1])
 	switch {
 	case len(a) >= v && len(b) >= v:
-		return append(b1[:0], a[:v]...), append(b2[:0], b[:v]...) //nolint:gocritic // appendAssign: the caller's reused buffers, their copies returned
+		return append(b1[:0], a[:v]...), append(b2[:0], b[:v]...)
 	case len(a) >= v:
 		c1 = append(b1[:0], a[:v]...) //nolint:gocritic // appendAssign: b1 is the caller's reused buffer, its copy returned as c1
 		return c1, c1

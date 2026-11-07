@@ -483,22 +483,19 @@ type Inverter interface {
 	SetInverted(ch int, on bool)
 }
 
-// Inverter2 is a two-channel display invert (C1 and C2's states as a pair)
-// as an Inverter.
-// TRLC-LINKS: REQ-DSO-212
-func Inverter2(i interface {
+// PairInverter is a two-channel display invert: C1 and C2's states as a
+// pair.
+type PairInverter interface {
 	Inverted() [2]bool
 	SetInverted(ch int, on bool)
-}) Inverter {
-	return inverter2{i}
 }
 
-type inverter2 struct {
-	i interface {
-		Inverted() [2]bool
-		SetInverted(ch int, on bool)
-	}
-}
+// Inverter2 is a two-channel display invert as an Inverter.
+// TRLC-LINKS: REQ-DSO-212
+func Inverter2(i PairInverter) Inverter { return inverter2{i} }
+
+// inverter2 is Inverter2's Inverter.
+type inverter2 struct{ i PairInverter }
 
 // TRLC-LINKS: REQ-DSO-212
 func (v inverter2) IsInverted(ch int) bool { return ch >= 0 && ch < 2 && v.i.Inverted()[ch] }
