@@ -296,9 +296,9 @@ func sleep(ctx context.Context, d time.Duration) {
 }
 
 // still is what must hold still between two polls for the panel to have
-// settled.
+// settled. The sheet values' count is not in it: an open MEAS tab's live
+// readings move it with every frame.
 type still struct {
-	sheets                      uint64
 	ws, view, mode, tab, row    string
 	autoset, detecting, running bool
 }
@@ -324,7 +324,7 @@ func (t *Target) settle(ctx context.Context, maxWait time.Duration) error {
 		var cur still
 		if p := st.Panel; p != nil {
 			cur = still{
-				sheets: p.SheetsSeq, ws: p.WorkspaceID, view: p.View, mode: p.Mode, tab: p.Sheet.Tab,
+				ws: p.WorkspaceID, view: p.View, mode: p.Mode, tab: p.Sheet.Tab,
 				autoset: p.AutosetBusy || p.Display.AutosetBusy, detecting: p.Display.DecDetecting,
 			}
 			if p.Sheet.Row != nil {

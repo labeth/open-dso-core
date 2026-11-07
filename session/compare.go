@@ -176,15 +176,15 @@ func (c *Checkpoint) toleranceOf(f string) Tolerance {
 
 // compared are the fields of checkpoint c compared over snapshots ss:
 // the named ones (or DefaultFields) that any snapshot has, plus every
-// field with a tolerance or an expectation.
+// field with an expectation. A tolerance only says how a compared field
+// compares; it does not add fields.
 // TRLC-LINKS: REQ-DSO-295
 func (c *Checkpoint) compared(ss ...Snapshot) []string {
 	names := c.Fields
 	if len(names) == 0 {
 		names = DefaultFields
 	}
-	names = append(slices.Clone(names), slices.Collect(maps.Keys(c.Tol))...)
-	names = append(names, slices.Collect(maps.Keys(c.Expect))...)
+	names = append(slices.Clone(names), slices.Collect(maps.Keys(c.Expect))...)
 	set := map[string]bool{}
 	for _, n := range names {
 		if !strings.HasSuffix(n, ".") {
