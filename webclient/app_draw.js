@@ -491,7 +491,9 @@ function drawYT(g) {
     // the channels drawn last first, so C1 lies on top
     const shown = chanNums().reverse().filter((n) => view["c" + n]);
     // TRLC-LINKS: REQ-SDS-071
-    const zoom = (n) => st ? st["zoom" + n] : 1, inv = (n) => !!(st && st["inv" + n]);
+    const zoom = (n) => st ? st["zoom" + n] : 1;
+    // TRLC-LINKS: REQ-SDS-071
+    const inv = (n) => !!(st && st["inv" + n]);
     if (frame.is_env) {
       for (const n of shown) drawEnv(g, frame["e" + n + "min"], frame["e" + n + "max"], chanColor(n), zoom(n), inv(n));
     } else if (viewCovers(frame)) {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // The page's parts that follow a scope of more channels than two, run over
 // a four-channel scope: SOUND names its lanes from the stream's scales, BUS
 // Visual reads a record of any channels, a reference holds every channel it
@@ -56,7 +56,12 @@ function ctx(extra) {
     return b.buffer.slice(b.byteOffset, b.byteOffset + b.length);
   };
   for (const [h, want] of [[{ n: 2, sample_s: 1e-6 }, { c1: [0, 1], c2: [2, 3] }], [{ n: 2, sample_s: 1e-6, chans: [0, 2, 3] }, { c1: [0, 1], c3: [2, 3], c4: [4, 5] }]]) {
-    const c = ctx({ fetch: async () => ({ ok: true, arrayBuffer: async () => rec(h, 6) }) });
+    const c = ctx({
+      fetch: async () => ({
+        ok: true,
+        arrayBuffer: async () => rec(h, 6),
+      }),
+    });
     vm.runInContext(fn(va, "visFetchRecord"), c);
     c.visFetchRecord(1e-6).then((r) => {
       for (const [k, v] of Object.entries(want)) assert.deepEqual(json(r[k]), v, "record " + k);
@@ -67,7 +72,11 @@ function ctx(extra) {
 // references: every channel the export holds, each with its own scale
 {
   const cmp = src("app_compare.js");
-  const c = ctx({ refs: { A: null, B: null }, updateRefRows() {}, redraw() {} });
+  const c = ctx({
+    refs: { A: null, B: null },
+    updateRefRows() {},
+    redraw() {},
+  });
   vm.runInContext(fn(cmp, "refKeys") + fn(cmp, "refChans") + fn(cmp, "loadScopeRef"), c);
   c.loadScopeRef("A", { has: true, gen: 1, cols: 2, c1: [100, 101], c3: [120, 121], c4: [130, 131], vdiv: [1, 1, 0.5, 2], off: [0, 0, 0.1, 0], probe: [1, 1, 1, 1], tdiv_s: 1e-6, pos_frac: 0.5 });
   const r = c.refs.A;
@@ -104,7 +113,18 @@ function ctx(extra) {
 // trigger level: volts by the source's channel where caps list the control
 {
   const sent = [];
-  const c = ctx({ fetch: async (u, o) => { sent.push(o.body); return { json: async () => ({ ok: true }) }; }, autosetBusy: false, kickStatus() {}, toast() {}, st: { trig_source: 2 } });
+  const c = ctx({
+    fetch: async (u, o) => {
+      sent.push(o.body);
+      return {
+        json: async () => ({ ok: true }),
+      };
+    },
+    autosetBusy: false,
+    kickStatus() {},
+    toast() {},
+    st: { trig_source: 2 },
+  });
   const ctl = src("app_controls.js");
   vm.runInContext(fn(ctl, "sendBody") + fn(ctl, "sendTrigLevel"), c);
   vm.runInContext('caps = capsNormalize({ channels: caps.channels, trigger: { sources: ["C1", "C2", "C3", "C4"] }, controls: [{ name: "triglevel", unit: "V" }] });', c);
