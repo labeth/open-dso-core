@@ -1,0 +1,114 @@
+// ENGMODEL-OWNER-UNIT: FU-DSO-SCOPEAPP
+
+package scopeapp
+
+import (
+	"testing"
+	"time"
+
+	"github.com/labeth/open-dso-core/instrument"
+)
+
+// With a web page showing the scope the engine comes first: under its rate
+// on a busy core the display's period grows, to 20 Hz, then the spectrum
+// hold, to a 20th of a second; with room or the core waiting the hold goes
+// first, then the period comes back to the panel's 52 Hz. A display still
+// under 20 pictures a second paces the engine (to 20 frames a second at
+// most) while it falls behind the frames it is given, and stops pacing it
+// once over 21 or keeping up.
+// TRLC-LINKS: REQ-DSO-168
+func TestDisplayGovPage(t *testing.T) {
+	run := func(fps float64) instrument.Stats { return instrument.Stats{Running: true, FPS: fps} }
+	g := newDisplayGov()
+	for range 200 {
+		g.step(run(55), 25, 0.99, true, true)
+	}
+	if g.period != slowestPeriod || g.hold != longestHold || g.pace != 0 {
+		t.Fatalf("slow engine, busy core, display at 25: %+v", *g)
+	}
+	for range 200 {
+		g.step(run(55), 15, 0.99, true, true)
+	}
+	if g.pace != longestPace {
+		t.Fatalf("display under 20: pace %v, want %v", g.pace, longestPace)
+	}
+	for range 200 {
+		g.step(run(20), 19, 0.99, true, true)
+	}
+	if g.pace != 0 {
+		t.Fatalf("display keeping up with a paced engine: pace %v, want 0", g.pace)
+	}
+	for range 200 {
+		g.step(run(70), 40, 0.95, true, true)
+	}
+	if g.period != panelPeriod || g.hold != 0 || g.pace != 0 {
+		t.Fatalf("engine with room: %+v", *g)
+	}
+	for range 200 {
+		g.step(run(31), 31, 0.70, true, true)
+	}
+	if g.period != panelPeriod || g.hold != 0 {
+		t.Fatalf("engine waiting on its records: %+v", *g)
+	}
+	for range 200 {
+		g.step(run(55), 0, 0.99, true, true)
+	}
+	g.step(run(55), 0, 0.99, true, false)
+	if g.pace != 0 {
+		t.Fatalf("the screen asleep: pace %v, want 0", g.pace)
+	}
+	g.step(instrument.Stats{}, 0, 1, true, true)
+	if *g != (displayGov{period: panelPeriod}) {
+		t.Fatalf("stopped: %+v", *g)
+	}
+	if slowestPeriod > time.Second/20 || longestHold > time.Second/20 || longestPace > time.Second/20 {
+		t.Fatalf("governed below 20 Hz: %v %v %v", slowestPeriod, longestHold, longestPace)
+	}
+}
+
+// With no page the display runs at the panel's rate, a new spectrum each
+// picture; while it falls behind the engine's frames on a busy core the
+// engine is paced (to 20 frames a second at most), and the pace comes off
+// once the display keeps up.
+// TRLC-LINKS: REQ-DSO-168
+func TestDisplayGovNoPage(t *testing.T) {
+	run := func(fps float64) instrument.Stats { return instrument.Stats{Running: true, FPS: fps} }
+	g := &displayGov{period: slowestPeriod, hold: longestHold}
+	g.step(run(50), 48, 0.99, false, true)
+	if g.period != panelPeriod || g.hold != 0 {
+		t.Fatalf("no page: %+v", *g)
+	}
+	for range 200 {
+		g.step(run(40), 20, 0.99, false, true)
+	}
+	if g.pace != longestPace {
+		t.Fatalf("display behind a busy engine: pace %v, want %v", g.pace, longestPace)
+	}
+	for range 200 {
+		g.step(run(45), 45, 0.99, false, true)
+	}
+	if g.pace != 0 {
+		t.Fatalf("display keeping up: pace %v, want 0", g.pace)
+	}
+	for range 200 {
+		g.step(run(60), 0, 0.99, false, false)
+	}
+	if g.pace != 0 {
+		t.Fatalf("screen off or saver: pace %v, want 0 (it draws nothing on purpose)", g.pace)
+	}
+}
+
+// cpuTimes reads /proc/stat's first line: every time summed, idle and
+// iowait apart; anything else is refused.
+// TRLC-LINKS: REQ-DSO-168
+func TestCPUTimes(t *testing.T) {
+	total, idle, ok := cpuTimes([]byte("cpu  100 2 30 400 5 6 7 0 0 0\ncpu0 100 2 30 400 5 6 7 0 0 0\n"))
+	if !ok || total != 550 || idle != 405 {
+		t.Fatalf("total %d idle %d ok %v, want 550 405 true", total, idle, ok)
+	}
+	for _, bad := range []string{"", "intr 1 2 3", "cpu  1 2\n"} {
+		if _, _, ok := cpuTimes([]byte(bad)); ok {
+			t.Fatalf("%q read as cpu times", bad)
+		}
+	}
+}

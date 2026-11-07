@@ -857,6 +857,14 @@ func (f framebuffer) Present() error {
 	return nil
 }
 
+// Presents is how many times the framebuffer was presented.
+// TRLC-LINKS: REQ-DSO-1001
+func (b *Board) Presents() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.presents
+}
+
 type input struct{ b *Board }
 
 // TRLC-LINKS: REQ-DSO-1001
