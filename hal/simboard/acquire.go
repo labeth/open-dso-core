@@ -53,19 +53,27 @@ type geometry struct {
 	sampleS float64 // between record samples
 	win     int     // record samples across the screen
 	k0      int     // the trigger's sample within the screen
+	first   int64   // the record's first sample, from the trigger
+	n       int     // the record's samples
 	pre     float64 // seconds the record holds before the trigger
 	post    float64 // seconds after it
 }
 
 // geometryOf is p's screen in its record: the screen centre DelayS after
-// the trigger, the trigger on a sample.
+// the trigger, the trigger on a sample, the record's samples beyond the
+// screen split evenly before and after it, its pretrigger room before.
 // TRLC-LINKS: REQ-DSO-1001
 func geometryOf(p hal.Plan) geometry {
 	g := geometry{sampleS: p.SampleS, win: max(p.WinSamples, 1)}
 	half := float64(g.win) * g.sampleS / 2
 	g.k0 = int(math.Round((half - p.Request.DelayS) / g.sampleS))
-	g.pre = max(float64(g.k0)*g.sampleS, 0) + float64(p.Request.PretrigRoom)*g.sampleS
-	g.post = max(float64(g.win-g.k0)*g.sampleS, 0)
+	room := max(p.Request.PretrigRoom, 0)
+	g.n = max(p.Depth, g.win+room)
+	extra := g.n - g.win - room
+	before := int64(g.k0 + extra/2 + room)
+	g.first = -before
+	g.pre = max(float64(before), 0) * g.sampleS
+	g.post = max(float64(int64(g.n)-before), 0) * g.sampleS
 	return g
 }
 
@@ -124,7 +132,13 @@ func (p planner) Plan(r hal.Request) (hal.Plan, error) {
 			plan.Content = sample.ContentSetOf(sample.PeakPairs)
 		}
 	}
+	// A full-rate record holds the depth, beyond the screen when the screen
+	// takes fewer samples (a scope's record is no shorter at a fast
+	// timebase); a decimated one spans the screen.
 	plan.Depth = plan.WinSamples + max(r.PretrigRoom, 0)
+	if plan.AcqDecim == 1 {
+		plan.Depth = max(plan.Depth, depth)
+	}
 	if plan.Depth > prof.MaxDepth {
 		return hal.Plan{}, hal.Refuse("record", fmt.Sprintf("%d samples do not fit the %d-sample record", plan.Depth, prof.MaxDepth))
 	}

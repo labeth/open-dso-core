@@ -23,7 +23,7 @@ func (r readout) Limits() hal.ReadLimits {
 }
 
 // Read samples each window of the stored record from the generator at the
-// record's instants: a Span of 0 is the screen. Full-rate windows deliver
+// record's instants: a Span of 0 is the whole record. Full-rate windows deliver
 // every sample, decimated ones pick, peak-detect ones take each bucket's
 // extremes.
 // TRLC-LINKS: REQ-DSO-1001
@@ -84,7 +84,7 @@ func (r readout) Export(ctx context.Context, rec hal.RecordID, ch int, dst *samp
 	}
 	g := geometryOf(stored.set.plan)
 	f := &sample.Frame{}
-	w := hal.Window{Role: hal.Main, Channels: []int{ch}, StartSample: -int64(g.k0), Span: int64(g.win), Want: sample.RawDecimated}
+	w := hal.Window{Role: hal.Main, Channels: []int{ch}, StartSample: g.first, Span: int64(g.n), Want: sample.RawDecimated}
 	if stored.set.plan.AcqDecim == 1 {
 		w.Want = sample.RawFullRate
 	}
@@ -117,13 +117,12 @@ func (b *Board) fill(w hal.Window, rec record, f *sample.Frame) error {
 	if !plan.Content.Has(want) {
 		return hal.Refuse(want.String(), fmt.Sprintf("the record at this time/div holds %v", plan.Content))
 	}
-	start, span := -int64(g.k0), int64(g.win)
+	start, span := g.first, int64(g.n)
 	if w.Span > 0 {
 		start, span = w.StartSample, w.Span
 	}
-	first := -int64(math.Round(g.pre / g.sampleS))
-	last := int64(math.Round(g.post / g.sampleS))
-	if start < first || start+span > last+1 {
+	first, last := g.first, g.first+int64(g.n)
+	if start < first || start+span > last {
 		return hal.Refuse("readout window", fmt.Sprintf("samples %d…%d from the trigger lie outside the record (%d…%d)", start, start+span, first, last))
 	}
 	points := w.Points

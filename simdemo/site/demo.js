@@ -31,7 +31,7 @@ let site = { mode: 'wasm', ui: 'ui/' };
 let demo = {};
 let channels = 2;
 const inputs = () => Array.from({ length: channels }, (_, i) => `C${i + 1}`);
-const stats = { t0: performance.now(), loadMs: 0, frames: 0, fpsAt: performance.now(), fps: 0, firstFrameMs: 0 };
+const stats = { t0: performance.now(), loadMs: 0, frames: 0, pictures: 0, fpsAt: performance.now(), fps: 0, firstFrameMs: 0 };
 window.demoStats = stats; // read by the demo's browser tests
 
 // ---------------------------------------------------------------- stores
@@ -123,6 +123,7 @@ function drawScreen(rgba, w, ht) {
     $('#screenmsg').hidden = true;
   }
   stats.frames++;
+  stats.pictures++;
 }
 
 function wireScreen() {

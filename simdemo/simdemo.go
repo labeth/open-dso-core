@@ -169,12 +169,57 @@ func Run(ctx context.Context, profileYAML []byte, d Demo, o Options) error {
 		Logf: logf, Product: product, Version: o.Version,
 		Defaults: d.Defaults, Check: check,
 		Listen: o.Listen, Serve: o.Serve,
+		Display: scopeapp.Display{Engine: pacer{b: b, period: displayPeriod(b.Profile().Budget.DisplayHz)}},
 		Started: func(env *scopeapp.Env) {
 			if o.Started != nil {
 				o.Started(b, env)
 			}
 		},
 	})
+}
+
+// pacer is what the display loop asks of the simulated acquisition: its
+// cadence, and a least time between records while the display falls
+// behind. In a browser the demo has one thread, so without it the
+// acquisition takes every turn and the screen starves.
+type pacer struct {
+	b      *simboard.Board
+	period time.Duration
+}
+
+// RenderPeriod implements scopeapp.DisplayEngine.
+// TRLC-LINKS: REQ-DSO-168
+func (p pacer) RenderPeriod() time.Duration { return p.period }
+
+// SetDisplayPace implements scopeapp.DisplayEngine.
+// TRLC-LINKS: REQ-DSO-168
+func (p pacer) SetDisplayPace(d time.Duration) { p.b.SetPace(d) }
+
+// QuietRLock implements scopeapp.DisplayEngine: the simulated acquisition
+// has no load-sensitive window.
+// TRLC-LINKS: REQ-DSO-168
+func (pacer) QuietRLock() {}
+
+// QuietRUnlock implements scopeapp.DisplayEngine.
+// TRLC-LINKS: REQ-DSO-168
+func (pacer) QuietRUnlock() {}
+
+// NoteLCDFrame implements scopeapp.DisplayEngine.
+// TRLC-LINKS: REQ-DSO-168
+func (pacer) NoteLCDFrame() {}
+
+// maxDisplayHz bounds the demo's display cadence: the page shows at most
+// this many pictures a second.
+const maxDisplayHz = 30
+
+// displayPeriod is the display's tick at the scope's fixed cadence, no
+// faster than maxDisplayHz.
+// TRLC-LINKS: REQ-DSO-168
+func displayPeriod(hz float64) time.Duration {
+	if hz <= 0 || hz > maxDisplayHz {
+		hz = maxDisplayHz
+	}
+	return time.Duration(float64(time.Second) / hz)
 }
 
 // check refuses a state no board could take.
