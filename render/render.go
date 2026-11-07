@@ -100,7 +100,7 @@ type HUD struct {
 	CurY    [2]float64
 
 	// URL is the device's control-page address ("http://<ip>:8080", from
-	// lcd.DeviceURL) shown on the top bar so a taken-over scope tells the user
+	// the board) shown on the top bar so a taken-over scope tells the user
 	// where its web UI lives. Empty (no network) renders nothing.
 	URL string
 

@@ -8,8 +8,8 @@ import (
 	"github.com/labeth/open-dso-core/design"
 )
 
-// The LCD palette: each colour is a token of the shared palette
-// (open-dso-core/design), so the LCD and the web UI cannot diverge.
+// The display palette: each colour is a token of the shared palette
+// (open-dso-core/design), so the display and the web UI cannot diverge.
 var (
 	colAxis   = tok("axis")
 	colBG     = tok("screen")
@@ -49,7 +49,7 @@ func chanColor(ch int) Color { return colChans[ch%len(colChans)] }
 // TRLC-LINKS: REQ-SDS-021
 func chanName(ch int) string { return "C" + strconv.Itoa(ch+1) }
 
-// tok is the shared palette's colour name in the LCD's RGB565. A name the
+// tok is the shared palette's colour of that name. A name the
 // palette lacks is a programming error, caught at start and by the tests.
 // TRLC-LINKS: REQ-SDS-021
 func tok(name string) Color {
