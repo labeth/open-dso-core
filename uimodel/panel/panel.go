@@ -475,11 +475,44 @@ func (c *Controller) pushShown() {
 	}
 }
 
-// Inverter is the display-level trace invert (the SCPI Cn:INVS state).
+// Inverter is the display-level trace invert (the SCPI Cn:INVS state) of
+// each channel. A scope without one has the Invert rows refused with the
+// reason (noInvert).
 type Inverter interface {
-	Inverted() [2]bool
+	IsInverted(ch int) bool
 	SetInverted(ch int, on bool)
 }
+
+// Inverter2 is a two-channel display invert (C1 and C2's states as a pair)
+// as an Inverter.
+// TRLC-LINKS: REQ-DSO-212
+func Inverter2(i interface {
+	Inverted() [2]bool
+	SetInverted(ch int, on bool)
+}) Inverter {
+	return inverter2{i}
+}
+
+type inverter2 struct {
+	i interface {
+		Inverted() [2]bool
+		SetInverted(ch int, on bool)
+	}
+}
+
+// TRLC-LINKS: REQ-DSO-212
+func (v inverter2) IsInverted(ch int) bool { return ch >= 0 && ch < 2 && v.i.Inverted()[ch] }
+
+// TRLC-LINKS: REQ-DSO-212
+func (v inverter2) SetInverted(ch int, on bool) {
+	if ch >= 0 && ch < 2 {
+		v.i.SetInverted(ch, on)
+	}
+}
+
+// noInvert is why the Invert rows are refused on a scope with no display
+// invert.
+const noInvert = "invert unavailable: this scope has no display invert"
 
 // SetInverter wires the CH tabs' Invert rows to the display invert.
 // TRLC-LINKS: REQ-DSO-212

@@ -1292,14 +1292,14 @@ func (c *Controller) measureChans() ([maxChans]*measure.Result, bool) {
 		return m, false
 	}
 	c.frameFn(func(f *sample.Frame) {
-		if f == nil || len(f.Codes8(0)) == 0 || f.Flags.Has(sample.Envelope) {
+		if f == nil || f.Codes8Len() == 0 || f.Flags.Has(sample.Envelope) {
 			return
 		}
 		ok = true
-		valid := min(max(f.Len(), 1), len(f.Codes8(0)))
+		valid := min(max(f.Len(), 1), f.Codes8Len())
 		for ch := range c.nch {
 			sig := f.Codes8(ch)
-			if ch > 0 && len(sig) < valid {
+			if len(sig) < valid {
 				continue
 			}
 			sig = sig[:valid]
@@ -1464,12 +1464,13 @@ func (c *Controller) railing(ch int) bool {
 }
 
 // Clipping (autoset steps 3c and 6): a stretch of at least clipRun samples
-// past the screen's top or bottom (more than clipMargin codes beyond the
-// eight divisions, 100 codes either side of 128): the trace pinned at the
-// ADC or the screen's edge. A ringing edge's sample or two past it is not.
+// past the screen's top or bottom (more than clipMargin divisions beyond the
+// eight divisions, four either side of the 8-bit view's centre): the trace
+// pinned at the ADC or the screen's edge. A ringing edge's sample or two
+// past it is not. The margin is two codes at 25 a division.
 const (
 	clipRun    = 4
-	clipMargin = 2
+	clipMargin = 0.08
 )
 
 // clipped reports whether a channel's latest sampled capture runs past the
@@ -1489,44 +1490,62 @@ func (c *Controller) clipped(ch int) bool {
 		if valid < 1 || valid > len(sig) {
 			valid = len(sig)
 		}
+		w := clipWindowAt(traceCodesPerDiv(f, ch))
 		if f.Cond.BandwidthHz > 0 {
-			clip = clipFiltered(sig[:valid])
+			clip = w.filtered(sig[:valid])
 			return
 		}
-		clip = clipStretch(sig[:valid])
+		clip = w.stretch(sig[:valid])
 	})
 	return clip
 }
 
-// The screen's codes, clipMargin past its eight divisions.
-const (
-	clipLo = 128 - 100 - clipMargin
-	clipHi = 128 + 100 + clipMargin
-)
+// clipWindow is the screen's codes on the 8-bit view, clipMargin past its
+// eight divisions.
+type clipWindow struct{ lo, hi int }
 
-// clipStretch reports whether codes hold a run of clipRun samples past the
-// screen's top or bottom.
+// clipWindowAt is the clip window of a trace of cpd codes a division
+// (128 -/+ 102 at 25).
 // TRLC-LINKS: REQ-DSO-225
-func clipStretch(codes []uint8) bool {
-	return runOf(codes, func(v uint8) bool { return v < clipLo || v > clipHi })
+func clipWindowAt(cpd float64) clipWindow {
+	m := int(math.Round((4 + clipMargin) * cpd))
+	return clipWindow{sample.Mid8 - m, sample.Mid8 + m}
 }
 
-// clipFiltered is clipStretch for a filtered decimated capture, whose filter
+// clip25 is the clip window of an 8-bit converter's 25 codes a division.
+var clip25 = clipWindowAt(defaultCodesPerDiv)
+
+// clipStretch is stretch at 25 codes a division.
+// TRLC-LINKS: REQ-DSO-225
+func clipStretch(codes []uint8) bool { return clip25.stretch(codes) }
+
+// clipFiltered is filtered at 25 codes a division.
+// TRLC-LINKS: REQ-DSO-225
+func clipFiltered(codes []uint8) bool { return clip25.filtered(codes) }
+
+// stretch reports whether codes hold a run of clipRun samples past the
+// screen's top or bottom.
+// TRLC-LINKS: REQ-DSO-225
+func (w clipWindow) stretch(codes []uint8) bool {
+	return runOf(codes, func(v uint8) bool { return int(v) < w.lo || int(v) > w.hi })
+}
+
+// filtered is stretch for a filtered decimated capture, whose filter
 // rings past a square's levels on every edge (a square on 7.5 divisions rang
 // past the screen at 10us/div while the screen's trace held inside it): a
 // two-level signal is clipped when a level itself lies past the screen, any
 // signal when a stretch of it is at the ADC's rail, and any other signal by
-// clipStretch.
+// stretch.
 // TRLC-LINKS: REQ-DSO-225
-func clipFiltered(codes []uint8) bool {
+func (w clipWindow) filtered(codes []uint8) bool {
 	if runOf(codes, func(v uint8) bool { return v <= 1 || v >= 254 }) {
 		return true
 	}
 	r := measure.Compute(codes, 1, -128, 1) // in codes
 	if twoLevel(r, codes, 1, -128) {
-		return r.Vtop > clipHi || r.Vbase < clipLo
+		return r.Vtop > float64(w.hi) || r.Vbase < float64(w.lo)
 	}
-	return clipStretch(codes)
+	return w.stretch(codes)
 }
 
 // runOf reports whether codes hold a run of clipRun samples that out holds.
@@ -1799,7 +1818,7 @@ func (c *Controller) waitBandFrame(stop chan struct{}, wantSampleS float64) bool
 		}
 		matched := false
 		c.frameFn(func(f *sample.Frame) {
-			if f == nil || len(f.Codes8(0)) == 0 || f.Flags.Has(sample.Envelope) {
+			if f == nil || f.Codes8Len() == 0 || f.Flags.Has(sample.Envelope) {
 				return // an envelope/roll frame from the old band aliases the measurement
 			}
 			// A genuine band change moves SampleS by integer decimation factors,

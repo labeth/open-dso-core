@@ -60,7 +60,7 @@ const stabCols = 400
 // TRLC-LINKS: REQ-DSO-218
 func screenExtremes(f *sample.Frame, s *sv, ch, cols int) (lows, highs []float64) {
 	valid := framecalc.Valid(f)
-	if ch > 0 && len(f.Codes8(ch)) < valid {
+	if len(f.Codes8(ch)) < valid {
 		return nil, nil
 	}
 	g := geom{valid: valid, winCols: f.WinPoints, edgeX: f.TriggerAt, sampleS: f.SampleS}
@@ -116,7 +116,7 @@ func floorInt(v float64) int {
 // TRLC-LINKS: REQ-DSO-218, REQ-DSO-227
 func screenPoints(f *sample.Frame, s *sv, ch int) []float64 {
 	valid := framecalc.Valid(f)
-	if ch > 0 && len(f.Codes8(ch)) < valid {
+	if len(f.Codes8(ch)) < valid {
 		return nil
 	}
 	g := geom{valid: valid, winCols: f.WinPoints, edgeX: f.TriggerAt, sampleS: f.SampleS}

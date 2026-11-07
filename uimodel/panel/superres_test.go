@@ -56,7 +56,7 @@ func TestSuperresFinalStackReleasesRawLease(t *testing.T) {
 		c.mu.Lock()
 		c.srActive, c.srStack, c.srStop = true, st, stop
 		c.mu.Unlock()
-		go c.srLoop(stop, st, 0)
+		go c.srLoop(stop, st, 0, [2]int{0, 1})
 		defer close(stop)
 		time.Sleep(150 * time.Millisecond)
 		settled := eng.n.Load()
@@ -87,7 +87,7 @@ func TestSuperresTimebaseChangeFreezesStack(t *testing.T) {
 		c.mu.Lock()
 		c.srActive, c.srStack, c.srStop = true, st, stop
 		c.mu.Unlock()
-		go c.srLoop(stop, st, 100e-9)
+		go c.srLoop(stop, st, 100e-9, [2]int{0, 1})
 		defer close(stop)
 		time.Sleep(150 * time.Millisecond)
 		settled := eng.n.Load()

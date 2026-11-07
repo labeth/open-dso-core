@@ -170,13 +170,13 @@ func TestDecimatedStands(t *testing.T) {
 // TRLC-LINKS: REQ-DSO-214
 func TestDecimatedUARTHidesAFasterBus(t *testing.T) {
 	uart := decode.Result{OK: true, Proto: "uart", SPB: 14, Baud: 113413, Roles: decode.Roles{ChA: 1}}
-	if !hidesFaster(look{res: uart, runs: [2]int{3, 3}}) {
+	if !hidesFaster(look{res: uart, runs: [maxChans]int{3, 3}}) {
 		t.Fatal("CAN read as a UART: the 3-sample runs under its 14-sample bit stand")
 	}
-	if hidesFaster(look{res: uart, runs: [2]int{3, 13}}) {
+	if hidesFaster(look{res: uart, runs: [maxChans]int{3, 13}}) {
 		t.Fatal("a UART on C2 whose runs are bits, beside a fast C1: rejected")
 	}
-	if hidesFaster(look{res: decode.Result{OK: true, Proto: "i2c", SPB: 14}, runs: [2]int{3, 3}}) {
+	if hidesFaster(look{res: decode.Result{OK: true, Proto: "i2c", SPB: 14}, runs: [maxChans]int{3, 3}}) {
 		t.Fatal("only a UART find is judged by its runs")
 	}
 }

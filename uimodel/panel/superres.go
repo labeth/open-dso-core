@@ -69,7 +69,7 @@ func (c *Controller) srSampledCols() int {
 	}
 	c.frameFn(func(f *sample.Frame) {
 		if f != nil && !f.Flags.Has(sample.Envelope) && f.Content != sample.PeakPairs {
-			cols = min(max(f.Len(), 0), len(f.Codes8(0)))
+			cols = min(max(f.Len(), 0), f.Codes8Len())
 		}
 	})
 	return cols
@@ -210,6 +210,9 @@ func (c *Controller) srSeedAndStartGen(gen uint64) bool {
 		return fail("no frame source")
 	}
 	c.srWaitRaw()
+	c.mu.Lock()
+	lanes, align := superres.Lanes(c.srCh)
+	c.mu.Unlock()
 	var c1, c2 []uint8
 	var edgeX, sampleS, seedTdiv float64
 	var cols, winCols int
@@ -221,24 +224,22 @@ func (c *Controller) srSeedAndStartGen(gen uint64) bool {
 				return
 			}
 			v := f.Len()
-			if v < 1 || v > len(f.Codes8(0)) {
-				v = len(f.Codes8(0))
+			if v < 1 || v > f.Codes8Len() {
+				v = f.Codes8Len()
 			}
 			if v < 8 {
 				return
 			}
-			cols, edgeX, sampleS, winCols, seedTdiv, seq = v, f.TriggerAt, f.SampleS, f.WinPoints, f.Snapshot.TdivS, f.Seq
-			c1 = append([]uint8(nil), f.Codes8(0)[:v]...)
-			if len(f.Codes8(1)) >= v {
-				c2 = append([]uint8(nil), f.Codes8(1)[:v]...)
-			} else {
-				c2 = c1
+			if len(f.Codes8(lanes[align])) < v { // the aligned channel is switched off
+				return
 			}
+			cols, edgeX, sampleS, winCols, seedTdiv, seq = v, f.TriggerAt, f.SampleS, f.WinPoints, f.Snapshot.TdivS, f.Seq
+			c1, c2 = srFrameCopy(f, v, lanes, nil, nil)
 		})
 	}
 	grab()
 	c.mu.Lock()
-	k, ch, mlo, mhi := c.srK, c.srCh, c.srManLo, c.srManHi
+	k, mlo, mhi := c.srK, c.srManLo, c.srManHi
 	c.mu.Unlock()
 	// A stopped scope shows its full record (a million samples on the SRAM
 	// band), which is never shallow enough to stack in software, so SINGLE
@@ -299,7 +300,7 @@ func (c *Controller) srSeedAndStartGen(gen uint64) bool {
 	// every key for minutes. Tiling is only a speed-up, so skip it there.
 	if mlo >= 0 && mhi-mlo <= srPeriodSpanMax {
 		alignSig := c1
-		if ch == 1 {
+		if align == 1 {
 			alignSig = c2
 		}
 		if p := superres.DetectPeriodU8(alignSig, mlo, mhi); p >= 16 && p < mhi-mlo {
@@ -307,7 +308,7 @@ func (c *Controller) srSeedAndStartGen(gen uint64) bool {
 		}
 	}
 	st := superres.New(cols, k)
-	st.Align = ch
+	st.Align = align
 	st.SampleS = sampleS
 	if !st.SeedRefGate(c1, c2, edgeX, stackLo, stackHi) { // lo<0 → auto gate; else manual
 		return fail("ref unusable (flat/clipped) - freeze a cleaner frame")
@@ -336,7 +337,7 @@ func (c *Controller) srSeedAndStartGen(gen uint64) bool {
 	if resume {
 		c.eng.SetRunning(true)
 	}
-	go c.srLoop(stop, st, seedTdiv) // pass the Stack in — the loop is its sole owner, no shared read
+	go c.srLoop(stop, st, seedTdiv, lanes) // pass the Stack in — the loop is its sole owner, no shared read
 	return true
 }
 
@@ -430,7 +431,7 @@ func (c *Controller) SuperresStatus() (active, review bool, bits float64, frames
 // touches srStack, so there is no data race with the renderer (which reads the
 // guarded srMean/srStatus/srBits snapshot).
 // TRLC-LINKS: REQ-DSO-140
-func (c *Controller) srLoop(stop chan struct{}, st *superres.Stack, seedTdiv float64) {
+func (c *Controller) srLoop(stop chan struct{}, st *superres.Stack, seedTdiv float64, lanes [2]int) {
 	var lastSeq uint64
 	var lastMean time.Time
 	reached := false // stop target hit (or geometry changed): stack is final, idle
@@ -470,7 +471,7 @@ func (c *Controller) srLoop(stop chan struct{}, st *superres.Stack, seedTdiv flo
 		// stack, the lease would read 500 k words a frame at 200 us/div and
 		// hold the live view at 1 fps for as long as super-res stays armed.
 		c.srLeaseRaw()
-		fr := c.srTakeFrame(lastSeq, &buf1, &buf2)
+		fr := c.srTakeFrame(lastSeq, lanes, &buf1, &buf2)
 		if fr.envelope {
 			c.srReachReview(st, "sampled frame required - stack kept")
 			reached = true
@@ -545,7 +546,7 @@ type SuperresView struct {
 	Bits           float64
 	Mean           []float32 // align-channel crunched trace (review only, Focus==3); nil otherwise
 	Mean2          []float32 // the OTHER channel's crunched trace (stacked X-Y / dual FFT)
-	Align          int       // which physical channel Mean is (0=C1,1=C2); Mean2 is the other
+	Align          int       // which scope channel Mean is; Mean2 is superres.Other's
 	K              int
 	SampleS        float64
 	GateLo, GateHi int // stack gate on the frame (samples) — the live-view overlay
@@ -566,10 +567,11 @@ type srFrame struct {
 	envelope      bool
 }
 
-// srTakeFrame copies the newest frame after lastSeq into buf1 and buf2
-// (srFrameCopy; c1 nil for none yet, or a frame under 8 samples).
+// srTakeFrame copies the newest frame after lastSeq into buf1 and buf2, the
+// stack's lanes from channels lanes (srFrameCopy; c1 nil for none yet, or a
+// frame under 8 samples).
 // TRLC-LINKS: REQ-DSO-140
-func (c *Controller) srTakeFrame(lastSeq uint64, buf1, buf2 *[]uint8) srFrame {
+func (c *Controller) srTakeFrame(lastSeq uint64, lanes [2]int, buf1, buf2 *[]uint8) srFrame {
 	var fr srFrame
 	c.frameFn(func(f *sample.Frame) {
 		if f != nil && (f.Flags.Has(sample.Envelope) || f.Content == sample.PeakPairs) {
@@ -580,16 +582,20 @@ func (c *Controller) srTakeFrame(lastSeq uint64, buf1, buf2 *[]uint8) srFrame {
 			return
 		}
 		v := f.Len()
-		if v < 1 || v > len(f.Codes8(0)) {
-			v = len(f.Codes8(0))
+		if v < 1 || v > f.Codes8Len() {
+			v = f.Codes8Len()
 		}
 		if v < 8 {
 			return
 		}
 		fr.seq, fr.cols, fr.edgeX, fr.sampleS, fr.tdiv = f.Seq, v, f.TriggerAt, f.SampleS, f.Snapshot.TdivS
-		fr.c1, fr.c2 = srFrameCopy(f, v, *buf1, *buf2)
+		fr.c1, fr.c2 = srFrameCopy(f, v, lanes, *buf1, *buf2)
+		if fr.c1 == nil {
+			fr.seq = 0 // neither lane has a trace (switched off): no frame
+			return
+		}
 		*buf1 = fr.c1
-		if len(f.Codes8(1)) >= v {
+		if len(f.Codes8(lanes[0])) >= v && len(f.Codes8(lanes[1])) >= v {
 			*buf2 = fr.c2
 		}
 	})
@@ -615,17 +621,25 @@ func srFrameChange(st *superres.Stack, fr srFrame, seedTdiv float64) string {
 	return ""
 }
 
-// srFrameCopy copies a frame's first v samples of both channels into b1
-// and b2, the loop's buffers from frame to frame (Feed reads them, keeps
-// none): a raw frame is half a million samples a channel, a fresh copy each
-// frame. A short C2 shares C1's copy.
+// srFrameCopy copies a frame's first v samples of the stack's two lanes
+// (channels lanes) into b1 and b2, the loop's buffers from frame to frame
+// (Feed reads them, keeps none): a raw frame is half a million samples a
+// channel, a fresh copy each frame. A lane whose channel is short (switched
+// off) shares the other's copy; nil when both are.
 // TRLC-LINKS: REQ-DSO-140
-func srFrameCopy(f *sample.Frame, v int, b1, b2 []uint8) (c1, c2 []uint8) {
-	c1 = append(b1[:0], f.Codes8(0)[:v]...) //nolint:gocritic // appendAssign: b1 is the caller's reused buffer, its copy returned as c1
-	if len(f.Codes8(1)) < v {
+func srFrameCopy(f *sample.Frame, v int, lanes [2]int, b1, b2 []uint8) (c1, c2 []uint8) {
+	a, b := f.Codes8(lanes[0]), f.Codes8(lanes[1])
+	switch {
+	case len(a) >= v && len(b) >= v:
+		return append(b1[:0], a[:v]...), append(b2[:0], b[:v]...) //nolint:gocritic // appendAssign: the caller's reused buffers, their copies returned
+	case len(a) >= v:
+		c1 = append(b1[:0], a[:v]...) //nolint:gocritic // appendAssign: b1 is the caller's reused buffer, its copy returned as c1
+		return c1, c1
+	case len(b) >= v:
+		c1 = append(b1[:0], b[:v]...) //nolint:gocritic // appendAssign: b1 is the caller's reused buffer, its copy returned as c1
 		return c1, c1
 	}
-	return c1, append(b2[:0], f.Codes8(1)[:v]...)
+	return nil, nil
 }
 
 // SuperresView returns the current super-res state for the LCD overlay/review.
@@ -638,7 +652,8 @@ func (c *Controller) SuperresView() SuperresView {
 	v := SuperresView{Active: c.srActive, Focus: c.srFocus, Status: c.srStatus, Bits: c.srBits, K: c.srK}
 	if c.srStack != nil {
 		v.GateLo, v.GateHi, v.N = c.srStack.GateLo, c.srStack.GateHi, c.srStack.N
-		v.SampleS, v.K, v.Align = c.srStack.SampleS, c.srStack.K, c.srStack.Align
+		lanes, _ := superres.Lanes(c.srCh)
+		v.SampleS, v.K, v.Align = c.srStack.SampleS, c.srStack.K, lanes[c.srStack.Align&1]
 		v.WinLo, v.WinHi, v.Period = c.srWinLo, c.srWinHi, c.srPeriod
 		if v.WinLo < 0 { // auto gate (no on-screen window): review the gate itself
 			v.WinLo, v.WinHi = v.GateLo, v.GateHi

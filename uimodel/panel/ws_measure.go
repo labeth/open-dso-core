@@ -488,13 +488,13 @@ func cursorLines(s *sv, liveV [maxChans][2]float64, liveOK [maxChans]bool) []wsv
 // cursorTraceVolts reads each channel's trace at the time cursors.
 // TRLC-LINKS: REQ-DSO-217
 func cursorTraceVolts(f *sample.Frame, s *sv) (v [maxChans][2]float64, ok [maxChans]bool) {
-	if f == nil || f.Flags.Has(sample.Envelope) || len(f.Codes8(0)) == 0 {
+	if f == nil || f.Flags.Has(sample.Envelope) || f.Codes8Len() == 0 {
 		return v, ok
 	}
 	g := geom{valid: framecalc.Valid(f), winCols: f.WinPoints, edgeX: f.TriggerAt, sampleS: f.SampleS}
 	left, win := windowOf(g, s)
 	for ch := range s.nch {
-		if ch > 0 && len(f.Codes8(ch)) < g.valid {
+		if len(f.Codes8(ch)) < g.valid {
 			continue
 		}
 		sig := framecalc.Channel(f, ch, g.valid)

@@ -163,7 +163,7 @@ func (c *Controller) need() needKey {
 // TRLC-LINKS: REQ-DSO-214, REQ-DSO-215, REQ-DSO-216, REQ-DSO-217, REQ-DSO-218
 func (c *Controller) OnFrame(f *sample.Frame) {
 	f = c.view8.Of(f)
-	if f == nil || len(f.Codes8(0)) == 0 {
+	if f == nil || f.Codes8Len() == 0 {
 		return
 	}
 	c.noteCodesPerDiv(f)
@@ -374,7 +374,7 @@ func codesPerDiv8(t *sample.Trace) float64 {
 // TRLC-LINKS: REQ-DSO-217
 func measureCh(f *sample.Frame, s *sv, ch int) *measure.Result {
 	valid := framecalc.Valid(f)
-	if ch > 0 && len(f.Codes8(ch)) < valid {
+	if len(f.Codes8(ch)) < valid {
 		return nil
 	}
 	sig := framecalc.Channel(f, ch, valid)

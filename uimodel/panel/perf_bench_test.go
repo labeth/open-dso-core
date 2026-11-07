@@ -773,7 +773,7 @@ func BenchmarkSRFrameCopy(b *testing.B) {
 	f := &sample.Frame{Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Codes8: make([]uint8, n), Valid: n}}}
 	var b1, b2 []uint8
 	for b.Loop() {
-		c1, c2 := srFrameCopy(f, n, b1, b2)
+		c1, c2 := srFrameCopy(f, n, [2]int{0, 1}, b1, b2)
 		b1, b2 = c1, c2
 	}
 }
@@ -783,7 +783,7 @@ func BenchmarkSRFrameCopyRef(b *testing.B) {
 	const n = 500000
 	f := &sample.Frame{Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Codes8: make([]uint8, n), Valid: n}}}
 	for b.Loop() {
-		srFrameCopy(f, n, nil, nil) // a fresh copy each frame, as before
+		srFrameCopy(f, n, [2]int{0, 1}, nil, nil) // a fresh copy each frame, as before
 	}
 }
 

@@ -22,7 +22,9 @@ import (
 // long-poll wakes on it; SheetsSeq counts the sheet values alone, so a
 // remote reads /api/sheets again only when they changed. Live texts (a
 // mask test's counts, the stack's status, COMPARE's trigger stability) are
-// not in the snapshot: they would wake every remote on every frame.
+// not in the snapshot: they would wake every remote on every frame. The
+// MEAS rows' live values in /api/sheets count too, at most every
+// liveEvery, so a remote that rereads on SheetsSeq sees them move.
 
 // KeyStatus is uimodel.KeyStatus.
 type KeyStatus = uimodel.KeyStatus
@@ -77,8 +79,10 @@ type SetResult = uimodel.SetResult
 type remoteState struct {
 	seq          uint64
 	sig          uint64
-	sheetsSeq    uint64 // counts sheetSig changes
+	sheetsSeq    uint64 // counts sheetSig changes and live value changes (liveEvery)
 	sheetSig     uint64
+	liveSig      uint64    // the MEAS rows' live texts when sheetsSeq last counted them
+	liveAt       time.Time // when it did
 	status       Status
 	wake         chan struct{}
 	sheetsActive time.Time
@@ -88,6 +92,10 @@ type remoteState struct {
 // sheetsWindow is how long after a remote's last sheet request the sheet
 // values are watched for the Seq.
 const sheetsWindow = 60 * time.Second
+
+// liveEvery is the least time between two counts of the MEAS rows' live
+// values changing (they change with every frame a signal moves).
+const liveEvery = 500 * time.Millisecond
 
 // lampNames names the lit lamps of a word.
 // TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
@@ -527,13 +535,24 @@ func (c *Controller) publish() {
 	h.bytes(raw)
 	sig := uint64(h)
 	c.rmu.Lock()
-	if s.now.Sub(c.remote.sheetsActive) < sheetsWindow {
+	active := s.now.Sub(c.remote.sheetsActive) < sheetsWindow
+	c.rmu.Unlock()
+	var ls uint64
+	if active {
+		ls = c.liveSig(s)
+	}
+	c.rmu.Lock()
+	if active {
 		ss := sheetSig(s)
-		if ss != c.remote.sheetSig || c.remote.sheetsSeq == 0 {
+		switch {
+		case ss != c.remote.sheetSig || c.remote.sheetsSeq == 0:
 			c.remote.sheetsSeq++
-			c.remote.sheetSig = ss
+			c.remote.sheetSig, c.remote.liveSig, c.remote.liveAt = ss, ls, s.now
+		case ls != c.remote.liveSig && s.now.Sub(c.remote.liveAt) >= liveEvery:
+			c.remote.sheetsSeq++
+			c.remote.liveSig, c.remote.liveAt = ls, s.now
 		}
-		sig ^= ss * 0x9E3779B97F4A7C15
+		sig ^= (ss ^ c.remote.liveSig) * 0x9E3779B97F4A7C15
 	}
 	if c.remote.wake == nil {
 		c.remote.wake = make(chan struct{})
@@ -621,6 +640,31 @@ func (c *Controller) Sheets() SheetsModel {
 		m.Tabs = append(m.Tabs, tm)
 	}
 	return m
+}
+
+// liveSig hashes the MEAS rows' live values as /api/sheets shows them; 0
+// while none is in.
+// TRLC-LINKS: REQ-DSO-217
+func (c *Controller) liveSig(s *sv) uint64 {
+	c.amu.Lock()
+	allVals, allOK := c.ana.allVals, c.ana.allOK
+	c.amu.Unlock()
+	h, seen := newSig(), false
+	for ti := range sheetTabs {
+		if !tabShown(ti, s.nch) {
+			continue
+		}
+		for _, r := range tabRows(ti, s.nch) {
+			for _, v := range liveMeas(s, r, allVals, allOK) {
+				h.str(v)
+				seen = true
+			}
+		}
+	}
+	if !seen {
+		return 0
+	}
+	return uint64(h)
 }
 
 // liveMeas is a MEAS row's live values per channel as the sheet shows them,

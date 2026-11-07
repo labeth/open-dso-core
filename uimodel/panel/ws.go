@@ -231,8 +231,9 @@ func (c *Controller) snap() *sv {
 	s.trigStep = c.lv.TrigStepsV(step) * s.probe[src]
 	if c.inverter != nil {
 		s.hasInv = true
-		inv := c.inverter.Inverted()
-		copy(s.inv[:], inv[:])
+		for ch := range c.nch {
+			s.inv[ch] = c.inverter.IsInverted(ch)
+		}
 	}
 	if se := c.serialTrig(); se != nil {
 		s.hasSerial, s.serial = true, se.SerialConfig()
