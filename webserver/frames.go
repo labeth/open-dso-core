@@ -96,7 +96,12 @@ func (s *Server) hFrameBin(w http.ResponseWriter, r *http.Request) {
 			q.QuietRLock()
 			defer q.QuietRUnlock()
 		}
-		if r.URL.Query().Get("raw") == "1" {
+		raw := r.URL.Query().Get("raw") == "1"
+		if v2, ok := wantV2(fr, r); ok {
+			buf = encodeV2(v2, FrameQueryV2{FrameQuery: FrameQuery{Since: since, Cols: cols, Full: full}, Raw: raw})
+			return
+		}
+		if raw {
 			buf = wire.EncodeRawFrame(fr.RawFrame(since))
 			return
 		}
