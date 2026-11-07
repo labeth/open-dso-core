@@ -21,10 +21,13 @@ type SoundMark struct {
 }
 
 // SoundScale is a scale as volts at the probe tip: v = (q/256 - 128)*vpc - off.
+// Chans names the scope channel (0-based) each of the stream's two lanes
+// carries from From on; a scope of two channels leaves it out (C1 and C2).
 type SoundScale struct {
-	From uint64     `json:"from"`
-	VPC  [2]float64 `json:"vpc"`
-	Off  [2]float64 `json:"off"`
+	From  uint64     `json:"from"`
+	VPC   [2]float64 `json:"vpc"`
+	Off   [2]float64 `json:"off"`
+	Chans []int      `json:"chans,omitempty"`
 }
 
 // SoundBinHeader is the JSON header of a /api/sound.bin reply.
