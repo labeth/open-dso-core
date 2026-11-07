@@ -62,7 +62,11 @@ async function startWasm() {
   if (!navigator.serviceWorker.controller) {
     await new Promise((res) => navigator.serviceWorker.addEventListener('controllerchange', res, { once: true }));
   }
-  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data?.type === 'need-port') handPort(); });
+  // onmessage, not addEventListener: a client's messages from its service
+  // worker queue until onmessage is set (or startMessages runs), and a
+  // service worker that lost its port (restarted, or asked before the first
+  // port arrived) waits for this answer.
+  navigator.serviceWorker.onmessage = (e) => { if (e.data?.type === 'need-port' && worker) handPort(); };
   const [profile, demoText] = await Promise.all([
     fetch('scope/profile.yaml').then((r) => r.text()),
     fetch('scope/demo.json').then((r) => r.text()),

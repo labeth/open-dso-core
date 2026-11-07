@@ -17,7 +17,9 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('message', (e) => {
   if (e.data?.type !== 'port' || !e.ports[0]) return;
-  if (port) port.onmessage = null;
+  // Every port keeps its listener: a request sent on an earlier port (a
+  // second one arrives when the page answers a need-port that crossed the
+  // first) is answered on that port.
   port = e.ports[0];
   port.onmessage = (m) => {
     const r = m.data;
