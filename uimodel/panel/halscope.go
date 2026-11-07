@@ -252,10 +252,6 @@ func (a halAnalog) BWL(ch int) bool {
 // TRLC-LINKS: REQ-DSO-089
 func (halAnalog) Emitted() bool { return true }
 
-// Channels is the Model's channel count.
-// TRLC-LINKS: REQ-DSO-089
-func (a halAnalog) Channels() int { return len(a.s.m.State().Channels) }
-
 // OffsetSet is true: the Model always holds an offset.
 // TRLC-LINKS: REQ-DSO-089
 func (halAnalog) OffsetSet(int) bool { return true }
