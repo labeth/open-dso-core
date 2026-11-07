@@ -5062,3 +5062,35 @@ requirements:
   - test
   verificationCriteria: A HAL fake board runs the composition from bring-up to frames on its framebuffer and a
     restart restores the setup; each scope's main is its board and one call.
+- id: REQ-DSO-296
+  title: Board write guard
+  text: The instrument shall write files, device nodes and physical register windows only through a write guard
+    that refuses, with the reason, every path, device and window its board's policy protects.
+  status: implemented
+  realizes:
+  - CAP-DSO-SUPERVISED-OPERATION
+  - CAP-DSO-BOARD-SUPPORT
+  category: functional
+  appliesTo:
+  - FU-DSO-FSGUARD
+  verificationMethods:
+  - test
+  verificationCriteria: Under a test policy writes inside the root pass and every path that leaves it (after .. and
+    symlinks), a forbidden directory or name, a block device, protected storage or a forbidden register window is
+    refused with ErrRefused and leaves no file; a root inside a vendor area is refused.
+- id: REQ-DSO-297
+  title: Next boot target
+  text: The instrument shall let the owner choose whether the next power-up runs this firmware or the vendor firmware,
+    from the SYS sheet, SCPI and the web through one value, on a board that offers the choice.
+  status: implemented
+  realizes:
+  - CAP-DSO-SUPERVISED-OPERATION
+  category: functional
+  appliesTo:
+  - FU-DSO-BOOTTARGET
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: The disable file is written and removed through the guard by the SCPI header, the web routes
+    and the SYS sheet's row, each reading back what another set; a board without the capability has no row and its
+    sheets are unchanged.
