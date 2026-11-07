@@ -5,6 +5,8 @@ package engine
 import (
 	"math"
 	"sync/atomic"
+
+	"github.com/labeth/open-dso-core/instrument"
 )
 
 // TrigType selects the discrimination pipeline.
@@ -338,23 +340,9 @@ func qualifyVideoAt(disc []uint8, intervalNs float64, p TrigParams, at AnchorSpa
 	return bestX
 }
 
-// TrigQual reports the pulse and slope qualifiers (levels as fractions of the
-// span, widths and times in ns, conditions any/<min/>max/in), so every
-// surface shows and edits the values the engine uses.
-type TrigQual struct {
-	VideoStd   int     `json:"video_std"`
-	VideoLine  int     `json:"video_line"`
-	VideoNeg   bool    `json:"video_neg"`
-	PulseLvl   float64 `json:"pulse_lvl"`
-	PulseMinNs float64 `json:"pulse_min_ns"`
-	PulseMaxNs float64 `json:"pulse_max_ns"`
-	PulseCond  int     `json:"pulse_cond"`
-	SlopeLo    float64 `json:"slope_lo"`
-	SlopeHi    float64 `json:"slope_hi"`
-	SlopeMinNs float64 `json:"slope_min_ns"`
-	SlopeMaxNs float64 `json:"slope_max_ns"`
-	SlopeCond  int     `json:"slope_cond"`
-}
+// TrigQual reports the pulse and slope qualifiers; the instrument's
+// snapshot carries it.
+type TrigQual = instrument.TrigQual
 
 // QualOf is the reported view of trigger parameters.
 // TRLC-LINKS: REQ-DSO-127

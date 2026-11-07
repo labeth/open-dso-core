@@ -26,8 +26,15 @@ func TestEqualSeesEveryField(t *testing.T) {
 		s := base.Clone()
 		f := reflect.ValueOf(&s).Elem().Field(i)
 		change, ok := map[reflect.Kind]func(){
-			reflect.Slice:   func() { s.Channels[1].Invert = true },
-			reflect.Struct:  func() { s.Trigger.HoldoffS = 1 },
+			reflect.Slice: func() { s.Channels[1].Invert = true },
+			reflect.Struct: func() { // its last field, a number
+				g := f.Field(f.NumField() - 1)
+				if g.Kind() == reflect.Float64 {
+					g.SetFloat(g.Float() + 1)
+				} else {
+					g.SetInt(g.Int() + 1)
+				}
+			},
 			reflect.Bool:    func() { f.SetBool(!f.Bool()) },
 			reflect.Float64: func() { f.SetFloat(f.Float() + 1) },
 			reflect.Int:     func() { f.SetInt(f.Int() + 1) },

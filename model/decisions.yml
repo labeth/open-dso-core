@@ -515,6 +515,7 @@ decisions:
   decision: 'CML run control stays out of instrument.State until the UI model decides the run-control semantics.'
   consequences:
   - 'From the owner-loop move (S7).'
+  - 'Superseded by ADR-RUN-CONTROL: the semantics are decided and the instrument state carries them.'
 
 - id: ADR-UMBRELLA-REPO
   title: open-dso is the family's public front door and system model
@@ -571,6 +572,39 @@ decisions:
   decision: 'The CML keeps caps off until the UI model step; other scopes serve caps.'
   consequences:
   - 'From the core web scope step (S8).'
+
+- id: ADR-RUN-CONTROL
+  title: 'Run control is three facts: running, the trigger mode and a single shot armed'
+  status: proposed
+  date: '2026-11-07'
+  context: 'The SDS1000CML+ engine keeps running, NORM and a single shot as independent flags, with the mode a
+    SINGLE replaced; Running plus one Sweep could not say that a mask stop leaves a shot armed or that AUTO picked
+    during a shot keeps it armed.'
+  decision: 'instrument.State has Running, Sweep (AUTO or NORMAL) and Single. SINGLE arms a shot in NORMAL and
+    remembers the mode it replaced; the next RUN brings that mode back unless the user picked one meanwhile;
+    AUTO or NORMAL picked during a shot keeps it armed and waiting in that mode; RUN and STOP cancel a shot; a
+    failed mask test stops the run and leaves a shot armed; the shot''s triggered frame stops the run and spends
+    it. A controller writing Sweep Single arms a shot. The CML''s engine keeps these rules in its own flags
+    behind instrument.Controls until its owner stages through the Model.'
+  consequences:
+  - 'The behaviour every SDS1000CML+ user knows is the family''s; the SDS800X HD''s run keys follow it through
+    the Model.'
+  - 'BoardSweep gives a board the sweep to run: a shot armed in AUTO free-runs until a triggered frame.'
+  - 'A second SINGLE while a shot is armed changes no state, so on a HAL scope it does not restart the capture.'
+
+- id: ADR-ONE-CONTROLS-SURFACE
+  title: 'Every controller drives one instrument.Controls surface'
+  status: proposed
+  date: '2026-11-07'
+  context: 'The SDS1000CML+ had four overlapping controller interfaces over its engine (panel.Engine, scpi.Scope,
+    settings.Engine, webscope.Engine), each a different slice of the same setters.'
+  decision: 'instrument.Controls is the one settings surface with its Stats snapshot; the UI model, SCPI, the
+    settings file and the web scope take it. *instrument.Model implements it for a HAL scope; the CML engine
+    implements it over its own state. What a controller needs beyond it (the mask test, the lamp word, the
+    acquisition log) stays a separate, named part.'
+  consequences:
+  - 'A test fake implements the whole surface once.'
+  - 'The CML''s engine state moves into the Model later without changing a controller.'
 
 - id: ADR-HAL-STAGED-PERSISTS
   title: 'What is staged stays staged; staging it again changes nothing'

@@ -26,6 +26,11 @@ type capsCache struct {
 // TRLC-LINKS: REQ-DSO-164
 func (s *Scope) capsGen() uint64 { return s.capsDoc().Gen }
 
+// CapsDocument is the capabilities document a scope over a board serves
+// (WithCaps): for a scope whose own adapter wraps this one and serves it.
+// TRLC-LINKS: REQ-DSO-164
+func (s *Scope) CapsDocument() wire.Caps { return s.capsDoc() }
+
 // capsDoc is the capabilities document projected from the HAL: the
 // profile, the trigger's caps (the current image's), the front end's
 // ladders and couplings, the display, the storage and the parts present.
@@ -112,6 +117,9 @@ func (s *Scope) capsDoc() wire.Caps {
 		c.Limits.LiveClients = 1
 	}
 
+	if s.cfg.CapsEdit != nil {
+		s.cfg.CapsEdit(&c)
+	}
 	body, _ := json.Marshal(c)
 	h := fnv.New64a()
 	_, _ = h.Write(body)

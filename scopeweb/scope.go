@@ -47,6 +47,10 @@ type Config struct {
 	// page offers are the scope's data.
 	Probes   []float64
 	BWLimits []string
+	// CapsEdit, when set, completes the capabilities document with what the
+	// scope's own engine serves beyond the HAL's projection (the trigger
+	// types it programs, its acquisition modes); the generation follows.
+	CapsEdit func(c *wire.Caps)
 
 	// UI is the scope's UI model (the panel, the sheets and the phone
 	// remote); it may also implement webserver.Refs and the decoded

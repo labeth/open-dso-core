@@ -253,7 +253,7 @@ func (c *HALCycle) Running() bool { return c.running }
 
 // SingleArmed reports a single shot running.
 // TRLC-LINKS: REQ-DSO-011
-func (c *HALCycle) SingleArmed() bool { return c.running && c.cur.Sweep == hal.Single }
+func (c *HALCycle) SingleArmed() bool { return c.running && c.cur.Single }
 
 // SingleGen is the committed generation: a new SINGLE is a new state.
 // TRLC-LINKS: REQ-DSO-011
@@ -269,19 +269,24 @@ func (c *HALCycle) ForcePending() bool { return c.inst.ForcePending() }
 
 // StopOnFail stops the run (the cycle runs no mask test).
 // TRLC-LINKS: REQ-DSO-014
-func (c *HALCycle) StopOnFail() { c.stopRun() }
+func (c *HALCycle) StopOnFail() { c.stopRun(false) }
 
-// SingleDone stops the run once the single shot's frame is published.
+// SingleDone stops the run once the single shot's frame is published: the
+// shot is spent.
 // TRLC-LINKS: REQ-DSO-011
-func (c *HALCycle) SingleDone(Verdict) { c.stopRun() }
+func (c *HALCycle) SingleDone(Verdict) { c.stopRun(true) }
 
 // stopRun stops the acquisition and the run, and gives the instrument the
-// stopped state unless a controller changed it meanwhile.
+// stopped state unless a controller changed it meanwhile. A stop that is
+// not the shot's own (a failed mask test) leaves an armed shot armed.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
-func (c *HALCycle) stopRun() {
+func (c *HALCycle) stopRun(spent bool) {
 	_ = c.b.Acquirer().Stop()
 	s := c.cur.Clone()
 	s.Running = false
+	if spent {
+		s.Single = false
+	}
 	c.cur, c.good, c.running = s, s, false
 	c.inst.Applied(s, c.gen)
 }

@@ -247,9 +247,13 @@ func (u *fakeUI) WaitPanel(uint64, time.Duration) uimodel.Status { return u.Pane
 
 // TRLC-LINKS: REQ-DSO-162
 func (u *fakeUI) Sheets() uimodel.SheetsModel {
-	return uimodel.SheetsModel{Seq: 3, Tabs: []uimodel.TabModel{{ID: "trig", Name: "TRIG", Rows: []uimodel.RowModel{
-		{ID: "trig.level", Label: "Level", Kind: "number", Available: true, Value: 0.2, Text: "200mV", Unit: "V"},
-	}}}}
+	rows := []uimodel.RowModel{{ID: "trig.level", Label: "Level", Kind: "number", Available: true, Value: 0.2, Text: "200mV", Unit: "V"}}
+	for _, r := range uimodel.PageRows {
+		if r.ID != "trig.level" {
+			rows = append(rows, uimodel.RowModel{ID: r.ID, Label: r.ID, Kind: r.Kind, Unit: r.Unit, Why: "the fake has no " + r.ID})
+		}
+	}
+	return uimodel.SheetsModel{Seq: 3, Tabs: []uimodel.TabModel{{ID: "trig", Name: "TRIG", Rows: rows}}}
 }
 
 // TRLC-LINKS: REQ-DSO-162

@@ -63,34 +63,21 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 	edit := func(fn func(st *instrument.State) error) error { return m.Change(fn) }
 	switch req.Name {
 	case "run":
-		return v, false, edit(func(st *instrument.State) error {
-			st.Running = v != 0
-			if st.Running && st.Sweep == hal.Single {
-				st.Sweep = hal.Auto
-			}
-			return nil
-		})
+		m.SetRunning(v != 0)
+		return v, false, nil
 	case "runtoggle":
-		on := false
-		err := edit(func(st *instrument.State) error {
-			st.Running = !st.Running
-			on = st.Running
-			return nil
-		})
+		on := !m.State().Running
+		m.SetRunning(on)
 		if on {
-			return 1.0, false, err
+			return 1.0, false, nil
 		}
-		return 0.0, false, err
+		return 0.0, false, nil
 	case sweepSingle:
-		return v, false, edit(func(st *instrument.State) error { st.Sweep, st.Running = hal.Single, true; return nil })
+		m.SetSingle()
+		return v, false, nil
 	case "norm":
-		return v, false, edit(func(st *instrument.State) error {
-			st.Sweep = hal.Auto
-			if v != 0 {
-				st.Sweep = hal.NormalSweep
-			}
-			return nil
-		})
+		m.SetNorm(v != 0)
+		return v, false, nil
 	case "tdiv":
 		t, ok := onLadder(c.s.profile().Timebase.TdivS, v)
 		if !ok {

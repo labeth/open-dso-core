@@ -13,14 +13,25 @@ import (
 )
 
 // State is the instrument's settings.
+//
+// Run control is Running, Sweep and Single (ADR-RUN-CONTROL): Sweep is the
+// trigger mode, AUTO or NORMAL; Single is a single shot armed, which waits
+// in that mode and stops the run after its triggered frame. A controller
+// that writes Sweep = hal.Single arms a shot (Change keeps that meaning).
 type State struct {
 	Channels []hal.Channel // at the probe tip
 	TimeDivS float64
 	DelayS   float64 // the screen centre's time after the trigger
 	Depth    int     // samples per channel; 0: chosen by the scope
 	Mode     hal.AcqMode
+	Averages int // the average's frame count (Mode Average)
+	EresLen  int // the high-resolution filter's length (Mode HighRes)
+	ETS      bool
 	Trigger  Edge
+	TrigType int      // 0 edge, 1 pulse, 2 slope, 3 video (the edge's source and slope serve every type)
+	Qual     TrigQual // the pulse, slope and video qualifiers
 	Sweep    hal.Sweep
+	Single   bool
 	Running  bool
 }
 
@@ -53,7 +64,9 @@ func (s State) Equal(o State) bool {
 		}
 	}
 	return s.TimeDivS == o.TimeDivS && s.DelayS == o.DelayS && s.Depth == o.Depth && s.Mode == o.Mode &&
-		s.Trigger == o.Trigger && s.Sweep == o.Sweep && s.Running == o.Running
+		s.Averages == o.Averages && s.EresLen == o.EresLen && s.ETS == o.ETS &&
+		s.Trigger == o.Trigger && s.TrigType == o.TrigType && s.Qual == o.Qual &&
+		s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running
 }
 
 // Request is what the planner is asked for in state s: the channels that
@@ -75,11 +88,23 @@ func (s State) TriggerSpec() hal.TriggerSpec {
 	t := s.Trigger
 	return hal.TriggerSpec{
 		Stages:      []hal.TrigStage{{Node: hal.NodeEdge, Source: t.Source, Levels: hal.Levels{High: t.LevelV, Slope: t.Slope}}},
-		Sweep:       s.Sweep,
+		Sweep:       s.BoardSweep(),
 		Coupling:    t.Coupling,
 		NoiseReject: t.NoiseReject,
 		HoldoffS:    t.HoldoffS,
 	}
+}
+
+// BoardSweep is the sweep the board runs: a single shot armed in NORMAL is
+// the board's single sweep; one armed in AUTO free-runs until a triggered
+// frame ends it. A state written whole with Sweep Single (not through a
+// Model) runs the single sweep.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
+func (s State) BoardSweep() hal.Sweep {
+	if s.Single && s.Sweep == hal.NormalSweep {
+		return hal.Single
+	}
+	return s.Sweep
 }
 
 // RunState is the acquisition's run state.

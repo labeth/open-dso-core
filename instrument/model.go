@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/sample"
 )
 
@@ -28,6 +29,8 @@ type Model struct {
 	refused []func(error)
 	frames  FrameSource
 	last    *sample.Frame
+	runMem  runMemory // the trigger mode an armed single shot replaced
+	tdivs   []float64 // the timebase ladder SetTdiv snaps to
 }
 
 // FrameSource gives a reader the newest published frame: the engine's
@@ -41,7 +44,11 @@ type FrameSource interface {
 // probe factor); nil checks nothing.
 // TRLC-LINKS: REQ-DSO-008
 func New(s State, check func(State) error) *Model {
-	return &Model{want: s.Clone(), gen: 1, check: check, run: Armed}
+	s = s.Clone()
+	if s.Sweep == hal.Single { // a shot armed from the start
+		s.Sweep, s.Single = hal.NormalSweep, true
+	}
+	return &Model{want: s, gen: 1, check: check, run: Armed}
 }
 
 // SetFrames makes src the frames WithFrame reads (the engine's fan-out).
@@ -63,20 +70,31 @@ func (m *Model) State() State {
 
 // Change edits a copy of the wanted state (its Channels are the copy's own)
 // and stages it; an error from fn or from the check leaves the state as it
-// was. A change that alters nothing moves no generation.
+// was. A change that alters nothing moves no generation. The edit keeps the
+// run control's rules (runRules): a controller that writes Sweep Single
+// arms a shot.
 // TRLC-LINKS: REQ-DSO-008
 func (m *Model) Change(fn func(*State) error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	s := m.want.Clone()
+	s, r := m.want.Clone(), m.runMem
 	if err := fn(&s); err != nil {
 		return err
 	}
+	runRules(m.want, &s, &r)
+	return m.commitLocked(s, r)
+}
+
+// commitLocked makes s and the run memory r the wanted state once the
+// check passes; m.mu is held.
+// TRLC-LINKS: REQ-DSO-008
+func (m *Model) commitLocked(s State, r runMemory) error {
 	if m.check != nil {
 		if err := m.check(s); err != nil {
 			return err
 		}
 	}
+	m.runMem = r
 	if !s.Equal(m.want) {
 		m.want = s
 		m.gen++
