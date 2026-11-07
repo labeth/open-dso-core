@@ -32,7 +32,6 @@ type rig struct {
 }
 
 // newRig starts a scope of cfg's fake board; it runs until the test ends.
-// TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
 func newRig(t *testing.T, cfg halfake.Config) *rig {
 	t.Helper()
 	b := halfake.New(cfg)

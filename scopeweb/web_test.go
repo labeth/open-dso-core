@@ -19,7 +19,6 @@ import (
 )
 
 // serve runs one request against the rig's server.
-// TRLC-LINKS: REQ-DSO-161
 func (r *rig) serve(t *testing.T, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	rec := httptest.NewRecorder()
@@ -28,7 +27,6 @@ func (r *rig) serve(t *testing.T, method, path, body string) *httptest.ResponseR
 }
 
 // json serves one request and decodes its JSON reply.
-// TRLC-LINKS: REQ-DSO-162
 func (r *rig) json(t *testing.T, method, path, body string) map[string]any {
 	t.Helper()
 	rec := r.serve(t, method, path, body)
@@ -40,7 +38,6 @@ func (r *rig) json(t *testing.T, method, path, body string) map[string]any {
 }
 
 // set posts one control and wants it applied.
-// TRLC-LINKS: REQ-DSO-162
 func (r *rig) set(t *testing.T, body string) map[string]any {
 	t.Helper()
 	out := r.json(t, http.MethodPost, "/api/set", body)
@@ -51,7 +48,6 @@ func (r *rig) set(t *testing.T, body string) map[string]any {
 }
 
 // frame2 fetches the frame after since in wire v2.
-// TRLC-LINKS: REQ-DSO-163
 func (r *rig) frame2(t *testing.T, since uint64) wire.Frame {
 	t.Helper()
 	rec := r.serve(t, http.MethodGet, "/api/frame.bin?v=2&waitms=1000&since="+jsonNum(since), "")
@@ -62,11 +58,9 @@ func (r *rig) frame2(t *testing.T, since uint64) wire.Frame {
 	return f
 }
 
-// TRLC-LINKS: REQ-DSO-163
 func jsonNum(v any) string { b, _ := json.Marshal(v); return string(b) }
 
 // num is a JSON number (NaN for anything else).
-// TRLC-LINKS: REQ-DSO-162
 func num(v any) float64 {
 	if f, ok := v.(float64); ok {
 		return f
@@ -76,7 +70,6 @@ func num(v any) float64 {
 
 // settled waits until a frame shows what fn wants (the owner commits a
 // change at its next commit point).
-// TRLC-LINKS: REQ-DSO-163
 func (r *rig) settled(t *testing.T, fn func(wire.Frame) bool) wire.Frame {
 	t.Helper()
 	var f wire.Frame
@@ -91,7 +84,6 @@ func (r *rig) settled(t *testing.T, fn func(wire.Frame) bool) wire.Frame {
 }
 
 // swing is a trace's lowest and highest volts.
-// TRLC-LINKS: REQ-DSO-163
 func swing(tr *wire.FrameTrace) (lo, hi float64) {
 	lo, hi = math.Inf(1), math.Inf(-1)
 	for i := range tr.Codes.Len() {
@@ -102,7 +94,6 @@ func swing(tr *wire.FrameTrace) (lo, hi float64) {
 }
 
 // near reports a within 1 % of b.
-// TRLC-LINKS: REQ-DSO-163
 func near(a, b float64) bool { return math.Abs(a-b) <= 0.01*math.Max(math.Abs(b), 1e-3) }
 
 // A four-channel 12-bit scope: v2 frames decode to the fake's ±2-division
