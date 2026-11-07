@@ -58,7 +58,7 @@ for(const flag of ['peak_detect','is_env']) {
 }
 // The web's limit is the scope's (framecalc.MinEnvelopeFeature; its source file is argv[2]).
 {
-  const goLimit = +(/const MinEnvelopeFeature = ([0-9.]+)/.exec(fs.readFileSync(process.argv[2] || '../panel/framecalc/framecalc.go', 'utf8'))[1]);
+  const goLimit = +(/const MinEnvelopeFeature = ([0-9.]+)/.exec(fs.readFileSync(process.argv[2] || '../framecalc/framecalc.go', 'utf8'))[1]);
   const jsLimit = +(/const DECODE_MIN_ENVELOPE_FEATURE = ([0-9.]+)/.exec(source)[1]);
   assert.equal(jsLimit, goLimit, 'the web and the scope refuse envelopes alike');
 }
