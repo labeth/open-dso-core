@@ -33,7 +33,7 @@ func runLoop(t *testing.T, b *halfake.Board, inst *instrument.Model, n int) []*s
 	defer cancel()
 	var mu sync.Mutex
 	var got []*sample.Frame
-	l := NewLoop(LoopConfig{Board: b, Instrument: inst, IdleWait: time.Millisecond, WaitSlice: time.Millisecond, Publish: func(f *sample.Frame) {
+	l, _ := NewHALLoop(HALConfig{Board: b, Instrument: inst, IdleWait: time.Millisecond, WaitSlice: time.Millisecond, Publish: func(f *sample.Frame) {
 		mu.Lock()
 		got = append(got, f)
 		if len(got) >= n {
@@ -58,7 +58,7 @@ func TestLoopCycle(t *testing.T) {
 		t.Fatalf("published %d frames", len(frames))
 	}
 	calls := strings.Join(b.Calls(), " ")
-	want := strings.Join([]string{"Service", "FrontEnd.Set", "FrontEnd.Set", "Configure", "Program", "Arm", "Wait", "Read", "Service"}, " ")
+	want := strings.Join([]string{"Service", "FrontEnd.Set", "FrontEnd.Set", "Configure", "Program", "Arm", "Service", "Wait", "Read", "Service"}, " ")
 	if !strings.HasPrefix(calls, want) {
 		t.Fatalf("calls %q\nwant prefix %q", calls, want)
 	}
@@ -88,7 +88,7 @@ func TestLoopSingle(t *testing.T) {
 	b := halfake.New(halfake.Config{})
 	inst := instrument.New(loopState(hal.Single), nil)
 	ctx, cancel := context.WithCancel(context.Background())
-	l := NewLoop(LoopConfig{Board: b, Instrument: inst, IdleWait: time.Millisecond, WaitSlice: time.Millisecond})
+	l, c := NewHALLoop(HALConfig{Board: b, Instrument: inst, IdleWait: time.Millisecond, WaitSlice: time.Millisecond})
 	done := make(chan struct{})
 	go func() { l.Run(ctx); close(done) }()
 	deadline := time.Now().Add(5 * time.Second)
@@ -104,7 +104,7 @@ func TestLoopSingle(t *testing.T) {
 	if n := strings.Count(strings.Join(b.Calls(), " "), "Read"); n != 1 {
 		t.Fatalf("read %d records", n)
 	}
-	if _, fresh := l.Consume(); !fresh {
+	if _, fresh := c.Consume(); !fresh {
 		t.Fatal("no frame for the consumer")
 	}
 	if inst.Acquisition() != instrument.Stopped {
@@ -122,7 +122,7 @@ func TestLoopRefusedCommit(t *testing.T) {
 	var mu sync.Mutex
 	inst.OnRefused(func(err error) { mu.Lock(); heard = append(heard, err); mu.Unlock() })
 	ctx, cancel := context.WithCancel(context.Background())
-	l := NewLoop(LoopConfig{Board: b, Instrument: inst, IdleWait: time.Millisecond, WaitSlice: time.Millisecond})
+	l, _ := NewHALLoop(HALConfig{Board: b, Instrument: inst, IdleWait: time.Millisecond, WaitSlice: time.Millisecond})
 	done := make(chan struct{})
 	go func() { l.Run(ctx); close(done) }()
 	_ = inst.Change(func(s *instrument.State) error {
@@ -169,8 +169,8 @@ func TestLoopPostedWorkAndForce(t *testing.T) {
 	if st := <-ran; st == hal.Armed {
 		t.Fatal("LONG work ran while armed")
 	}
-	if !slices.Contains(b.Calls(), "Force") {
-		t.Fatalf("no force: %v", b.Calls())
+	if inst.ForcePending() {
+		t.Fatal("the force was not taken")
 	}
 }
 
@@ -186,7 +186,7 @@ func (b panicBoard) Platform() hal.Platform { return panicPlatform{b.Board.Platf
 // TRLC-LINKS: REQ-DSO-001
 func TestLoopPanicParks(t *testing.T) {
 	inst := instrument.New(loopState(hal.Auto), nil)
-	l := NewLoop(LoopConfig{Board: panicBoard{halfake.New(halfake.Config{})}, Instrument: inst})
+	l, _ := NewHALLoop(HALConfig{Board: panicBoard{halfake.New(halfake.Config{})}, Instrument: inst})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() { l.Run(ctx); close(done) }()

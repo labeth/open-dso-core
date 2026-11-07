@@ -88,14 +88,28 @@ func TestOwnerSide(t *testing.T) {
 	_ = m.Force()
 	ran := 0
 	m.Post(func(context.Context) { ran++ })
-	p := m.Take()
-	if !p.Force || len(p.Work) != 1 || p.Gen != m.Generation() {
-		t.Fatalf("take: %+v", p)
+	if !m.ForcePending() || !m.TakeForce() || m.TakeForce() || m.ForcePending() {
+		t.Fatal("the force is not taken once")
 	}
-	p.Work[0](context.Background())
-	if q := m.Take(); q.Force || len(q.Work) != 0 || ran != 1 {
-		t.Fatalf("second take: %+v ran %d", q, ran)
+	if !m.HasWork() {
+		t.Fatal("no work posted")
 	}
+	work := m.TakeWork()
+	if len(work) != 1 || m.HasWork() || len(m.TakeWork()) != 0 {
+		t.Fatalf("work taken %d", len(work))
+	}
+	work[0](context.Background())
+	if ran != 1 {
+		t.Fatalf("ran %d", ran)
+	}
+	ps, pgen := m.Wanted()
+	if pgen != m.Generation() {
+		t.Fatalf("generation %d want %d", pgen, m.Generation())
+	}
+	p := struct {
+		State State
+		Gen   uint64
+	}{ps, pgen}
 	snapped := p.State.Clone()
 	snapped.Channels[0].VoltsDiv = 0.998
 	m.Applied(snapped, p.Gen)

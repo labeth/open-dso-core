@@ -6,283 +6,349 @@ import (
 	"context"
 	"errors"
 	"runtime/debug"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/labeth/open-dso-core/hal"
-	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
-)
-
-// The loop's default pacing.
-const (
-	defaultWaitSlice = 250 * time.Millisecond
-	defaultIdleWait  = 50 * time.Millisecond
 )
 
 // LoopConfig wires a Loop.
 type LoopConfig struct {
-	Board      hal.Board
-	Instrument *instrument.Model
+	Acquirer hal.Acquirer
+	Cycle    Cycle
+	Clock    Clock // zero: the real clock
 	// WaitSlice is how long one Acquirer.Wait may block before the loop
-	// serves its commit point again; default 250 ms.
+	// serves its commit point again. Zero polls: the loop sleeps
+	// StatusPollWait between the polls itself.
 	WaitSlice time.Duration
-	// IdleWait is the pause while stopped, or after a failed arm, before
-	// the loop looks for work again; default 50 ms.
-	IdleWait time.Duration
-	// Publish hears every published frame on the owner goroutine, after
-	// the instrument and the loop's consumers can see it; nil: none.
-	Publish func(*sample.Frame)
-	Logf    func(format string, a ...any)
+	// Stopping, when set, also ends the loop (a scope's own stop flag).
+	Stopping func() bool
+	// OnPanic hears a panic the loop contained, before it parks.
+	OnPanic func(r any, stack []byte)
 }
 
-// Loop is the core engine's owner loop over a board (HAL v1 §2.1), the one
-// goroutine that touches the hardware. Each pass serves the board's
-// housekeeping, runs LONG work posted to the instrument with the
-// acquisition stopped, commits a changed instrument state in the HAL's
-// order (FrontEnd.Set, Planner.Plan, Acquirer.Configure, Trigger.Program),
-// arms, waits, reads one window per enabled channel and publishes the
-// frame. A refused commit goes back to the last state the board took and
-// is reported to the instrument's listeners. A single shot stops the run
-// once its frame is published.
+// Loop is the core engine's owner loop (HAL v1 §2.1): the one goroutine
+// that touches the hardware. Each pass serves the commit point, lets other
+// work claim the acquisition, has the cycle plan and commit a capture, arms
+// it and waits for it while serving the commit points (a changed setting
+// starts a fresh capture; AUTO and the FORCE key force a trigger), has the
+// cycle read and judge the record, and then decides the publish, completes
+// a single shot and paces the next pass. What the scope decides is its
+// Cycle; HALCycle is the cycle of a board whose settings are all HAL terms.
 type Loop struct {
 	cfg  LoopConfig
-	b    hal.Board
-	inst *instrument.Model
+	c    Cycle
+	a    hal.Acquirer
+	stop atomic.Bool
+	park atomic.Bool
 
-	gen     uint64           // the generation committed last
-	good    instrument.State // the state last committed without a refusal
-	running bool
-
-	wedged atomic.Bool
-
-	mu     sync.Mutex
-	latest *sample.Frame // the newest published frame
-	fresh  bool          // published since the last Consume
+	lastPace time.Duration // the previous pass's pacing hold
 }
 
-// NewLoop builds a loop over cfg's board and instrument, filling in the
-// defaults for the zero fields.
+// NewLoop builds a loop over cfg's acquirer and cycle.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
 func NewLoop(cfg LoopConfig) *Loop {
-	if cfg.WaitSlice <= 0 {
-		cfg.WaitSlice = defaultWaitSlice
+	if cfg.Clock.Now == nil {
+		cfg.Clock = RealClock()
 	}
-	if cfg.IdleWait <= 0 {
-		cfg.IdleWait = defaultIdleWait
-	}
-	if cfg.Logf == nil {
-		cfg.Logf = func(string, ...any) {}
-	}
-	return &Loop{cfg: cfg, b: cfg.Board, inst: cfg.Instrument, good: cfg.Instrument.State()}
+	return &Loop{cfg: cfg, c: cfg.Cycle, a: cfg.Acquirer}
+}
+
+// Stop asks the loop to end at its next commit point; Run returns then.
+// TRLC-LINKS: REQ-DSO-008
+func (l *Loop) Stop() { l.stop.Store(true) }
+
+// Stopping reports that the loop was asked to end.
+// TRLC-LINKS: REQ-DSO-008
+func (l *Loop) Stopping() bool {
+	return l.stop.Load() || l.cfg.Stopping != nil && l.cfg.Stopping()
 }
 
 // Wedged reports that the loop panicked and parked: it serves nothing
-// until its context ends, so the health it feeds stops advancing.
+// until it is stopped, so the health it feeds stops advancing.
 // TRLC-LINKS: REQ-DSO-001
-func (l *Loop) Wedged() bool { return l.wedged.Load() }
+func (l *Loop) Wedged() bool { return l.park.Load() }
 
-// Consume hands the newest published frame to the loop's one consumer (an
-// engine fan-out); fresh is false when nothing was published since the
-// last call. A published frame never changes.
-// TRLC-LINKS: REQ-DSO-007
-func (l *Loop) Consume() (*sample.Frame, bool) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	fresh := l.fresh
-	l.fresh = false
-	return l.latest, fresh
-}
-
-// Run is the owner loop; it returns when ctx ends. A panic is contained:
-// logged, the loop marked wedged and parked until ctx ends, so the process
-// keeps its hardware handles and its supervisor sees the health stop.
+// Run is the owner loop; it returns once stopped. ctx ends it too and
+// cancels a wait in flight. A panic is contained: the cycle closes, the
+// loop parks until stopped (the process keeps its hardware handles, and a
+// supervisor sees the health stop advancing instead of a crash loop).
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
 func (l *Loop) Run(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			l.cfg.Logf("engine: PANIC (wedged, parked): %v\n%s", r, debug.Stack())
-			l.wedged.Store(true)
-			<-ctx.Done()
+			if l.cfg.OnPanic != nil {
+				l.cfg.OnPanic(r, debug.Stack())
+			}
+			l.park.Store(true)
+			for !l.Stopping() && ctx.Err() == nil {
+				l.cfg.Clock.Sleep(100 * time.Millisecond)
+			}
 		}
 	}()
-	for ctx.Err() == nil {
+	l.c.Open()
+	defer l.c.Close()
+	for !l.Stopping() && ctx.Err() == nil {
 		l.pass(ctx)
 	}
 }
 
+// Capture is the capture a pass makes, as the cycle planned it.
+type Capture struct {
+	// Replay reads the record the board holds again (a stopped record
+	// shown at a new setting): nothing is armed.
+	Replay bool
+	// Normal: the hardware trigger is armed, so a capture may be forced.
+	// A free-running capture completes on its own.
+	Normal bool
+	// Norm: the sweep waits for a trigger (NORMAL or SINGLE).
+	Norm bool
+	// AutoWait is how long AUTO waits for a trigger before the loop
+	// forces one; 0 when the board sweeps AUTO itself.
+	AutoWait time.Duration
+}
+
+// Armed is how a capture was armed and served.
+type Armed struct {
+	ArmAt      time.Time // when the pass planned it
+	ArmedAt    time.Time // when Arm returned
+	Status     hal.Status
+	Forced     bool   // the loop forced it (AUTO or the FORCE key)
+	UserForced bool   // by the FORCE key
+	SingleGen  uint64 // the SINGLE press the capture served
+}
+
+// Verdict is the cycle's judgement of a read frame.
+type Verdict struct {
+	Qualified  bool // its trigger stands: a hardware trigger every check kept
+	Complete   bool // a block mode's block is complete (an average of N)
+	FullRecall bool // a stopped record read whole: always shown
+	UserForced bool // forced by the FORCE key: shown even in NORMAL
+	MaskStop   bool // a mask test failed with stop-on-fail: shown, and the run stops
+}
+
+// Interrupt is what the cycle answers while a capture waits.
+type Interrupt int
+
+// The interrupts.
+const (
+	Continue Interrupt = iota // keep waiting
+	Abort                     // halt the capture: the pass starts over
+	Leave                     // another owner of the acquisition took over: leave the capture as it is
+)
+
+// Cycle is the scope's part of the owner's pass. The loop calls it on the
+// owner goroutine only. It shrinks as the scopes' settings become HAL terms:
+// what a board does through the HAL alone is HALCycle.
+type Cycle interface {
+	// Open runs before the first pass and Close after the last, also
+	// when a panic ends the loop.
+	Open()
+	Close()
+	// Serve runs the commit point's housekeeping (the board's Service and
+	// the staged work the scope serves there), at the top of every pass
+	// and between the polls of a wait.
+	Serve()
+	// Claim lets other work take this pass (a stream, an image load,
+	// LONG work); true: it took the pass.
+	Claim(ctx context.Context) bool
+	// Plan decides and stages this pass's capture; false: nothing to
+	// capture now (stopped and nothing to show again).
+	Plan(ctx context.Context) (Capture, bool)
+	// Watch is asked at every poll of a wait; settings says the settings
+	// are due a look (every SettingsPollEvery): a change of them aborts
+	// the capture for a fresh one.
+	Watch(settings bool) Interrupt
+	// ArmFailed reports a failed arm; Fault a wait that ended in a fault
+	// (err) or a halt that failed (haltErr), after the capture was halted.
+	ArmFailed(err error)
+	Fault(err, haltErr error)
+	// Frame reads and judges the record of capture c; false: nothing to
+	// show from this pass.
+	Frame(ctx context.Context, c Capture, a Armed) (*sample.Frame, Verdict, bool)
+	// Liveness decides whether AUTO shows a frame its gate (a protocol
+	// or zone qualifier) did not qualify.
+	Liveness() bool
+	// Publish publishes f when publish is set, else counts it held.
+	Publish(f *sample.Frame, v Verdict, publish bool)
+	// Done ends the pass at doneAt; prevPace is the previous pass's
+	// pacing hold.
+	Done(doneAt time.Time, prevPace time.Duration)
+	// Pacing is the trigger holdoff and the least time a live capture
+	// takes from its arm (the display's share of a single core), read
+	// live while pacing.
+	Pacing() (holdoff, display time.Duration)
+	// Beat advances the owner's liveness heartbeat.
+	Beat()
+	RunControl
+}
+
+// RunControl is the run state the owner obeys.
+type RunControl interface {
+	Running() bool
+	SingleArmed() bool
+	// SingleGen moves with every SINGLE press: a capture armed before a
+	// press does not serve it.
+	SingleGen() uint64
+	// TakeForce takes a pending FORCE press; ForcePending looks at it.
+	TakeForce() bool
+	ForcePending() bool
+	// StopOnFail stops the run on a failed mask test.
+	StopOnFail()
+	// SingleDone completes the single shot whose frame v was published.
+	SingleDone(v Verdict)
+}
+
 // pass is one turn of the owner's cycle.
-// TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-008, REQ-DSO-011
 func (l *Loop) pass(ctx context.Context) {
-	a := l.b.Acquirer()
-	l.b.Platform().Service()
-	p := l.inst.Take()
-	if len(p.Work) > 0 {
-		// LONG work runs with the acquisition stopped; the next arm is a
-		// commit arm of the whole state.
-		if a.State() == hal.Armed {
-			_ = a.Stop()
-		}
-		for _, w := range p.Work {
-			w(ctx)
-		}
-		l.gen = 0
-	}
-	s, gen := p.State, p.Gen
-	if gen != l.gen {
-		if a.State() == hal.Armed {
-			_ = a.Stop()
-		}
-		l.commitState(s, gen)
-	}
-	if !l.running {
-		if a.State() == hal.Armed {
-			_ = a.Stop()
-		}
-		l.idle(ctx)
+	c := l.c
+	c.Serve()
+	if c.Claim(ctx) {
 		return
 	}
-	if a.State() != hal.Armed {
-		if err := a.Arm(); err != nil {
-			l.cfg.Logf("arm: %v", err)
-			l.idle(ctx)
+	cp, ok := c.Plan(ctx)
+	if !ok {
+		return
+	}
+	a := Armed{ArmAt: l.cfg.Clock.Now(), ArmedAt: l.cfg.Clock.Now()}
+	if !cp.Replay {
+		if a, ok = l.armAndWait(ctx, cp, a.ArmAt); !ok {
 			return
 		}
 	}
-	if p.Force {
-		if err := a.Force(); err != nil {
-			l.cfg.Logf("force: %v", err)
-		}
-	}
-	st, err := a.Wait(ctx, l.cfg.WaitSlice)
-	switch {
-	case errors.Is(err, hal.ErrTimeout):
-		if s.Sweep != hal.Auto {
-			l.inst.SetRun(instrument.Ready)
-		}
-		return
-	case ctx.Err() != nil:
-		return
-	case err != nil:
-		l.cfg.Logf("wait: %v", err)
-		return
-	case !st.Done:
+	f, v, ok := c.Frame(ctx, cp, a)
+	if !ok {
 		return
 	}
-	if st.Triggered && !st.Forced {
-		l.inst.SetRun(instrument.Triggered)
-	} else {
-		l.inst.SetRun(instrument.AutoRun)
+	l.gate(f, v, cp.Norm, a.SingleGen)
+	doneAt := l.cfg.Clock.Now()
+	c.Done(doneAt, l.lastPace)
+	l.paceHold(doneAt, v.Qualified && f.Status.Triggered, 0)
+	if _, display := c.Pacing(); display > 0 {
+		l.paceHold(a.ArmAt, false, display)
 	}
-	if f := l.read(s); f != nil {
-		l.publish(f)
-	}
-	if s.Sweep == hal.Single {
-		_ = a.Stop()
-		s.Running = false
-		l.running = false
-		l.good = s
-		l.inst.Applied(s, gen)
-	}
+	l.lastPace = l.cfg.Clock.Now().Sub(doneAt)
 }
 
-// commitState commits s, or on a refusal the last state the board took,
-// and reports what was applied to the instrument.
-// TRLC-LINKS: REQ-DSO-008, REQ-DSO-1001
-func (l *Loop) commitState(s instrument.State, gen uint64) {
-	applied, err := l.commit(s)
+// armAndWait arms the staged capture and serves it until its record is
+// ready: the commit points between polls, a settings change (a fresh
+// capture with them), AUTO forced after its wait, FORCE once. ok is false
+// when the pass must start over: the arm or the wait failed (reported),
+// the settings changed, or other work came first.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-009, REQ-DSO-011
+func (l *Loop) armAndWait(ctx context.Context, cp Capture, armAt time.Time) (a Armed, ok bool) {
+	c, clk := l.c, l.cfg.Clock
+	a.ArmAt = armAt
+	err := l.a.Arm()
+	a.ArmedAt = clk.Now()
 	if err != nil {
-		// The board refused: go back to the last state it took.
-		l.cfg.Logf("settings refused: %v", err)
-		l.inst.Refused(err)
-		if applied, err = l.commit(l.good); err != nil {
-			l.cfg.Logf("settings: restoring the last state: %v", err)
+		c.ArmFailed(err)
+		return a, false
+	}
+	// A SINGLE pressed while this capture still waits for its event is
+	// served by it; once its record is ready, a later press needs a fresh
+	// capture.
+	a.SingleGen = c.SingleGen()
+	aborted := false
+	var settingsAt time.Time
+	for !l.Stopping() {
+		c.Serve()
+		it := c.Watch(false)
+		if it == Leave {
+			return a, false
+		}
+		c.Beat()
+		if it == Abort {
+			aborted = true
+			break
+		}
+		if now := clk.Now(); now.Sub(settingsAt) >= SettingsPollEvery {
+			settingsAt = now
+			if c.Watch(true) != Continue {
+				aborted = true
+				break
+			}
+		}
+		gen := c.SingleGen() // before the poll: a press seen here precedes the ready record
+		st, werr := l.a.Wait(ctx, l.cfg.WaitSlice)
+		if werr == nil {
+			a.Status = st
+			break
+		}
+		if !errors.Is(werr, hal.ErrTimeout) {
+			err = werr
+			break
+		}
+		a.SingleGen = gen
+		// AUTO forces after its wait, unless the hardware triggered: the
+		// record then only fills its post-trigger part; FORCE forces once
+		// now, and that frame is shown even in NORMAL.
+		autoDue := cp.AutoWait > 0 && AutoForceDue(cp.Norm, c.Running(), st.Triggered, clk.Now().Sub(armAt), cp.AutoWait)
+		if cp.Normal && !a.Forced && !autoDue && c.TakeForce() {
+			a.UserForced, autoDue = true, true
+		}
+		if cp.Normal && !a.Forced && autoDue {
+			err = l.a.Force()
+			a.Forced = true
+			if err != nil {
+				break
+			}
+		}
+		if l.cfg.WaitSlice <= 0 {
+			clk.Sleep(StatusPollWait(clk.Now().Sub(a.ArmedAt)))
 		}
 	}
-	l.good = applied
-	l.gen = gen
-	l.running = applied.Running
-	l.inst.Applied(applied, gen)
-	l.inst.SetRun(instrument.Armed)
-}
-
-// commit stages s on the board in the order the HAL requires and returns
-// what the board applied (snapped values).
-// TRLC-LINKS: REQ-DSO-008, REQ-DSO-1001
-func (l *Loop) commit(s instrument.State) (instrument.State, error) {
-	s = s.Clone()
-	for c := range s.Channels {
-		got, err := l.b.FrontEnd().Set(c, s.Channels[c])
-		if err != nil {
-			return s, err
+	if aborted || l.Stopping() || err != nil {
+		haltErr := l.a.Stop()
+		if err != nil || haltErr != nil {
+			c.Fault(err, haltErr)
 		}
-		s.Channels[c] = got
+		return a, false
 	}
-	plan, err := l.b.Planner().Plan(s.Request())
-	if err != nil {
-		return s, err
-	}
-	if err := l.b.Acquirer().Configure(plan); err != nil {
-		return s, err
-	}
-	return s, l.b.Trigger().Program(s.TriggerSpec())
+	return a, true
 }
 
-// read reads the main window of every enabled channel of the halted record
-// into one frame, a window a channel when the board reads one channel a
-// window.
-// TRLC-LINKS: REQ-DSO-001, REQ-DSO-1003
-func (l *Loop) read(s instrument.State) *sample.Frame {
-	on := s.Request().Channels
-	if len(on) == 0 {
-		_ = l.b.Acquirer().Stop()
-		return nil
+// gate decides whether frame f is shown and completes a single shot:
+// a qualified trigger, AUTO's free run, a stopped record read whole, the
+// FORCE key and a failed mask test with stop-on-fail are shown; AUTO holds
+// the captures a protocol or zone gate rejected unless its liveness rule
+// shows one.
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-013, REQ-DSO-014
+func (l *Loop) gate(f *sample.Frame, v Verdict, norm bool, singleGen uint64) {
+	c := l.c
+	publish := v.Qualified || !norm || v.FullRecall || v.UserForced || v.MaskStop
+	if publish && !v.Qualified && !v.FullRecall && !v.UserForced && !v.MaskStop {
+		publish = c.Liveness()
 	}
-	var ws []hal.Window
-	if lim := l.b.Readout().Limits(); lim.ChannelsPerWindow == 1 {
-		for _, c := range on {
-			ws = append(ws, hal.Window{Role: hal.Main, Channels: []int{c}})
+	if v.MaskStop {
+		c.StopOnFail()
+	}
+	c.Publish(f, v, publish)
+	if publish && (v.Qualified && v.Complete || v.UserForced) && c.SingleArmed() && !v.FullRecall && singleGen == c.SingleGen() {
+		c.SingleDone(v)
+	}
+}
+
+// paceHold waits until base after start (the holdoff after a triggered
+// frame, when longer), rechecking the live holdoff: a changed setting must
+// not strand STOP or FORCE behind an obsolete long hold.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
+func (l *Loop) paceHold(start time.Time, triggered bool, base time.Duration) {
+	c, clk := l.c, l.cfg.Clock
+	for !l.Stopping() && c.Running() && !c.ForcePending() {
+		floor := base
+		if triggered {
+			if h, _ := c.Pacing(); h > floor {
+				floor = h
+			}
 		}
-	} else {
-		ws = []hal.Window{{Role: hal.Main, Channels: on}}
-	}
-	fs := make([]*sample.Frame, len(ws))
-	for i := range fs {
-		fs[i] = &sample.Frame{}
-	}
-	if err := l.b.Readout().Read(hal.ReadRequest{Windows: ws}, fs, l.b.Platform().Service); err != nil {
-		l.cfg.Logf("readout: %v", err)
-		_ = l.b.Acquirer().Stop()
-		return nil
-	}
-	f := fs[0]
-	for _, g := range fs[1:] {
-		f.Traces = append(f.Traces, g.Traces...)
-	}
-	return f
-}
-
-// publish hands f to the instrument, the loop's consumer and the Publish
-// hook.
-// TRLC-LINKS: REQ-DSO-007, REQ-DSO-020
-func (l *Loop) publish(f *sample.Frame) {
-	l.mu.Lock()
-	l.latest, l.fresh = f, true
-	l.mu.Unlock()
-	l.inst.Published(f)
-	if l.cfg.Publish != nil {
-		l.cfg.Publish(f)
-	}
-}
-
-// idle waits IdleWait or until ctx ends.
-// TRLC-LINKS: REQ-DSO-008
-func (l *Loop) idle(ctx context.Context) {
-	t := time.NewTimer(l.cfg.IdleWait)
-	defer t.Stop()
-	select {
-	case <-ctx.Done():
-	case <-t.C:
+		d := floor - clk.Now().Sub(start)
+		if d <= 0 {
+			return
+		}
+		clk.Sleep(min(d, 50*time.Millisecond))
+		c.Beat()
 	}
 }

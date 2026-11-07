@@ -147,23 +147,49 @@ func (m *Model) OnRefused(fn func(error)) {
 	m.mu.Unlock()
 }
 
-// Pending is what waits for the owner at a commit point.
-type Pending struct {
-	State State
-	Gen   uint64
-	Force bool
-	Work  []func(ctx context.Context)
-}
-
-// Take returns the wanted state with its generation, and takes the pending
-// forced trigger and the posted work (OWNER).
+// Wanted is the wanted state with its generation (OWNER).
 // TRLC-LINKS: REQ-DSO-008
-func (m *Model) Take() Pending {
+func (m *Model) Wanted() (State, uint64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	p := Pending{State: m.want.Clone(), Gen: m.gen, Force: m.force, Work: m.posted}
-	m.force, m.posted = false, nil
-	return p
+	return m.want.Clone(), m.gen
+}
+
+// TakeWork takes the posted LONG work (OWNER).
+// TRLC-LINKS: REQ-DSO-008
+func (m *Model) TakeWork() []func(ctx context.Context) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	w := m.posted
+	m.posted = nil
+	return w
+}
+
+// HasWork reports posted LONG work waiting for the owner.
+// TRLC-LINKS: REQ-DSO-008
+func (m *Model) HasWork() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.posted) > 0
+}
+
+// TakeForce takes a pending forced trigger (OWNER); ForcePending looks at
+// it.
+// TRLC-LINKS: REQ-DSO-008
+func (m *Model) TakeForce() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	f := m.force
+	m.force = false
+	return f
+}
+
+// ForcePending reports a forced trigger not yet taken.
+// TRLC-LINKS: REQ-DSO-008
+func (m *Model) ForcePending() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.force
 }
 
 // Applied takes back the state the owner committed: the values the board
