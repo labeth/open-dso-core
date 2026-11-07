@@ -8,6 +8,7 @@ import (
 // TokenKind classifies a program data element.
 type TokenKind int
 
+// The kinds of program data.
 const (
 	TokNumber   TokenKind = iota // decimal numeric (with optional suffix/unit)
 	TokNonDec                    // #H / #B / #Q

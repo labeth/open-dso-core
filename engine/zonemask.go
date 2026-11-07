@@ -72,6 +72,8 @@ type MaskFail struct {
 	FailSample int   // raw sample index of the violation
 }
 
+// ZoneMaskState is the zone and mask tests' configuration and failure ring
+// under their own lock.
 // TRLC-LINKS: REQ-DSO-014
 type ZoneMaskState struct {
 	// LOCK ORDER: e.mu is acquired BEFORE zm.mu (Snapshot nests that way).

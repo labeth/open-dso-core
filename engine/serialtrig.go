@@ -142,9 +142,11 @@ type SerialParams struct {
 	Pattern []PatternElem `json:"pattern,omitempty"`
 }
 
+// Empty reports that no protocol is set.
 // TRLC-LINKS: REQ-DSO-013
 func (p SerialParams) Empty() bool { return p.Proto == 0 }
 
+// SerialState is the serial trigger's parameters under their own lock.
 // TRLC-LINKS: REQ-DSO-013
 type SerialState struct {
 	// LOCK ORDER: e.mu is acquired BEFORE ser.mu (Snapshot nests that way), same

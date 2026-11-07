@@ -50,6 +50,8 @@ type TrigParams struct {
 	VideoNeg  bool
 }
 
+// DefaultTrigParams is an edge trigger with the qualifiers' default levels
+// and conditions.
 // TRLC-LINKS: REQ-DSO-011
 func DefaultTrigParams() TrigParams {
 	return TrigParams{
@@ -106,7 +108,7 @@ func (a AnchorSpan) closer(i int, best *int) bool {
 	return true
 }
 
-// flatReject is the qualifier preamble's no-event gate: a span under 40
+// FlatRejectSpan is the qualifier preamble's no-event gate: a span under 40
 // codes is a rail — never fabricate an event from noise crossings.
 const FlatRejectSpan = 40
 
@@ -133,6 +135,8 @@ func QualifyPulse(disc []uint8, intervalNs float64, p TrigParams, rising bool) f
 	return QualifyPulseAt(disc, intervalNs, p, rising, centreAnchor(len(disc)))
 }
 
+// QualifyPulseAt is QualifyPulse with the anchor sought nearest at instead
+// of the frame centre.
 // TRLC-LINKS: REQ-DSO-011
 func QualifyPulseAt(disc []uint8, intervalNs float64, p TrigParams, rising bool, at AnchorSpan) float64 {
 	n := len(disc)

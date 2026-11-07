@@ -1,4 +1,5 @@
 // ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
+
 package engine
 
 import (
@@ -12,5 +13,6 @@ type Clock struct {
 	Sleep func(time.Duration)
 }
 
+// RealClock is the wall clock and a real sleep.
 // TRLC-LINKS: REQ-DSO-008
 func RealClock() Clock { return Clock{Now: time.Now, Sleep: time.Sleep} }

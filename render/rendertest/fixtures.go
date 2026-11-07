@@ -19,8 +19,12 @@ import (
 // another test's cached Result within the measRefresh window. On-screen text
 // that could be environment-dependent (the device URL) is pinned in the HUD.
 
-// keyAdjust is the Adjust knob's name on the tool lines.
-const keyAdjust = "Adjust"
+// The knobs' names on the tool lines.
+const (
+	keyAdjust   = "Adjust"
+	keyPosition = "Position"
+	keyPush     = "push"
+)
 
 // Clamp converts a generator value to an ADC code.
 // TRLC-LINKS: REQ-DSO-021
@@ -361,7 +365,7 @@ func sceneBusPackets() Scene {
 	}
 	b := &wsview.BusPane{Pane: wsview.Pane{
 		Title: "BUS", Caption: "UART 31250 8N1 on C1  -  6 packets", Right: "match 55 AA: 6 packets",
-		Tool:  []wsview.Seg{{Key: keyAdjust, Job: "packet"}, {Key: "push", Job: "pick bytes"}, {Key: "Position", Job: "trigger position"}, {Key: "push", Job: "next match"}, {Key: "Zoom", Job: "on packet"}},
+		Tool:  []wsview.Seg{{Key: keyAdjust, Job: "packet"}, {Key: keyPush, Job: "pick bytes"}, {Key: keyPosition, Job: "trigger position"}, {Key: keyPush, Job: "next match"}, {Key: "Zoom", Job: "on packet"}},
 		Again: "F2 again: Eye diagram",
 	}}
 	for i := 1; i <= 6; i++ {
@@ -454,7 +458,7 @@ func sceneBusEye() Scene {
 	e := &wsview.EyePane{
 		Pane: wsview.Pane{
 			Title: "BUS", Caption: "EYE  UART 31250 8N1 on C1", Right: "212 UI folded from 9 captures",
-			Tool:  []wsview.Seg{{Key: keyAdjust, Job: "threshold"}, {Key: "push", Job: "clear eye"}, {Key: "Position", Job: "sample point"}, {Key: "push", Job: "trigger position"}, {Key: "Zoom", Job: "finer samples"}},
+			Tool:  []wsview.Seg{{Key: keyAdjust, Job: "threshold"}, {Key: keyPush, Job: "clear eye"}, {Key: keyPosition, Job: "sample point"}, {Key: keyPush, Job: "trigger position"}, {Key: "Zoom", Job: "finer samples"}},
 			Again: "F2 again: Packets",
 		},
 		Figures: [3][4][2]string{
@@ -482,9 +486,9 @@ func sceneBusStream() Scene {
 			Title: "BUS", Caption: "STREAM  UART 115200 8N1 on C1", Right: "stops on a decode error",
 			Tool: []wsview.Seg{
 				{Key: keyAdjust, Job: "stops on error"},
-				{Key: "push", Job: "stop"},
-				{Key: "Position", Job: "trigger position"},
-				{Key: "push", Job: "transcript"},
+				{Key: keyPush, Job: "stop"},
+				{Key: keyPosition, Job: "trigger position"},
+				{Key: keyPush, Job: "transcript"},
 			},
 			Again: "F2 again: Packets",
 		}, Off: true,
@@ -523,7 +527,7 @@ func sceneSpectrumPeaks() Scene {
 	s := &wsview.SpecPane{
 		Pane: wsview.Pane{
 			Title: "SPECTRUM", Caption: "FFT C1  span 0-10MHz  RBW 4.88kHz  floor -71dBV", Right: "S/DIV: span",
-			Tool:  []wsview.Seg{{Key: keyAdjust, Job: "peak"}, {Key: "push", Job: "delta"}, {Key: "Position", Job: "trigger position"}, {Key: "push", Job: "fine marker"}},
+			Tool:  []wsview.Seg{{Key: keyAdjust, Job: "peak"}, {Key: keyPush, Job: "delta"}, {Key: keyPosition, Job: "trigger position"}, {Key: keyPush, Job: "fine marker"}},
 			Again: "F3 again: Spectrogram",
 		},
 		Head: [4]string{"FREQ", "LEVEL", "VS TOP", "HARM"},
@@ -549,7 +553,7 @@ func sceneMeasureStats() Scene {
 	m := &wsview.MeasPane{
 		Pane: wsview.Pane{
 			Title: "MEASURE", Caption: "statistics  N 48  over 2.4 s", Right: "Measure key: choose",
-			Tool:  []wsview.Seg{{Key: keyAdjust, Job: "cursor A"}, {Key: "push", Job: "cursors Volts"}, {Key: "Position", Job: "trigger position"}, {Key: "push", Job: "cursor B"}},
+			Tool:  []wsview.Seg{{Key: keyAdjust, Job: "cursor A"}, {Key: keyPush, Job: "cursors Volts"}, {Key: keyPosition, Job: "trigger position"}, {Key: keyPush, Job: "cursor B"}},
 			Again: "F4 again: All values",
 		},
 		Stats: []wsview.StatRow{
@@ -576,7 +580,7 @@ func sceneMeasureStats() Scene {
 func sceneCompare() Scene {
 	c := &wsview.CmpPane{Pane: wsview.Pane{
 		Title: "COMPARE", Caption: "trigger source C1: averaging",
-		Tool:  []wsview.Seg{{Key: keyAdjust, Job: "row"}, {Key: "push", Job: "row action"}, {Key: "Position", Job: "trigger position"}, {Key: "push", Job: "centre"}},
+		Tool:  []wsview.Seg{{Key: keyAdjust, Job: "row"}, {Key: keyPush, Job: "row action"}, {Key: keyPosition, Job: "trigger position"}, {Key: keyPush, Job: "centre"}},
 		Again: "F5 again: cancel stack",
 	}}
 	c.Rows[0] = wsview.CmpRow{
@@ -718,7 +722,7 @@ func SoundPane(page string, lines []wsview.Span) *wsview.SoundPane {
 	s := &wsview.SoundPane{
 		Pane: wsview.Pane{
 			Title: "SOUND", Caption: "gap-free stream 61.0 kSa/s", Right: "tuner C1",
-			Tool:  []wsview.Seg{{Key: keyAdjust, Job: "readout"}, {Key: "push", Job: "clear strip"}, {Key: "Position", Job: "cycles"}, {Key: "push", Job: "C1/C2"}},
+			Tool:  []wsview.Seg{{Key: keyAdjust, Job: "readout"}, {Key: keyPush, Job: "clear strip"}, {Key: keyPosition, Job: "cycles"}, {Key: keyPush, Job: "C1/C2"}},
 			Again: "F3 again: FFT",
 		},
 		HasPitch: true, Note: "A4", Cents: 3.1, Hz: "440.79 Hz", Sub: "A4 = 440 Hz  auto", Strobe: 0.3,
@@ -807,9 +811,9 @@ func sceneSoundTake() Scene {
 	s.Note, s.Hz, s.Cents = "D3", "146.80 Hz", -0.2
 	s.Tool = []wsview.Seg{
 		{Key: keyAdjust, Job: "readout"},
-		{Key: "push", Job: "clear strip"},
-		{Key: "Position", Job: "scroll"},
-		{Key: "push", Job: "trigger/all"},
+		{Key: keyPush, Job: "clear strip"},
+		{Key: keyPosition, Job: "scroll"},
+		{Key: keyPush, Job: "trigger/all"},
 		{Key: "S/DIV", Job: "zoom"},
 	}
 	const n = 780

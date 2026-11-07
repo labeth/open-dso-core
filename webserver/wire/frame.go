@@ -30,6 +30,8 @@ import (
 // The -1 sentinels in the int16 reply arrays are provably contiguous head/tail
 // runs (the deep path serves the record verbatim; window() rail-extends off-record
 // columns), so two counts replace the in-band sentinel and the payload narrows to uint8.
+
+// BinMagic is a v1 frame's first byte, bumped on any change of the layout above.
 const BinMagic = 0xF5
 
 // The flags byte's bits.

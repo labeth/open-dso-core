@@ -19,7 +19,7 @@ func EresQ8(src, scratch []uint16, length int) {
 	}
 	half := length / 2
 	lo, hi, sum := 0, 0, uint32(0)
-	var by recip // division by the window's samples, rebuilt where it shrinks
+	var by Recip // division by the window's samples, rebuilt where it shrinks
 	byN := uint32(0)
 	for i := range src {
 		end := min(i+half+1, len(src))
@@ -52,6 +52,7 @@ type SramAverage struct {
 	Key        string // the settings the sums are for
 }
 
+// Reset drops the accumulated captures; the next one starts a new average.
 // TRLC-LINKS: REQ-DSO-012
 func (a *SramAverage) Reset() { a.count = 0 }
 
@@ -160,23 +161,23 @@ func (a *SramAverage) Push(f *sample.Frame, target int) int {
 	return a.count
 }
 
-// recip divides by d with a multiply and a shift (the ARM has no divide
+// Recip divides by d with a multiply and a shift (the ARM has no divide
 // instruction; a division is a library call): exact, by Granlund and
 // Montgomery's bound, for every dividend below 2^(17+⌈log₂d⌉), which a sum of
 // at most d 16-bit samples and half d is.
-type recip struct {
+type Recip struct {
 	m uint64
 	s uint
 }
 
 // NewRecip is division by d (at least 1).
 // TRLC-LINKS: REQ-DSO-012
-func NewRecip(d uint32) recip {
+func NewRecip(d uint32) Recip {
 	l := uint(bits.Len32(d - 1)) // ⌈log₂d⌉
 	s := 17 + 2*l
-	return recip{m: (uint64(1)<<s + uint64(d) - 1) / uint64(d), s: s}
+	return Recip{m: (uint64(1)<<s + uint64(d) - 1) / uint64(d), s: s}
 }
 
 // Div is x/d, rounded down.
 // TRLC-LINKS: REQ-DSO-012
-func (r recip) Div(x uint32) uint32 { return uint32(uint64(x) * r.m >> r.s) } //nolint:gosec // G115: newRecip picks m and s so the quotient fits 32 bits
+func (r Recip) Div(x uint32) uint32 { return uint32(uint64(x) * r.m >> r.s) } //nolint:gosec // G115: NewRecip picks m and s so the quotient fits 32 bits

@@ -26,6 +26,8 @@ type BodePoint struct {
 	Seq      uint64 // capture ordinal of the frame that set this bin (freshness)
 }
 
+// BodeState is the frequency-response sweep's accumulated points and the
+// channels it compares.
 // TRLC-LINKS: REQ-DSO-066
 type BodeState struct {
 	Mu    sync.Mutex

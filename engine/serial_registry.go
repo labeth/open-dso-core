@@ -62,6 +62,7 @@ func SerialDecoderList() []SerialDecoder {
 	return result
 }
 
+// LookupSerialDecoder returns the registered decoder for a protocol id.
 // TRLC-LINKS: REQ-DSO-013
 func LookupSerialDecoder(id int) (SerialDecoder, bool) {
 	serialDecoders.RLock()
@@ -90,8 +91,6 @@ func init() {
 	}
 }
 
-// serialDecoderTable is the built-in decoders; a nil Match is filled in
-// by init.
 // SPIDataDelayNs is where the scope's hardware SPI receiver reads the data
 // line for a delay asked after the clock's sampling edge, with the clock on
 // a channel: its register holds the delay in steps of its own, and the
@@ -99,6 +98,8 @@ func init() {
 // Nil: at the delay asked.
 var SPIDataDelayNs func(ns float64, clockCh int) float64
 
+// serialDecoderTable is the built-in decoders; a nil Match is filled in
+// by init.
 // TRLC-LINKS: REQ-DSO-013
 func serialDecoderTable() []SerialDecoder {
 	return []SerialDecoder{

@@ -110,7 +110,7 @@ func (r *SoundRing) Release() {
 	r.Mu.Unlock()
 }
 
-// oldest is the oldest ordinal held (r.mu held).
+// OldestLocked is the oldest ordinal held (r.Mu held).
 // TRLC-LINKS: REQ-DSO-265
 func (r *SoundRing) OldestLocked() uint64 {
 	old := uint64(0)

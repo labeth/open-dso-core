@@ -26,6 +26,8 @@ import (
 // says how its stored words read as volts (scale) and as divisions
 // (codes_per_div), and the payload carries the words as the scope stored
 // them, with no conversion.
+
+// FrameMagic2 is a v2 frame's first four bytes.
 var FrameMagic2 = [4]byte{'D', 'S', 'F', '2'}
 
 // The segment roles of a v2 frame.

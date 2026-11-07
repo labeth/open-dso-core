@@ -76,16 +76,16 @@ func TestGolden4Ch12Bit(t *testing.T) {
 			sf := render.NewImage32(&render.Metrics1024x600, hal.ARGB8888)
 			sf.SetUnder(hwPlane)
 			s.Draw(sf)
-			clear := 0 // the UI drawn over the plane (markers, readouts, the rail) may cover some of it
+			uncovered := 0 // the UI drawn over the plane (markers, readouts, the rail) may cover some of it
 			for y := hwPlane.Min.Y; y < hwPlane.Max.Y; y++ {
 				for x := hwPlane.Min.X; x < hwPlane.Max.X; x++ {
 					if sf.At(x, y) == render.Transparent {
-						clear++
+						uncovered++
 					}
 				}
 			}
-			if area := hwPlane.Dx() * hwPlane.Dy(); clear < area*3/4 {
-				t.Fatalf("%d of the waveform plane's %d pixels transparent", clear, area)
+			if area := hwPlane.Dx() * hwPlane.Dy(); uncovered < area*3/4 {
+				t.Fatalf("%d of the waveform plane's %d pixels transparent", uncovered, area)
 			}
 			if sf.At(0, 0) == render.Transparent || sf.At(hwPlane.Max.X, hwPlane.Max.Y) == render.Transparent {
 				t.Fatal("the UI outside the plane is transparent")

@@ -25,6 +25,8 @@ func EresLenForBits(bits float64) int {
 	return ClampEresLen(l)
 }
 
+// ClampEresLen clamps a boxcar length to [1,64] and makes it odd (an even
+// length steps down by one).
 // TRLC-LINKS: REQ-DSO-012
 func ClampEresLen(l int) int {
 	if l < 1 {
@@ -92,6 +94,8 @@ type AvgRing struct {
 	width  int
 }
 
+// Reset empties the ring and sizes it to depth windows of width columns
+// (depth at least 1), reallocating only when the shape changes.
 // TRLC-LINKS: REQ-DSO-012
 func (r *AvgRing) Reset(depth, width int) {
 	if depth < 1 {
@@ -163,14 +167,15 @@ func (r *AvgRing) MeanInto(f *sample.Frame) {
 	f.TriggerAt = float64(r.width) / 2
 }
 
-// uniRing tracks cross-frame per-column uniformity (spec 03 §11): the
-// un-fakeable proof that software centring locks the trace. Two variants:
-// centred (window extracted around EdgeX) and raw (fixed record position).
+// The uniformity ring's depth in frames and width in columns.
 const (
 	uniDepth = 16
 	uniCols  = 256
 )
 
+// UniRing tracks cross-frame per-column uniformity (spec 03 §11): the
+// un-fakeable proof that software centring locks the trace. Two variants:
+// centred (window extracted around EdgeX) and raw (fixed record position).
 // TRLC-LINKS: REQ-DSO-126
 type UniRing struct {
 	centred [][]uint8
@@ -179,6 +184,7 @@ type UniRing struct {
 	cnt     int
 }
 
+// Reset empties the ring, allocating its windows on first use.
 // TRLC-LINKS: REQ-DSO-126
 func (u *UniRing) Reset() {
 	if u.centred == nil {

@@ -11,7 +11,7 @@ package wire
 type Caps struct {
 	API         int                `json:"api"`
 	Gen         uint64             `json:"caps_gen"` // bumped on any change; /api/status repeats it
-	Wire        WireVersions       `json:"wire"`
+	Wire        Versions           `json:"wire"`
 	Identity    Identity           `json:"identity"`
 	Channels    []CapsChannel      `json:"channels"`
 	Codes       CapsCodes          `json:"codes"`
@@ -26,8 +26,8 @@ type Caps struct {
 	Limits      CapsLimits         `json:"limits"`
 }
 
-// WireVersions are the binary shapes this server speaks, per resource.
-type WireVersions struct {
+// Versions are the binary shapes this server speaks, per resource.
+type Versions struct {
 	Frame  []int `json:"frame"`
 	Record []int `json:"record,omitempty"`
 	Sound  []int `json:"sound,omitempty"`

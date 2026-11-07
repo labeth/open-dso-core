@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// RoundQ8 rounds a Q8.8 code to its 8-bit code, saturating at 255.
 // TRLC-LINKS: REQ-DSO-040
 func RoundQ8(x uint16) uint8 {
 	v := min((uint32(x)+128)>>8, 255)
