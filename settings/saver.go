@@ -27,7 +27,7 @@ type Saver struct {
 	poll   time.Duration
 	settle time.Duration
 
-	now  func() time.Time      // injectable clock (tests)
+	now  func() time.Time     // injectable clock (tests)
 	save func(Settings) error // injectable sink (tests)
 
 	mu         sync.Mutex
