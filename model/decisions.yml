@@ -650,3 +650,57 @@ decisions:
   decision: 'Acquirer.Configure and Trigger.Program stage until changed: a plain re-arm commits the staged state again, and a call with what is staged (at the same FrontEnd state) changes nothing and is no commit arm. A board knows a repeat cheaply (the CML keeps the spec and its inputs and composes once a change); an owner may stage every pass or only on a change.'
   consequences:
   - 'From the S7c CPU fix. The SDS800X HD board stages into its settings struct and commits only what differs, so it already holds.'
+
+- id: ADR-ONE-SCOPEAPP
+  title: 'A scope''s main is its board plus one scopeapp.Run call'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Each scope composed the engine, UI, display, SCPI, web and settings itself.'
+  decision: 'open-dso-core/scopeapp.Run(ctx, board, Options) composes them in a fixed order; scope-specific pieces enter as options (dialect, extensions, a board''s own engine cycle, display device).'
+  consequences:
+  - 'From the composition and settings step (S11, S13).'
+
+- id: ADR-ONE-DISPLAY-LOOP
+  title: 'One display loop for every scope'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The CML had its LCD loop (52 Hz cadence, CPU-aware governor, saver, busy mode) and the SDS800X HD a separate 20 Hz loop.'
+  decision: 'The CML''s loop moved into the core unchanged and drives every scope''s framebuffer; the screen saver and backlight come with it.'
+  consequences:
+  - 'From the composition and settings step (S11, S13).'
+
+- id: ADR-SETTINGS-KV
+  title: 'Settings persist through the core over a board''s key-value store, new fields only when non-zero'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The CML''s settings file must stay byte-identical while other scopes add fields (C3/C4, levels in volts, math/X-Y pairs).'
+  decision: 'Core settings load, save, collect and apply over instrument.Controls into a board''s store; fields a two-channel CML never sets are written only when non-zero, so its file does not move.'
+  consequences:
+  - 'From the composition and settings step (S11, S13).'
+
+- id: ADR-SAVER-PRIMED-AT-RESTORE
+  title: 'The settings saver is primed at restore'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The saver used its first poll as its baseline, so a change in the first second after start was never saved.'
+  decision: 'The saver takes the restored settings as its baseline.'
+  consequences:
+  - 'From the composition and settings step (S11, S13).'
+
+- id: ADR-ONE-SETUP-MEMORY
+  title: 'Panel, SCPI and web share one setup memory'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Saved setups were reachable from some interfaces only.'
+  decision: 'scopeapp.WebSetups gives the panel, SCPI *SAV/*RCL and the web one set of setup slots.'
+  consequences:
+  - 'From the composition and settings step (S11, S13).'
+
+- id: ADR-BOARD-INPUT-CORE-NAMES
+  title: 'A board maps its panel to the UI model''s key names in its board package'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The SDS800X HD''s key-name mapping lived in its app composition.'
+  decision: 'Each board package owns the mapping from its keys and knobs to the core names.'
+  consequences:
+  - 'From the composition and settings step (S11, S13).'

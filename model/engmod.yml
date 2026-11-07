@@ -50,6 +50,7 @@ publications:
   - FU-DSO-UIMODEL
   - FU-DSO-PANEL
   - FU-DSO-SETTINGS
+  - FU-DSO-SCOPEAPP
   - FU-DSO-RENDER
   - FU-DSO-DESIGN
   - FU-DSO-WEBSERVER
@@ -276,3 +277,6 @@ publications:
   - REQ-DSO-224
   - REQ-DSO-225
   - REQ-DSO-276
+  - REQ-DSO-293
+  - REQ-DSO-294
+  - REQ-DSO-295
