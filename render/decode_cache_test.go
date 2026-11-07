@@ -15,7 +15,7 @@ import (
 func TestDecodeFollowsNewFrame(t *testing.T) {
 	msg := []int{0x48, 0x69, 0x20, 0x55, 0xAA, 0x0F, 0xF0, 0x0A}
 	const n, spb = 4000, 20
-	w1 := goldenUARTWave(msg, spb, n)
+	w1 := uartWave(msg, spb, n)
 	shift := 7*spb + 3
 	w2 := append(make([]uint8, 0, n), w1[shift:]...)
 	for len(w2) < n {

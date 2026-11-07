@@ -8,7 +8,6 @@ import (
 
 	"github.com/labeth/open-dso-core/framecalc"
 	"github.com/labeth/open-dso-core/streamwire"
-	"github.com/labeth/open-dso-core/uimodel/wsview"
 )
 
 // TRLC-LINKS: REQ-SDS-021
@@ -94,20 +93,6 @@ func BenchmarkDrawLoading(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-221
-func BenchmarkDrawSaver(b *testing.B) {
-	sf := NewMemSurface()
-	f := goldenYTFrame()
-	h := goldenYTHUD()
-	h.MaskMode = 1
-	h.MaskPass, h.MaskFail = 1234, 5
-	step := 0
-	for b.Loop() {
-		DrawSaver(sf, f, h, step)
-		step++
-	}
-}
-
 // TRLC-LINKS: REQ-SDS-018
 func BenchmarkStreamStatus(b *testing.B) {
 	v := streamwire.View{Label: "UART 115200", State: streamwire.Streaming, Units: 123456, UnitsPerSecond: 11520, Errors: 2, Lost: 1, Mode: "hex"}
@@ -130,36 +115,6 @@ func BenchmarkDrawMatchEditor(b *testing.B) {
 	for b.Loop() {
 		drawMatchEditor(sf, m)
 	}
-}
-
-// TRLC-LINKS: REQ-SDS-021
-func BenchmarkRenderBode(b *testing.B) {
-	h := defaultHUD()
-	h.ViewMode = 3
-	const fc = 30e3
-	for i := range 25 {
-		f := 1e3 * math.Pow(10, 3*float64(i)/24)
-		h.BodeFreq = append(h.BodeFreq, f)
-		h.BodeGain = append(h.BodeGain, -10*math.Log10(1+(f/fc)*(f/fc)))
-		h.BodePhase = append(h.BodePhase, -math.Atan(f/fc)*180/math.Pi)
-	}
-	benchRender(b, nil, h)
-}
-
-// TRLC-LINKS: REQ-SDS-070
-func BenchmarkRenderFFT(b *testing.B) {
-	const n = 4096
-	f := goldenFrame(n,
-		func(i int) float64 {
-			th := 2 * math.Pi * float64(i) / n
-			return 128 + 70*math.Sin(205*th) + 18*math.Sin(614*th) + 7*math.Sin(1024*th)
-		},
-		func(i int) float64 { return 128 + 50*math.Sin(2*math.Pi*410*float64(i)/n) })
-	f.Snapshot.TdivS, f.SampleS = 20e-6, 50e-9
-	h := defaultHUD()
-	h.TdivS, h.SampleS = 20e-6, 50e-9
-	h.ViewMode = 2
-	benchRender(b, f, h)
 }
 
 // TRLC-LINKS: REQ-SDS-068
@@ -186,29 +141,6 @@ func BenchmarkSpectrogramPaneBlit(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-068
-func BenchmarkRenderSpectrogram(b *testing.B) {
-	sg := NewSpectrogram()
-	for s := range 8 {
-		for range 12 {
-			sg.Push(sgSine(4096, 10e6+15e6*float64(s), 2e-9), 0, 0.5/2e-9)
-		}
-	}
-	h := defaultHUD()
-	h.ViewMode = 4
-	h.Spect = sg
-	benchRender(b, nil, h)
-}
-
-// TRLC-LINKS: REQ-SDS-021
-func BenchmarkRenderCursorsMeasure(b *testing.B) {
-	h := goldenYTHUD()
-	h.CurOn, h.CurType, h.CurSel = true, 0, 0
-	h.CurX = [2]float64{0.3, 0.7}
-	h.ShowMeas = true
-	benchRender(b, goldenYTFrame(), h)
-}
-
 // TRLC-LINKS: REQ-SDS-070
 func BenchmarkDrawSpectrum(b *testing.B) {
 	const n = 4096
@@ -220,62 +152,6 @@ func BenchmarkDrawSpectrum(b *testing.B) {
 	sf := NewMemSurface()
 	for b.Loop() {
 		drawSpectrum(sf, fullPlot, mags, peak, colC1, 10e6, 1, len(mags)-1)
-	}
-}
-
-// TRLC-LINKS: REQ-SDS-217
-func BenchmarkDrawMeasPanel(b *testing.B) {
-	f := goldenYTFrame()
-	f.Seq = 7 // measured once, then cached: the panel's own cost
-	h := goldenYTHUD()
-	h.MeasItems = []string{"1:pkpk", "1:freq", "1:duty", "1:rise", "2:pkpk", "2:mean", "2:period", "2:ovsh"}
-	sf := NewMemSurface()
-	for b.Loop() {
-		drawMeasPanel(sf, fullPlot, f, h)
-	}
-}
-
-// TRLC-LINKS: REQ-SDS-021
-func BenchmarkMathCodes(b *testing.B) {
-	c1, c2 := make([]uint8, 20000), make([]uint8, 20000)
-	for i := range c1 {
-		c1[i], c2[i] = uint8(i*7), uint8(i*13+5)
-	}
-	h := goldenYTHUD()
-	h.OffC1V, h.OffC2V = 0.1, -0.05
-	for b.Loop() {
-		for mode := 1; mode <= 4; mode++ {
-			h.MathMode = mode
-			mathCodes(c1, c2, h)
-		}
-	}
-}
-
-// TRLC-LINKS: REQ-SDS-273
-func BenchmarkDrawSoundPane(b *testing.B) {
-	s := goldenSoundPane("MODULATION", []wsview.Span{{Text: "TREMOLO (AM)", Col: wsview.Amber}, {Text: "depth 30.0%  5.4 dB", Col: wsview.Text}})
-	p := plotOf(wsview.Layout{MenuW: 30, PlotTop: 262})
-	sf := NewMemSurface()
-	for b.Loop() {
-		drawSoundPane(sf, p, s)
-		drawSoundTrace(sf, p, s)
-	}
-}
-
-// TRLC-LINKS: REQ-SDS-021
-func BenchmarkDrawSuperresTrace(b *testing.B) {
-	h := goldenSuperresHUD()
-	sf := NewMemSurface()
-	for b.Loop() {
-		drawSuperresTrace(sf, fullPlot, h)
-	}
-}
-
-// TRLC-LINKS: REQ-SDS-021
-func BenchmarkSRResample(b *testing.B) {
-	h := goldenSuperresHUD()
-	for b.Loop() {
-		srResampleArray(h.SRMean, 4096)
 	}
 }
 

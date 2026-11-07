@@ -155,7 +155,7 @@ func TestTriggerPositionMarkerEndpoints(t *testing.T) {
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-018
 func TestLeftEdgeTraceDecodeAndZoneAlignment(t *testing.T) {
 	const n = 1024
-	f := &sample.Frame{WinPoints: n, TriggerAt: 0, SampleS: 1e-6, Traces: []sample.Trace{{Codes8: goldenUARTWave([]int{0x4f, 0x4b, 0x21}, 16, n), Valid: n}, {Ch: 1, Valid: n}}}
+	f := &sample.Frame{WinPoints: n, TriggerAt: 0, SampleS: 1e-6, Traces: []sample.Trace{{Codes8: uartWave([]int{0x4f, 0x4b, 0x21}, 16, n), Valid: n}, {Ch: 1, Valid: n}}}
 	hud := HUD{DecProto: 2, DecBaud: 62500, Zones: []Zone{{DtLoS: 0, DtHiS: 100e-6, CodeLo: 100, CodeHi: 160}}}
 	for _, tc := range []struct {
 		name string
