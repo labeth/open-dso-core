@@ -412,3 +412,12 @@ decisions:
   decision: 'Input gains SetSound, Beep and SetTouch, refused where absent.'
   consequences:
   - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-RENDER-MAXCHANS
+  title: The display HUD holds at most four channels
+  status: proposed
+  date: '2026-11-07'
+  context: The renderer copies its HUD by value through every draw call; a fixed array keeps that cheap on a Cortex-A8.
+  decision: render.MaxChans is 4, covering every scope in the family today.
+  consequences:
+  - An eight-channel scope would raise it, at the cost of a larger HUD copy per draw.
