@@ -164,7 +164,7 @@ func clampI(v, lo, hi int) int { return min(max(v, lo), hi) }
 // TRLC-LINKS: REQ-DSO-212
 func drawKeys(sf Canvas, k *wsview.Keys) {
 	sm := metricsOf(sf)
-	const mw = 116
+	const mw = keysColumnW
 	x0 := sm.W - mw
 	fillRect(sf, x0, k.Top, mw, sm.H-2-k.Top, colMenuBg)
 	vline(sf, x0, k.Top, sm.H-3, colTrig)
