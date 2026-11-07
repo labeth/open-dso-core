@@ -30,12 +30,15 @@ func decode(n *node, v reflect.Value, path string) error {
 		if err != nil {
 			return err
 		}
-		if err := v.Addr().Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(text)); err != nil {
-			return fmt.Errorf("%s (line %d): %w", path, n.line, err)
+		// Implements above makes the assertion hold.
+		if u, ok := reflect.TypeAssert[encoding.TextUnmarshaler](v.Addr()); ok {
+			if err := u.UnmarshalText([]byte(text)); err != nil {
+				return fmt.Errorf("%s (line %d): %w", path, n.line, err)
+			}
 		}
 		return nil
 	}
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive // default: every other kind is a scalar, which decodeScalar takes or refuses
 	case reflect.Struct:
 		return decodeStruct(n, v, path)
 	case reflect.Map:
@@ -120,7 +123,7 @@ func decodeScalar(n *node, v reflect.Value, path string) error {
 		v.SetInt(int64(d))
 		return nil
 	}
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive // the scalar kinds a profile holds; the default refuses the rest
 	case reflect.String:
 		v.SetString(s)
 	case reflect.Bool:
@@ -166,6 +169,7 @@ func textOf(n *node, path string) (string, error) {
 			parts[i] = it.value
 		}
 		return strings.Join(parts, ","), nil
+	case nullNode, mapNode:
 	}
 	return "", mismatch(n, path, "a scalar or a list")
 }

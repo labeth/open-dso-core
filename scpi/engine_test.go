@@ -1,6 +1,7 @@
 package scpi
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -196,7 +197,7 @@ func TestExtensions(t *testing.T) {
 		Query:   func(string) ([]byte, error) { return []byte(state), nil },
 	}, {
 		Header:  ":SYSTem:REFuse",
-		Command: func(string) error { return fmt.Errorf("no") },
+		Command: func(string) error { return errors.New("no") },
 	}})...)
 	run(t, e, [][2]string{
 		{":SYST:SELFC?;:SYST:SELFC;:SYST:SELFC?", "DONEDOING\n"},
@@ -209,9 +210,12 @@ func TestExtensions(t *testing.T) {
 // Legacy numbers take their unit suffixes.
 // TRLC-LINKS: REQ-DSO-024
 func TestParseLegacyNumber(t *testing.T) {
-	for in, want := range map[string]float64{"1US": 1e-6, "500mv": .5, "2E-3": 2e-3, " 5 V": 5, "10NS": 1e-8, "3ms": 3e-3} {
-		if v, err := ParseLegacyNumber(in); err != nil || v != want {
-			t.Errorf("%q: %v %v", in, v, err)
+	for _, c := range []struct {
+		in   string
+		want float64
+	}{{"1US", 1e-6}, {"500mv", .5}, {"2E-3", 2e-3}, {" 5 V", 5}, {"10NS", 1e-8}, {"3ms", 3e-3}} {
+		if v, err := ParseLegacyNumber(c.in); err != nil || v != c.want {
+			t.Errorf("%q: %v %v", c.in, v, err)
 		}
 	}
 	if _, err := ParseLegacyNumber("X"); err == nil {
@@ -252,7 +256,7 @@ func FuzzExec(f *testing.F) {
 		f.Add(s)
 	}
 	a, b := ieee(EdgeSummaries), line()
-	f.Fuzz(func(t *testing.T, s string) {
+	f.Fuzz(func(_ *testing.T, s string) {
 		a.Exec([]byte(s))
 		b.Exec([]byte(s))
 		_ = strings.ToUpper(s)

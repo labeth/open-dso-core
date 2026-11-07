@@ -511,7 +511,7 @@ func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool,
 	cols := denseColumns(id, sig, left, win, p.w)
 	rows := p.codeRows(z)
 	y := func(v uint8) int { return int(rows[v]) }
-	sc := spanScratchPool.Get().(*spanScratch)
+	sc := getSpanScratch()
 	defer spanScratchPool.Put(sc)
 	top, bot, cc := &sc.top, &sc.bot, &sc.cc
 	w := min(p.w, MaxW)
@@ -527,7 +527,7 @@ func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool,
 			c = heldColor(sf.Format(), col)
 		}
 		yTop, yBot = max(yTop, 0), min(yBot, last)
-		top[x], bot[x], cc[x] = int16(yTop), int16(yBot), c
+		top[x], bot[x], cc[x] = int16(yTop), int16(yBot), c //nolint:gosec // G115: clamped to the plot rows (0..last) just above
 		prevY = y(cols.last[x])
 	}
 	fillSpans(sf, top[:w], bot[:w], cc[:w])
@@ -545,6 +545,16 @@ type spanScratch struct {
 
 var spanScratchPool = sync.Pool{New: func() any { return new(spanScratch) }}
 
+// getSpanScratch takes a scratch from the pool, which only ever holds
+// *spanScratch.
+// TRLC-LINKS: REQ-DSO-021
+func getSpanScratch() *spanScratch {
+	if sc, ok := spanScratchPool.Get().(*spanScratch); ok {
+		return sc
+	}
+	return new(spanScratch)
+}
+
 // spanBlock is how many columns fillSpans fills as one block.
 const spanBlock = 128
 
@@ -558,7 +568,7 @@ const spanBlock = 128
 func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
 	switch m := sf.(type) {
 	case *Image565:
-		sc := spanScratchPool.Get().(*spanScratch)
+		sc := getSpanScratch()
 		defer spanScratchPool.Put(sc)
 		nc := &sc.n16
 		for i, c := range cc[:min(len(cc), MaxW)] {
@@ -566,7 +576,7 @@ func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
 		}
 		fillSpansPx(m.pix, m.w, m.h, top, bot, nc[:len(cc)])
 	case *Image32:
-		sc := spanScratchPool.Get().(*spanScratch)
+		sc := getSpanScratch()
 		defer spanScratchPool.Put(sc)
 		nc := &sc.n32
 		for i, c := range cc[:min(len(cc), MaxW)] {
@@ -795,7 +805,7 @@ func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseC
 // TRLC-LINKS: REQ-DSO-021
 func drawEnvelope(sf Canvas, p plotArea, mn, mx []uint8, cols int, col Color, zoom int) {
 	z := float64(max(zoom, 1))
-	sc := spanScratchPool.Get().(*spanScratch)
+	sc := getSpanScratch()
 	defer spanScratchPool.Put(sc)
 	top, bot, cc := &sc.top, &sc.bot, &sc.cc
 	w := min(p.w, MaxW)

@@ -43,7 +43,7 @@ func splitUnits(msg []byte) []unit {
 	var units []unit
 	start := 0
 	add := func(end int) {
-		t := strings.TrimFunc(string(msg[start:end]), func(r rune) bool { return r < 0x80 && isWS(byte(r)) })
+		t := strings.TrimFunc(string(msg[start:end]), func(r rune) bool { return r < 0x80 && isWS(byte(r)) }) //nolint:gosec // G115: guarded, r < 0x80
 		start = end + 1
 		if t == "" {
 			return
@@ -82,10 +82,7 @@ func splitUnits(msg []byte) []unit {
 			nd := int(msg[i+1] - '0')
 			if i+2+nd <= len(msg) {
 				if n, err := strconv.Atoi(string(msg[i+2 : i+2+nd])); err == nil && n >= 0 {
-					end := i + 2 + nd + n
-					if end > len(msg) {
-						end = len(msg)
-					}
+					end := min(i+2+nd+n, len(msg))
 					i = end - 1
 				}
 			}
@@ -118,7 +115,7 @@ func validHeader(h string) bool {
 		return validMnemonic(s)
 	}
 	s = strings.TrimPrefix(s, ":")
-	for _, m := range strings.Split(s, ":") {
+	for m := range strings.SplitSeq(s, ":") {
 		if !validMnemonic(m) {
 			return false
 		}
@@ -133,7 +130,7 @@ func validMnemonic(m string) bool {
 	}
 	for i := 1; i < len(m); i++ {
 		c := m[i]
-		if !isAlpha(c) && !(c >= '0' && c <= '9') && c != '_' {
+		if !isAlpha(c) && (c < '0' || c > '9') && c != '_' {
 			return false
 		}
 	}

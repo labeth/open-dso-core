@@ -2,7 +2,6 @@ package host
 
 import (
 	"bufio"
-	"context"
 	"net"
 	"strings"
 	"testing"
@@ -19,14 +18,12 @@ func echo(msg []byte) []byte {
 // Raw sessions get their own replies; telnet greets and keeps one session.
 // TRLC-LINKS: REQ-DSO-024
 func TestTransports(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	s, err := Serve(ctx, echo, Config{Raw: "127.0.0.1:0", Telnet: "127.0.0.1:0", Banner: "Welcome to the SCPI instrument 'M X'"}, t.Logf)
+	s, err := Serve(t.Context(), echo, Config{Raw: "127.0.0.1:0", Telnet: "127.0.0.1:0", Banner: "Welcome to the SCPI instrument 'M X'"}, t.Logf)
 	if err != nil {
 		t.Fatal(err)
 	}
 	dial := func(a net.Addr) (net.Conn, *bufio.Reader) {
-		c, err := net.Dial("tcp", a.String())
+		c, err := (&net.Dialer{}).DialContext(t.Context(), "tcp", a.String())
 		if err != nil {
 			t.Fatal(err)
 		}

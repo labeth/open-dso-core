@@ -38,7 +38,10 @@ func TestJSONSafe(t *testing.T) {
 	if err := json.Unmarshal(b, &got); err != nil {
 		t.Fatal(err)
 	}
-	if got["a"] != nil || got["Skip"] != nil || len(got["s"].([]any)) != 40 || got["f"].([]any)[3] != nil || len(got["n"].([]any)) != 0 {
+	sv, sok := got["s"].([]any)
+	fv, fok := got["f"].([]any)
+	nv, nok := got["n"].([]any)
+	if !sok || !fok || !nok || got["a"] != nil || got["Skip"] != nil || len(sv) != 40 || len(fv) < 4 || fv[3] != nil || len(nv) != 0 {
 		t.Fatalf("%s", b)
 	}
 }

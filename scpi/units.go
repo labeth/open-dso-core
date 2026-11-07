@@ -2,10 +2,13 @@ package scpi
 
 import "strings"
 
+// unitSampleRate is the sample-rate unit every S/s spelling resolves to.
+const unitSampleRate = "SA/S"
+
 // baseUnits are the unit names accepted after a number (the libscpi unit
 // table: V, S, HZ, PCT, DB*, ...).
 var baseUnits = []string{
-	"SA/S", "S/S", "PTS", "DBUV", "DBUA", "DBMV", "DBM", "DBV", "DB", "OHM", "PCT", "DIV",
+	unitSampleRate, "S/S", "PTS", "DBUV", "DBUA", "DBMV", "DBM", "DBV", "DB", "OHM", "PCT", "DIV",
 	"HZ", "BIT", "CEL", "DEG", "V", "A", "W", "S", "%",
 }
 
@@ -35,12 +38,12 @@ var specialUnits = map[string]struct {
 }{
 	"MHZ":   {"HZ", 1e6},
 	"MOHM":  {"OHM", 1e6},
-	"MS/S":  {"SA/S", 1e6},
-	"MSA/S": {"SA/S", 1e6},
-	"GS/S":  {"SA/S", 1e9},
-	"GSA/S": {"SA/S", 1e9},
-	"KS/S":  {"SA/S", 1e3},
-	"KSA/S": {"SA/S", 1e3},
+	"MS/S":  {unitSampleRate, 1e6},
+	"MSA/S": {unitSampleRate, 1e6},
+	"GS/S":  {unitSampleRate, 1e9},
+	"GSA/S": {unitSampleRate, 1e9},
+	"KS/S":  {unitSampleRate, 1e3},
+	"KSA/S": {unitSampleRate, 1e3},
 	"PCT":   {"PCT", 1},
 	"%":     {"PCT", 1},
 }

@@ -109,7 +109,7 @@ func acceptRaw(ln net.Listener, exec Exec, logf func(string, ...any)) {
 // raw). It returns when the peer closes.
 // TRLC-LINKS: REQ-DSO-024
 func serveLines(conn net.Conn, exec Exec) {
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	r := bufio.NewReaderSize(conn, 64<<10)
 	for {
 		line, err := r.ReadBytes('\n')

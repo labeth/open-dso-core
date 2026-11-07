@@ -228,8 +228,7 @@ func (s fakeSettings) Set(_ context.Context, c webserver.Control) webserver.Appl
 
 // fakeUI is the fake's panel: keys, the remote surface and the references.
 type fakeUI struct {
-	f   *Fake
-	seq uint64
+	f *Fake
 }
 
 // TRLC-LINKS: REQ-DSO-162
@@ -291,7 +290,7 @@ func (u *fakeUI) RefAction(slot int, op string) uimodel.SetResult {
 	if op != "store" && op != "clear" {
 		return uimodel.SetResult{Error: "no " + op}
 	}
-	return uimodel.SetResult{OK: true, Notice: string(rune('A'+slot)) + " " + op}
+	return uimodel.SetResult{OK: true, Notice: string(rune('A'+slot)) + " " + op} //nolint:gosec // G115: a reference slot, 0 or 1
 }
 
 // fakeStream is a two-line transcript.
@@ -423,7 +422,7 @@ func (fakeSound) Info() wire.SoundInfo {
 // TRLC-LINKS: REQ-DSO-265
 func (fakeSound) Read(from uint64, limit int) wire.SoundBlock {
 	from = min(from, 64)
-	n := int(min(uint64(limit), 64-from))
+	n := int(min(uint64(limit), 64-from)) //nolint:gosec // G115: limit is a block count the server passes, never negative
 	b := wire.SoundBlock{
 		First: from, N: n, Next: 64, RateHz: 48000, Q1: make([]uint16, n), Q2: make([]uint16, n),
 		Scales: []wire.SoundScale{{VPC: [2]float64{0.04, 0.04}}},

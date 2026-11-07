@@ -62,7 +62,7 @@ func SkipBrowser(tb testing.TB, format string, args ...any) {
 func ScopeDir(tb testing.TB) string {
 	tb.Helper()
 	isScope := func(d string) bool {
-		st, err := os.Stat(filepath.Join(d, "fpga", "common"))
+		st, err := os.Stat(filepath.Join(d, "fpga", "common")) //nolint:gosec // G703: a test locating its own sibling checkout ($DSO_SCOPE_DIR or a parent directory)
 		return err == nil && st.IsDir()
 	}
 	if d := os.Getenv("DSO_SCOPE_DIR"); d != "" {

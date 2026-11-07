@@ -214,7 +214,7 @@ const SPIQuietNs = int64(2 * time.Second)
 // quiet check measuring again on the same records).
 // TRLC-LINKS: REQ-DSO-013, REQ-DSO-229
 func ResolvesClock(hz float64, f *sample.Frame) bool {
-	return !(hz > 0) || uint32(f.AcqDecim) <= 1 || (f.SampleS > 0 && 1/(hz*f.SampleS) >= minClockSamples)
+	return !(hz > 0) || (f.AcqDecim >= 0 && f.AcqDecim <= 1) || (f.SampleS > 0 && 1/(hz*f.SampleS) >= minClockSamples)
 }
 
 // minClockSamples is the samples a clock period spans on a frame that

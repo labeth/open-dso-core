@@ -278,11 +278,11 @@ func (f CodeFormat) Q88(w uint32) uint16 {
 	} else {
 		d >>= -s
 	}
-	return uint16(min(max(d+0x8000, 0), 0xFFFF)) //nolint:gosec // G115: clamped to 16 bits
+	return uint16(min(max(d+0x8000, 0), 0xFFFF))
 }
 
 // Code8 maps word w onto the 8-bit view, rounded: the format's mid is 128.
 // TRLC-LINKS: REQ-DSO-1003
 func (f CodeFormat) Code8(w uint32) uint8 {
-	return uint8(min((uint32(f.Q88(w))+0x80)>>8, 255)) //nolint:gosec // G115: at most 255
+	return uint8(min((uint32(f.Q88(w))+0x80)>>8, 255))
 }

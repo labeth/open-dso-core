@@ -51,14 +51,14 @@ func TestRemoveDC(t *testing.T) {
 // benchRecord is a captured-looking record: a square wave with noise.
 // TRLC-LINKS: REQ-DSO-096
 func benchRecord(n int) []uint8 {
-	r := rand.New(rand.NewSource(1)) //nolint:gosec // a fixed test pattern
+	r := rand.New(rand.NewSource(1))
 	s := make([]uint8, n)
 	for i := range s {
 		v := 60
 		if i/500%2 == 1 {
 			v = 200
 		}
-		s[i] = uint8(v + r.Intn(9) - 4) //nolint:gosec // 56..204
+		s[i] = uint8(v + r.Intn(9) - 4)
 	}
 	return s
 }
@@ -78,12 +78,12 @@ func BenchmarkRemoveDC(b *testing.B) {
 func TestShiftedIsTheClamp(t *testing.T) {
 	sig := make([]uint8, 256)
 	for i := range sig {
-		sig[i] = uint8(i) //nolint:gosec // 0..255
+		sig[i] = uint8(i)
 	}
 	for shift := -300; shift <= 300; shift++ {
 		got := shifted(sig, shift)
 		for v, g := range got {
-			if want := uint8(min(max(v+shift, 0), 255)); g != want { //nolint:gosec // clamped
+			if want := uint8(min(max(v+shift, 0), 255)); g != want {
 				t.Fatalf("shift %d code %d: %d, want %d", shift, v, g, want)
 			}
 		}
@@ -94,7 +94,7 @@ func TestShiftedIsTheClamp(t *testing.T) {
 	for _, v := range s {
 		sum += int(v)
 	}
-	if mean := float64(sum) / float64(len(s)); got[0] != uint8(int(s[0])+128-int(mean+0.5)) { //nolint:gosec // in range
+	if mean := float64(sum) / float64(len(s)); got[0] != uint8(int(s[0])+128-int(mean+0.5)) {
 		t.Fatalf("RemoveDC moved code %d to %d (mean %.2f)", s[0], got[0], mean)
 	}
 }

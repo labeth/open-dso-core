@@ -45,7 +45,7 @@ func CompilePattern(p string) Pattern {
 		cp.nodes = append(cp.nodes, makeNode(cur.String(), opt))
 		cur.Reset()
 	}
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		switch c := s[i]; c {
 		case '[':
 			flush()
@@ -72,7 +72,7 @@ func makeNode(m string, optional bool) node {
 	}
 	// short form: leading upper-case letters/digits/underscore, then any trailing digits
 	i := 0
-	for i < len(m) && !(m[i] >= 'a' && m[i] <= 'z') {
+	for i < len(m) && (m[i] < 'a' || m[i] > 'z') {
 		i++
 	}
 	short := m[:i]

@@ -206,7 +206,7 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 		// The row buffer from the pool, not the stack: a MaxW-word array
 		// puts this frame's slots past the ARM's 4 KB load offsets, and
 		// every access then goes through the literal pool.
-		sc := spanScratchPool.Get().(*spanScratch)
+		sc := getSpanScratch()
 		defer spanScratchPool.Put(sc)
 		line := &sc.n16
 		for y := range rows {

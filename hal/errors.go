@@ -4,7 +4,7 @@ import "errors"
 
 // Refusal is a setting or feature the board cannot serve, with the real
 // reason. It is never answered by substituting something else.
-type Refusal struct {
+type Refusal struct { //nolint:errname // the HAL contract's word for a refused setting; the boards and the web layer match on hal.Refusal
 	Feature string // what was asked for: "trigger zone", "2 mV/div at 10x"
 	Reason  string // why it cannot be served, for the user
 }

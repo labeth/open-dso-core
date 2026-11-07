@@ -108,7 +108,7 @@ func goldenCheck(t *testing.T, name string, got []byte) {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(path, got, 0o644); err != nil { //nolint:gosec // a test artefact
+		if err := os.WriteFile(path, got, 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}

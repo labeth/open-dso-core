@@ -183,8 +183,8 @@ func WideRecord(seq uint64, n int) *sample.Frame {
 			default:
 				d = 3.5 * (2*(x-math.Floor(x)) - 1)
 			}
-			code := math.Round(d * 480) // 12-bit codes: 480 a division
-			t.Codes16[i] = uint16(0x8000 + int(code)*16)
+			code := math.Round(d * 480)                  // 12-bit codes: 480 a division
+			t.Codes16[i] = uint16(0x8000 + int(code)*16) //nolint:gosec // G115: |d| <= 3.5 divisions, so 0x8000 ± 26880
 		}
 		f.Traces = append(f.Traces, t)
 	}

@@ -2,6 +2,7 @@ package scpi
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -208,7 +209,7 @@ func (e *Engine) lookup(header string) (*command, []int) {
 	}
 	cands := e.byRoot[first]
 	if j < len(first) {
-		cands = append(cands[:len(cands):len(cands)], e.byRoot[first[:j]]...)
+		cands = append(slices.Clip(cands), e.byRoot[first[:j]]...)
 	}
 	for _, c := range cands {
 		if suf, ok := c.pat.Match(header); ok {

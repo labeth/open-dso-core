@@ -305,7 +305,7 @@ type Screen interface {
 
 // BadRequest marks an error as the request's fault (400), not the scope's
 // state (409). Its text is the error's.
-type BadRequest struct{ Err error }
+type BadRequest struct{ Err error } //nolint:errname // named for the HTTP status it selects; the boards' web extensions return webserver.BadRequest
 
 // Error is the wrapped error's text.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240

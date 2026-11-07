@@ -203,7 +203,7 @@ func TestVariantOverridesBase(t *testing.T) {
 func TestParseErrors(t *testing.T) {
 	cases := []struct{ name, src, want string }{
 		{"unknown key", base + "colour: red\nvariants:\n" + oneVariant, "colour (line"},
-		{"unknown key in a variant", doc(oneVariant + "    set: {bandwith: 1}\n"), "variants.plus.set.bandwith"},
+		{"unknown key in a variant", doc(oneVariant + "    set: {colour: 1}\n"), "variants.plus.set.colour"},
 		{"no variants", base, "no variants"},
 		{"variant without match", doc("  - name: a\n"), "no match"},
 		{"unknown match field", doc("  - name: a\n    match: {colour: red}\n"), "unknown identity field"},
@@ -315,8 +315,7 @@ g: [1, 2,
 // TRLC-LINKS: REQ-DSO-1002
 func TestRefusalUnwraps(t *testing.T) {
 	_, err := Load([]byte(doc(oneVariant)), hal.Identity{})
-	var r *hal.Refusal
-	if !errors.As(err, &r) {
+	if _, ok := errors.AsType[*hal.Refusal](err); !ok {
 		t.Fatalf("err %v", err)
 	}
 }

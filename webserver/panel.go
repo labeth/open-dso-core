@@ -140,7 +140,7 @@ func (s *Server) hRefs(w http.ResponseWriter, r *http.Request) {
 	}
 	pr, ok := s.sc.Refs()
 	if !ok {
-		WriteJSON(w, map[string]any{"ok": false, "error": "no panel on this server"}) //nolint:goconst // JSON field names: the literal shows the reply's shape
+		WriteJSON(w, map[string]any{"ok": false, "error": "no panel on this server"})
 		return
 	}
 	if r.Method == http.MethodGet {

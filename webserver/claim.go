@@ -27,7 +27,7 @@ type Epoch struct {
 // NewEpoch starts the epoch at the current time.
 // TRLC-LINKS: REQ-DSO-161
 func NewEpoch() *Epoch {
-	e := &Epoch{start: uint64(time.Now().UnixMilli())} //nolint:gosec // G115: a wall clock after 1970
+	e := &Epoch{start: uint64(time.Now().UnixMilli())}
 	e.cur.Store(e.start)
 	return e
 }

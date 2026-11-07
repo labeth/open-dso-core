@@ -15,6 +15,7 @@ package halfake
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -389,7 +390,7 @@ func (a acquirer) Arm() error {
 	defer a.b.mu.Unlock()
 	a.b.log("Arm")
 	if a.b.staged.plan.Depth == 0 {
-		return fmt.Errorf("halfake: arm before a plan was configured")
+		return errors.New("halfake: arm before a plan was configured")
 	}
 	kind := "rearm"
 	if a.b.stopped || !a.b.staged.equal(a.b.applied) {
@@ -411,7 +412,7 @@ func (a acquirer) Wait(ctx context.Context, _ time.Duration) (hal.Status, error)
 		return hal.Status{}, err
 	}
 	if a.b.state != hal.Armed {
-		return hal.Status{}, fmt.Errorf("halfake: wait while not armed")
+		return hal.Status{}, errors.New("halfake: wait while not armed")
 	}
 	if a.b.waitErr != nil {
 		return hal.Status{}, a.b.waitErr
@@ -464,7 +465,7 @@ func (r readout) Read(req hal.ReadRequest, dst []*sample.Frame, yield func()) er
 	r.b.log("Read")
 	if r.b.state != hal.Ready && (r.b.state != hal.Idle || r.b.rec.Seq == 0) {
 		r.b.mu.Unlock()
-		return fmt.Errorf("halfake: read with no halted record")
+		return errors.New("halfake: read with no halted record")
 	}
 	if req.Record != (sample.RecordID{}) && req.Record != r.b.rec {
 		r.b.mu.Unlock()
@@ -597,13 +598,13 @@ func (r readout) trace(t *sample.Trace, ch int, c hal.Channel, start int64, buck
 		}
 		switch {
 		case want == sample.PeakPairs && fm.Storage == sample.U16:
-			t.Codes16 = append(t.Codes16, uint16(vmin), uint16(vmax))
+			t.Codes16 = append(t.Codes16, uint16(vmin), uint16(vmax)) //nolint:gosec // G115: hi and lo are mid-scale ±2 divisions, inside the format's code range
 		case want == sample.PeakPairs:
-			t.Codes8 = append(t.Codes8, uint8(vmin), uint8(vmax))
+			t.Codes8 = append(t.Codes8, uint8(vmin), uint8(vmax)) //nolint:gosec // G115: hi and lo are mid-scale ±2 divisions, inside the format's code range
 		case fm.Storage == sample.U16:
-			t.Codes16 = append(t.Codes16, uint16(v))
+			t.Codes16 = append(t.Codes16, uint16(v)) //nolint:gosec // G115: hi and lo are mid-scale ±2 divisions, inside the format's code range
 		default:
-			t.Codes8 = append(t.Codes8, uint8(v))
+			t.Codes8 = append(t.Codes8, uint8(v)) //nolint:gosec // G115: hi and lo are mid-scale ±2 divisions, inside the format's code range
 		}
 	}
 }

@@ -14,6 +14,7 @@ import (
 // nodeRun runs a node harness of the web client in its directory.
 // TRLC-LINKS: REQ-DSO-071
 func nodeRun(t *testing.T, harness string) ([]byte, error) {
+	t.Helper()
 	cmd := exec.CommandContext(t.Context(), "node", harness)
 	cmd.Dir = webclient.Dir()
 	return cmd.CombinedOutput()

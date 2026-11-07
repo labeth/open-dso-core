@@ -158,6 +158,7 @@ func (c *Call) Number(mandatory bool) (v float64, special int, present bool, err
 		case MatchChoice("DEFault", t.Str):
 			return 0, SpecDef, true, nil
 		}
+	case TokString, TokBlock, TokExpr:
 	}
 	return 0, 0, true, c.Error(ErrDataType)
 }
@@ -203,6 +204,7 @@ func (c *Call) Bool(mandatory bool) (bool, bool, error) {
 			return false, true, nil
 		}
 		return false, true, c.Error(ErrIllegalParamValue)
+	case TokString, TokBlock, TokExpr:
 	}
 	return false, true, c.Error(ErrDataType)
 }
@@ -222,7 +224,7 @@ func (c *Call) Choice(mandatory bool, choices ...string) (int, bool, error) {
 		txt = t.Str
 	case TokNumber:
 		txt = strings.ReplaceAll(t.Raw, " ", "")
-	default:
+	case TokNonDec, TokBlock, TokExpr:
 		return -1, true, c.Error(ErrDataType)
 	}
 	for i, ch := range choices {
@@ -245,6 +247,7 @@ func (c *Call) String(mandatory bool) (string, bool, error) {
 		return t.Str, true, nil
 	case TokNumber:
 		return t.Raw, true, nil
+	case TokNonDec, TokBlock, TokExpr:
 	}
 	return "", true, c.Error(ErrDataType)
 }
@@ -317,7 +320,7 @@ func (c *Call) Legacy(short, long, value, unit string) {
 			h = long
 		}
 		c.Text(h + " " + value + unit)
-	default:
+	case HeaderShort:
 		c.Text(short + " " + value + unit)
 	}
 }

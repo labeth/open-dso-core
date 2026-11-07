@@ -46,6 +46,7 @@ func (n *node) describe() string {
 		return "a mapping"
 	case seqNode:
 		return "a list"
+	case nullNode:
 	}
 	return "nothing"
 }
@@ -57,6 +58,8 @@ func (n *node) equal(o *node) bool {
 		return false
 	}
 	switch n.kind {
+	case nullNode:
+		// Two empty values are equal.
 	case scalarNode:
 		return n.value == o.value
 	case seqNode:
@@ -322,7 +325,7 @@ func splitKey(s string) (key, rest string, ok bool) {
 		}
 		return k, strings.TrimSpace(r), true
 	}
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] == ':' && (i+1 == len(s) || s[i+1] == ' ') {
 			return strings.TrimSpace(s[:i]), strings.TrimSpace(s[i+1:]), i > 0
 		}

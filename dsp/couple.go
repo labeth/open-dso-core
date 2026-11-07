@@ -80,7 +80,7 @@ func dcShift(sig []uint8) int {
 func shifted(sig []uint8, shift int) []uint8 {
 	var lut [256]uint8
 	for v := range lut {
-		lut[v] = uint8(min(max(v+shift, 0), 255)) //nolint:gosec // clamped to a byte
+		lut[v] = uint8(min(max(v+shift, 0), 255))
 	}
 	out := make([]uint8, len(sig))
 	for i, v := range sig {

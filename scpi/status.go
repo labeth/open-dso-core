@@ -121,7 +121,7 @@ func (s *status) setSRE(v uint16) {
 // mss recomputes the master summary of the latched byte.
 // TRLC-LINKS: REQ-DSO-024
 func (s *status) mss() {
-	setBit(&s.stb, STBMSS, s.stb&uint8(s.sre)&^STBMSS != 0)
+	setBit(&s.stb, STBMSS, s.stb&uint8(s.sre&0xFF)&^STBMSS != 0)
 }
 
 // byte is the status byte; errs reports a non-empty error queue.
@@ -136,11 +136,12 @@ func (s *status) byte(errs bool) uint8 {
 		setBit(&b, STBQUES, s.ques.event&s.ques.enable != 0)
 		setBit(&b, STBESB, s.esr&s.ese != 0)
 		setBit(&b, STBOPER, s.oper.event&s.oper.enable != 0)
-		setBit(&b, STBMSS, b&uint8(s.sre)&^STBMSS != 0)
+		setBit(&b, STBMSS, b&uint8(s.sre&0xFF)&^STBMSS != 0)
 		return b
+	case EdgeSummaries:
 	}
 	b := s.stb &^ STBEAV
 	setBit(&b, STBEAV, errs)
-	setBit(&b, STBMSS, b&uint8(s.sre)&^STBMSS != 0)
+	setBit(&b, STBMSS, b&uint8(s.sre&0xFF)&^STBMSS != 0)
 	return b
 }

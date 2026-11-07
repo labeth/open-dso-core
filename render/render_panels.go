@@ -525,7 +525,7 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	if f != nil && f.Cond.NoiseGain > 1 {
 		label := fmt.Sprintf("Ideal +%.2f bits (not ENOB)", math.Log2(f.Cond.NoiseGain))
 		if f.Cond.PassbandHz > 0 {
-			label += "  pass " + fmtFreq(f.Cond.PassbandHz) + fmt.Sprintf("  FPGA /%d", uint32(f.AcqDecim))
+			label += "  pass " + fmtFreq(f.Cond.PassbandHz) + fmt.Sprintf("  FPGA /%d", f.AcqDecim)
 		}
 		DrawText(sf, tx, 14, label, colInfo, 1)
 	}

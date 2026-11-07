@@ -53,8 +53,8 @@ func (h WordsHeader) MarshalJSON() ([]byte, error) {
 	if len(info) == 2 {
 		return tail, nil
 	}
-	out := append(info[:len(info)-1:len(info)-1], ',')
-	return append(out, tail[1:]...), nil
+	info = append(info[:len(info)-1:len(info)-1], ',')
+	return append(info, tail[1:]...), nil
 }
 
 // AppendWordChunkHeads appends the chunks' heads as /api/stream/words.bin

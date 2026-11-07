@@ -101,7 +101,7 @@ func (h Commons) Commands(names ...string) []Command {
 func setMask(c *Call, set func(uint16)) error {
 	if c.e.d.Grammar == Line {
 		if v, err := strconv.Atoi(c.Arg()); err == nil {
-			set(uint16(v))
+			set(uint16(v & 0xFFFF))
 		}
 		return nil
 	}
@@ -109,7 +109,7 @@ func setMask(c *Call, set func(uint16)) error {
 	if err != nil {
 		return err
 	}
-	set(uint16(v))
+	set(uint16(v & 0xFFFF))
 	return nil
 }
 
@@ -161,7 +161,7 @@ func System() []Command {
 			Command{root + ":ENABle", func(c *Call) error {
 				v, _, err := c.Int(true)
 				if err == nil {
-					r(c).enable = uint16(v)
+					r(c).enable = uint16(v & 0xFFFF)
 				}
 				return err
 			}},

@@ -60,8 +60,8 @@ type Desc struct {
 func (d *Desc) Encode() []byte {
 	b := make([]byte, DescSize)
 	le := binary.LittleEndian
-	i16 := func(off int, v int16) { le.PutUint16(b[off:], uint16(v)) }
-	i32 := func(off int, v int32) { le.PutUint32(b[off:], uint32(v)) }
+	i16 := func(off int, v int16) { le.PutUint16(b[off:], uint16(v)) } //nolint:gosec // G115: the field's two's-complement bits
+	i32 := func(off int, v int32) { le.PutUint32(b[off:], uint32(v)) } //nolint:gosec // G115: the field's two's-complement bits
 	f32 := func(off int, v float32) { le.PutUint32(b[off:], math.Float32bits(v)) }
 	f64 := func(off int, v float64) { le.PutUint64(b[off:], math.Float64bits(v)) }
 	str := func(off, n int, s string) { copy(b[off:off+n], s) }
@@ -129,7 +129,7 @@ func Block(prefix string, payload []byte) []byte {
 	n := strconv.Itoa(len(payload))
 	out := make([]byte, 0, len(prefix)+2+len(n)+len(payload))
 	out = append(out, prefix...)
-	out = append(out, '#', byte('0'+len(n)))
+	out = append(out, '#', byte('0'+len(n))) //nolint:gosec // G115: the length's digit count, 1..9 for any record the scope holds
 	out = append(out, n...)
 	return append(out, payload...)
 }

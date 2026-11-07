@@ -53,35 +53,35 @@ func Diff(got, want []byte) (int, image.Point, error) {
 // Check compares a render (PNG) with dir/name.png, allowing allowance
 // differing pixels; update rewrites the golden instead.
 // TRLC-LINKS: REQ-DSO-021
-func Check(t testing.TB, dir, name string, got []byte, allowance int, update bool) {
-	t.Helper()
+func Check(tb testing.TB, dir, name string, got []byte, allowance int, update bool) {
+	tb.Helper()
 	path := filepath.Join(dir, name+".png")
 	if update {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			t.Fatal(err)
+		if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // G301: a testdata directory of the checkout, readable like the rest of it
+			tb.Fatal(err)
 		}
 		if err := os.WriteFile(path, got, 0o644); err != nil { //nolint:gosec // a golden image, world-readable like the source
-			t.Fatal(err)
+			tb.Fatal(err)
 		}
-		t.Logf("golden rewritten: %s", path)
+		tb.Logf("golden rewritten: %s", path)
 		return
 	}
 	want, err := os.ReadFile(path) //nolint:gosec // the test's own golden directory
 	if err != nil {
-		t.Fatalf("missing golden %s (%v): regenerate with -update-golden", path, err)
+		tb.Fatalf("missing golden %s (%v): regenerate with -update-golden", path, err)
 	}
 	n, first, err := Diff(got, want)
 	if err != nil {
-		t.Fatalf("golden %s: %v", name, err)
+		tb.Fatalf("golden %s: %v", name, err)
 	}
 	if n > allowance {
-		rej := filepath.Join(t.TempDir(), name+".got.png")
+		rej := filepath.Join(tb.TempDir(), name+".got.png")
 		if err := os.WriteFile(rej, got, 0o644); err == nil { //nolint:gosec // a test artefact
-			t.Logf("rendered image saved to %s", rej)
+			tb.Logf("rendered image saved to %s", rej)
 		}
-		t.Fatalf("golden %s: %d pixels differ (allowance %d), first at %v; if the change is intended, regenerate with -update-golden", name, n, allowance, first)
+		tb.Fatalf("golden %s: %d pixels differ (allowance %d), first at %v; if the change is intended, regenerate with -update-golden", name, n, allowance, first)
 	}
 	if n > 0 {
-		t.Logf("golden %s: %d pixels differ (within the %d-pixel allowance)", name, n, allowance)
+		tb.Logf("golden %s: %d pixels differ (within the %d-pixel allowance)", name, n, allowance)
 	}
 }

@@ -102,7 +102,7 @@ func margins(c []int16) (head, tail int) {
 func codes8(c []int16) []uint8 {
 	out := make([]uint8, len(c))
 	for i, v := range c {
-		out[i] = uint8(v & 0xff) //nolint:gosec // G115: a display code, 0..255
+		out[i] = uint8(v & 0xff)
 	}
 	return out
 }
