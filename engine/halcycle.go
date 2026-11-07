@@ -172,7 +172,7 @@ func (c *HALCycle) Fault(err, haltErr error) {
 // Frame reads the main window of every enabled channel of the ready
 // record into one frame and reports the run state it was captured in.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-1003
-func (c *HALCycle) Frame(_ context.Context, _ Capture, a Armed) (*sample.Frame, Verdict, bool) {
+func (c *HALCycle) Frame(ctx context.Context, _ Capture, a Armed) (*sample.Frame, Verdict, bool) {
 	st := a.Status
 	if st.Triggered && !st.Forced {
 		c.inst.SetRun(instrument.Triggered)
@@ -196,7 +196,7 @@ func (c *HALCycle) Frame(_ context.Context, _ Capture, a Armed) (*sample.Frame, 
 	for i := range fs {
 		fs[i] = &sample.Frame{}
 	}
-	if err := c.b.Readout().Read(hal.ReadRequest{Windows: ws}, fs, c.b.Platform().Service); err != nil {
+	if err := c.b.Readout().Read(ctx, hal.ReadRequest{Windows: ws}, fs, c.b.Platform().Service); err != nil {
 		c.cfg.Logf("readout: %v", err)
 		_ = c.b.Acquirer().Stop()
 		return nil, Verdict{}, false

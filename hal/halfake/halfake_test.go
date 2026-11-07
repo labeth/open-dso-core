@@ -46,7 +46,7 @@ func cycle(t *testing.T, b hal.Board, c0 hal.Channel, req hal.Request, win hal.W
 	}
 	f := &sample.Frame{}
 	yields := 0
-	if err := b.Readout().Read(hal.ReadRequest{Record: st.Record, Windows: []hal.Window{win}}, []*sample.Frame{f}, func() { yields++ }); err != nil {
+	if err := b.Readout().Read(context.Background(), hal.ReadRequest{Record: st.Record, Windows: []hal.Window{win}}, []*sample.Frame{f}, func() { yields++ }); err != nil {
 		t.Fatal(err)
 	}
 	if yields != len(f.Traces)-1 {
@@ -128,8 +128,8 @@ func TestRefusals(t *testing.T) {
 	_ = b.Acquirer().Arm()
 	st, _ := b.Acquirer().Wait(ctx, time.Second)
 	f := &sample.Frame{}
-	refused("resampled", b.Readout().Read(hal.ReadRequest{Record: st.Record, Windows: []hal.Window{{Span: 1000, Want: hal.Resampled}}}, []*sample.Frame{f}, nil))
-	refused("compressed raw", b.Readout().Read(hal.ReadRequest{Windows: []hal.Window{{Span: 1000, Points: 10, Want: hal.RawFullRate}}}, []*sample.Frame{f}, nil))
+	refused("resampled", b.Readout().Read(context.Background(), hal.ReadRequest{Record: st.Record, Windows: []hal.Window{{Span: 1000, Want: hal.Resampled}}}, []*sample.Frame{f}, nil))
+	refused("compressed raw", b.Readout().Read(context.Background(), hal.ReadRequest{Windows: []hal.Window{{Span: 1000, Points: 10, Want: hal.RawFullRate}}}, []*sample.Frame{f}, nil))
 	refused("lamp", b.Input().SetLamps([]string{"math"}))
 	refused("budget", b.Storage().Settings().Put("settings", make([]byte, 5000)))
 }

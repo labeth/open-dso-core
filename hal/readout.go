@@ -45,11 +45,15 @@ type ReadLimits struct {
 // board never allocates per frame.
 type Readout interface {
 	// Read fills dst[i] for each window × segment, row-major (windows
-	// vary fastest). A window whose Want the board cannot deliver is a
-	// *Refusal, never another content kind. yield is called between chunks
-	// of a long read. OWNER, only in AcqState Ready (or Idle with a stored
-	// record).
-	Read(req ReadRequest, dst []*sample.Frame, yield func()) error
+	// vary fastest), each frame sized by the caller or left for the board
+	// to size. A window whose Want the board cannot deliver is a
+	// *Refusal, never another content kind. A Main window that does not
+	// fill its frame is an error; any other window's frame is cut to what
+	// it got, so a detail window that misses does not cost the frame.
+	// yield is called between chunks of a long read; ctx ends a read
+	// nobody wants any more. OWNER, only in AcqState Ready (or Idle with a
+	// stored record).
+	Read(ctx context.Context, req ReadRequest, dst []*sample.Frame, yield func()) error
 	// Export delivers one channel's raw codes through the board's slow path.
 	// LONG.
 	Export(ctx context.Context, rec RecordID, ch int, dst *sample.Trace) error

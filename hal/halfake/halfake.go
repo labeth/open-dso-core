@@ -460,7 +460,10 @@ func (r readout) Limits() hal.ReadLimits {
 }
 
 // TRLC-LINKS: REQ-DSO-1001
-func (r readout) Read(req hal.ReadRequest, dst []*sample.Frame, yield func()) error {
+func (r readout) Read(ctx context.Context, req hal.ReadRequest, dst []*sample.Frame, yield func()) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.b.mu.Lock()
 	r.b.log("Read")
 	if r.b.state != hal.Ready && (r.b.state != hal.Idle || r.b.rec.Seq == 0) {
