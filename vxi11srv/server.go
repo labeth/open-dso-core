@@ -1,8 +1,8 @@
-// Package vxi11srv is the LAN instrument-control transport (spec 11 §1): an
-// ONC-RPC DEVICE_CORE server on an ephemeral TCP port, registered with the
-// system portmapper on :111. It is the ONLY LAN SCPI path — no raw :5025
-// socket exists in this contract. The server never touches the GPMC bus;
-// every SCPI line goes to the injected handler (staging setters/snapshots).
+// Package vxi11srv is the VXI-11 instrument-control transport: an ONC-RPC
+// DEVICE_CORE server on an ephemeral TCP port, registered with the system
+// portmapper on :111. Every complete message goes to the injected handler;
+// the server itself holds no instrument state. scpi/host serves it beside
+// the raw-socket and telnet transports.
 // ENGMODEL-OWNER-UNIT: FU-APP-VXI11SRV
 package vxi11srv
 
@@ -100,6 +100,9 @@ func Start(h Handler, register bool, logf func(string, ...any)) (*Server, int, e
 	go s.acceptLoop()
 	return s, port, nil
 }
+
+// Close stops accepting links; established ones end with their connection.
+func (s *Server) Close() error { return s.ln.Close() }
 
 // TRLC-LINKS: REQ-SDS-024
 func (s *Server) acceptLoop() {
