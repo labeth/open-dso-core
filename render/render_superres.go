@@ -291,7 +291,7 @@ func drawSuperresFFT(sf Canvas, p plotArea, hud HUD) {
 	}
 	sc1, sc2 := hud.shownChans()
 	row := p.y0 + 10
-	if sc2 && hud.TwoChan && len(c2Mean) > 0 {
+	if sc2 && hud.NumChans > 1 && len(c2Mean) > 0 {
 		if s2, _ := srResampleArray(c2Mean, n); s2 != nil {
 			fpk := fftCoreP(sf, p, s2, colC2, effNyq, kLo, kHi)
 			DrawText(sf, 10, row, "SR FFT C2 peak "+fmtFreq(fpk), colC2, 1)
@@ -320,7 +320,7 @@ func drawSuperresXY(sf Canvas, p plotArea, hud HUD) {
 	if hud.SRAlign == 1 {
 		c1Mean, c2Mean = hud.SRMean2, hud.SRMean
 	}
-	if !hud.TwoChan || len(c2Mean) == 0 {
+	if hud.NumChans < 2 || len(c2Mean) == 0 {
 		DrawText(sf, 10, p.y0+10, "X-Y needs CH2", colDim, 1)
 		return
 	}

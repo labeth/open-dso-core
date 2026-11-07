@@ -869,7 +869,7 @@ func drawMiniScope(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 	if f != nil && len(f.Codes8(0)) > 0 && (!f.Flags.Has(sample.Envelope) || len(f.Min8(0)) != 0) {
 		sc1, sc2 := hud.shownChans()
 		for _, ch := range []int{1, 0} {
-			if (ch == 0 && !sc1) || (ch == 1 && (!sc2 || !hud.TwoChan)) {
+			if (ch == 0 && !sc1) || (ch == 1 && (!sc2 || hud.NumChans < 2)) {
 				continue
 			}
 			miniScopeChan(sf, f, hud, ch, x0, w, yOf)

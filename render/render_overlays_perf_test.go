@@ -12,19 +12,19 @@ import (
 // TRLC-LINKS: REQ-SDS-021
 func mathCodesRef(c1, c2 []uint8, hud HUD) []uint8 {
 	scale := mathScale(hud) / 25
-	v1 := hud.C1VdivV * float64(max(hud.Zoom1, 1)) / 25 * math.Max(hud.Probe1, 1)
-	v2 := hud.C2VdivV * float64(max(hud.Zoom2, 1)) / 25 * math.Max(hud.Probe2, 1)
+	v1 := hud.Ch[0].VdivV * float64(max(hud.Ch[0].Zoom, 1)) / 25 * math.Max(hud.Ch[0].Probe, 1)
+	v2 := hud.Ch[1].VdivV * float64(max(hud.Ch[1].Zoom, 1)) / 25 * math.Max(hud.Ch[1].Probe, 1)
 	if v1 <= 0 {
 		v1 = 1.0 / 25
 	}
 	if v2 <= 0 {
 		v2 = 1.0 / 25
 	}
-	off1, off2 := hud.OffC1V*math.Max(hud.Probe1, 1), hud.OffC2V*math.Max(hud.Probe2, 1)
-	if hud.Cpl1 != 0 {
+	off1, off2 := hud.Ch[0].OffV*math.Max(hud.Ch[0].Probe, 1), hud.Ch[1].OffV*math.Max(hud.Ch[1].Probe, 1)
+	if hud.Ch[0].Cpl != 0 {
 		off1 = 0
 	}
-	if hud.Cpl2 != 0 {
+	if hud.Ch[1].Cpl != 0 {
 		off2 = 0
 	}
 	m := make([]uint8, min(len(c1), len(c2)))
@@ -54,11 +54,11 @@ func TestMathCodesMatchesRef(t *testing.T) {
 		c1[i], c2[i] = uint8(i), uint8(i>>8)
 	}
 	for _, h := range []HUD{
-		{C1VdivV: 0.2, C2VdivV: 0.5},
-		{C1VdivV: 0.002, C2VdivV: 5, Probe1: 10, Zoom2: 4, OffC1V: 0.013, OffC2V: -1.7},
-		{C1VdivV: 0.1, C2VdivV: 0.1, OffC1V: 0.3, OffC2V: 0.3, Cpl1: 1},
-		{C1VdivV: 0, C2VdivV: -1, Probe2: 100, OffC2V: 1e-3},
-		{C1VdivV: 1, C2VdivV: 1, OffC1V: math.Inf(1), OffC2V: math.Inf(1)}, // NaN sums
+		HUD{Ch: [MaxChans]Channel{{VdivV: 0.2}, {VdivV: 0.5}}},
+		HUD{Ch: [MaxChans]Channel{{VdivV: 0.002, Probe: 10, OffV: 0.013}, {VdivV: 5, Zoom: 4, OffV: -1.7}}},
+		HUD{Ch: [MaxChans]Channel{{VdivV: 0.1, OffV: 0.3, Cpl: 1}, {VdivV: 0.1, OffV: 0.3}}},
+		HUD{Ch: [MaxChans]Channel{{VdivV: 0}, {VdivV: -1, Probe: 100, OffV: 1e-3}}},
+		HUD{Ch: [MaxChans]Channel{{VdivV: 1, OffV: math.Inf(1)}, {VdivV: 1, OffV: math.Inf(1)}}}, // NaN sums
 	} {
 		for mode := range 6 {
 			h.MathMode = mode

@@ -56,9 +56,8 @@ func flatFrame(v1, v2 uint8) *sample.Frame {
 func TestRenderINVSFlipsTrace(t *testing.T) {
 	f := flatFrame(168, 88) // C1 above centre, C2 below — asymmetric on purpose
 	hud := HUD{
-		C1VdivV: 1, C2VdivV: 1, TdivS: 500e-6, TrigPosFrac: 0.5,
-		TwoChan: true, ShowC1: true, ShowC2: true, Running: true,
-	}
+		Ch: [MaxChans]Channel{{VdivV: 1, Show: true}, {VdivV: 1, Show: true}}, TdivS: 500e-6, TrigPosFrac: 0.5,
+		NumChans: 2, Running: true}
 
 	render := func(h HUD) *Image565 {
 		sf := NewImage565(m800)
@@ -80,7 +79,7 @@ func TestRenderINVSFlipsTrace(t *testing.T) {
 	}
 
 	// Inv1 only: C1 mirrors to 255−168, C2 stays put.
-	hud.Inv1 = true
+	hud.Ch[0].Inv = true
 	sf = render(hud)
 	if lo, hi, ok := traceRows(sf, colC1); !ok || lo != hi || lo != sampleToY(255-168) {
 		t.Fatalf("Inv1 C1: rows [%d,%d] ok=%v, want %d", lo, hi, ok, sampleToY(255-168))
@@ -90,7 +89,7 @@ func TestRenderINVSFlipsTrace(t *testing.T) {
 	}
 
 	// Both inverted: C2 mirrors too.
-	hud.Inv2 = true
+	hud.Ch[1].Inv = true
 	sf = render(hud)
 	if lo, hi, ok := traceRows(sf, colC2); !ok || lo != hi || lo != sampleToY(255-88) {
 		t.Fatalf("Inv2 C2: rows [%d,%d] ok=%v, want %d", lo, hi, ok, sampleToY(255-88))
@@ -113,9 +112,8 @@ func TestRenderINVSFlipsEnvelope(t *testing.T) {
 		f.Min8(1)[i], f.Max8(1)[i] = 60, 70
 	}
 	hud := HUD{
-		C1VdivV: 1, C2VdivV: 1, TdivS: 0.1, TrigPosFrac: 0.5,
-		TwoChan: true, ShowC1: true, ShowC2: true, Running: true,
-	}
+		Ch: [MaxChans]Channel{{VdivV: 1, Show: true}, {VdivV: 1, Show: true}}, TdivS: 0.1, TrigPosFrac: 0.5,
+		NumChans: 2, Running: true}
 	sf := NewImage565(m800)
 	Render(sf, f, hud, true)
 	lo, hi, ok := traceRows(sf, colC1)
@@ -124,7 +122,7 @@ func TestRenderINVSFlipsEnvelope(t *testing.T) {
 			lo, hi, ok, sampleToY(150), sampleToY(100))
 	}
 
-	hud.Inv1 = true
+	hud.Ch[0].Inv = true
 	sf = NewImage565(m800)
 	Render(sf, f, hud, true)
 	lo, hi, ok = traceRows(sf, colC1)

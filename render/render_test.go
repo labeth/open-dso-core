@@ -36,9 +36,8 @@ func testFrame(valid int) *sample.Frame {
 // TRLC-LINKS: REQ-SDS-021
 func defaultHUD() HUD {
 	return HUD{
-		C1VdivV: 1, C2VdivV: 1, TdivS: 500e-6, TrigRising: true,
-		Running: true, SampleS: 800e-9, TwoChan: true,
-	}
+		Ch: [MaxChans]Channel{{VdivV: 1}, {VdivV: 1}}, TdivS: 500e-6, TrigRising: true,
+		Running: true, SampleS: 800e-9, NumChans: 2}
 }
 
 // TRLC-LINKS: REQ-SDS-021
@@ -76,7 +75,7 @@ func TestRenderPersistence(t *testing.T) {
 	sf := NewImage565(m800)
 	h := defaultHUD()
 	h.Persist = true
-	h.ShowC1, h.ShowC2 = true, false
+	h.Ch[0].Show, h.Ch[1].Show = true, false
 	flat := func(v uint8) *sample.Frame {
 		f := testFrame(2048)
 		for i := range f.Codes8(0) {
@@ -606,7 +605,7 @@ func TestBodeHintNamesTheChannels(t *testing.T) {
 // TRLC-LINKS: REQ-SDS-138
 func TestRefDrawnThroughItsProbe(t *testing.T) {
 	hud := defaultHUD()
-	hud.TwoChan, hud.Probe1 = false, 10
+	hud.NumChans, hud.Ch[0].Probe = 1, 10
 	ref := make([]uint8, 800)
 	for i := range ref {
 		ref[i] = 228 // 4 V at the tip through the x1 probe it was stored with

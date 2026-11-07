@@ -34,7 +34,7 @@ func TestDecodeStripClearsTrace(t *testing.T) {
 		h := defaultHUD()
 		h.TdivS, h.SampleS, h.TrigPosFrac = 100e-6, 1e-6, 0.5
 		h.DecProto, h.DecBaud = 2, 9600
-		h.ShowC2, h.ShowC1, h.ChanExplicit = false, true, true
+		h.Ch[1].Show, h.Ch[0].Show, h.ChanExplicit = false, true, true
 		if top > 0 {
 			h.UI.Layout = wsview.Layout{MenuW: 30, PlotTop: top}
 		}

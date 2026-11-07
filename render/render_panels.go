@@ -96,10 +96,10 @@ func chanMeasure(f *sample.Frame, hud HUD, ch int) *measure.Result {
 		return nil
 	}
 	sig := f.Codes8(0)[:valid]
-	vdiv, probe, off, cpl := hud.C1VdivV, hud.Probe1, hud.OffC1V, hud.Cpl1
+	vdiv, probe, off, cpl := hud.Ch[0].VdivV, hud.Ch[0].Probe, hud.Ch[0].OffV, hud.Ch[0].Cpl
 	if ch == 1 {
 		sig = f.Codes8(1)[:valid]
-		vdiv, probe, off, cpl = hud.C2VdivV, hud.Probe2, hud.OffC2V, hud.Cpl2
+		vdiv, probe, off, cpl = hud.Ch[1].VdivV, hud.Ch[1].Probe, hud.Ch[1].OffV, hud.Ch[1].Cpl
 	}
 	if probe < 1 {
 		probe = 1
@@ -126,7 +126,7 @@ func chanMeasure(f *sample.Frame, hud HUD, ch int) *measure.Result {
 	}
 	// After the timing: the invert swaps rise and fall and complements the
 	// duty, which the envelope's timing would otherwise put back.
-	if (ch == 0 && hud.Inv1) || (ch == 1 && hud.Inv2) {
+	if (ch == 0 && hud.Ch[0].Inv) || (ch == 1 && hud.Ch[1].Inv) {
 		m = m.Inverted() // measure what the inverted trace shows
 	}
 	return m
@@ -199,7 +199,7 @@ func drawMeasPanel(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	}
 	sc1, sc2 := hud.shownChans()
 	x := 4
-	for ch, shown := range [2]bool{sc1, sc2 && hud.TwoChan} {
+	for ch, shown := range [2]bool{sc1, sc2 && hud.NumChans > 1} {
 		if !shown {
 			continue
 		}
@@ -375,13 +375,13 @@ func voltCursorLabel(hud HUD) string {
 	}
 	sc1, sc2 := hud.shownChans()
 	if sc1 {
-		label = "dV1 " + dvOf(hud.C1VdivV, hud.Probe1)
+		label = "dV1 " + dvOf(hud.Ch[0].VdivV, hud.Ch[0].Probe)
 	}
-	if sc2 && hud.TwoChan {
+	if sc2 && hud.NumChans > 1 {
 		if label != "" {
 			label += "  "
 		}
-		label += "dV2 " + dvOf(hud.C2VdivV, hud.Probe2)
+		label += "dV2 " + dvOf(hud.Ch[1].VdivV, hud.Ch[1].Probe)
 	}
 	return label
 }
@@ -481,9 +481,9 @@ func drawMarkers(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 			}
 		}
 	}
-	ground(hud.C1VdivV, hud.OffC1V, colC1)
-	if hud.TwoChan {
-		ground(hud.C2VdivV, hud.OffC2V, colC2)
+	ground(hud.Ch[0].VdivV, hud.Ch[0].OffV, colC1)
+	if hud.NumChans > 1 {
+		ground(hud.Ch[1].VdivV, hud.Ch[1].OffV, colC2)
 	}
 }
 
@@ -534,16 +534,16 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 		}
 		DrawText(sf, tx, 14, label, colInfo, 1)
 	}
-	DrawText(sf, 4, 2, "C1 "+vdivLabel(hud.C1VdivV, hud.Probe1)+cplTag(hud.Cpl1), colC1, 1)
-	if hud.TwoChan {
-		DrawText(sf, c2x, 2, "C2 "+vdivLabel(hud.C2VdivV, hud.Probe2)+cplTag(hud.Cpl2), colC2, 1)
+	DrawText(sf, 4, 2, "C1 "+vdivLabel(hud.Ch[0].VdivV, hud.Ch[0].Probe)+cplTag(hud.Ch[0].Cpl), colC1, 1)
+	if hud.NumChans > 1 {
+		DrawText(sf, c2x, 2, "C2 "+vdivLabel(hud.Ch[1].VdivV, hud.Ch[1].Probe)+cplTag(hud.Ch[1].Cpl), colC2, 1)
 	}
 	if f != nil && f.Len() > 0 { // clipping warning — railed traces make readings suspect
 		clip := frameClipped(f)
 		if clip[0] {
 			DrawText(sf, 4, 14, "CLIP", colTrig, 1)
 		}
-		if hud.TwoChan && clip[1] {
+		if hud.NumChans > 1 && clip[1] {
 			DrawText(sf, c2x, 14, "CLIP", colTrig, 1)
 		}
 	}
@@ -590,7 +590,7 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	// shared measure package (real probe-scaled V/div + software coupling) so it
 	// agrees with the MEASURE readouts and the web.
 	sc1, sc2 := hud.shownChans() // a hidden channel has no readout
-	for ch, shown := range [2]bool{sc1, sc2 && hud.TwoChan} {
+	for ch, shown := range [2]bool{sc1, sc2 && hud.NumChans > 1} {
 		if !shown {
 			continue
 		}
@@ -657,9 +657,9 @@ func frameQ(f *sample.Frame, ch int) []uint16 {
 // zoomed detent's volts per code is VdivV·zoom over its codes a division.
 // TRLC-LINKS: REQ-SDS-021
 func zoomOf(hud HUD, ch int) int {
-	z := hud.Zoom1
+	z := hud.Ch[0].Zoom
 	if ch == 1 {
-		z = hud.Zoom2
+		z = hud.Ch[1].Zoom
 	}
 	if z < 1 {
 		return 1

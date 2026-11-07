@@ -211,7 +211,7 @@ func TestSuperresReviewRoutesByViewMode(t *testing.T) {
 		func(b int) float64 { return 128 + 80*math.Sin(2*math.Pi*3e6*float64(b)*fineDt) },
 		func(b int) float64 { return 128 + 80*math.Sin(2*math.Pi*7e6*float64(b)*fineDt) },
 	)
-	h.ShowC1, h.ShowC2, h.TwoChan = true, true, true
+	h.Ch[0].Show, h.Ch[1].Show, h.NumChans = true, true, 2
 	var f *sample.Frame // review ignores the live frame; nil must be safe
 
 	yt := NewImage565(m800)
@@ -258,7 +258,7 @@ func TestSuperresReviewRoutesByViewMode(t *testing.T) {
 func TestSuperresXYNeedsCH2(t *testing.T) {
 	const K, nb = 8, 2048
 	h := srHUD(nb, K, 2e-9, func(b int) float64 { return 128 + 50*math.Sin(float64(b)*0.05) }, nil)
-	h.TwoChan = false
+	h.NumChans = 1
 	h.ViewMode = 1
 	sf := NewImage565(m800)
 	Render(sf, nil, h, true) // must not panic

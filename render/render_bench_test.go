@@ -144,7 +144,7 @@ func BenchmarkMathCodes(b *testing.B) {
 		c1[i], c2[i] = uint8(i*7), uint8(i*13+5)
 	}
 	h := rendertest.YTHUD()
-	h.OffC1V, h.OffC2V = 0.1, -0.05
+	h.Ch[0].OffV, h.Ch[1].OffV = 0.1, -0.05
 	for b.Loop() {
 		for mode := 1; mode <= 4; mode++ {
 			h.MathMode = mode

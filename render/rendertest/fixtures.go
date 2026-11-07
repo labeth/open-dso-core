@@ -72,12 +72,12 @@ func YTFrame() *sample.Frame {
 // TRLC-LINKS: REQ-SDS-021
 func YTHUD() render.HUD {
 	h := DefaultHUD()
-	h.ShowC1, h.ShowC2 = true, true
-	h.C2VdivV = 0.5
+	h.Ch[0].Show, h.Ch[1].Show = true, true
+	h.Ch[1].VdivV = 0.5
 	h.TrigLvlDiv = 1.2
 	h.TrigLvlV = 0.2 // 1.2 div at 1 V/div less the 1 V offset
 	h.TrigPosFrac = 0.5
-	h.OffC1V, h.OffC2V = 1.0, -0.25
+	h.Ch[0].OffV, h.Ch[1].OffV = 1.0, -0.25
 	h.Trigd = true
 	h.URL = "http://192.168.1.42:8080"
 	return h
@@ -945,7 +945,6 @@ func Sine(n int, freqHz, sampleS float64) *sample.Frame {
 // DefaultHUD is the plain running two-channel HUD the scenes start from.
 func DefaultHUD() render.HUD {
 	return render.HUD{
-		C1VdivV: 1, C2VdivV: 1, TdivS: 500e-6, TrigRising: true,
-		Running: true, SampleS: 800e-9, TwoChan: true,
-	}
+		Ch: [render.MaxChans]render.Channel{{VdivV: 1}, {VdivV: 1}}, TdivS: 500e-6, TrigRising: true,
+		Running: true, SampleS: 800e-9, NumChans: 2}
 }

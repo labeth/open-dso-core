@@ -79,13 +79,13 @@ func TestRenderFuzzNoPanic(t *testing.T) {
 			mhi = make([]uint8, maskWin)
 		}
 		hud := HUD{
-			C1VdivV: []float64{0, 1, 1e-3}[rng.Intn(3)], C2VdivV: 1,
+			Ch:    [MaxChans]Channel{{VdivV: []float64{0, 1, 1e-3}[rng.Intn(3)], Show: rng.Intn(2) == 0}, {VdivV: 1, Show: rng.Intn(2) == 0}},
 			TdivS: []float64{0, 500e-6}[rng.Intn(2)], SampleS: 800e-9,
 			Running: rng.Intn(2) == 0, Norm: rng.Intn(2) == 0, Trigd: rng.Intn(2) == 0,
 			TrigPosFrac: []float64{-3, 0, 0.5, 1, 9}[rng.Intn(5)],
-			TwoChan:     rng.Intn(2) == 0, ShowC1: rng.Intn(2) == 0, ShowC2: rng.Intn(2) == 0,
-			ShowMeas: rng.Intn(2) == 0,
-			ViewMode: rng.Intn(5), MathMode: rng.Intn(6), // 0..4 incl. spectrogram
+			NumChans:    1 + rng.Intn(2),
+			ShowMeas:    rng.Intn(2) == 0,
+			ViewMode:    rng.Intn(5), MathMode: rng.Intn(6), // 0..4 incl. spectrogram
 			Zoom: []int{0, 1, 2, 50, 9999}[rng.Intn(5)], ZoomOff: rng.Float64()*4 - 2,
 			Persist:  rng.Intn(2) == 0,
 			DecProto: rng.Intn(6), DecBaud: []int{0, 115200}[rng.Intn(2)],
@@ -110,8 +110,7 @@ func TestRenderFuzzNoPanic(t *testing.T) {
 			MaskPass: int64(rng.Intn(1000)), MaskFail: int64(rng.Intn(10)), MaskSkip: int64(rng.Intn(10)),
 			MaskStopped: rng.Intn(4) == 0, MaskMsg: []string{"", "MASK: building 9/32"}[rng.Intn(2)],
 			RefShow:     [2]bool{rng.Intn(2) == 0, false},
-			AutosetBusy: rng.Intn(6) == 0, AutosetMsg: "sweep",
-		}
+			AutosetBusy: rng.Intn(6) == 0, AutosetMsg: "sweep"}
 		if rng.Intn(3) == 0 && f != nil && len(f.Codes8(0)) > 0 {
 			hud.RefC1[0] = f.Codes8(0) // ref same as live
 			hud.RefShow[0] = true

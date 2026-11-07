@@ -25,9 +25,9 @@ func TestInvertedEnvelopeDuty(t *testing.T) {
 		f.Codes8(0)[2*b], f.Codes8(0)[2*b+1] = v, v
 		f.Codes8(1)[2*b], f.Codes8(1)[2*b+1] = v, v
 	}
-	hud := HUD{C1VdivV: 1, C2VdivV: 1, Probe1: 1, Probe2: 1, SampleS: f.SampleS}
+	hud := HUD{Ch: [MaxChans]Channel{{VdivV: 1, Probe: 1}, {VdivV: 1, Probe: 1}}, SampleS: f.SampleS}
 	plain := chanMeasure(f, hud, 0)
-	hud.Inv1 = true
+	hud.Ch[0].Inv = true
 	inv := chanMeasure(f, hud, 0)
 	if plain == nil || inv == nil || !plain.HasTiming || math.Abs(plain.Duty-30) > 2 || math.Abs(inv.Duty-70) > 2 {
 		t.Fatalf("duty: plain %+v, inverted %+v", plain, inv)

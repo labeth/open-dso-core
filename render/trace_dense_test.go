@@ -54,7 +54,7 @@ func TestStaleTimebaseFrameNotDrawn(t *testing.T) {
 		}
 		return n
 	}
-	hud := HUD{Running: true, TdivS: 0.1, C1VdivV: 1, C2VdivV: 1, TwoChan: true, RecordS: 137}
+	hud := HUD{Ch: [MaxChans]Channel{{VdivV: 1}, {VdivV: 1}}, Running: true, TdivS: 0.1, NumChans: 2, RecordS: 137}
 	if count(hud) < W/2 {
 		t.Fatal("matching frame not drawn")
 	}

@@ -70,7 +70,7 @@ func highRuns(sf *Image565, y int) int {
 // the view's square; a view of another stretch is not used.
 // TRLC-LINKS: REQ-SDS-021
 func TestZoomDrawsTheViewWindow(t *testing.T) {
-	hud := HUD{C1VdivV: 1, C2VdivV: 1, TdivS: 200e-6, TrigPosFrac: 0.5, ShowC1: true, ChanExplicit: true, Running: true, Zoom: 50}
+	hud := HUD{Ch: [MaxChans]Channel{{VdivV: 1, Show: true}, {VdivV: 1}}, TdivS: 200e-6, TrigPosFrac: 0.5, ChanExplicit: true, Running: true, Zoom: 50}
 	f, v := zoomFrame(128)
 	setView(f, v)
 	got, vwin, vxc, ok := zoomView(f, hud, f.Len())
@@ -108,7 +108,7 @@ func TestZoomDrawsTheViewWindow(t *testing.T) {
 func TestZoomViewCoupledAsTheTrace(t *testing.T) {
 	f, v := zoomFrame(150) // the trace's mean 150: AC moves it down by 22
 	setView(f, v)
-	hud := HUD{C1VdivV: 1, C2VdivV: 1, TdivS: 200e-6, TrigPosFrac: 0.5, ShowC1: true, ChanExplicit: true, Running: true, Zoom: 50, Cpl1: dsp.CoupleAC}
+	hud := HUD{Ch: [MaxChans]Channel{{VdivV: 1, Show: true, Cpl: dsp.CoupleAC}, {VdivV: 1}}, TdivS: 200e-6, TrigPosFrac: 0.5, ChanExplicit: true, Running: true, Zoom: 50}
 	sf := NewImage565(m800)
 	Render(sf, f, hud, true)
 	if r := highRuns(sf, sampleToY(178)); r < 8 || r > 9 {

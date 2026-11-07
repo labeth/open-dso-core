@@ -39,7 +39,7 @@ func fftBand(half, zoom int, zoomOff float64) (kLo, kHi int) {
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-070, REQ-SDS-216
 func drawFFT(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	sc1, sc2 := hud.shownChans()
-	shown := [2]bool{sc1, sc2 && hud.TwoChan}
+	shown := [2]bool{sc1, sc2 && hud.NumChans > 1}
 	src := hud.FFTSrc & 1
 	order := []int{1 - src, src} // the source last, on top
 	type label struct {

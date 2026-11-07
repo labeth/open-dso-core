@@ -25,43 +25,38 @@ import (
 // frame (spec 07 §6). It carries no capture state.
 // TRLC-LINKS: REQ-SDS-021
 type HUD struct {
-	C1VdivV, C2VdivV float64
-	// Zoom1/Zoom2 magnify a channel's codes about mid-scale: the 2 and 5 mV
-	// detents are ×5/×2 display zooms of the 10 mV analog range (0 means 1).
-	Zoom1, Zoom2   int
-	Probe1, Probe2 float64 // probe attenuation (1/10/100); 0 treated as ×1
-	Cpl1, Cpl2     int     // input coupling (dsp.CoupleDC/CplAC/CplGND)
-	Inv1, Inv2     bool    // display-level trace invert (SCPI Cn:INVS — the shadow there is the truth)
-	TdivS          float64
-	TrigSrc        int
-	TrigRising     bool
-	TrigLvlDiv     float64
-	TrigLvlV       float64 // trigger level at the probe tip, volts
+	// Ch are the channels' settings, C1 first; NumChans of them exist (0 or
+	// 1: C1 alone).
+	Ch         [MaxChans]Channel
+	NumChans   int
+	TdivS      float64
+	TrigSrc    int
+	TrigRising bool
+	TrigLvlDiv float64
+	TrigLvlV   float64 // trigger level at the probe tip, volts
 	// The trigger the FPGA decides when it is no plain edge: its type
 	// (engine Stats.TrigType), the qualifier's figures, a serial match armed
 	// (its units as text) and a zone trigger; the readout names it.
-	TrigType       int
-	TrigQual       TrigQual
-	SerialArmed    bool
-	SerialMatch    string
-	ZoneTrig       bool
-	Waiting        bool            // a trigger the FPGA decides armed, running, nothing published lately
-	WaitS          float64         // seconds since the last frame came (running)
-	StreamOn       bool            // DECODE Auto in Stream mode
-	Stream         streamwire.View // its state and counters
-	StreamList     bool            // the transcript fills the screen
-	StreamPage     streamwire.Page // the transcript lines to show
-	Running, Norm  bool
-	RecordS        float64 // the capture in progress fills this long a record (0 unknown)
-	Single         bool
-	Trigd          bool
-	SampleS        float64 // per-sample seconds (frequency readout)
-	TrigPosFrac    float64 // horizontal trigger position, 0.5 = centre
-	OffC1V, OffC2V float64 // applied vertical offset volts (ground markers)
-	ShowC1, ShowC2 bool    // per-channel display enable
-	// ChanExplicit marks ShowC1/ShowC2 as the user's choice (the panel set
-	// them), so both off draws neither channel. Without it, both off means
-	// "unset" and both are drawn.
+	TrigType      int
+	TrigQual      TrigQual
+	SerialArmed   bool
+	SerialMatch   string
+	ZoneTrig      bool
+	Waiting       bool            // a trigger the FPGA decides armed, running, nothing published lately
+	WaitS         float64         // seconds since the last frame came (running)
+	StreamOn      bool            // DECODE Auto in Stream mode
+	Stream        streamwire.View // its state and counters
+	StreamList    bool            // the transcript fills the screen
+	StreamPage    streamwire.Page // the transcript lines to show
+	Running, Norm bool
+	RecordS       float64 // the capture in progress fills this long a record (0 unknown)
+	Single        bool
+	Trigd         bool
+	SampleS       float64 // per-sample seconds (frequency readout)
+	TrigPosFrac   float64 // horizontal trigger position, 0.5 = centre
+	// ChanExplicit marks the channels' Show as the user's choice (the panel
+	// set them), so all off draws none. Without it, all off means "unset"
+	// and every channel is drawn.
 	ChanExplicit bool
 	ShowMeas     bool // on-device MEASURE readout boxes
 	// MeasItems are the chosen readouts, "1:pkpk" (channel and parameter);
@@ -95,7 +90,6 @@ type HUD struct {
 	RefVdiv, RefOff  [2][2]float64 // [slot][channel] analog V/div and offset volts at the save
 	RefProbe         [2][2]float64 // [slot][channel] the probe factor at the save (0: 1)
 	RefShow          [2]bool
-	TwoChan          bool
 
 	// On-screen cursors: two X (time) and two Y (volts), positions as screen
 	// fractions. CurType 0=X 1=Y; CurSel 0=A 1=B (the active one is highlighted).
@@ -163,6 +157,23 @@ type HUD struct {
 	// Spectrogram ("FFT over time", spectrogram.go): the scrolling waterfall
 	// image, accumulated by the LCD loop and blitted when ViewMode == 4.
 	Spect *Spectrogram
+}
+
+// MaxChans is the most channels a HUD describes.
+const MaxChans = 8
+
+// Channel is one channel's display settings.
+type Channel struct {
+	VdivV float64
+	// Zoom magnifies the channel's codes about mid-scale: the SDS1000CML+'s
+	// 2 and 5 mV detents are ×5/×2 display zooms of the 10 mV analog range
+	// (0 means 1).
+	Zoom  int
+	Probe float64 // probe attenuation (1/10/100); 0 treated as ×1
+	Cpl   int     // input coupling (dsp.CoupleDC/CoupleAC/CoupleGND)
+	Inv   bool    // display-level trace invert (SCPI Cn:INVS)
+	OffV  float64 // applied vertical offset volts (ground markers)
+	Show  bool    // display enable
 }
 
 // TrigQual is the pulse and slope qualifiers the trigger readout names
@@ -982,28 +993,28 @@ func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, s
 	}
 	win, xc, posFrac := traceWindow(f, hud, valid)
 	c1 := f.Codes8(0)[:valid]
-	if hud.Cpl1 != dsp.CoupleDC { // software coupling: AC removes DC, GND grounds
-		c1 = dsp.CoupleDisplay(c1, hud.Cpl1)
+	if hud.Ch[0].Cpl != dsp.CoupleDC { // software coupling: AC removes DC, GND grounds
+		c1 = dsp.CoupleDisplay(c1, hud.Ch[0].Cpl)
 	}
-	if hud.Inv1 { // display-level INVS: mirror the rendered trace only
+	if hud.Ch[0].Inv { // display-level INVS: mirror the rendered trace only
 		c1 = invertCodes(c1)
 	}
 	drawZoneMask(traceTarget, p, f, hud, win, xc, posFrac)
 	// Zoomed into a live envelope: the frame's view window holds the
 	// zoomed part at full detail, where the screen's buckets are too coarse.
 	view, vwin, vxc, zoomed := zoomView(f, hud, valid)
-	if hud.TwoChan && sc2 && len(f.Codes8(1)) >= valid {
+	if hud.NumChans > 1 && sc2 && len(f.Codes8(1)) >= valid {
 		drawC2(traceTarget, p, f, hud, valid, ytWindow{win, xc, posFrac}, ytWindow{vwin, vxc, 0.5}, view, zoomed)
 	}
 	if sc1 {
 		if zoomed {
-			v1 := dsp.CoupleDisplayBy(view.Codes8(0)[:view.Len()], f.Codes8(0)[:valid], hud.Cpl1)
-			if hud.Inv1 {
+			v1 := dsp.CoupleDisplayBy(view.Codes8(0)[:view.Len()], f.Codes8(0)[:valid], hud.Ch[0].Cpl)
+			if hud.Ch[0].Inv {
 				v1 = invertCodes(v1)
 			}
-			drawTraceID(traceTarget, p, traceID{f.Seq, 3, hud.Cpl1, hud.Inv1}, v1, vwin, vxc, false, colC1, 0.5, hud.Zoom1)
+			drawTraceID(traceTarget, p, traceID{f.Seq, 3, hud.Ch[0].Cpl, hud.Ch[0].Inv}, v1, vwin, vxc, false, colC1, 0.5, hud.Ch[0].Zoom)
 		} else {
-			drawTraceHeld(traceTarget, p, traceID{f.Seq, 1, hud.Cpl1, hud.Inv1}, c1, heldOf(f, valid), win, xc, f.Flags.Has(sample.Interp), colC1, posFrac, hud.Zoom1)
+			drawTraceHeld(traceTarget, p, traceID{f.Seq, 1, hud.Ch[0].Cpl, hud.Ch[0].Inv}, c1, heldOf(f, valid), win, xc, f.Flags.Has(sample.Interp), colC1, posFrac, hud.Ch[0].Zoom)
 		}
 	}
 	if hud.MathMode != 0 {
@@ -1018,19 +1029,19 @@ func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, s
 // drawEnvelopes draws a live envelope frame's bands, C2 under C1.
 // TRLC-LINKS: REQ-SDS-021
 func drawEnvelopes(sf Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 bool) {
-	if hud.TwoChan && sc2 {
+	if hud.NumChans > 1 && sc2 {
 		mn2, mx2 := f.Min8(1), f.Max8(1)
-		if hud.Inv2 { // INVS mirrors the band: min'=inv(max), max'=inv(min)
+		if hud.Ch[1].Inv { // INVS mirrors the band: min'=inv(max), max'=inv(min)
 			mn2, mx2 = invertCodes(mx2), invertCodes(mn2)
 		}
-		drawEnvelope(sf, p, mn2, mx2, len(f.Min8(0)), colC2, hud.Zoom2)
+		drawEnvelope(sf, p, mn2, mx2, len(f.Min8(0)), colC2, hud.Ch[1].Zoom)
 	}
 	if sc1 {
 		mn1, mx1 := f.Min8(0), f.Max8(0)
-		if hud.Inv1 {
+		if hud.Ch[0].Inv {
 			mn1, mx1 = invertCodes(mx1), invertCodes(mn1)
 		}
-		drawEnvelope(sf, p, mn1, mx1, len(f.Min8(0)), colC1, hud.Zoom1)
+		drawEnvelope(sf, p, mn1, mx1, len(f.Min8(0)), colC1, hud.Ch[0].Zoom)
 	}
 }
 
@@ -1041,17 +1052,17 @@ func drawEnvelopes(sf Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 boo
 func drawC2(traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, valid int, rec, zw ytWindow, view *sample.Frame, zoomed bool) {
 	c2 := f.Codes8(1)[:valid]
 	if zoomed {
-		c2 = dsp.CoupleDisplayBy(view.Codes8(1)[:view.Len()], c2, hud.Cpl2)
-	} else if hud.Cpl2 != dsp.CoupleDC {
-		c2 = dsp.CoupleDisplay(c2, hud.Cpl2)
+		c2 = dsp.CoupleDisplayBy(view.Codes8(1)[:view.Len()], c2, hud.Ch[1].Cpl)
+	} else if hud.Ch[1].Cpl != dsp.CoupleDC {
+		c2 = dsp.CoupleDisplay(c2, hud.Ch[1].Cpl)
 	}
-	if hud.Inv2 {
+	if hud.Ch[1].Inv {
 		c2 = invertCodes(c2)
 	}
 	if zoomed {
-		drawTraceID(traceTarget, p, traceID{f.Seq, 4, hud.Cpl2, hud.Inv2}, c2, zw.win, zw.xc, false, colC2, zw.posFrac, hud.Zoom2)
+		drawTraceID(traceTarget, p, traceID{f.Seq, 4, hud.Ch[1].Cpl, hud.Ch[1].Inv}, c2, zw.win, zw.xc, false, colC2, zw.posFrac, hud.Ch[1].Zoom)
 	} else {
-		drawTraceHeld(traceTarget, p, traceID{f.Seq, 2, hud.Cpl2, hud.Inv2}, c2, heldOf(f, valid), rec.win, rec.xc, f.Flags.Has(sample.Interp), colC2, rec.posFrac, hud.Zoom2)
+		drawTraceHeld(traceTarget, p, traceID{f.Seq, 2, hud.Ch[1].Cpl, hud.Ch[1].Inv}, c2, heldOf(f, valid), rec.win, rec.xc, f.Flags.Has(sample.Interp), colC2, rec.posFrac, hud.Ch[1].Zoom)
 	}
 }
 
@@ -1108,10 +1119,10 @@ func absI(x int) int {
 // neither is drawn.
 // TRLC-LINKS: REQ-SDS-021
 func (h HUD) shownChans() (bool, bool) {
-	if !h.ShowC1 && !h.ShowC2 && !h.ChanExplicit {
+	if !h.Ch[0].Show && !h.Ch[1].Show && !h.ChanExplicit {
 		return true, true
 	}
-	return h.ShowC1, h.ShowC2
+	return h.Ch[0].Show, h.Ch[1].Show
 }
 
 // heldOf is a roll frame's held samples over its valid prefix; nil otherwise.
