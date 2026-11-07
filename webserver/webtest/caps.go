@@ -216,48 +216,6 @@ func (w *Wide) Status() any {
 	return st
 }
 
-// Sound is the Fake's stream, its two lanes carrying the tuned channel and
-// C1 (C2 when C1 is tuned), named in its scales: a scope of more channels
-// than lanes.
-// TRLC-LINKS: REQ-SDS-265
-func (w *Wide) Sound() (webserver.Sound, bool) { return wideSound{fakeSound{w.Fake}}, true }
-
-// SoundControls is the Fake's SOUND settings.
-// TRLC-LINKS: REQ-SDS-274
-func (w *Wide) SoundControls() (webserver.SoundControls, bool) {
-	return wideSound{fakeSound{w.Fake}}, true
-}
-
-// wideSound is the Fake's sound with its lanes named.
-type wideSound struct{ fakeSound }
-
-// WideLanes is the channels (0-based) the four-channel fake's two sound
-// lanes carry when channel ch is tuned.
-// TRLC-LINKS: REQ-SDS-265
-func WideLanes(ch int) []int {
-	if ch == 0 {
-		return []int{0, 1}
-	}
-	return []int{ch, 0}
-}
-
-// Read is the Fake's block with the lanes named in its scales.
-// TRLC-LINKS: REQ-SDS-265
-func (s wideSound) Read(from uint64, limit int) wire.SoundBlock {
-	b := s.fakeSound.Read(from, limit)
-	lanes := WideLanes(s.SoundSettings().Ch)
-	for i := range b.Scales {
-		b.Scales[i].Chans = lanes
-	}
-	return b
-}
-
-// Take is the Fake's take with the lanes named.
-// TRLC-LINKS: REQ-SDS-275
-func (s wideSound) Take() *wire.SoundTake {
-	return &wire.SoundTake{SoundBlock: s.Read(0, 16), ID: 1, Why: "stop"}
-}
-
 // Twin is the Fake serving Caps2x8 and its frames in wire v2 too: the
 // two-channel 8-bit scope with caps, which the page must show exactly as
 // it shows the Fake without them.

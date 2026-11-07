@@ -35,6 +35,22 @@ if (wide) {
     ? route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, refs: [ref, { has: false }] }) })
     : route.continue());
 }
+// SOUND's stream names the channel each of its two lanes carries in its
+// scales' chans; the shared server's sound wire has no such field yet, so
+// for the four-channel scope the lanes (the tuned channel and C1) are
+// named here, in the reply's JSON header
+let soundLanes = null;
+if (wide) {
+  await page.route(/\/api\/sound(\/take)?\.bin/, async (route) => {
+    const r = await route.fetch(), b = Buffer.from(await r.body());
+    if (!soundLanes || b.length < 8) return route.fulfill({ response: r, body: b });
+    const hl = b.readUInt32LE(4), h = JSON.parse(b.subarray(8, 8 + hl).toString());
+    for (const sc of h.scales || []) sc.chans = soundLanes;
+    const hj = Buffer.from(JSON.stringify(h)), head = Buffer.alloc(8);
+    b.copy(head, 0, 0, 4); head.writeUInt32LE(hj.length, 4);
+    return route.fulfill({ response: r, body: Buffer.concat([head, hj, b.subarray(8 + hl)]) });
+  });
+}
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForFunction(() => typeof frame !== "undefined" && frame && frame.c1 && document.getElementById("tdiv").options.length > 0, null, { timeout: 15000 });
 await page.waitForTimeout(1500); // the caps a status names are read and applied
@@ -122,6 +138,7 @@ const allRows = await page.evaluate((k) => ["tC", "vdiv", "cpl", "inv"].every((p
 await po.click("allClose");
 // SOUND tuned to the last channel: the lanes it streams name its choices
 await po.ws("sound");
+if (wide) soundLanes = [last - 1, 0];
 await page.evaluate((k) => document.querySelector(`#sndCh > button[data-value="${k - 1}"]`).click(), last);
 await page.waitForTimeout(1500);
 const sound = await page.evaluate(() => ({
