@@ -385,7 +385,8 @@ func TestTriggerTypesFromThePage(t *testing.T) {
 	for _, a := range avail {
 		m, _ := a.(map[string]any)
 		w, _ := m["why"].(string)
-		why[m["id"].(string)] = w
+		id, _ := m["id"].(string)
+		why[id] = w
 	}
 	if len(avail) != int(instrument.NumTrigTypes) || why["pulse"] != "" || !strings.Contains(why["video"], "no video node") ||
 		params["pulse"] == nil || params["video"] != nil {

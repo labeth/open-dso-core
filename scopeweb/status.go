@@ -192,6 +192,12 @@ func (s *Scope) status() any {
 	out["trig"] = trig
 	out["acq"] = AcqStatus{Mode: acqModeName(st.Mode), Content: f0.content}
 	out["channels"] = chans
+	if mr, ok := s.cfg.Parts.Masks.(MaskRunner); ok {
+		k := mr.Counts()
+		out["mask_mode"], out["mask_pass"], out["mask_fail"], out["mask_skip"] = k.Mode, k.Pass, k.Fail, k.Skip
+		out["mask_ring"], out["mask_stopped"], out["mask_set"], out["mask_gen"] = k.Ring, k.Stopped, k.Set, k.Gen
+		out["features"] = map[string]any{"mask": map[string]any{"mode": k.Mode, "pass": k.Pass, "fail": k.Fail, "gen": k.Gen}}
+	}
 	return out
 }
 

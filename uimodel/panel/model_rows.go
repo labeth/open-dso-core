@@ -316,7 +316,7 @@ func trigRows() []*row {
 		help: "What triggers: an edge, a pulse width, an edge speed, a video line or decoded bus bytes.",
 		knob: "Serial uses the bytes and bus of the BUS tab (or pick them in the BUS workspace).",
 		opts: trigTypeOpts,
-		get:  func(s *sv) int { return trigTypeRow(s) },
+		get:  trigTypeRow,
 		set:  func(c *Controller, v int) error { return c.setTrigType(v) },
 		def:  func(c *Controller) error { return c.setTrigType(0) },
 	}

@@ -89,7 +89,7 @@ func (x *FrameMask) SetMaskMode(m int) {
 	if m != MaskStopFail {
 		x.stopped.Store(false)
 	}
-	x.mode.Store(int32(m)) //nolint:gosec // G115: 0..2
+	x.mode.Store(int32(m))
 }
 
 // MaskMode is the test's mode.

@@ -483,7 +483,7 @@ func protoEdit[P hal.ProtoTrigger](c *TrigConfig, line func(p *P) *prototrig.Lin
 // pSrc, pNum, pInt, pBool and pChoice are a protocol configuration's
 // settings of each kind.
 // TRLC-LINKS: REQ-DSO-013
-func pSrc[P hal.ProtoTrigger](id string, line func(p *P) *prototrig.Line, sel func(p *P) *prototrig.Line) paramDef {
+func pSrc[P hal.ProtoTrigger](id string, line, sel func(p *P) *prototrig.Line) paramDef {
 	return paramDef{
 		TrigParam: TrigParam{ID: id, Kind: ParamSource},
 		get: func(c *TrigConfig, _ int) ParamValue {
@@ -595,10 +595,10 @@ func pData[P hal.ProtoTrigger](id string, n int, line func(p *P) *prototrig.Line
 
 // trigParamDefs are type t's settings.
 // TRLC-LINKS: REQ-DSO-011, REQ-DSO-013
-func trigParamDefs(t TrigType) []paramDef { //nolint:gocyclo,funlen // one table per type
+func trigParamDefs(t TrigType) []paramDef {
 	m := mainStage
 	var out []paramDef
-	switch t {
+	switch t { //nolint:exhaustive // default: NumTrigTypes and out of range have no settings
 	case TrigEdge:
 		out = stageParams(m, true, true)
 	case TrigPulse:
@@ -722,7 +722,7 @@ func trigParamDefs(t TrigType) []paramDef { //nolint:gocyclo,funlen // one table
 
 // lineParams are a protocol line's source and level settings.
 // TRLC-LINKS: REQ-DSO-013
-func lineParams[P hal.ProtoTrigger](prefix string, main func(p *P) *prototrig.Line, sel func(p *P) *prototrig.Line) []paramDef {
+func lineParams[P hal.ProtoTrigger](prefix string, main, sel func(p *P) *prototrig.Line) []paramDef {
 	src, lvl := "source", "level"
 	if prefix != "" {
 		src, lvl = prefix+"_source", prefix+"_level"

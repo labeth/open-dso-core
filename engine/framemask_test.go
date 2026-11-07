@@ -1,8 +1,13 @@
 package engine
 
 import (
+	"context"
 	"testing"
+	"time"
 
+	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/hal/halfake"
+	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 )
 
@@ -72,5 +77,41 @@ func TestFrameMask(t *testing.T) {
 	x.ClearMask()
 	if k := x.Counts(); k.Set || k.Ring != 0 || k.Fail != 0 || k.Stopped {
 		t.Fatalf("cleared: %+v", k)
+	}
+}
+
+// Through the HAL cycle: every frame read is tested; a mask the signal
+// leaves fails it, and stop-on-fail stops the run with the failure shown.
+// TRLC-LINKS: REQ-DSO-014
+func TestFrameMaskStopsTheHALLoop(t *testing.T) {
+	b := halfake.New(halfake.Config{})
+	inst := instrument.New(loopState(hal.Auto), nil)
+	first := runLoop(t, b, inst, 1)
+	if len(first) == 0 {
+		t.Fatal("no frame")
+	}
+	w := first[0].WinPoints
+	if w <= 0 {
+		w = first[0].Len()
+	}
+	x := NewFrameMask()
+	zero := make([]uint8, w) // every sample above code 0 leaves it
+	x.SetMask(&Mask{
+		Lo: zero, Hi: zero, WinCols: w, Ch: 0, TdivS: first[0].Snapshot.TdivS, SampleS: first[0].SampleS,
+		PeakDetect: first[0].Content == sample.PeakPairs,
+	})
+	x.SetMaskMode(MaskStopFail)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	l, _ := NewHALLoop(HALConfig{Board: b, Instrument: inst, Mask: x, IdleWait: time.Millisecond, WaitSlice: time.Millisecond})
+	done := make(chan struct{})
+	go func() { l.Run(ctx); close(done) }()
+	for inst.State().Running && ctx.Err() == nil {
+		time.Sleep(time.Millisecond)
+	}
+	cancel()
+	<-done
+	if k := x.Counts(); k.Fail == 0 || !k.Stopped || inst.State().Running {
+		t.Fatalf("counts %+v, running %v", k, inst.State().Running)
 	}
 }

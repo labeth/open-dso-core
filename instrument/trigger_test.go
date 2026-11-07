@@ -17,7 +17,7 @@ func fourChannels() State {
 
 // sampleValue is a value of setting p different from its default.
 func sampleValue(p TrigParam) ParamValue {
-	switch p.Kind {
+	switch p.Kind { //nolint:exhaustive // default: a number
 	case ParamChoice:
 		return ParamValue{Text: p.Choices[len(p.Choices)-1]}
 	case ParamBool:
@@ -54,7 +54,7 @@ func TestTrigParamsRoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatalf("%s %s: read: %v", tt, p.ID, err)
 			}
-			switch p.Kind {
+			switch p.Kind { //nolint:exhaustive // default: a number
 			case ParamChoice, ParamSource:
 				if got.Text != v.Text {
 					t.Errorf("%s %s: %q, want %q", tt, p.ID, got.Text, v.Text)
@@ -174,8 +174,11 @@ func TestTrigTypeRefusedByCaps(t *testing.T) {
 		t   TrigType
 		why string
 	}{
-		{TrigVideo, "no video node"}, {TrigQualified, "no gate input"}, {TrigNthEdge, "counts no edges"},
-		{TrigDelay, "no pattern node"}, {TrigI2C, "no i2c matcher"},
+		{TrigVideo, "no video node"},
+		{TrigQualified, "no gate input"},
+		{TrigNthEdge, "counts no edges"},
+		{TrigDelay, "no pattern node"},
+		{TrigI2C, "no i2c matcher"},
 	} {
 		err := m.SetTrigTypeOf(c.t)
 		var r *hal.Refusal

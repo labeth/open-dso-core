@@ -221,6 +221,19 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 	case "on":
 		return v, false, edit(func(st *instrument.State) error { st.Channels[req.Ch].On = v != 0; return nil })
 	}
+	if mr, ok := c.s.cfg.Parts.Masks.(MaskRunner); ok {
+		switch req.Name {
+		case "maskmode":
+			if v != 0 && v != 1 && v != 2 {
+				return nil, false, errors.New("maskmode is 0 off, 1 test or 2 stop on fail")
+			}
+			mr.SetMaskMode(int(v))
+			return v, false, nil
+		case "maskclear":
+			mr.ClearMaskFails()
+			return v, false, nil
+		}
+	}
 	if _, ok := otherControls[req.Name]; ok {
 		return nil, false, fmt.Errorf("%s: not available on this scope", req.Name)
 	}

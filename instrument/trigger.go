@@ -91,7 +91,7 @@ func (t TrigType) Avail(c hal.TrigCaps) (bool, string) {
 		return nc, ""
 	}
 	why := ""
-	switch t {
+	switch t { //nolint:exhaustive // default: NumTrigTypes and out of range are no type
 	case TrigEdge:
 		_, why = node(hal.NodeEdge)
 	case TrigPulse:
@@ -436,7 +436,7 @@ func DefaultTrigConfig(t TrigType, channels int) TrigConfig {
 		return TrigConfig{Stages: []hal.TrigStage{s}}
 	}
 	line := func(src hal.Source) prototrig.Line { return prototrig.Line{Source: src} }
-	switch t {
+	switch t { //nolint:exhaustive // default: the edge trigger
 	case TrigPulse:
 		return one(hal.TrigStage{Node: hal.NodePulse, Levels: rise, Qual: qual(hal.Shorter)})
 	case TrigSlope:
