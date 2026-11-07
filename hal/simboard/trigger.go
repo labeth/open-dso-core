@@ -111,6 +111,10 @@ func (b *Board) scan(q *acquisition, now float64) {
 		return
 	}
 	st := q.set.trigger.Stages[0]
+	if bus, ok := busOf(st.Proto); ok && st.Node == hal.NodeProtocol {
+		b.scanBus(q, bus, now)
+		return
+	}
 	ch := st.Source.Index
 	v := b.viewOf(ch, q.set.channels[ch])
 	if q.set.trigger.Coupling == hal.TrigAC && !v.ground {
@@ -239,13 +243,19 @@ func (t trigger) Program(s hal.TriggerSpec) error {
 	}
 	for _, st := range s.Stages {
 		if !caps.Has(st.Node) {
-			return hal.Refuse("trigger "+st.Node.String(), "the simulated board triggers in software on edges and pulse widths only")
+			return hal.Refuse("trigger "+st.Node.String(), "the simulated board triggers on edges, pulse widths and decoded buses only")
 		}
 		if st.Source.Kind != hal.Analog || st.Source.Index < 0 || st.Source.Index >= t.b.profile.Channels {
 			return hal.Refuse("trigger source", "the simulated board triggers on its analog channels only")
 		}
 		if len(st.Zones) != 0 {
 			return hal.Refuse("zone trigger", "the simulated board has no zone qualifier")
+		}
+		if st.Node == hal.NodeProtocol {
+			if err := t.b.busStage(st); err != nil {
+				return err
+			}
+			continue
 		}
 		if nc := caps.Nodes[st.Node]; st.Levels.Slope != 0 && !slices.Contains(nc.Slopes, st.Levels.Slope) {
 			return hal.Refuse("trigger slope", fmt.Sprintf("the %s trigger takes no %v slope", st.Node, st.Levels.Slope))

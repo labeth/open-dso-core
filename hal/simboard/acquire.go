@@ -81,8 +81,9 @@ type planner struct{ b *Board }
 
 // Plan picks the fastest rate the channels allow and a record that spans
 // the screen: every converter sample while they fit the depth, decimated
-// beyond that. Averaging and ERES are math on frames, not records, so they
-// are refused like the stream modes the board does not have.
+// beyond that to a record of RecordScreens screens. Averaging and ERES are
+// math on frames, not records, so they are refused like the stream modes the
+// board does not have.
 // TRLC-LINKS: REQ-DSO-1001
 func (p planner) Plan(r hal.Request) (hal.Plan, error) {
 	prof := p.b.profile
@@ -114,8 +115,9 @@ func (p planner) Plan(r hal.Request) (hal.Plan, error) {
 	}
 	span := r.TimePerDivS * float64(prof.Display.DivsH)
 	depth := p.b.cfg.Depth
+	screens := max(p.b.cfg.RecordScreens, 1)
 	if r.Depth > 0 {
-		depth = min(r.Depth, prof.MaxDepth)
+		depth, screens = min(r.Depth, prof.MaxDepth), 1
 	}
 	plan := hal.Plan{Request: r, Mode: r.Mode, ETSFactor: 1, Segments: 1, AcqDecim: 1, SampleS: 1 / rate}
 	full := span * rate
@@ -123,7 +125,7 @@ func (p planner) Plan(r hal.Request) (hal.Plan, error) {
 		plan.WinSamples = max(int(math.Round(full)), 2)
 		plan.Content = sample.ContentSetOf(sample.RawFullRate, sample.RawDecimated)
 	} else {
-		plan.AcqDecim = int(math.Ceil(full / float64(depth)))
+		plan.AcqDecim = int(math.Ceil(full * screens / float64(depth)))
 		plan.SampleS = float64(plan.AcqDecim) / rate
 		plan.WinSamples = max(int(math.Round(span/plan.SampleS)), 2)
 		plan.Pick = r.Mode != hal.PeakDetect
@@ -135,7 +137,7 @@ func (p planner) Plan(r hal.Request) (hal.Plan, error) {
 	// A full-rate record holds the depth, beyond the screen when the screen
 	// takes fewer samples (a scope's record is no shorter at a fast
 	// timebase); a decimated one spans the screen.
-	plan.Depth = plan.WinSamples + max(r.PretrigRoom, 0)
+	plan.Depth = max(plan.WinSamples, min(int(float64(plan.WinSamples)*screens), depth)) + max(r.PretrigRoom, 0)
 	if plan.AcqDecim == 1 {
 		plan.Depth = max(plan.Depth, depth)
 	}
