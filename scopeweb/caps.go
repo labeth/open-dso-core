@@ -251,13 +251,18 @@ func routePath(pattern string) string {
 }
 
 // codesPerDiv is the stored words a division: the newest frame's first
-// trace's, else the code range over the graticule's divisions down.
+// trace's that states one, else the code range over the graticule's divisions down.
 // TRLC-LINKS: REQ-DSO-164
 func (s *Scope) codesPerDiv() float64 {
 	var cpd float64
 	s.cfg.Frames.WithFrame(func(f *sample.Frame) {
-		if f != nil && len(f.Traces) > 0 {
-			cpd = f.Traces[0].CodesPerDiv
+		if f == nil {
+			return
+		}
+		for i := range f.Traces { // a channel switched off states none
+			if cpd = f.Traces[i].CodesPerDiv; cpd > 0 {
+				return
+			}
 		}
 	})
 	if cpd > 0 {

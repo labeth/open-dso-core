@@ -502,7 +502,7 @@ func trigFrac(f *sample.Frame, hud HUD) (float64, bool) {
 	if !(frac >= 0 && frac <= 1) {
 		frac = 0.5
 	}
-	if hud.Zoom > 1 && f != nil && len(f.Codes8(0)) > 0 {
+	if hud.Zoom > 1 && f != nil && f.Codes8Len() > 0 {
 		valid := frameValid(f)
 		win, xc, posFrac := traceWindow(f, hud, valid)
 		anchor := f.TriggerAt
@@ -545,7 +545,7 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	// it's C1 voltage, so "M <t/div>" would be misleading there. But X-Y/FFT
 	// fall through to Y-T on an envelope frame, so only label them when the
 	// alternate view actually renders (matches the Render() branch condition).
-	altView := f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0
+	altView := f != nil && !f.Flags.Has(sample.Envelope) && f.Codes8Len() > 0
 	switch {
 	case hud.ViewMode == 1 && altView:
 		DrawText(sf, tx, 2, "X-Y", colMath, 1)
