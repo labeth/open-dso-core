@@ -15,6 +15,8 @@ var (
 	SRResampleArray   = srResampleArray
 	ColC1             = colC1
 	ColOK             = colOK
+	At565             = at565
+	Pack565           = pack565
 )
 
 // The saver box's size.

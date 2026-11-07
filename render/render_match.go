@@ -23,7 +23,7 @@ type MatchView struct {
 // the highlighted key, and the knob hints. The F-key column (Keys, Type,
 // Delete, OK, Cancel) is the sheet's.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
-func drawMatchEditor(sf Surface, m MatchView) {
+func drawMatchEditor(sf Canvas, m MatchView) {
 	if !m.Open {
 		return
 	}

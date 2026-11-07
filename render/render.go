@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/labeth/open-dso-core/dsp"
+	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/streamwire"
 	"github.com/labeth/open-dso-core/uimodel/wsview"
@@ -198,7 +199,7 @@ const (
 
 // drawGraticule draws the plot's 10 x 8 divisions, centre axes brighter.
 // TRLC-LINKS: REQ-SDS-021
-func drawGraticule(sf Surface, p plotArea) {
+func drawGraticule(sf Canvas, p plotArea) {
 	for c := range 11 {
 		x := p.gridX(c)
 		col := colGrid
@@ -219,9 +220,8 @@ func drawGraticule(sf Surface, p plotArea) {
 
 // hline draws row y from x0 to x1 inclusive.
 // TRLC-LINKS: REQ-SDS-021
-func hline(sf Surface, x0, x1, y int, c uint16) {
-	if m, ok := sf.(*MemSurface); ok {
-		m.fillSpan(x0, y, x1+1, y+1, c)
+func hline(sf Canvas, x0, x1, y int, c Color) {
+	if fillSpan(sf, x0, y, x1+1, y+1, c) {
 		return
 	}
 	for x := x0; x <= x1; x++ {
@@ -231,7 +231,7 @@ func hline(sf Surface, x0, x1, y int, c uint16) {
 
 // drawLine is a Bresenham segment (spec 07 §3.5).
 // TRLC-LINKS: REQ-SDS-021
-func drawLine(sf Surface, x0, y0, x1, y1 int, c uint16) {
+func drawLine(sf Canvas, x0, y0, x1, y1 int, c Color) {
 	dx := x1 - x0
 	if dx < 0 {
 		dx = -dx
@@ -248,29 +248,11 @@ func drawLine(sf Surface, x0, y0, x1, y1 int, c uint16) {
 		sy = -1
 	}
 	err := dx - dy
-	if m, ok := sf.(*MemSurface); ok && uint(x0) < W && uint(x1) < W && uint(y0) < H && uint(y1) < H {
+	if m, ok := sf.(*Image565); ok && uint(x0) < W && uint(x1) < W && uint(y0) < H && uint(y1) < H {
 		// On screen end to end: write the pixels without the interface call
 		// and per-pixel clip (a sparse trace is one segment per column).
-		px := m.px()
-		step := sy * W
-		o := y0*W + x0
-		for {
-			px[o] = c
-			if x0 == x1 && y0 == y1 {
-				return
-			}
-			e2 := 2 * err
-			if e2 > -dy {
-				err -= dy
-				x0 += sx
-				o += sx
-			}
-			if e2 < dx {
-				err += dx
-				y0 += sy
-				o += step
-			}
-		}
+		linePx(m.px(), W, x0, y0, x1, y1, pack565(c))
+		return
 	}
 	for {
 		sf.SetPixel(x0, y0, c)
@@ -289,6 +271,39 @@ func drawLine(sf Surface, x0, y0, x1, y1 int, c uint16) {
 	}
 }
 
+// linePx is drawLine on a page w pixels wide that holds both ends.
+// TRLC-LINKS: REQ-SDS-021
+func linePx[P pixel](px []P, w, x0, y0, x1, y1 int, c P) {
+	dx, dy := absI(x1-x0), absI(y1-y0)
+	sx, sy := 1, 1
+	if x0 > x1 {
+		sx = -1
+	}
+	if y0 > y1 {
+		sy = -1
+	}
+	err := dx - dy
+	step := sy * w
+	o := y0*w + x0
+	for {
+		px[o] = c
+		if x0 == x1 && y0 == y1 {
+			return
+		}
+		e2 := 2 * err
+		if e2 > -dy {
+			err -= dy
+			x0 += sx
+			o += sx
+		}
+		if e2 < dx {
+			err += dx
+			y0 += sy
+			o += step
+		}
+	}
+}
+
 // traceID names the samples a trace draws (frame Seq plus how the channel's
 // codes were derived), so a redraw of the same frame reuses the dense trace's
 // column extremes. A zero seq never caches.
@@ -302,16 +317,19 @@ type traceID struct {
 // interp is false, linear interpolation of REAL samples when true — never
 // sinc, never a segment across a skipped column.
 // TRLC-LINKS: REQ-SDS-021
-func drawTraceID(sf Surface, p plotArea, id traceID, sig []uint8, win int, xc float64, interp bool, col uint16, posFrac float64, zoom ...int) {
+func drawTraceID(sf Canvas, p plotArea, id traceID, sig []uint8, win int, xc float64, interp bool, col Color, posFrac float64, zoom ...int) {
 	drawTraceHeld(sf, p, id, sig, nil, win, xc, interp, col, posFrac, zoom...)
 }
 
 // heldColor is a trace colour dimmed to about 40 %: the stretches of a roll
 // view no capture covered, drawn at the last value held.
 // TRLC-LINKS: REQ-SDS-021
-func heldColor(col uint16) uint16 {
-	r, g, b := col>>11&31, col>>5&63, col&31
-	return (r*2/5)<<11 | (g*2/5)<<5 | b*2/5
+func heldColor(f hal.PixelFormat, col Color) Color {
+	r, g, b := atPrecision(f, col).channels()
+	if f == hal.RGB565 { // RGB565's own steps
+		return RGB(r>>3*2/5<<3, g>>2*2/5<<2, b>>3*2/5<<3)
+	}
+	return RGB(r*2/5, g*2/5, b*2/5)
 }
 
 // codeAt is sig's code at record position pos (n = len(sig) > 0): linearly
@@ -347,7 +365,7 @@ func codeAt(sig []uint8, pos float64, interp bool) float64 {
 // that no capture covered: those are drawn in heldColor, so a roll view's
 // held stretches do not read as signal.
 // TRLC-LINKS: REQ-SDS-021
-func drawTraceHeld(sf Surface, p plotArea, id traceID, sig []uint8, held []bool, win int, xc float64, interp bool, col uint16, posFrac float64, zoom ...int) {
+func drawTraceHeld(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool, win int, xc float64, interp bool, col Color, posFrac float64, zoom ...int) {
 	if len(held) != len(sig) {
 		held = nil
 	}
@@ -379,7 +397,7 @@ func drawTraceHeld(sf Surface, p plotArea, id traceID, sig []uint8, held []bool,
 		y := p.sy(128 + (codeAt(sig, pos, interp)-128)*z)
 		c := col
 		if held != nil && held[min(max(int(pos), 0), n-1)] {
-			c = heldColor(col)
+			c = heldColor(sf.Format(), col)
 		}
 		if prevX >= 0 {
 			drawLine(sf, prevX, prevY, x, y, c)
@@ -393,7 +411,7 @@ func drawTraceHeld(sf Surface, p plotArea, id traceID, sig []uint8, held []bool,
 // drawAcquiring notes that the capture for the current timebase is still
 // filling its record.
 // TRLC-LINKS: REQ-SDS-021
-func drawAcquiring(sf Surface, p plotArea, hud HUD) {
+func drawAcquiring(sf Canvas, p plotArea, hud HUD) {
 	lines := acquiringLines(hud)
 	y := (p.top+p.bot)/2 - 8 - 7*(len(lines)-1)
 	DrawText(sf, (p.w-TextWidth(lines[0], 2))/2, y, lines[0], colDim, 2)
@@ -452,12 +470,12 @@ const waitHintS = 5
 // sample in 1250, so a captured glitch would not be drawn.
 // Columns beyond the record repeat its nearest end, as drawTrace does.
 // TRLC-LINKS: REQ-SDS-021
-func drawDenseTrace(sf Surface, p plotArea, id traceID, sig []uint8, held []bool, left float64, win int, col uint16, z float64) {
+func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool, left float64, win int, col Color, z float64) {
 	cols := denseColumns(id, sig, left, win, p.w)
 	rows := p.codeRows(z)
 	y := func(v uint8) int { return int(rows[v]) }
 	var top, bot [W]int16
-	var cc [W]uint16
+	var cc [W]Color
 	w := min(p.w, W)
 	prevY := -1
 	for x := range w {
@@ -467,7 +485,7 @@ func drawDenseTrace(sf Surface, p plotArea, id traceID, sig []uint8, held []bool
 		}
 		c := col
 		if held != nil && columnHeld(held, left, win, p.w, x) {
-			c = heldColor(col)
+			c = heldColor(sf.Format(), col)
 		}
 		yTop, yBot = max(yTop, 0), min(yBot, H-1)
 		top[x], bot[x], cc[x] = int16(yTop), int16(yBot), c
@@ -486,27 +504,38 @@ const spanBlock = 128
 // colour are copied a row at a time instead (3 ms), the ragged ends drawn a
 // column at a time.
 // TRLC-LINKS: REQ-SDS-021
-func fillSpans(sf Surface, top, bot []int16, cc []uint16) {
-	m, ok := sf.(*MemSurface)
+func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
+	m, ok := sf.(*Image565)
 	if !ok {
 		for x := range top {
 			vline(sf, x, int(top[x]), int(bot[x]), cc[x])
 		}
 		return
 	}
-	px := m.px()
-	// Spans arrive clipped to [0,H) by drawDenseTrace; clip again for any
+	var nc [W]uint16
+	for i, c := range cc[:min(len(cc), W)] {
+		nc[i] = pack565(c)
+	}
+	fillSpansPx(m.px(), W, H, top, bot, nc[:len(cc)])
+}
+
+// fillSpansPx is fillSpans on a w×h page of pixels px, the colours in its
+// format.
+// TRLC-LINKS: REQ-SDS-021
+func fillSpansPx[P pixel](px []P, w, h int, top, bot []int16, cc []P) {
+	// Spans arrive clipped to [0,h) by drawDenseTrace; clip again for any
 	// other caller so vlinePx may assume it.
-	vl := func(x, y0, y1 int, c uint16) {
-		if x < W {
-			vlinePx(px, x, max(y0, 0), min(y1, H-1), c)
+	vl := func(x, y0, y1 int, c P) {
+		if x < w {
+			vlinePx(px, w, x, max(y0, 0), min(y1, h-1), c)
 		}
 	}
-	var line [spanBlock]uint16 // a row of the block's colour
-	lineC, lined := uint16(0), false
+	var line [spanBlock]P // a row of the block's colour
+	var lineC P
+	lined := false
 	for x0 := 0; x0 < len(top); x0 += spanBlock {
 		x1 := min(x0+spanBlock, len(top))
-		cTop, cBot, c := int16(0), int16(H-1), cc[x0]
+		cTop, cBot, c := int16(0), int16(h-1), cc[x0] //nolint:gosec // a screen height fits int16
 		for x := x0; x < x1; x++ {
 			cTop, cBot = max(cTop, top[x]), min(cBot, bot[x])
 			if cc[x] != c {
@@ -514,7 +543,7 @@ func fillSpans(sf Surface, top, bot []int16, cc []uint16) {
 			}
 		}
 		if cBot-cTop < 8 { // little in common
-			if denseBlock(px, top[x0:x1], bot[x0:x1], cc[x0:x1], x0) {
+			if denseBlock(px, w, h, top[x0:x1], bot[x0:x1], cc[x0:x1], x0) {
 				continue
 			}
 			for x := x0; x < x1; x++ { // a column at a time
@@ -529,7 +558,7 @@ func fillSpans(sf Surface, top, bot []int16, cc []uint16) {
 			lineC, lined = c, true
 		}
 		for r := int(cTop); r <= int(cBot); r++ {
-			copy(px[r*W+x0:r*W+x1], line[:x1-x0])
+			copy(px[r*w+x0:r*w+x1], line[:x1-x0])
 		}
 		for x := x0; x < x1; x++ {
 			vl(x, int(top[x]), int(cTop)-1, c)
@@ -543,16 +572,16 @@ func fillSpans(sf Surface, top, bot []int16, cc []uint16) {
 // columns), and reports whether it did: a row costs a compare a column but
 // its stores are sequential, where a column's each wait on a cache line.
 // TRLC-LINKS: REQ-SDS-021
-func denseBlock(px []uint16, top, bot []int16, cc []uint16, x0 int) bool {
+func denseBlock[P pixel](px []P, w, h int, top, bot []int16, cc []P, x0 int) bool {
 	nb := len(top)
-	if nb > spanBlock || x0+nb > W {
+	if nb > spanBlock || x0+nb > w {
 		return false
 	}
 	var t0, ht [spanBlock]int32
-	rTop, rBot, cover := int32(H), int32(-1), 0
+	rTop, rBot, cover := int32(h), int32(-1), 0 //nolint:gosec // a screen height fits int32
 	for i := range nb {
-		a, b := max(int32(top[i]), 0), min(int32(bot[i]), H-1)
-		if a > b { // empty: a first row no row reaches
+		a, b := max(int32(top[i]), 0), min(int32(bot[i]), int32(h-1)) //nolint:gosec // a screen height fits int32
+		if a > b {                                                    // empty: a first row no row reaches
 			t0[i], ht[i] = 1<<20, 0
 			continue
 		}
@@ -564,7 +593,7 @@ func denseBlock(px []uint16, top, bot []int16, cc []uint16, x0 int) bool {
 		return false
 	}
 	for r := rTop; r <= rBot; r++ {
-		spanRow(px[int(r)*W+x0:int(r)*W+x0+nb], t0[:nb], ht[:nb], cc[:nb], r)
+		spanRow(px[int(r)*w+x0:int(r)*w+x0+nb], t0[:nb], ht[:nb], cc[:nb], r)
 	}
 	return true
 }
@@ -574,7 +603,7 @@ func denseBlock(px []uint16, top, bot []int16, cc []uint16, x0 int) bool {
 // TRLC-LINKS: REQ-SDS-021
 //
 //go:noinline
-func spanRow(row []uint16, t0, ht []int32, cc []uint16, r int32) {
+func spanRow[P pixel](row []P, t0, ht []int32, cc []P, r int32) {
 	t0, ht, cc = t0[:len(row)], ht[:len(row)], cc[:len(row)]
 	for i := range row {
 		if uint32(r-t0[i]) <= uint32(ht[i]) { //nolint:gosec // unsigned: 0 <= r-t0 <= ht in one compare
@@ -693,10 +722,10 @@ func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseC
 // between a real captured min and max, magnified about mid-scale by the
 // channel's display zoom like drawTrace.
 // TRLC-LINKS: REQ-SDS-021
-func drawEnvelope(sf Surface, p plotArea, mn, mx []uint8, cols int, col uint16, zoom int) {
+func drawEnvelope(sf Canvas, p plotArea, mn, mx []uint8, cols int, col Color, zoom int) {
 	z := float64(max(zoom, 1))
 	var top, bot [W]int16
-	var cc [W]uint16
+	var cc [W]Color
 	w := min(p.w, W)
 	rows := p.codeRows(z)
 	for x := range w {
@@ -764,9 +793,8 @@ var (
 
 // fillRect paints a solid rectangle (clipped to the surface).
 // TRLC-LINKS: REQ-SDS-021
-func fillRect(sf Surface, x, y, w, h int, c uint16) {
-	if m, ok := sf.(*MemSurface); ok {
-		m.fillSpan(x, y, x+w, y+h, c)
+func fillRect(sf Canvas, x, y, w, h int, c Color) {
+	if fillSpan(sf, x, y, x+w, y+h, c) {
 		return
 	}
 	for yy := y; yy < y+h; yy++ {
@@ -778,7 +806,7 @@ func fillRect(sf Surface, x, y, w, h int, c uint16) {
 
 // strokeRect draws a 1 px rectangle outline.
 // TRLC-LINKS: REQ-SDS-021
-func strokeRect(sf Surface, x, y, w, h int, c uint16) {
+func strokeRect(sf Canvas, x, y, w, h int, c Color) {
 	if w <= 0 || h <= 0 {
 		return
 	}
@@ -793,7 +821,7 @@ func strokeRect(sf Surface, x, y, w, h int, c uint16) {
 // workspace UI (the pane, the rail, a sheet or the picker). Never blanks on
 // a held frame; the strip goes red instead.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-211
-func Render(sf Surface, f *sample.Frame, hud HUD, live bool, persist ...*MemSurface) {
+func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	sf.Fill(colBG)
 	ui := &hud.UI
 	sheet := ui.Sheet != nil
@@ -822,7 +850,7 @@ func Render(sf Surface, f *sample.Frame, hud HUD, live bool, persist ...*MemSurf
 	// separate layer that decays each frame, then composite it over the fresh
 	// graticule — an afterglow that catches jitter/glitches. The layer is owned
 	// by the caller (LCD loop); nil disables it (screenshot path, tests).
-	var pb *MemSurface
+	var pb Layer
 	if len(persist) > 0 {
 		pb = persist[0]
 	}
@@ -836,8 +864,8 @@ func Render(sf Surface, f *sample.Frame, hud HUD, live bool, persist ...*MemSurf
 		drawViews(sf, traceTarget, p, f, hud)
 	}
 	if persisting { // composite the decayed trace layer over the graticule
-		if ms, ok := sf.(*MemSurface); ok {
-			ms.BlitBright(pb)
+		if l, ok := sf.(Layer); ok {
+			l.BlitBright(pb)
 		}
 	}
 
@@ -884,7 +912,7 @@ func Render(sf Surface, f *sample.Frame, hud HUD, live bool, persist ...*MemSurf
 // super-res review, X-Y, FFT, Bode, spectrogram, or the Y-T traces with
 // their overlays.
 // TRLC-LINKS: REQ-SDS-021
-func drawViews(sf, traceTarget Surface, p plotArea, f *sample.Frame, hud HUD) {
+func drawViews(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	sc1, sc2 := hud.shownChans()
 	// X-Y / FFT only make sense on per-sample (native/decimated) frames — an
 	// envelope/roll frame has no paired samples or usable spectrum, so fall
@@ -927,7 +955,7 @@ func drawViews(sf, traceTarget Surface, p plotArea, f *sample.Frame, hud HUD) {
 // drawYT draws the Y-T view: the traces (or a live envelope's bands) and
 // their overlays.
 // TRLC-LINKS: REQ-SDS-021
-func drawYT(sf, traceTarget Surface, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 bool) {
+func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 bool) {
 	valid := frameValid(f)
 	if f.Flags.Has(sample.Envelope) && len(f.Min8(0)) > 0 {
 		drawEnvelopes(sf, p, f, hud, sc1, sc2)
@@ -970,7 +998,7 @@ func drawYT(sf, traceTarget Surface, p plotArea, f *sample.Frame, hud HUD, sc1, 
 
 // drawEnvelopes draws a live envelope frame's bands, C2 under C1.
 // TRLC-LINKS: REQ-SDS-021
-func drawEnvelopes(sf Surface, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 bool) {
+func drawEnvelopes(sf Canvas, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 bool) {
 	if hud.TwoChan && sc2 {
 		mn2, mx2 := f.Min8(1), f.Max8(1)
 		if hud.Inv2 { // INVS mirrors the band: min'=inv(max), max'=inv(min)
@@ -991,7 +1019,7 @@ func drawEnvelopes(sf Surface, p plotArea, f *sample.Frame, hud HUD, sc1, sc2 bo
 // record window rec, or over zw from the view window when the screen is
 // zoomed into a live envelope.
 // TRLC-LINKS: REQ-SDS-021
-func drawC2(traceTarget Surface, p plotArea, f *sample.Frame, hud HUD, valid int, rec, zw ytWindow, view *sample.Frame, zoomed bool) {
+func drawC2(traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, valid int, rec, zw ytWindow, view *sample.Frame, zoomed bool) {
 	c2 := f.Codes8(1)[:valid]
 	if zoomed {
 		c2 = dsp.CoupleDisplayBy(view.Codes8(1)[:view.Len()], c2, hud.Cpl2)

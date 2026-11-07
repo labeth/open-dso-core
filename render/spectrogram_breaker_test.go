@@ -45,10 +45,10 @@ func TestHeatNeverPanics(t *testing.T) {
 }
 
 // TRLC-LINKS: REQ-SDS-068
-func unrgb(c uint16) (uint8, uint8, uint8) {
-	r := uint8((c >> 11) & 0x1f)
-	g := uint8((c >> 5) & 0x3f)
-	b := uint8(c & 0x1f)
+func unrgb(c Color) (uint8, uint8, uint8) {
+	r := uint8((pack565(c) >> 11) & 0x1f)
+	g := uint8((pack565(c) >> 5) & 0x3f)
+	b := uint8(pack565(c) & 0x1f)
 	return r << 3, g << 2, b << 3
 }
 

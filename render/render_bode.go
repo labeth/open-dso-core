@@ -12,7 +12,7 @@ import (
 // the upper panel and phase (deg, colC2) in the lower, against a LOG frequency
 // axis with decade gridlines. Parity with the web bode.js render.
 // TRLC-LINKS: REQ-SDS-021
-func drawBode(sf Surface, p plotArea, hud HUD) {
+func drawBode(sf Canvas, p plotArea, hud HUD) {
 	n := len(hud.BodeFreq)
 	if n < 1 {
 		msg := fmt.Sprintf("BODE / FRA - sweep the source frequency (ref C%d, DUT C%d)", hud.BodeRef&1+1, hud.BodeDut&1+1)

@@ -10,7 +10,7 @@ import "testing"
 // TRLC-LINKS: REQ-SDS-021
 func TestPaletteMatchesTokens(t *testing.T) {
 	for name, c := range map[string]struct {
-		got     uint16
+		got     Color
 		r, g, b uint8
 	}{
 		"axis": {colAxis, 80, 80, 110}, "screen": {colBG, 5, 8, 12}, "lcd-box": {colBoxBg, 6, 10, 22},
@@ -21,7 +21,7 @@ func TestPaletteMatchesTokens(t *testing.T) {
 		"warn": {colWarn, 245, 162, 76},
 	} {
 		if want := rgb(c.r, c.g, c.b); c.got != want {
-			t.Errorf("%s = %#04x, want %#04x", name, c.got, want)
+			t.Errorf("%s = %#08x, want %#08x", name, c.got, want)
 		}
 	}
 }

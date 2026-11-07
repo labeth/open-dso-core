@@ -46,8 +46,8 @@ func bounce(t, span int) int {
 // DrawSaver draws the saver picture for a step: black, the live mini scope,
 // its run state and time/div, and a running mask test's counts or the hint.
 // TRLC-LINKS: REQ-SDS-221
-func DrawSaver(sf *MemSurface, f *sample.Frame, hud HUD, step int) {
-	clear(sf.Pix) // black: a memclr, not the colour fill's row copies
+func DrawSaver(sf Canvas, f *sample.Frame, hud HUD, step int) {
+	sf.Fill(RGB(0, 0, 0)) // black: a memclr on a memory canvas
 	x, y := SaverPos(step)
 	drawMiniScope(sf, f, hud, x, y, saverW, saverH)
 	state, col := "RUN", colOK

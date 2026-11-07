@@ -8,6 +8,7 @@ import (
 
 	"github.com/labeth/open-dso-core/dsp"
 	"github.com/labeth/open-dso-core/framecalc"
+	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/uimodel/wsview"
 )
@@ -26,7 +27,7 @@ const (
 
 // drawUI draws the UI over the base render.
 // TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
-func drawUI(sf Surface, f *sample.Frame, hud HUD, p plotArea) {
+func drawUI(sf Canvas, f *sample.Frame, hud HUD, p plotArea) {
 	ui := &hud.UI
 	if ui.Sheet != nil {
 		drawSheet(sf, f, hud)
@@ -74,8 +75,8 @@ func drawUI(sf Surface, f *sample.Frame, hud HUD, p plotArea) {
 // distance between them (MEASURE), a wave inside a dotted mask band
 // (COMPARE).
 // TRLC-LINKS: REQ-SDS-211
-func drawPicto(sf Surface, ws wsview.WS, x, y int, fg, fg2 uint16) {
-	wave := func(y0 int, amp float64, col uint16, dotted bool) {
+func drawPicto(sf Canvas, ws wsview.WS, x, y int, fg, fg2 Color) {
+	wave := func(y0 int, amp float64, col Color, dotted bool) {
 		px, py := x, y0
 		for i := range 22 {
 			xx := x + i
@@ -122,7 +123,7 @@ func drawPicto(sf Surface, ws wsview.WS, x, y int, fg, fg2 uint16) {
 // drawRail draws the five workspace tabs beside F1..F5, the active one
 // inverted in amber.
 // TRLC-LINKS: REQ-SDS-211
-func drawRail(sf Surface, active wsview.WS) {
+func drawRail(sf Canvas, active wsview.WS) {
 	fillRect(sf, railX, 12, railW, H-12, colBG)
 	for i := range wsview.Count {
 		x0, w, y0, h := railX+1, railW-2, softkeyY[i]-17, 34
@@ -142,7 +143,7 @@ func drawRail(sf Surface, active wsview.WS) {
 // drawRailNote is the short label beside the rail after a workspace key:
 // "F3 SPECTRUM   again: FFT / Spectrogram / Bode".
 // TRLC-LINKS: REQ-SDS-211
-func drawRailNote(sf Surface, n *wsview.Note) {
+func drawRailNote(sf Canvas, n *wsview.Note) {
 	w := TextWidth(n.Head, 1) + TextWidth(n.Text, 1) + 26
 	x, y := railX-3-w, softkeyY[clampI(int(n.WS), 0, 4)]-8
 	fillRect(sf, x, y, w, 17, colMenuBg)
@@ -161,7 +162,7 @@ func clampI(v, lo, hi int) int { return min(max(v, lo), hi) }
 // then each choice on its key's row (label over value), the current one
 // filled amber.
 // TRLC-LINKS: REQ-SDS-212
-func drawKeys(sf Surface, k *wsview.Keys) {
+func drawKeys(sf Canvas, k *wsview.Keys) {
 	const mw = 116
 	x0 := W - mw
 	fillRect(sf, x0, k.Top, mw, H-2-k.Top, colMenuBg)
@@ -200,7 +201,7 @@ func drawKeys(sf Surface, k *wsview.Keys) {
 // the amber title, the caption, a right-aligned hint; and the axis rule
 // above the plot.
 // TRLC-LINKS: REQ-SDS-211
-func drawPaneFrame(sf Surface, p plotArea, pn *wsview.Pane) {
+func drawPaneFrame(sf Canvas, p plotArea, pn *wsview.Pane) {
 	fillRect(sf, 0, 12, p.w, p.y0-12, colBG)
 	fillRect(sf, 0, 12, p.w, 12, colMenuBg)
 	DrawText(sf, 4, 14, pn.Title, colTrig, 1)
@@ -221,7 +222,7 @@ func drawPaneFrame(sf Surface, p plotArea, pn *wsview.Pane) {
 // diagram": the knob names in text, their jobs dim, the key-again view in
 // amber at the right end.
 // TRLC-LINKS: REQ-SDS-213
-func drawToolLine(sf Surface, p plotArea, pn *wsview.Pane) {
+func drawToolLine(sf Canvas, p plotArea, pn *wsview.Pane) {
 	y := p.y0 - 12
 	x := 4
 	for _, s := range pn.Tool {
@@ -249,7 +250,7 @@ func cutText(s string, n int) string {
 // drawScopeChrome draws SCOPE's name in the top bar (clear of the trigger
 // pointer) and the Adjust tag in the bottom row.
 // TRLC-LINKS: REQ-SDS-211, REQ-SDS-213
-func drawScopeChrome(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
+func drawScopeChrome(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	tx := trigX(p, f, hud)
 	x := 410
 	if tx > 398 && tx < 448 {
@@ -310,7 +311,7 @@ var (
 
 // drawBusPane draws the packet list: a hex dump with a separate string box.
 // TRLC-LINKS: REQ-SDS-214
-func drawBusPane(sf Surface, p plotArea, b *wsview.BusPane) {
+func drawBusPane(sf Canvas, p plotArea, b *wsview.BusPane) {
 	drawPaneFrame(sf, p, &b.Pane)
 	if b.Off {
 		for i, s := range b.Msg {
@@ -401,7 +402,7 @@ func drawBusPane(sf Surface, p plotArea, b *wsview.BusPane) {
 // drawBusLineMatch writes a packet line's MATCH column from x up to right:
 // its fault first, in red as the web marks it, then the match (or the cut).
 // TRLC-LINKS: REQ-SDS-214
-func drawBusLineMatch(sf Surface, x, y, right int, fault, match, cut string) {
+func drawBusLineMatch(sf Canvas, x, y, right int, fault, match, cut string) {
 	if fault != "" {
 		DrawText(sf, x, y, fault, colStale, 1)
 		x += (len(fault) + 1) * 6
@@ -440,7 +441,7 @@ func itoa(n int) string {
 // current one filled amber, the next three underlined, a bar before each
 // message start.
 // TRLC-LINKS: REQ-SDS-214
-func drawTokens(sf Surface, x, y, xmax int, toks []wsview.PickTok, cur int) {
+func drawTokens(sf Canvas, x, y, xmax int, toks []wsview.PickTok, cur int) {
 	const per = 11
 	n := len(toks)
 	i0 := clampI(cur-3, 0, max(0, n-per))
@@ -477,7 +478,7 @@ func drawTokens(sf Surface, x, y, xmax int, toks []wsview.PickTok, cur int) {
 
 // drawPickerPane draws the BUS pane turned into the amber-framed byte picker.
 // TRLC-LINKS: REQ-SDS-214
-func drawPickerPane(sf Surface, p plotArea, pk *wsview.Picker) {
+func drawPickerPane(sf Canvas, p plotArea, pk *wsview.Picker) {
 	pn := wsview.Pane{Title: "PICK BYTES", Caption: pk.Caption, Right: "Menu On/Off: back"}
 	fillRect(sf, 0, 12, p.w, p.y0-12, colBG)
 	fillRect(sf, 0, 12, p.w, 12, colMenuBg)
@@ -497,30 +498,24 @@ func drawPickerPane(sf Surface, p plotArea, pk *wsview.Picker) {
 // eyeShades are four density shades of a channel colour over the screen
 // colour, dim to full (flat fills only).
 // TRLC-LINKS: REQ-SDS-214
-func eyeShades(ch int) [4]uint16 {
+func eyeShades(f hal.PixelFormat, ch int) [4]Color {
 	c := colC1
 	if ch == 1 {
 		c = colC2
 	}
-	mix := func(f float64) uint16 {
-		r1, g1, b1 := unpack565(colBG)
-		r2, g2, b2 := unpack565(c)
-		l := func(a, b uint8) uint8 { return uint8(float64(a) + (float64(b)-float64(a))*f) }
+	mix := func(k float64) Color {
+		r1, g1, b1 := atPrecision(f, colBG).channels()
+		r2, g2, b2 := atPrecision(f, c).channels()
+		l := func(a, b uint8) uint8 { return uint8(float64(a) + (float64(b)-float64(a))*k) }
 		return rgb(l(r1, r2), l(g1, g2), l(b1, b2))
 	}
-	return [4]uint16{mix(0.3), mix(0.52), mix(0.76), c}
-}
-
-// unpack565 is the 8-bit RGB of an RGB565 colour.
-// TRLC-LINKS: REQ-SDS-214
-func unpack565(c uint16) (r, g, b uint8) {
-	return uint8(c>>11&0x1f) << 3, uint8(c>>5&0x3f) << 2, uint8(c&0x1f) << 3
+	return [4]Color{mix(0.3), mix(0.52), mix(0.76), c}
 }
 
 // drawEyePlot draws the eye in the plot: two UI around the bit centre, the
 // fold's density in four shades, the opening and the two cursors.
 // TRLC-LINKS: REQ-SDS-215
-func drawEyePlot(sf Surface, p plotArea, e *wsview.EyePane) {
+func drawEyePlot(sf Canvas, p plotArea, e *wsview.EyePane) {
 	cols := e.Cols
 	if cols <= 0 {
 		cols = 384
@@ -563,43 +558,20 @@ func drawEyePlot(sf Surface, p plotArea, e *wsview.EyePane) {
 		DrawText(sf, x0+cols-TextWidth(why, 1)/2, y1+eh/2-4, why, colDim, 1)
 		return
 	}
-	sh := eyeShades(e.Ch)
+	sh := eyeShades(sf.Format(), e.Ch)
 	mx := float64(max(e.Max, 1))
 	t1, t2, t3 := mx*0.015, mx*0.08, mx*0.35
 	// The counts are whole: h >= t exactly when h >= ceil(t), so the cells
 	// compare as integers, not converted one by one.
 	i1, i2, i3 := uint64(math.Ceil(t1)), uint64(math.Ceil(t2)), uint64(math.Ceil(t3))
-	m, mem := sf.(*MemSurface)
-	for r := range e.Rows {
-		y := y1 + 2*r
-		if y+1 >= H-12 {
-			break
+	if m, ok := sf.(*Image565); ok {
+		var n [4]uint16
+		for i, c := range sh {
+			n[i] = pack565(c)
 		}
-		for c, v := range e.Grid[r*e.Cols : (r+1)*e.Cols] {
-			if v == 0 {
-				continue
-			}
-			h := uint64(v)
-			col := sh[0]
-			switch {
-			case h >= i3:
-				col = sh[3]
-			case h >= i2:
-				col = sh[2]
-			case h >= i1:
-				col = sh[1]
-			}
-			x := x0 + 2*c
-			if mem && x >= 0 && x+1 < W && y >= 0 { // the 2x2 cell straight into the pixels
-				o := (y*W + x) * 2
-				lo, hi := byte(col&0xff), byte(col>>8)
-				m.Pix[o], m.Pix[o+1], m.Pix[o+2], m.Pix[o+3] = lo, hi, lo, hi
-				o += 2 * W
-				m.Pix[o], m.Pix[o+1], m.Pix[o+2], m.Pix[o+3] = lo, hi, lo, hi
-				continue
-			}
-			fillRect(sf, x, y, 2, 2, col)
-		}
+		eyeCells(sf, m.px(), W, H, e, x0, y1, sh, n, i1, i2, i3)
+	} else {
+		eyeCells[uint16](sf, nil, W, H, e, x0, y1, sh, [4]uint16{}, i1, i2, i3)
 	}
 	if e.HasBox {
 		xa, xb := x0+2*e.Box[0], x0+2*e.Box[2]
@@ -620,9 +592,46 @@ func drawEyePlot(sf Surface, p plotArea, e *wsview.EyePane) {
 	}
 }
 
+// eyeCells draws the eye's density as 2x2 cells from (x0, y1) in four
+// shades sh, the counts' thresholds i1..i3: straight into a w×h page of
+// pixels px (n the shades in its format), else through sf.
+// TRLC-LINKS: REQ-SDS-215
+func eyeCells[P pixel](sf Canvas, px []P, w, h int, e *wsview.EyePane, x0, y1 int, sh [4]Color, n [4]P, i1, i2, i3 uint64) {
+	for r := range e.Rows {
+		y := y1 + 2*r
+		if y+1 >= h-12 {
+			break
+		}
+		for c, v := range e.Grid[r*e.Cols : (r+1)*e.Cols] {
+			if v == 0 {
+				continue
+			}
+			cnt := uint64(v)
+			k := 0
+			switch {
+			case cnt >= i3:
+				k = 3
+			case cnt >= i2:
+				k = 2
+			case cnt >= i1:
+				k = 1
+			}
+			x := x0 + 2*c
+			if px != nil && x >= 0 && x+1 < w && y >= 0 { // the 2x2 cell straight into the pixels
+				o := y*w + x
+				px[o], px[o+1] = n[k], n[k]
+				o += w
+				px[o], px[o+1] = n[k], n[k]
+				continue
+			}
+			fillRect(sf, x, y, 2, 2, sh[k])
+		}
+	}
+}
+
 // dashRect draws a dashed rectangle (3 on, 2 off).
 // TRLC-LINKS: REQ-SDS-215
-func dashRect(sf Surface, x, y, w, h int, c uint16) {
+func dashRect(sf Canvas, x, y, w, h int, c Color) {
 	for i := range w {
 		if i%5 < 3 {
 			sf.SetPixel(x+i, y, c)
@@ -639,7 +648,7 @@ func dashRect(sf Surface, x, y, w, h int, c uint16) {
 
 // drawEyePane draws the eye's figures beside a live time trace.
 // TRLC-LINKS: REQ-SDS-215
-func drawEyePane(sf Surface, p plotArea, f *sample.Frame, hud HUD, e *wsview.EyePane) {
+func drawEyePane(sf Canvas, p plotArea, f *sample.Frame, hud HUD, e *wsview.EyePane) {
 	drawPaneFrame(sf, p, &e.Pane)
 	drawMiniScope(sf, f, hud, 4, 27, 230, 96)
 	DrawText(sf, 8, 29, e.TimeLabel, colDim, 1)
@@ -666,7 +675,7 @@ func drawEyePane(sf Surface, p plotArea, f *sample.Frame, hud HUD, e *wsview.Eye
 
 // drawSpecPane draws the peak table beside a small time trace.
 // TRLC-LINKS: REQ-SDS-216
-func drawSpecPane(sf Surface, p plotArea, f *sample.Frame, hud HUD, s *wsview.SpecPane) {
+func drawSpecPane(sf Canvas, p plotArea, f *sample.Frame, hud HUD, s *wsview.SpecPane) {
 	drawPaneFrame(sf, p, &s.Pane)
 	drawMiniScope(sf, f, hud, 4, 27, 230, p.y0-44)
 	DrawText(sf, 8, 29, s.TimeLabel, colDim, 1)
@@ -724,7 +733,7 @@ func drawSpecPane(sf Surface, p plotArea, f *sample.Frame, hud HUD, s *wsview.Sp
 // drawMeasPane draws the statistics table (or all values) and the cursor
 // block.
 // TRLC-LINKS: REQ-SDS-217
-func drawMeasPane(sf Surface, p plotArea, m *wsview.MeasPane) {
+func drawMeasPane(sf Canvas, p plotArea, m *wsview.MeasPane) {
 	drawPaneFrame(sf, p, &m.Pane)
 	switch {
 	case m.All:
@@ -791,7 +800,7 @@ func drawMeasPane(sf Surface, p plotArea, m *wsview.MeasPane) {
 
 // drawCmpPane draws the MASTER, REF A, REF B, MASK and MATH rows.
 // TRLC-LINKS: REQ-SDS-218
-func drawCmpPane(sf Surface, p plotArea, c *wsview.CmpPane) {
+func drawCmpPane(sf Canvas, p plotArea, c *wsview.CmpPane) {
 	drawPaneFrame(sf, p, &c.Pane)
 	for i, r := range c.Rows {
 		y := 27 + i*13
@@ -826,7 +835,7 @@ func drawCmpPane(sf Surface, p plotArea, c *wsview.CmpPane) {
 // drawMiniScope draws a small live view of the frame in a rectangle: its
 // graticule, the shown channels as column extremes, the trigger pointer.
 // TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
-func drawMiniScope(sf Surface, f *sample.Frame, hud HUD, x0, y0, w, h int) {
+func drawMiniScope(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 	fillRect(sf, x0, y0, w, h, colBG)
 	for c := range 11 {
 		col := colGrid
@@ -868,7 +877,7 @@ func drawMiniScope(sf Surface, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 // columns x0..x0+w-1, yOf placing a code: an envelope's bands, else each
 // column's extremes joined to the previous column.
 // TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
-func miniScopeChan(sf Surface, f *sample.Frame, hud HUD, ch, x0, w int, yOf func(uint8) int) {
+func miniScopeChan(sf Canvas, f *sample.Frame, hud HUD, ch, x0, w int, yOf func(uint8) int) {
 	col := colC1
 	if ch == 1 {
 		col = colC2
@@ -933,7 +942,7 @@ const (
 
 // drawSheet draws a full-screen settings sheet.
 // TRLC-LINKS: REQ-SDS-212
-func drawSheet(sf Surface, f *sample.Frame, hud HUD) {
+func drawSheet(sf Canvas, f *sample.Frame, hud HUD) {
 	sh := hud.UI.Sheet
 	fillRect(sf, 0, 12, W, H-12, colBG)
 	drawTabs(sf, sh)
@@ -969,7 +978,7 @@ func drawSheet(sf Surface, f *sample.Frame, hud HUD) {
 // drawTabs draws the tab strip: the workspace's name, its own tabs, a double
 // bar, the other tabs dim; the open tab filled amber.
 // TRLC-LINKS: REQ-SDS-212
-func drawTabs(sf Surface, sh *wsview.Sheet) {
+func drawTabs(sf Canvas, sh *wsview.Sheet) {
 	fillRect(sf, 0, tabY, W, tabH, colMenuBg)
 	hline(sf, 0, W-1, tabY+tabH, colAxis)
 	x := 4
@@ -1005,7 +1014,7 @@ func drawTabs(sf Surface, sh *wsview.Sheet) {
 // drawRows draws the rows; it returns the row area's bottom and the y of the
 // Match bytes row (-1 when the tab has none).
 // TRLC-LINKS: REQ-SDS-212
-func drawRows(sf Surface, sh *wsview.Sheet) (bottom, matchY int) {
+func drawRows(sf Canvas, sh *wsview.Sheet) (bottom, matchY int) {
 	y, matchY := rowY0, -1
 	for _, r := range sh.Rows {
 		if r.Kind == wsview.Header {
@@ -1026,7 +1035,7 @@ func drawRows(sf Surface, sh *wsview.Sheet) (bottom, matchY int) {
 
 // drawRow draws one row at y.
 // TRLC-LINKS: REQ-SDS-212
-func drawRow(sf Surface, r wsview.Row, y int) {
+func drawRow(sf Canvas, r wsview.Row, y int) {
 	if r.Focus {
 		bg := colGrid
 		if r.Edit {
@@ -1126,7 +1135,7 @@ func drawRow(sf Surface, r wsview.Row, y int) {
 // (amber when active, grey for "Off" or a row not in use); a list too long
 // for the row shows a window around the current option.
 // TRLC-LINKS: REQ-SDS-212
-func drawOptions(sf Surface, opts []wsview.Opt, x, y int, rel bool, xmax int) int {
+func drawOptions(sf Canvas, opts []wsview.Opt, x, y int, rel bool, xmax int) int {
 	ws := make([]int, len(opts))
 	cur := 0
 	for i, o := range opts {
@@ -1192,7 +1201,7 @@ func drawOptions(sf Surface, opts []wsview.Opt, x, y int, rel bool, xmax int) in
 
 // drawGauge draws a number row's range gauge with its value's knob.
 // TRLC-LINKS: REQ-SDS-212
-func drawGauge(sf Surface, x0, x1, y int, pos float64, rel bool) {
+func drawGauge(sf Canvas, x0, x1, y int, pos float64, rel bool) {
 	yy := y + 8
 	hline(sf, x0, x1-1, yy, colAxis)
 	vline(sf, x0, yy-2, yy+2, colAxis)
@@ -1207,7 +1216,7 @@ func drawGauge(sf Surface, x0, x1, y int, pos float64, rel bool) {
 
 // drawSheetSub draws the sheet's byte picker under the Match bytes row.
 // TRLC-LINKS: REQ-SDS-214
-func drawSheetSub(sf Surface, s *wsview.Sub, rowY int) {
+func drawSheetSub(sf Canvas, s *wsview.Sub, rowY int) {
 	const bh = 120
 	by := rowY + rowH + 2
 	if by+bh > rowsBottom {
@@ -1224,7 +1233,7 @@ func drawSheetSub(sf Surface, s *wsview.Sub, rowY int) {
 
 // drawSide draws the panel explaining the highlighted row.
 // TRLC-LINKS: REQ-SDS-212
-func drawSide(sf Surface, sh *wsview.Sheet) {
+func drawSide(sf Canvas, sh *wsview.Sheet) {
 	y0 := thumbY + thumbH + 6
 	h := rowsBottom - y0
 	fillRect(sf, sideX, y0, sideW, h, colBoxBg)
@@ -1266,7 +1275,7 @@ func drawSide(sf Surface, sh *wsview.Sheet) {
 // or the FFT, X-Y, Bode or spectrogram being shown, tagged LIVE, WAIT or
 // STOP.
 // TRLC-LINKS: REQ-SDS-212
-func drawThumb(sf Surface, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
+func drawThumb(sf Canvas, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
 	x0, y0, w, h := sideX, thumbY, sideW, thumbH
 	tag, tagCol := "LIVE", colOK
 	switch {
@@ -1340,7 +1349,7 @@ func drawThumb(sf Surface, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
 
 // drawThumbXY is the X-Y mini view.
 // TRLC-LINKS: REQ-SDS-212
-func drawThumbXY(sf Surface, f *sample.Frame, x0, y0, w, h int) {
+func drawThumbXY(sf Canvas, f *sample.Frame, x0, y0, w, h int) {
 	if f == nil || f.Flags.Has(sample.Envelope) || len(f.Codes8(0)) == 0 {
 		return
 	}
@@ -1363,7 +1372,7 @@ func drawThumbXY(sf Surface, f *sample.Frame, x0, y0, w, h int) {
 
 // drawThumbFFT is the FFT mini view (column maxima, -80 dB at the bottom).
 // TRLC-LINKS: REQ-SDS-212
-func drawThumbFFT(sf Surface, f *sample.Frame, hud HUD, ch, x0, y0, w, h int) {
+func drawThumbFFT(sf Canvas, f *sample.Frame, hud HUD, ch, x0, y0, w, h int) {
 	if f == nil || f.Flags.Has(sample.Envelope) || len(f.Codes8(0)) == 0 {
 		return
 	}
@@ -1401,7 +1410,7 @@ func drawThumbFFT(sf Surface, f *sample.Frame, hud HUD, ch, x0, y0, w, h int) {
 
 // drawThumbBode is the Bode mini view: gain (C1 colour) and phase (C2).
 // TRLC-LINKS: REQ-SDS-212
-func drawThumbBode(sf Surface, hud HUD, x0, y0, w, h int) {
+func drawThumbBode(sf Canvas, hud HUD, x0, y0, w, h int) {
 	n := len(hud.BodeFreq)
 	if n < 2 || hud.BodeFreq[0] <= 0 {
 		return

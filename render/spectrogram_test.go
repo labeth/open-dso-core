@@ -30,10 +30,10 @@ func sgSine(n int, freqHz, sampleS float64) *sample.Frame {
 // The colormap must be monotone in brightness (higher dB reads hotter).
 // TRLC-LINKS: REQ-SDS-068
 func TestHeatMonotone(t *testing.T) {
-	lum := func(c uint16) int {
-		r := int((c >> 11) & 0x1f)
-		g := int((c >> 5) & 0x3f)
-		b := int(c & 0x1f)
+	lum := func(c Color) int {
+		r := int((pack565(c) >> 11) & 0x1f)
+		g := int((pack565(c) >> 5) & 0x3f)
+		b := int(pack565(c) & 0x1f)
 		return r*2 + g + b // rough luminance in 565 units
 	}
 	prev := -1
@@ -57,7 +57,9 @@ func TestSpectrogramPeakColumn(t *testing.T) {
 
 	// scan the top row for the brightest column, map back to a frequency
 	best, bestLum := 0, -1
-	lum := func(c uint16) int { return int((c>>11)&0x1f)*2 + int((c>>5)&0x3f) + int(c&0x1f) }
+	lum := func(c Color) int {
+		return int((pack565(c)>>11)&0x1f)*2 + int((pack565(c)>>5)&0x3f) + int(pack565(c)&0x1f)
+	}
 	for x := range sgCols {
 		l := lum(sg.img.At(sgX0+x, sg.imgRow(0)))
 		if l > bestLum {
@@ -80,7 +82,9 @@ func TestSpectrogramTracksSteppedFrequency(t *testing.T) {
 	freqs := []float64{20e6, 60e6, 100e6}
 	brightCol := func(row int) int {
 		best, bestLum := 0, -1
-		lum := func(c uint16) int { return int((c>>11)&0x1f)*2 + int((c>>5)&0x3f) + int(c&0x1f) }
+		lum := func(c Color) int {
+			return int((pack565(c)>>11)&0x1f)*2 + int((pack565(c)>>5)&0x3f) + int(pack565(c)&0x1f)
+		}
 		for x := range sgCols {
 			l := lum(sg.img.At(sgX0+x, sg.imgRow(row)))
 			if l > bestLum {
@@ -126,7 +130,9 @@ func TestSpectrogramRowsPerStretch(t *testing.T) {
 	if sg.Rows() != 4 {
 		t.Fatalf("an 8192-sample record painted %d rows, want 4", sg.Rows())
 	}
-	lum := func(c uint16) int { return int((c>>11)&0x1f)*2 + int((c>>5)&0x3f) + int(c&0x1f) }
+	lum := func(c Color) int {
+		return int((pack565(c)>>11)&0x1f)*2 + int((pack565(c)>>5)&0x3f) + int(pack565(c)&0x1f)
+	}
 	hz := func(row int) float64 {
 		best, bestLum := 0, -1
 		for x := range sgCols {
@@ -170,15 +176,15 @@ func TestRenderSpectrogramView(t *testing.T) {
 	hud := defaultHUD()
 	hud.ViewMode = 4
 	hud.Spect = sg
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, noise(), hud, true)
 	// count painted (non-background, non-black) pixels inside the heatmap rect —
 	// proves the ViewMode==4 dispatch ran and the blit loop drew the waterfall.
 	painted := 0
-	bg := m.At(0, 0) // corner is background/graticule
+	bg := at565(m, 0, 0) // corner is background/graticule
 	for y := sgY0; y < sgY1; y++ {
 		for x := sgX0; x < sgX1; x++ {
-			if c := m.At(x, y); c != bg && c != rgb(0, 0, 0) {
+			if c := at565(m, x, y); c != bg && c != pack565(rgb(0, 0, 0)) {
 				painted++
 			}
 		}
@@ -190,11 +196,11 @@ func TestRenderSpectrogramView(t *testing.T) {
 	hud2 := defaultHUD()
 	hud2.ViewMode = 4
 	hud2.Spect = NewSpectrogram()
-	Render(NewMemSurface(), nil, hud2, true)
+	Render(NewImage565(), nil, hud2, true)
 	// nil Spect must also be safe
 	hud3 := defaultHUD()
 	hud3.ViewMode = 4
-	Render(NewMemSurface(), nil, hud3, true)
+	Render(NewImage565(), nil, hud3, true)
 }
 
 // heatStops is the inferno ramp both heat() (Go) and sgHeat() (JS) hardcode.
@@ -240,7 +246,7 @@ func TestSpectrumColumnsShowNarrowTones(t *testing.T) {
 		mags[k] = 1
 		tones = append(tones, k)
 	}
-	sf := NewMemSurface()
+	sf := NewImage565()
 	p := fullPlot
 	drawSpectrum(sf, p, mags, 1, colC1, 83.3e6, 1, half-1)
 	span := half - 2
@@ -249,7 +255,7 @@ func TestSpectrumColumnsShowNarrowTones(t *testing.T) {
 		lit := false
 		for dx := -1; dx <= 1 && !lit; dx++ {
 			for y := p.top; y <= p.top+2; y++ {
-				if xx := x + dx; xx >= 0 && xx < p.w && sf.At(xx, y) == colC1 {
+				if xx := x + dx; xx >= 0 && xx < p.w && at565(sf, xx, y) == pack565(colC1) {
 					lit = true
 				}
 			}
@@ -260,7 +266,9 @@ func TestSpectrumColumnsShowNarrowTones(t *testing.T) {
 	}
 	sg := NewSpectrogram()
 	sg.pushMags(mags, 1)
-	lum := func(c uint16) int { return int((c>>11)&0x1f)*2 + int((c>>5)&0x3f) + int(c&0x1f) }
+	lum := func(c Color) int {
+		return int((pack565(c)>>11)&0x1f)*2 + int((pack565(c)>>5)&0x3f) + int(pack565(c)&0x1f)
+	}
 	white := lum(heat(1))
 	for _, k := range tones {
 		x := 0
@@ -284,7 +292,7 @@ func TestSpectrogramBlitMatchesPixels(t *testing.T) {
 		}
 	}
 	for _, p := range []plotArea{fullPlot, plotOf(paneLayout(136)), plotOf(wsview.Layout{MenuW: 116})} {
-		fast, slow := NewMemSurface(), NewMemSurface()
+		fast, slow := NewImage565(), NewImage565()
 		drawSpectrogram(fast, p, sg, false)
 		drawSpectrogram(pixelSurface{slow}, p, sg, false)
 		if !bytes.Equal(fast.Pix, slow.Pix) {

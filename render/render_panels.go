@@ -193,7 +193,7 @@ var allMeasParams = []string{
 // its chosen parameters (every parameter when nothing is chosen), via the
 // shared measure package so the values match the web exactly.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-217
-func drawMeasPanel(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
+func drawMeasPanel(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	if f == nil || f.Len() == 0 {
 		return
 	}
@@ -223,7 +223,7 @@ func drawMeasPanel(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
 
 // measBox renders one channel's readouts at left edge x.
 // TRLC-LINKS: REQ-SDS-021
-func measBox(sf Surface, p plotArea, f *sample.Frame, hud HUD, ch, x int, params []string) bool {
+func measBox(sf Canvas, p plotArea, f *sample.Frame, hud HUD, ch, x int, params []string) bool {
 	m := chanMeasure(f, hud, ch)
 	if m == nil {
 		return false
@@ -260,7 +260,7 @@ func measBox(sf Surface, p plotArea, f *sample.Frame, hud HUD, ch, x int, params
 // edgeArrow draws a small filled arrow with its tip at (x, y), pointing
 // along (dx, dy): one of left, right, up, down.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-217
-func edgeArrow(sf Surface, x, y, dx, dy int, c uint16) {
+func edgeArrow(sf Canvas, x, y, dx, dy int, c Color) {
 	for d := range 7 {
 		for w := -d / 2; w <= d/2; w++ {
 			sf.SetPixel(x-dx*d+w*absI(dy), y-dy*d+w*absI(dx), c)
@@ -272,7 +272,7 @@ func edgeArrow(sf Surface, x, y, dx, dy int, c uint16) {
 // readout. Time Δ uses the labelled t/div × 10 divisions; volts Δ uses each
 // shown channel's probe-scaled V/div × 8 divisions.
 // TRLC-LINKS: REQ-SDS-021
-func drawCursors(sf Surface, p plotArea, hud HUD) {
+func drawCursors(sf Canvas, p plotArea, hud HUD) {
 	if !hud.CurOn {
 		return
 	}
@@ -389,7 +389,7 @@ func voltCursorLabel(hud HUD) string {
 // drawAutosetBanner overlays a centred "AUTOSET…" progress banner while the
 // sweep runs, with the cancel hint (a second AUTO press stops it).
 // TRLC-LINKS: REQ-SDS-021
-func drawAutosetBanner(sf Surface, p plotArea, msg string) {
+func drawAutosetBanner(sf Canvas, p plotArea, msg string) {
 	if msg == "" {
 		msg = "AUTOSET..."
 	}
@@ -410,7 +410,7 @@ func drawAutosetBanner(sf Surface, p plotArea, msg string) {
 // drawNotice is a short notice over the plot: what a tool just did (a
 // workspace's entry behaviour, a zoom, PRINT's saved file name).
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-211
-func drawNotice(sf Surface, p plotArea, msg string) {
+func drawNotice(sf Canvas, p plotArea, msg string) {
 	maxC := (p.w - 40) / 6
 	if len(msg) > maxC {
 		msg = msg[:maxC-2] + ".."
@@ -425,7 +425,7 @@ func drawNotice(sf Surface, p plotArea, msg string) {
 // drawRemote is the one-line note of a change made from the phone remote,
 // at the top of the plot so it does not cover the trace's middle.
 // TRLC-LINKS: REQ-SDS-212
-func drawRemote(sf Surface, p plotArea, msg string) {
+func drawRemote(sf Canvas, p plotArea, msg string) {
 	maxC := (p.w - 40) / 6
 	if len(msg) > maxC {
 		msg = msg[:maxC-2] + ".."
@@ -445,8 +445,8 @@ var softkeyY = [5]int{80, 160, 240, 320, 410}
 // trigger position (top pointer), and the per-channel ground/offset arrows on
 // the left edge — the same references the web canvas shows (spec 07 §6).
 // TRLC-LINKS: REQ-SDS-021
-func drawMarkers(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
-	px := func(x, y int, c uint16) {
+func drawMarkers(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
+	px := func(x, y int, c Color) {
 		if x >= 0 && x < p.w && y >= p.y0 && y < H {
 			sf.SetPixel(x, y, c)
 		}
@@ -474,7 +474,7 @@ func drawMarkers(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
 		}
 	}
 	// Per-channel GROUND (0 V) arrows on the left edge: code = 128 + offV·25/Vdiv.
-	ground := func(vdiv, offV float64, col uint16) {
+	ground := func(vdiv, offV float64, col Color) {
 		if vdiv <= 0 {
 			return
 		}
@@ -524,7 +524,7 @@ func trigFrac(f *sample.Frame, hud HUD) (float64, bool) {
 }
 
 // TRLC-LINKS: REQ-SDS-021
-func drawHUD(sf Surface, f *sample.Frame, hud HUD) {
+func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	if f != nil && f.Cond.NoiseGain > 1 {
 		label := fmt.Sprintf("Ideal +%.2f bits (not ENOB)", math.Log2(f.Cond.NoiseGain))
 		if f.Cond.PassbandHz > 0 {
@@ -695,7 +695,7 @@ func frameClipped(f *sample.Frame) [2]bool {
 // the trigger readout): the loading indicator while a frame is being read or
 // processed, else the device URL.
 // TRLC-LINKS: REQ-SDS-168
-func DrawStatusSlot(sf Surface, hud HUD) {
+func DrawStatusSlot(sf Canvas, hud HUD) {
 	if txt := statusSlotText(hud); txt != "" {
 		c := colDim
 		if hud.Busy != "" {
@@ -709,7 +709,7 @@ func DrawStatusSlot(sf Surface, hud HUD) {
 // again, so the LCD loop can turn the spinner without re-rendering a deep
 // frame — which would steal the CPU from the very readout being shown.
 // TRLC-LINKS: REQ-SDS-168
-func RedrawStatusSlot(sf Surface, hud HUD) {
+func RedrawStatusSlot(sf Canvas, hud HUD) {
 	idle := hud
 	idle.Busy = ""
 	busy := hud
@@ -733,7 +733,7 @@ func statusSlotText(hud HUD) string {
 
 // colorOf maps a wsview colour to the palette.
 // TRLC-LINKS: REQ-SDS-211
-func colorOf(c wsview.Col) uint16 {
+func colorOf(c wsview.Col) Color {
 	switch c {
 	case wsview.Dim:
 		return colDim

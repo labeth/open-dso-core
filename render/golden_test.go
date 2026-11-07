@@ -38,7 +38,7 @@ var (
 func TestGolden(t *testing.T) {
 	for _, s := range rendertest.Scenes() {
 		t.Run(s.Name, func(t *testing.T) {
-			sf := render.NewMemSurface()
+			sf := render.NewImage565()
 			s.Draw(sf)
 			goldenCheck(t, s.Name, render.EncodePNG(sf))
 		})

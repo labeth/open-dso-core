@@ -20,6 +20,6 @@ func (sg *Spectrogram) Rows() int { return sg.rows }
 // drawSpectrogram blits the waterfall image and draws the frequency axis + a dB
 // colour key. `sg` is the accumulated image passed via the HUD.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-068
-func drawSpectrogram(sf Surface, p plotArea, sg *Spectrogram, hideCaptions bool) {
+func drawSpectrogram(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bool) {
 	drawSpectrogramMark(sf, p, sg, hideCaptions, nil)
 }

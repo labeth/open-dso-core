@@ -16,15 +16,15 @@ func TestCursorOffScreenArrows(t *testing.T) {
 	p := plotOf(h.UI.Layout)
 	h.CurOn, h.CurType, h.CurSel = true, 0, 0
 	h.CurX = [2]float64{-0.4, 1.7} // A left of the screen, B right of it
-	sf := NewMemSurface()
+	sf := NewImage565()
 	drawCursors(sf, p, h)
-	if sf.At(0, p.top+30) != colTrig || sf.At(p.w-1, p.top+44) != colDim {
-		t.Fatalf("time cursors off the screen: arrow tips %#x (A, left) and %#x (B, right)", sf.At(0, p.top+30), sf.At(p.w-1, p.top+44))
+	if at565(sf, 0, p.top+30) != pack565(colTrig) || at565(sf, p.w-1, p.top+44) != pack565(colDim) {
+		t.Fatalf("time cursors off the screen: arrow tips %#x (A, left) and %#x (B, right)", at565(sf, 0, p.top+30), at565(sf, p.w-1, p.top+44))
 	}
 	for _, x := range []int{0, 1, p.w - 1, p.w - 2} { // no line pinned to an edge
 		lit := 0
 		for y := p.top + 60; y <= p.bot; y++ {
-			if sf.At(x, y) != 0 {
+			if at565(sf, x, y) != 0 {
 				lit++
 			}
 		}
@@ -33,12 +33,12 @@ func TestCursorOffScreenArrows(t *testing.T) {
 		}
 	}
 	h.CurType, h.CurY = 1, [2]float64{-0.1, 0.5} // A above, B on the screen
-	sf = NewMemSurface()
+	sf = NewImage565()
 	drawCursors(sf, p, h)
-	if x := p.w/2 + 60; sf.At(x, p.y0) != colTrig {
-		t.Fatalf("volts cursor A above the screen: no arrow at the top (%#x)", sf.At(x, p.y0))
+	if x := p.w/2 + 60; at565(sf, x, p.y0) != pack565(colTrig) {
+		t.Fatalf("volts cursor A above the screen: no arrow at the top (%#x)", at565(sf, x, p.y0))
 	}
-	if y := p.top + int(0.5*float64(p.bot-p.top)); sf.At(0, y) != colDim {
+	if y := p.top + int(0.5*float64(p.bot-p.top)); at565(sf, 0, y) != pack565(colDim) {
 		t.Fatalf("volts cursor B on the screen: no dashed line at row %d", y)
 	}
 }

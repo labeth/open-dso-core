@@ -11,6 +11,6 @@ func sampleToY(v float64) int { return fullPlot.sy(v) }
 
 // drawTrace maps the record window onto the full-screen plot (spec 07 §3.5).
 // TRLC-LINKS: REQ-SDS-021
-func drawTrace(sf Surface, sig []uint8, win int, xc float64, interp bool, col uint16, posFrac float64, zoom ...int) {
+func drawTrace(sf Canvas, sig []uint8, win int, xc float64, interp bool, col Color, posFrac float64, zoom ...int) {
 	drawTraceID(sf, fullPlot, traceID{}, sig, win, xc, interp, col, posFrac, zoom...)
 }

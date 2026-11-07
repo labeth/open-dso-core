@@ -22,7 +22,7 @@ type Scene struct {
 }
 
 // Draw renders the scene into sf as a live frame.
-func (s Scene) Draw(sf *render.MemSurface) {
+func (s Scene) Draw(sf *render.Image565) {
 	if s.Prefill {
 		sf.Fill(0xf81f)
 	}

@@ -16,7 +16,7 @@ import (
 // X-Y mode). Codes 0..255 map across the graticule (x) and up it (y); a stride
 // keeps dense records cheap.
 // TRLC-LINKS: REQ-SDS-021
-func drawXY(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
+func drawXY(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	valid := frameValid(f)
 	captions := !hud.UI.Layout.HideViewCaptions
 	if len(f.Codes8(1)) < valid {
@@ -125,7 +125,7 @@ func mathCodes(c1, c2 []uint8, hud HUD) []uint8 {
 }
 
 // TRLC-LINKS: REQ-SDS-021
-func drawMath(sf Surface, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
+func drawMath(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
 	valid := frameValid(f)
 	if len(f.Codes8(1)) < valid {
 		return
@@ -148,8 +148,8 @@ func drawMath(sf Surface, p plotArea, f *sample.Frame, hud HUD, win int, xc, pos
 // the live V/div and offset, so it keeps the volts it was saved at. A is the
 // info tint and B dim, distinct from the live channels and the purple math.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-138
-func drawRefs(sf Surface, p plotArea, hud HUD) {
-	cols := [2]uint16{colInfo, colDim}
+func drawRefs(sf Canvas, p plotArea, hud HUD) {
+	cols := [2]Color{colInfo, colDim}
 	live := [2][2]float64{ // per channel: analog V/div, offset volts
 		{hud.C1VdivV * float64(max(hud.Zoom1, 1)), hud.OffC1V},
 		{hud.C2VdivV * float64(max(hud.Zoom2, 1)), hud.OffC2V},
@@ -190,7 +190,7 @@ func rescaleRef(r []uint8, vdiv, off, toVdiv, toOff float64) []uint8 {
 
 // decodeColor maps a decode span kind to a display colour.
 // TRLC-LINKS: REQ-SDS-021
-func decodeColor(kind string) uint16 {
+func decodeColor(kind string) Color {
 	switch kind {
 	case "start", "stop", "ack":
 		return colOK
@@ -220,7 +220,7 @@ var protoNames = []string{
 // same trace window. In BUS the selected packet is boxed with its list
 // number and the packets holding the match bytes are ticked.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
-func drawDecode(sf Surface, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
+func drawDecode(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
 	if hud.DecProto == 0 || f == nil {
 		return
 	}
@@ -349,7 +349,7 @@ func layerNotes(ms []wsview.PacketMark) bool {
 // from the packet's start to the next packet's (or the screen's end), cut to
 // fit; a note with fewer than four characters of room is left out.
 // TRLC-LINKS: REQ-SDS-241
-func drawLayerCaptions(sf Surface, p plotArea, ms []wsview.PacketMark, sx func(float64) int, y int) {
+func drawLayerCaptions(sf Canvas, p plotArea, ms []wsview.PacketMark, sx func(float64) int, y int) {
 	for i, m := range ms {
 		if m.Text == "" {
 			continue
@@ -373,7 +373,7 @@ func drawLayerCaptions(sf Surface, p plotArea, ms []wsview.PacketMark, sx func(f
 
 // fillTri draws a small filled triangle pointing down, its base at row y.
 // TRLC-LINKS: REQ-SDS-214
-func fillTri(sf Surface, x, y, h int, c uint16) {
+func fillTri(sf Canvas, x, y, h int, c Color) {
 	for dy := 0; dy <= h; dy++ {
 		hline(sf, x-(h-dy), x+(h-dy), y+dy, c)
 	}
@@ -390,7 +390,7 @@ var colMask = rgb(90, 120, 160)
 // timebase reads the mask through trigger-relative time, as the engine tests
 // it and the web draws it.
 // TRLC-LINKS: REQ-SDS-021
-func drawZoneMask(sf Surface, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
+func drawZoneMask(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
 	if !(posFrac >= 0 && posFrac <= 1) {
 		posFrac = 0.5
 	}
@@ -426,7 +426,7 @@ func drawZoneMask(sf Surface, p plotArea, f *sample.Frame, hud HUD, win int, xc,
 // window (win samples from left): column by column when the mask is the
 // window, else through trigger-relative time.
 // TRLC-LINKS: REQ-SDS-021
-func drawMaskBounds(sf Surface, p plotArea, f *sample.Frame, hud HUD, win int, left float64) {
+func drawMaskBounds(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, left float64) {
 	mw := hud.MaskWin
 	if hud.MaskMode <= 0 || mw <= 0 || len(hud.MaskLo) != mw || len(hud.MaskHi) != mw {
 		return
@@ -459,7 +459,7 @@ func drawMaskBounds(sf Surface, p plotArea, f *sample.Frame, hud HUD, win int, l
 // strip) whenever mask testing or the zone trigger is on, plus the panel's
 // build/status line.
 // TRLC-LINKS: REQ-SDS-021
-func drawMaskHUD(sf Surface, hud HUD) {
+func drawMaskHUD(sf Canvas, hud HUD) {
 	if hud.MaskMode == 0 && hud.MaskMsg == "" && hud.ZoneMode == 0 {
 		return
 	}

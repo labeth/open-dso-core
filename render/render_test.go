@@ -42,11 +42,11 @@ func defaultHUD() HUD {
 }
 
 // TRLC-LINKS: REQ-SDS-021
-func countColor(m *MemSurface, c uint16) int {
+func countColor(m *Image565, c Color) int {
 	n := 0
 	for y := range H {
 		for x := range W {
-			if m.At(x, y) == c {
+			if at565(m, x, y) == pack565(c) {
 				n++
 			}
 		}
@@ -55,11 +55,11 @@ func countColor(m *MemSurface, c uint16) int {
 }
 
 // TRLC-LINKS: REQ-SDS-021
-func countColorIn(m *MemSurface, c uint16, x0, y0, x1, y1 int) int {
+func countColorIn(m *Image565, c Color, x0, y0, x1, y1 int) int {
 	n := 0
 	for y := y0; y < y1; y++ {
 		for x := x0; x < x1; x++ {
-			if m.At(x, y) == c {
+			if at565(m, x, y) == pack565(c) {
 				n++
 			}
 		}
@@ -72,8 +72,8 @@ func countColorIn(m *MemSurface, c uint16, x0, y0, x1, y1 int) int {
 // still non-black) and the current one bright — i.e. an afterglow.
 // TRLC-LINKS: REQ-SDS-021
 func TestRenderPersistence(t *testing.T) {
-	persist := NewMemSurface()
-	sf := NewMemSurface()
+	persist := NewImage565()
+	sf := NewImage565()
 	h := defaultHUD()
 	h.Persist = true
 	h.ShowC1, h.ShowC2 = true, false
@@ -84,9 +84,9 @@ func TestRenderPersistence(t *testing.T) {
 		}
 		return f
 	}
-	rowHasInk := func(m *MemSurface, y int) bool {
+	rowHasInk := func(m *Image565, y int) bool {
 		for x := range W - 160 {
-			if m.At(x, y) != 0 {
+			if at565(m, x, y) != 0 {
 				return true
 			}
 		}
@@ -101,7 +101,7 @@ func TestRenderPersistence(t *testing.T) {
 		t.Error("persistence missing the current trace")
 	}
 	// With persistence OFF, the persist layer is untouched (no fade/draw).
-	blank := NewMemSurface()
+	blank := NewImage565()
 	h.Persist = false
 	Render(sf, flat(128), h, true, blank)
 	if rowHasInk(blank, sampleToY(128)) {
@@ -120,7 +120,7 @@ func TestRenderAltViews(t *testing.T) {
 		f.Codes8(1)[i] = uint8(i % 200)
 	}
 
-	xy := NewMemSurface()
+	xy := NewImage565()
 	h := defaultHUD()
 	h.ViewMode = 1
 	Render(xy, f, h, true)
@@ -128,7 +128,7 @@ func TestRenderAltViews(t *testing.T) {
 		t.Error("X-Y view drew no math-coloured points")
 	}
 
-	fft := NewMemSurface()
+	fft := NewImage565()
 	h = defaultHUD()
 	h.ViewMode = 2
 	Render(fft, f, h, true)
@@ -146,7 +146,7 @@ func TestRenderAltViews(t *testing.T) {
 	}
 	// Sanity: the SAME markers DO appear in the Y-T plot body (so the test isn't
 	// just checking an always-empty region).
-	yt2 := NewMemSurface()
+	yt2 := NewImage565()
 	hy := defaultHUD()
 	hy.TrigLvlDiv = 0 // centre dashed line
 	Render(yt2, f, hy, true)
@@ -154,7 +154,7 @@ func TestRenderAltViews(t *testing.T) {
 		t.Error("expected trigger markers in the Y-T plot body (test region wrong)")
 	}
 
-	math := NewMemSurface()
+	math := NewImage565()
 	h = defaultHUD()
 	h.MathMode = 1 // C1+C2
 	Render(math, f, h, true)
@@ -162,7 +162,7 @@ func TestRenderAltViews(t *testing.T) {
 		t.Error("math overlay drew no math-coloured trace")
 	}
 
-	banner := NewMemSurface()
+	banner := NewImage565()
 	h = defaultHUD()
 	h.AutosetBusy = true
 	Render(banner, f, h, true)
@@ -177,7 +177,7 @@ func TestRenderAltViews(t *testing.T) {
 // (colBG) inverted text on top.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-212
 func TestRenderKeysSelectedFilled(t *testing.T) {
-	m := NewMemSurface()
+	m := NewImage565()
 	h := defaultHUD()
 	h.UI = wsview.View{
 		Layout: wsview.Layout{MenuW: 116, Sheet: true, HideTraces: true}, Sheet: &wsview.Sheet{WSName: "SCOPE"},
@@ -200,7 +200,7 @@ func TestRenderKeysSelectedFilled(t *testing.T) {
 func TestRenderMeasPanel(t *testing.T) {
 	box := rgb(6, 10, 22) // drawMeasPanel background fill
 	// Off: no MEASURE panel box.
-	off := NewMemSurface()
+	off := NewImage565()
 	Render(off, testFrame(2048), defaultHUD(), true)
 	if countColor(off, box) != 0 {
 		t.Fatal("MEASURE panel drawn while ShowMeas is off")
@@ -208,7 +208,7 @@ func TestRenderMeasPanel(t *testing.T) {
 	// On: the panel box + calibrated text appear at the top-left.
 	h := defaultHUD()
 	h.ShowMeas = true
-	on := NewMemSurface()
+	on := NewImage565()
 	Render(on, testFrame(2048), h, true)
 	if countColor(on, box) < 200 {
 		t.Fatalf("MEASURE panel box not drawn (%d fill px)", countColor(on, box))
@@ -216,7 +216,7 @@ func TestRenderMeasPanel(t *testing.T) {
 	found := false
 	for x := 5; x < 112 && !found; x++ {
 		for y := 24; y < 90; y++ {
-			if on.At(x, y) == colInfo {
+			if at565(on, x, y) == pack565(colInfo) {
 				found = true
 				break
 			}
@@ -231,7 +231,7 @@ func TestRenderMeasPanel(t *testing.T) {
 func TestRenderCursors(t *testing.T) {
 	// Off: no cursor readout box.
 	box := rgb(6, 10, 22)
-	off := NewMemSurface()
+	off := NewImage565()
 	Render(off, testFrame(2048), defaultHUD(), true)
 	baseline := countColor(off, box)
 
@@ -240,7 +240,7 @@ func TestRenderCursors(t *testing.T) {
 	h := defaultHUD()
 	h.CurOn, h.CurType, h.CurSel = true, 0, 0
 	h.CurX = [2]float64{0.3, 0.7}
-	on := NewMemSurface()
+	on := NewImage565()
 	Render(on, testFrame(2048), h, true)
 	if countColor(on, box) <= baseline {
 		t.Fatal("cursor Δ readout box not drawn")
@@ -250,7 +250,7 @@ func TestRenderCursors(t *testing.T) {
 	xA := int(fx * float64(W-1))
 	n := 0
 	for y := 8; y < 470; y++ {
-		if on.At(xA, y) == colTrig {
+		if at565(on, xA, y) == pack565(colTrig) {
 			n++
 		}
 	}
@@ -261,7 +261,7 @@ func TestRenderCursors(t *testing.T) {
 
 // TRLC-LINKS: REQ-SDS-021
 func TestRenderTraceFrame(t *testing.T) {
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, testFrame(2048), defaultHUD(), true)
 
 	if n := countColor(m, colC1); n < 500 {
@@ -271,18 +271,18 @@ func TestRenderTraceFrame(t *testing.T) {
 		t.Fatalf("C2 trace pixels = %d", n)
 	}
 	// Liveness strip green on rows 0-1 (fresh + real ptp).
-	if m.At(400, 0) != colOK || m.At(400, 1) != colOK {
+	if at565(m, 400, 0) != pack565(colOK) || at565(m, 400, 1) != pack565(colOK) {
 		t.Fatal("liveness strip not green on a fresh frame")
 	}
 	// Graticule centre cross uses the axis colour somewhere mid-screen.
-	if m.At(W/2, 100) != colAxis && m.At((W-1)/2, 100) != colAxis {
-		t.Fatalf("centre vertical axis missing (got %#04x)", m.At(W/2, 100))
+	if at565(m, W/2, 100) != pack565(colAxis) && at565(m, (W-1)/2, 100) != pack565(colAxis) {
+		t.Fatalf("centre vertical axis missing (got %#04x)", at565(m, W/2, 100))
 	}
 	// HUD text present (any colInfo pixels near the M readout).
 	found := false
 	for x := 200; x < 320 && !found; x++ {
 		for y := 2; y < 10; y++ {
-			if m.At(x, y) == colInfo {
+			if at565(m, x, y) == pack565(colInfo) {
 				found = true
 				break
 			}
@@ -295,9 +295,9 @@ func TestRenderTraceFrame(t *testing.T) {
 
 // TRLC-LINKS: REQ-SDS-021
 func TestRenderHeldFrameStripRed(t *testing.T) {
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, testFrame(2048), defaultHUD(), false) // held → red strip
-	if m.At(400, 0) != colStale {
+	if at565(m, 400, 0) != pack565(colStale) {
 		t.Fatal("liveness strip not red on a held frame")
 	}
 	// The trace must still be drawn (never blank on hold).
@@ -317,7 +317,7 @@ func TestRenderEnvelopeBranch(t *testing.T) {
 		f.Min8(0)[i], f.Max8(0)[i] = 80, 180
 		f.Min8(1)[i], f.Max8(1)[i] = 100, 140
 	}
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, f, defaultHUD(), true)
 	// The envelope fill covers a band: far more C1 pixels than a line trace.
 	if n := countColor(m, colC1); n < 50000 {
@@ -327,9 +327,9 @@ func TestRenderEnvelopeBranch(t *testing.T) {
 
 // TRLC-LINKS: REQ-SDS-021
 func TestRenderNilFrame(t *testing.T) {
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, nil, defaultHUD(), false)
-	if m.At(400, 240) != colBG && m.At(400, 240) != colGrid && m.At(400, 240) != colAxis {
+	if at565(m, 400, 240) != pack565(colBG) && at565(m, 400, 240) != pack565(colGrid) && at565(m, 400, 240) != pack565(colAxis) {
 		t.Fatal("nil frame should render graticule over background only")
 	}
 }
@@ -343,16 +343,16 @@ func TestRenderFlatRailNoFabrication(t *testing.T) {
 	}
 	f.TriggerAt = -1
 	f.SourcePtp = 0
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, f, defaultHUD(), true)
 	// Flat rail draws at mid-screen; strip red (ptp < 8 even though fresh).
-	if m.At(400, 0) != colStale {
+	if at565(m, 400, 0) != pack565(colStale) {
 		t.Fatal("flat rail should show a red strip")
 	}
 	y := sampleToY(128)
 	foundMid := false
 	for x := 300; x < 500; x++ {
-		if m.At(x, y) == colC1 || m.At(x, y-1) == colC1 || m.At(x, y+1) == colC1 {
+		if at565(m, x, y) == pack565(colC1) || at565(m, x, y-1) == pack565(colC1) || at565(m, x, y+1) == pack565(colC1) {
 			foundMid = true
 			break
 		}
@@ -367,12 +367,12 @@ func TestFontMetrics(t *testing.T) {
 	if TextWidth("ABC", 1) != 18 {
 		t.Fatalf("TextWidth(ABC) = %d, want 18", TextWidth("ABC", 1))
 	}
-	m := NewMemSurface()
+	m := NewImage565()
 	DrawText(m, 10, 10, "A", colInfo, 1)
 	n := 0
 	for y := 10; y < 17; y++ {
 		for x := 10; x < 15; x++ {
-			if m.At(x, y) == colInfo {
+			if at565(m, x, y) == pack565(colInfo) {
 				n++
 			}
 		}
@@ -416,7 +416,7 @@ func TestRenderZoneMaskOverlay(t *testing.T) {
 		{DtLoS: -200e-6, DtHiS: 200e-6, CodeLo: 60, CodeHi: 90},               // intersect (green)
 		{DtLoS: 250e-6, DtHiS: 500e-6, CodeLo: 180, CodeHi: 220, Avoid: true}, // avoid (red)
 	}
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, f, hud, true)
 	if countColor(m, colMask) < W { // two boundary lines + the HUD text
 		t.Errorf("mask envelope lines missing: %d colMask px", countColor(m, colMask))
@@ -437,7 +437,7 @@ func TestRenderZoneMaskOverlay(t *testing.T) {
 	hud.MaskMsg = ""
 	hud.ZoneMode = 0
 	hud.MaskMode = 0
-	m2 := NewMemSurface()
+	m2 := NewImage565()
 	Render(m2, f, hud, true)
 	if got := countColor(m2, colMask); got != 0 {
 		t.Errorf("mask rendered despite geometry mismatch/off: %d px", got)
@@ -455,7 +455,7 @@ func TestRenderBodeView(t *testing.T) {
 		hud.BodeGain = append(hud.BodeGain, -6)
 		hud.BodePhase = append(hud.BodePhase, -float64(i)*15)
 	}
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, testFrame(2048), hud, true)
 	// magnitude trace (colC1) and phase trace (colC2) must both be present
 	if countColor(m, colC1) < 40 {
@@ -467,7 +467,7 @@ func TestRenderBodeView(t *testing.T) {
 	// empty curve must render the hint, not panic
 	hud2 := defaultHUD()
 	hud2.ViewMode = 3
-	Render(NewMemSurface(), nil, hud2, true)
+	Render(NewImage565(), nil, hud2, true)
 }
 
 // Decimating for the spectrum averages each block: a tone at the input's
@@ -518,15 +518,15 @@ func TestBodeGridStep(t *testing.T) {
 func TestRenderBothChannelsHidden(t *testing.T) {
 	h := defaultHUD()
 	h.ShowMeas = true
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, testFrame(2048), h, true)
 	if countColorIn(m, colC1, 10, 14, W-10, H) < 500 || countColorIn(m, colC2, 10, 14, W-10, H) < 500 {
 		t.Fatal("unset channel flags must draw both channels")
 	}
 	h.ChanExplicit = true
-	m = NewMemSurface()
+	m = NewImage565()
 	Render(m, testFrame(2048), h, true)
-	for _, c := range []uint16{colC1, colC2} {
+	for _, c := range []Color{colC1, colC2} {
 		if n := countColorIn(m, c, 10, 14, W-10, H); n != 0 {
 			t.Fatalf("hidden channels drew %d px of %#04x", n, c)
 		}
@@ -541,14 +541,14 @@ func TestRenderSheetStatus(t *testing.T) {
 	h := defaultHUD()
 	sh := &wsview.Sheet{WSName: "SCOPE", Rows: []wsview.Row{{Kind: wsview.Enum, Label: "Super-res", Opts: []wsview.Opt{{Text: "Off", Sel: true}, {Text: "On"}}}}}
 	h.UI = wsview.View{Layout: wsview.Layout{MenuW: 116, Sheet: true, HideTraces: true}, Sheet: sh}
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, testFrame(2048), h, true)
 	y := rowY0 + rowH + 8
 	if n := countColorIn(m, colSR, 0, y, 470, y+10); n != 0 {
 		t.Fatalf("no status, yet %d SR px", n)
 	}
 	sh.Status = []wsview.Span{{Text: "Super-res: window too deep for software stacking", Col: wsview.SR}}
-	m = NewMemSurface()
+	m = NewImage565()
 	Render(m, testFrame(2048), h, true)
 	if n := countColorIn(m, colSR, 0, y, 470, y+10); n < 50 {
 		t.Fatalf("idle SR status not drawn (%d px)", n)
@@ -568,7 +568,7 @@ func TestRenderMatchEditor(t *testing.T) {
 		Open: true, Set: "Hex", Proto: "UART", Toks: []string{"55", "A?", "ERR"}, Cur: 3,
 		Keys: [][]string{{"0", "1", "2"}, {"3", "4", "5"}}, Row: 1, Col: 2,
 	}
-	m := NewMemSurface()
+	m := NewImage565()
 	Render(m, testFrame(2048), h, true)
 	if n := countColorIn(m, colTrig, 4+2*226, 80+56, 4+3*226, 80+2*56); n < 2000 {
 		t.Fatalf("highlighted key not filled (%d px)", n)
@@ -586,15 +586,15 @@ func TestRenderMatchEditor(t *testing.T) {
 func TestBodeHintNamesTheChannels(t *testing.T) {
 	hud := defaultHUD()
 	hud.ViewMode, hud.BodeRef, hud.BodeDut = 3, 1, 0
-	m := NewMemSurface()
+	m := NewImage565()
 	p := plotOf(hud.UI.Layout)
 	drawBode(m, p, hud)
-	want := NewMemSurface()
+	want := NewImage565()
 	msg := "BODE / FRA - sweep the source frequency (ref C2, DUT C1)"
 	DrawText(want, (p.w-TextWidth(msg, 1))/2, p.y0+p.h/2, msg, colDim, 1)
 	for y := p.y0 + p.h/2; y < p.y0+p.h/2+8; y++ {
 		for x := range p.w {
-			if m.At(x, y) != want.At(x, y) {
+			if at565(m, x, y) != at565(want, x, y) {
 				t.Fatalf("the hint differs from %q at (%d,%d)", msg, x, y)
 			}
 		}
@@ -612,12 +612,12 @@ func TestRefDrawnThroughItsProbe(t *testing.T) {
 		ref[i] = 228 // 4 V at the tip through the x1 probe it was stored with
 	}
 	hud.RefC1[0], hud.RefShow[0], hud.RefVdiv[0][0], hud.RefProbe[0][0] = ref, true, 1, 1
-	m := NewMemSurface()
+	m := NewImage565()
 	drawRefs(m, fullPlot, hud)
 	row := func(code float64) int {
 		n := 0
 		for x := range W {
-			if m.At(x, fullPlot.sy(code)) == colInfo {
+			if at565(m, x, fullPlot.sy(code)) == pack565(colInfo) {
 				n++
 			}
 		}
@@ -633,16 +633,16 @@ func TestRefDrawnThroughItsProbe(t *testing.T) {
 // TRLC-LINKS: REQ-SDS-214
 func TestBusPaneFaultAndAddress(t *testing.T) {
 	p := plotOf(wsview.Layout{PlotTop: 136})
-	draw := func(ln wsview.BusLine) *MemSurface {
-		m := NewMemSurface()
+	draw := func(ln wsview.BusLine) *Image565 {
+		m := NewImage565()
 		drawBusPane(m, p, &wsview.BusPane{Lines: []wsview.BusLine{ln}})
 		return m
 	}
-	count := func(m *MemSurface, x0, x1 int, c uint16) int {
+	count := func(m *Image565, x0, x1 int, c Color) int {
 		n := 0
 		for y := listY; y < listY+8; y++ {
 			for x := x0; x < x1; x++ {
-				if m.At(x, y) == c {
+				if at565(m, x, y) == pack565(c) {
 					n++
 				}
 			}
@@ -665,13 +665,13 @@ func TestBusPaneFaultAndAddress(t *testing.T) {
 func TestZoomTagReadsTheFactor(t *testing.T) {
 	hud := defaultHUD()
 	hud.Zoom = 50
-	m := NewMemSurface()
+	m := NewImage565()
 	drawHUD(m, nil, hud)
-	want := NewMemSurface()
+	want := NewImage565()
 	DrawText(want, 262, 2, "x50", colTrig, 1)
 	for y := 2; y < 10; y++ {
 		for x := 262; x < 298; x++ {
-			if (m.At(x, y) == colTrig) != (want.At(x, y) == colTrig) {
+			if (at565(m, x, y) == pack565(colTrig)) != (at565(want, x, y) == pack565(colTrig)) {
 				t.Fatalf("the zoom tag differs from \"x50\" at (%d,%d)", x, y)
 			}
 		}

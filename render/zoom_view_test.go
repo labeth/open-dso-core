@@ -52,10 +52,10 @@ func setView(f *sample.Frame, v *sample.Detail) {
 
 // highRuns counts the stretches of the plot where C1 is drawn on row y.
 // TRLC-LINKS: REQ-SDS-021
-func highRuns(sf *MemSurface, y int) int {
+func highRuns(sf *Image565, y int) int {
 	runs, in := 0, false
 	for x := range W - railW {
-		on := sf.At(x, y) == colC1
+		on := at565(sf, x, y) == pack565(colC1)
 		if on && !in {
 			runs++
 		}
@@ -77,8 +77,8 @@ func TestZoomDrawsTheViewWindow(t *testing.T) {
 	if !ok || got != v.Frame || vwin != 1247 || vxc < 769 || vxc > 771 {
 		t.Fatalf("zoomView: ok %v, %d values from centre %.1f; want 1247 (81 values x 15.4) about 770", ok, vwin, vxc)
 	}
-	render := func(f *sample.Frame, h HUD) *MemSurface {
-		sf := NewMemSurface()
+	render := func(f *sample.Frame, h HUD) *Image565 {
+		sf := NewImage565()
 		Render(sf, f, h, true)
 		return sf
 	}
@@ -109,7 +109,7 @@ func TestZoomViewCoupledAsTheTrace(t *testing.T) {
 	f, v := zoomFrame(150) // the trace's mean 150: AC moves it down by 22
 	setView(f, v)
 	hud := HUD{C1VdivV: 1, C2VdivV: 1, TdivS: 200e-6, TrigPosFrac: 0.5, ShowC1: true, ChanExplicit: true, Running: true, Zoom: 50, Cpl1: dsp.CoupleAC}
-	sf := NewMemSurface()
+	sf := NewImage565()
 	Render(sf, f, hud, true)
 	if r := highRuns(sf, sampleToY(178)); r < 8 || r > 9 {
 		t.Fatalf("AC: %d high stretches on the shifted row, want 8-9", r)

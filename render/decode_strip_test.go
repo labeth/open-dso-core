@@ -42,11 +42,11 @@ func TestDecodeStripClearsTrace(t *testing.T) {
 		if p.sy(28) >= decodeStripTop || p.last() >= decodeStripTop {
 			t.Fatalf("plot top %d: -4 div at row %d, plot ends %d: in the strip from %d", top, p.sy(28), p.last(), decodeStripTop)
 		}
-		sf := NewMemSurface()
+		sf := NewImage565()
 		Render(sf, f, h, true)
 		x, found := 300, -1
 		for y := 12; y < decodeStripTop; y++ {
-			if sf.At(x, y) == colC1 {
+			if at565(sf, x, y) == pack565(colC1) {
 				found = y
 			}
 		}

@@ -54,7 +54,7 @@ var rateUnits = []siUnit{{1e6, "M"}, {1e3, "k"}, {1, ""}}
 // header, the page of lines, and on a stopped or scrolled-back stream where
 // the page sits and which controls move it.
 // TRLC-LINKS: REQ-SDS-018
-func drawStream(sf Surface, p plotArea, hud HUD) {
+func drawStream(sf Canvas, p plotArea, hud HUD) {
 	v, pg := hud.Stream, hud.StreamPage
 	fillRect(sf, 0, p.y0+14, p.w, H-28-p.y0, colBoxBg)
 	col := colInfo
@@ -88,7 +88,7 @@ func drawStream(sf Surface, p plotArea, hud HUD) {
 // drawStreamStrip overlays the transcript lines around the trigger on the
 // recalled record's waveform.
 // TRLC-LINKS: REQ-SDS-018
-func drawStreamStrip(sf Surface, p plotArea, hud HUD) {
+func drawStreamStrip(sf Canvas, p plotArea, hud HUD) {
 	v, pg := hud.Stream, hud.StreamPage
 	const lineH = 10
 	fillRect(sf, 0, p.y0+14, p.w, 26+lineH*len(pg.Lines), colBoxBg)

@@ -32,7 +32,7 @@ const (
 // writer.
 // TRLC-LINKS: REQ-SDS-068
 type Spectrogram struct {
-	img     *MemSurface
+	img     *Image565
 	top     int     // the image row (from sgY0) the newest row is on (imgRow)
 	effNyq  float64 // Hz at the right edge of the heatmap
 	rows    int     // rows painted so far (for the "warming up" hint)
@@ -42,13 +42,13 @@ type Spectrogram struct {
 // NewSpectrogram allocates the waterfall image.
 // TRLC-LINKS: REQ-SDS-068
 func NewSpectrogram() *Spectrogram {
-	return &Spectrogram{img: NewMemSurface(), floorDB: -60}
+	return &Spectrogram{img: NewImage565(), floorDB: -60}
 }
 
 // heat maps t∈[0,1] to a perceptual black→blue→cyan→green→yellow→red→white
 // ramp (RGB565). Monotone in brightness so higher dB always reads "hotter".
 // TRLC-LINKS: REQ-SDS-068
-func heat(t float64) uint16 {
+func heat(t float64) Color {
 	// Total in t: a NaN (from a degenerate 0·Inf in the paint math) must not
 	// reach int(NaN) → a garbage stops[] index. NaN and the low tail → black.
 	if math.IsNaN(t) || t <= 0 {
@@ -164,7 +164,7 @@ func (sg *Spectrogram) Clear() {
 // image: the full-screen plot is 1:1) with its axis and colour key, and
 // SPECTRUM's marker when one is given.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-068, REQ-SDS-216
-func drawSpectrogramMark(sf Surface, p plotArea, sg *Spectrogram, hideCaptions bool, m *wsview.SpecPane) {
+func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bool, m *wsview.SpecPane) {
 	if sg == nil || sg.rows == 0 {
 		msg := "SPECTROGRAM - FFT over time; needs a triggered signal"
 		DrawText(sf, (p.w-TextWidth(msg, 1))/2, p.y0+p.h/2, msg, colDim, 1)
@@ -177,7 +177,7 @@ func drawSpectrogramMark(sf Surface, p plotArea, sg *Spectrogram, hideCaptions b
 		return
 	}
 	// blit the heatmap region, nearest neighbour when the plot is smaller
-	if m, ok := sf.(*MemSurface); ok && x0 >= 0 && x1 <= W && y0 >= 0 && y1 <= H {
+	if m, ok := sf.(*Image565); ok && x0 >= 0 && x1 <= W && y0 >= 0 && y1 <= H {
 		// Row by row from the image's pixels: the full-screen plot is a
 		// straight copy, a smaller one maps its columns once.
 		dst, src := m.px(), sg.img.px()

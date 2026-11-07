@@ -37,14 +37,14 @@ func fftBand(half, zoom int, zoomOff float64) (kLo, kHi int) {
 // SPECTRUM peak table and this plot transform a frame once. n is capped so
 // the per-frame cost stays well under the render budget.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-070, REQ-SDS-216
-func drawFFT(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
+func drawFFT(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	sc1, sc2 := hud.shownChans()
 	shown := [2]bool{sc1, sc2 && hud.TwoChan}
 	src := hud.FFTSrc & 1
 	order := []int{1 - src, src} // the source last, on top
 	type label struct {
 		s string
-		c uint16
+		c Color
 	}
 	var labels []label
 	var effNyq float64
@@ -93,7 +93,7 @@ func drawFFT(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
 // line at its frequency, a triangle at its level and a label; the delta
 // reference as a dim line.
 // TRLC-LINKS: REQ-SDS-216
-func drawSpecMarker(sf Surface, p plotArea, m *wsview.SpecPane, fLo, fHi float64) {
+func drawSpecMarker(sf Canvas, p plotArea, m *wsview.SpecPane, fLo, fHi float64) {
 	if m == nil || !m.HasMark || fHi <= fLo {
 		return
 	}
@@ -121,7 +121,7 @@ func drawSpecMarker(sf Surface, p plotArea, m *wsview.SpecPane, fLo, fHi float64
 
 // vdash draws a dotted vertical line (every other pixel).
 // TRLC-LINKS: REQ-SDS-021
-func vdash(sf Surface, x, y0, y1 int, c uint16) {
+func vdash(sf Canvas, x, y0, y1 int, c Color) {
 	for y := y0; y <= y1; y += 2 {
 		sf.SetPixel(x, y, c)
 	}
@@ -129,7 +129,7 @@ func vdash(sf Surface, x, y0, y1 int, c uint16) {
 
 // hdash draws a dotted horizontal line (every other pixel).
 // TRLC-LINKS: REQ-SDS-021
-func hdash(sf Surface, x0, x1, y int, c uint16) {
+func hdash(sf Canvas, x0, x1, y int, c Color) {
 	for x := x0; x <= x1; x += 2 {
 		sf.SetPixel(x, y, c)
 	}
@@ -137,7 +137,7 @@ func hdash(sf Surface, x0, x1, y int, c uint16) {
 
 // fftCoreP is fftCore on plot p.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
-func fftCoreP(sf Surface, p plotArea, samples []float64, col uint16, effNyq float64, kLo, kHi int) float64 {
+func fftCoreP(sf Canvas, p plotArea, samples []float64, col Color, effNyq float64, kLo, kHi int) float64 {
 	mags, peak, _ := framecalc.Mags(samples)
 	return drawSpectrum(sf, p, mags, peak, col, effNyq, kLo, kHi)
 }
@@ -146,7 +146,7 @@ func fftCoreP(sf Surface, p plotArea, samples []float64, col uint16, effNyq floa
 // (dB below peak, -80 dB at the bottom), marks the significant peaks, and
 // returns the parabola-refined frequency of the band's largest peak.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
-func drawSpectrum(sf Surface, p plotArea, mags []float64, peak float64, col uint16, effNyq float64, kLo, kHi int) float64 {
+func drawSpectrum(sf Canvas, p plotArea, mags []float64, peak float64, col Color, effNyq float64, kLo, kHi int) float64 {
 	half := len(mags)
 	if half < 4 {
 		return 0

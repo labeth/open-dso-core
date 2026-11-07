@@ -5,6 +5,7 @@ package render
 import (
 	"testing"
 
+	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/uimodel/wsview"
 )
@@ -19,14 +20,14 @@ func TestDenseTraceKeepsSpikes(t *testing.T) {
 	}
 	spike := 123457 // one sample, between two columns' sample points
 	sig[spike] = 228
-	sf := NewMemSurface()
+	sf := NewImage565()
 	win := len(sig)
-	drawTrace(sf, sig, win, float64(win)/2, false, 0xffff, .5)
+	drawTrace(sf, sig, win, float64(win)/2, false, c565(0xffff), .5)
 	x := spike * W / win
 	top := sampleToY(228)
 	found := false
 	for dx := -1; dx <= 1; dx++ {
-		if sf.At(x+dx, top) == 0xffff {
+		if at565(sf, x+dx, top) == 0xffff {
 			found = true
 		}
 	}
@@ -43,11 +44,11 @@ func TestStaleTimebaseFrameNotDrawn(t *testing.T) {
 		f.Codes8(0)[i], f.Codes8(1)[i] = 200, 200
 	}
 	count := func(hud HUD) int {
-		sf := NewMemSurface()
+		sf := NewImage565()
 		Render(sf, f, hud, true)
 		n := 0
 		for x := range W {
-			if sf.At(x, sampleToY(200)) == colC1 {
+			if at565(sf, x, sampleToY(200)) == pack565(colC1) {
 				n++
 			}
 		}
@@ -63,18 +64,21 @@ func TestStaleTimebaseFrameNotDrawn(t *testing.T) {
 	}
 }
 
-// pixelSurface is a Surface that is not a MemSurface: drawing on it takes the
+// pixelSurface is a Canvas that is not an Image565: drawing on it takes the
 // per-pixel paths.
-type pixelSurface struct{ m *MemSurface }
+type pixelSurface struct{ m *Image565 }
 
 // TRLC-LINKS: REQ-SDS-021
-func (s pixelSurface) SetPixel(x, y int, c uint16) { s.m.SetPixel(x, y, c) }
+func (s pixelSurface) SetPixel(x, y int, c Color) { s.m.SetPixel(x, y, c) }
 
 // TRLC-LINKS: REQ-SDS-021
-func (s pixelSurface) Fill(c uint16) { s.m.Fill(c) }
+func (s pixelSurface) Fill(c Color) { s.m.Fill(c) }
 
 // TRLC-LINKS: REQ-SDS-021
-func (s pixelSurface) At(x, y int) uint16 { return s.m.At(x, y) }
+func (s pixelSurface) At(x, y int) Color { return s.m.At(x, y) }
+
+// TRLC-LINKS: REQ-SDS-021
+func (s pixelSurface) Format() hal.PixelFormat { return s.m.Format() }
 
 // A dense trace filled in blocks (the rows all of a block's columns cover a
 // row at a time) sets the same pixels as each column drawn down its span: held
@@ -98,13 +102,13 @@ func TestDenseTraceBlockFillMatchesColumns(t *testing.T) {
 		held []bool
 		left float64
 	}{{fullPlot, 1, nil, 0}, {plotOf(wsview.Layout{MenuW: 116, PlotTop: 120}), 2, held, -500}, {plotOf(wsview.Layout{MenuW: 116, PlotTop: 120}), 0.5, held, 1200}} {
-		rows, cols := NewMemSurface(), NewMemSurface()
+		rows, cols := NewImage565(), NewImage565()
 		drawDenseTrace(rows, c.p, traceID{1, 1, 0, false}, sig, c.held, c.left, len(sig), colC1, c.z)
 		drawDenseTrace(pixelSurface{cols}, c.p, traceID{1, 1, 0, false}, sig, c.held, c.left, len(sig), colC1, c.z)
 		drawn := 0
 		for y := range H {
 			for x := range W {
-				a, b := rows.At(x, y), cols.At(x, y)
+				a, b := at565(rows, x, y), at565(cols, x, y)
 				if a != b {
 					t.Fatalf("plot %d wide, zoom %v: pixel (%d,%d) %#x by rows, %#x by columns", c.p.w, c.z, x, y, a, b)
 				}
@@ -131,13 +135,13 @@ func TestEnvelopeBlockFillMatchesColumns(t *testing.T) {
 		}
 	}
 	for _, cols := range []int{700, 800} { // 800: the last columns have no data
-		rows, each := NewMemSurface(), NewMemSurface()
+		rows, each := NewImage565(), NewImage565()
 		drawEnvelope(rows, fullPlot, mn, mx, cols, colC2, 1)
 		drawEnvelope(pixelSurface{each}, fullPlot, mn, mx, cols, colC2, 1)
 		drawn := 0
 		for y := range H {
 			for x := range W {
-				if a, b := rows.At(x, y), each.At(x, y); a != b {
+				if a, b := at565(rows, x, y), at565(each, x, y); a != b {
 					t.Fatalf("%d columns: pixel (%d,%d) %#x in blocks, %#x by columns", cols, x, y, a, b)
 				} else if a != 0 {
 					drawn++

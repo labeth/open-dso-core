@@ -36,3 +36,7 @@ func uartWave(bytes []int, spb, n int) []uint8 {
 // paneLayout is a workspace layout: the rail and a pane above the plot.
 // TRLC-LINKS: REQ-SDS-211
 func paneLayout(top int) wsview.Layout { return wsview.Layout{MenuW: 30, PlotTop: top} }
+
+// at565 is the RGB565 word canvas sf shows at (x, y).
+// TRLC-LINKS: REQ-SDS-021
+func at565(sf Canvas, x, y int) uint16 { return pack565(sf.At(x, y)) }

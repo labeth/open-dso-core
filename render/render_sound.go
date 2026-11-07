@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/uimodel/wsview"
 )
 
@@ -26,14 +27,14 @@ const (
 
 // scaleCol scales a colour's brightness by k (0..1).
 // TRLC-LINKS: REQ-SDS-273
-func scaleCol(c uint16, k float64) uint16 {
-	r, g, b := unpack565(c)
+func scaleCol(f hal.PixelFormat, c Color, k float64) Color {
+	r, g, b := atPrecision(f, c).channels()
 	return rgb(uint8(float64(r)*k), uint8(float64(g)*k), uint8(float64(b)*k))
 }
 
 // chanCol is a channel's trace colour.
 // TRLC-LINKS: REQ-SDS-273
-func chanCol(ch int) uint16 {
+func chanCol(ch int) Color {
 	if ch == 1 {
 		return colC2
 	}
@@ -42,7 +43,7 @@ func chanCol(ch int) uint16 {
 
 // drawSoundPane draws the tuner, the meters and the readout column.
 // TRLC-LINKS: REQ-SDS-273, REQ-SDS-267, REQ-SDS-266
-func drawSoundPane(sf Surface, p plotArea, s *wsview.SoundPane) {
+func drawSoundPane(sf Canvas, p plotArea, s *wsview.SoundPane) {
 	drawPaneFrame(sf, p, &s.Pane)
 	bottom := p.y0 - 15 // above the tool line
 	drawTuner(sf, s, bottom)
@@ -64,7 +65,7 @@ func drawSoundPane(sf Surface, p plotArea, s *wsview.SoundPane) {
 
 // drawTuner draws the note, the needle, the strobe and the pitch strip.
 // TRLC-LINKS: REQ-SDS-267, REQ-SDS-273
-func drawTuner(sf Surface, s *wsview.SoundPane, bottom int) {
+func drawTuner(sf Canvas, s *wsview.SoundPane, bottom int) {
 	x0, w := sndTunerX, sndTunerW
 	noteCol := colDim
 	if s.HasPitch {
@@ -96,7 +97,7 @@ func drawTuner(sf Surface, s *wsview.SoundPane, bottom int) {
 		}
 		vline(sf, cx(c), y+8-h, y+8+h, colAxis)
 	}
-	fillRect(sf, cx(-2), y+5, cx(2)-cx(-2)+1, 7, scaleCol(colOK, 0.35))
+	fillRect(sf, cx(-2), y+5, cx(2)-cx(-2)+1, 7, scaleCol(sf.Format(), colOK, 0.35))
 	if s.HasPitch {
 		n := cx(s.Cents)
 		fillRect(sf, n-1, y-2, 3, 21, noteCol)
@@ -153,7 +154,7 @@ func drawTuner(sf Surface, s *wsview.SoundPane, bottom int) {
 // drawMeters draws the two level bars (+6 to -60 dB against the
 // reference) with their figures beneath.
 // TRLC-LINKS: REQ-SDS-266, REQ-SDS-273
-func drawMeters(sf Surface, s *wsview.SoundPane, bottom int) {
+func drawMeters(sf Canvas, s *wsview.SoundPane, bottom int) {
 	x0 := sndMeterX
 	DrawText(sf, x0, 28, cutText(s.RefName, sndMeterW/6), colDim, 1)
 	const top, dbTop, dbBot = 44, 6.0, -60.0
@@ -207,7 +208,7 @@ func drawMeters(sf Surface, s *wsview.SoundPane, bottom int) {
 // drawSoundTrace draws the pitch-locked cycles in the plot: the newest in
 // the channel's colour over the older ones dimmed, and its figures.
 // TRLC-LINKS: REQ-SDS-272, REQ-SDS-273
-func drawSoundTrace(sf Surface, p plotArea, s *wsview.SoundPane) {
+func drawSoundTrace(sf Canvas, p plotArea, s *wsview.SoundPane) {
 	if s == nil {
 		return
 	}
@@ -237,7 +238,7 @@ func drawSoundTrace(sf Surface, p plotArea, s *wsview.SoundPane) {
 	for k, tr := range s.Traces {
 		col := chanCol(s.Ch)
 		if k < n-1 {
-			col = scaleCol(col, 0.18+0.3*float64(k)/float64(n))
+			col = scaleCol(sf.Format(), col, 0.18+0.3*float64(k)/float64(n))
 		}
 		// x = i*(w-1)/(len-1), stepped: a quotient and remainder carried
 		// from sample to sample instead of a division each.
@@ -271,7 +272,7 @@ func drawSoundTrace(sf Surface, p plotArea, s *wsview.SoundPane) {
 // column, the trigger as a dashed line with its marker on top, a bar of
 // where the window sits in the take, and the title and the knobs' jobs.
 // TRLC-LINKS: REQ-SDS-275, REQ-SDS-273
-func drawSoundTake(sf Surface, p plotArea, t *wsview.SoundTake) {
+func drawSoundTake(sf Canvas, p plotArea, t *wsview.SoundTake) {
 	top, h := p.y0+16, p.h-30
 	lane := h / 2
 	for ch := range 2 {

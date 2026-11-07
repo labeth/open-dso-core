@@ -13,11 +13,11 @@ import (
 // the left-edge ground markers and the right-edge trigger handle) and returns
 // the min/max row holding a pixel of the given trace colour.
 // TRLC-LINKS: REQ-SDS-021
-func traceRows(sf *MemSurface, col uint16) (minY, maxY int, found bool) {
+func traceRows(sf *Image565, col Color) (minY, maxY int, found bool) {
 	minY, maxY = H, -1
 	for y := 16; y <= 450; y++ {
 		for x := 40; x <= 760; x++ {
-			if sf.At(x, y) == col {
+			if at565(sf, x, y) == pack565(col) {
 				if y < minY {
 					minY = y
 				}
@@ -60,8 +60,8 @@ func TestRenderINVSFlipsTrace(t *testing.T) {
 		TwoChan: true, ShowC1: true, ShowC2: true, Running: true,
 	}
 
-	render := func(h HUD) *MemSurface {
-		sf := NewMemSurface()
+	render := func(h HUD) *Image565 {
+		sf := NewImage565()
 		Render(sf, f, h, true)
 		return sf
 	}
@@ -69,7 +69,7 @@ func TestRenderINVSFlipsTrace(t *testing.T) {
 	// Baseline: each flat trace sits on its sampleToY row.
 	sf := render(hud)
 	for _, c := range []struct {
-		col  uint16
+		col  Color
 		code uint8
 	}{{colC1, 168}, {colC2, 88}} {
 		lo, hi, ok := traceRows(sf, c.col)
@@ -116,7 +116,7 @@ func TestRenderINVSFlipsEnvelope(t *testing.T) {
 		C1VdivV: 1, C2VdivV: 1, TdivS: 0.1, TrigPosFrac: 0.5,
 		TwoChan: true, ShowC1: true, ShowC2: true, Running: true,
 	}
-	sf := NewMemSurface()
+	sf := NewImage565()
 	Render(sf, f, hud, true)
 	lo, hi, ok := traceRows(sf, colC1)
 	if !ok || lo != sampleToY(150) || hi != sampleToY(100) {
@@ -125,7 +125,7 @@ func TestRenderINVSFlipsEnvelope(t *testing.T) {
 	}
 
 	hud.Inv1 = true
-	sf = NewMemSurface()
+	sf = NewImage565()
 	Render(sf, f, hud, true)
 	lo, hi, ok = traceRows(sf, colC1)
 	if !ok || lo != sampleToY(255-100) || hi != sampleToY(255-150) {
@@ -144,9 +144,9 @@ func TestTriggerPositionMarkerEndpoints(t *testing.T) {
 		pos float64
 		x   int
 	}{{0, 0}, {.5, W / 2}, {1, W - 1}} {
-		sf := NewMemSurface()
+		sf := NewImage565()
 		drawMarkers(sf, fullPlot, nil, HUD{TrigPosFrac: tc.pos})
-		if sf.At(tc.x, 9) != colTrig {
+		if at565(sf, tc.x, 9) != pack565(colTrig) {
 			t.Errorf("position %g: missing pointer tip at %d", tc.pos, tc.x)
 		}
 	}
@@ -159,14 +159,14 @@ func TestLeftEdgeTraceDecodeAndZoneAlignment(t *testing.T) {
 	hud := HUD{DecProto: 2, DecBaud: 62500, Zones: []Zone{{DtLoS: 0, DtHiS: 100e-6, CodeLo: 100, CodeHi: 160}}}
 	for _, tc := range []struct {
 		name string
-		draw func(Surface, float64, float64)
+		draw func(Canvas, float64, float64)
 	}{
-		{"trace", func(sf Surface, xc, pf float64) { drawTrace(sf, f.Codes8(0), n, xc, false, colC1, pf) }},
-		{"decode", func(sf Surface, xc, pf float64) { drawDecode(sf, fullPlot, f, hud, n, xc, pf) }},
-		{"zone", func(sf Surface, xc, pf float64) { drawZoneMask(sf, fullPlot, f, hud, n, xc, pf) }},
+		{"trace", func(sf Canvas, xc, pf float64) { drawTrace(sf, f.Codes8(0), n, xc, false, colC1, pf) }},
+		{"decode", func(sf Canvas, xc, pf float64) { drawDecode(sf, fullPlot, f, hud, n, xc, pf) }},
+		{"zone", func(sf Canvas, xc, pf float64) { drawZoneMask(sf, fullPlot, f, hud, n, xc, pf) }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			a, b := NewMemSurface(), NewMemSurface()
+			a, b := NewImage565(), NewImage565()
 			tc.draw(a, 0, 0)
 			tc.draw(b, n/2, .5)
 			if !bytes.Equal(a.Pix, b.Pix) {
@@ -189,9 +189,9 @@ func TestMaskOverlayThroughTime(t *testing.T) {
 		}
 	}
 	hud := HUD{MaskMode: 1, MaskLo: lo, MaskHi: hi, MaskWin: 1000, MaskTdivS: 100e-9, MaskSampleS: 1e-9, TrigPosFrac: .5}
-	draw := func(n int, sampleS float64) *MemSurface {
+	draw := func(n int, sampleS float64) *Image565 {
 		f := &sample.Frame{WinPoints: n, TriggerAt: float64(n) / 2, SampleS: sampleS, Snapshot: sample.Settings{TdivS: 100e-9}, Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Valid: n}}}
-		sf := NewMemSurface()
+		sf := NewImage565()
 		drawZoneMask(sf, fullPlot, f, hud, n, float64(n)/2, .5)
 		return sf
 	}
@@ -201,9 +201,9 @@ func TestMaskOverlayThroughTime(t *testing.T) {
 		x    int
 		code float64
 	}{{p.w / 4, 20}, {p.w / 4, 40}, {3 * p.w / 4, 200}, {3 * p.w / 4, 220}} {
-		if own.At(c.x, p.sy(c.code)) != colMask || env.At(c.x, p.sy(c.code)) != colMask {
+		if at565(own, c.x, p.sy(c.code)) != pack565(colMask) || at565(env, c.x, p.sy(c.code)) != pack565(colMask) {
 			t.Errorf("mask line at x %d, code %g: own sampling %v, envelope %v", c.x, c.code,
-				own.At(c.x, p.sy(c.code)) == colMask, env.At(c.x, p.sy(c.code)) == colMask)
+				at565(own, c.x, p.sy(c.code)) == pack565(colMask), at565(env, c.x, p.sy(c.code)) == pack565(colMask))
 		}
 	}
 }

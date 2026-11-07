@@ -28,7 +28,7 @@ var (
 // tok is the shared palette's colour name in the LCD's RGB565. A name the
 // palette lacks is a programming error, caught at start and by the tests.
 // TRLC-LINKS: REQ-SDS-021
-func tok(name string) uint16 {
+func tok(name string) Color {
 	c, ok := design.Tokens[name]
 	if !ok {
 		panic("lcd: palette has no token " + name)

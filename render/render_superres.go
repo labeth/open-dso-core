@@ -14,7 +14,7 @@ import (
 // bottom edge while stacking is active, and — in the gate-edit foci — the gate
 // markers over the live trace with the active edge highlighted.
 // TRLC-LINKS: REQ-SDS-021
-func drawSuperresHUD(sf Surface, p plotArea, hud HUD) {
+func drawSuperresHUD(sf Canvas, p plotArea, hud HUD) {
 	// Gate overlay while watching/editing (focus 0/1/2): two vertical markers at
 	// the SELECTED span's edges (the user's region — not the internal one-period
 	// stack gate, which would jump after arming); the edge being edited is drawn
@@ -45,7 +45,7 @@ func drawSuperresHUD(sf Surface, p plotArea, hud HUD) {
 
 // drawSRLine is the super-res status line.
 // TRLC-LINKS: REQ-SDS-021
-func drawSRLine(sf Surface, p plotArea, msg string) {
+func drawSRLine(sf Canvas, p plotArea, msg string) {
 	// Bottom-left, one row above the Vpp/f quick readout (at H-12 it covers
 	// the C1 readout); a thin backing bar keeps it legible over the trace.
 	y := H - 21
@@ -79,7 +79,7 @@ func srFocusTag(f int) string {
 // multi-wave view from the fast one-period stack. Each screen column takes the
 // min/max over its covered fine bins so detail survives any grid size.
 // TRLC-LINKS: REQ-SDS-021
-func drawSuperresTrace(sf Surface, p plotArea, hud HUD) {
+func drawSuperresTrace(sf Canvas, p plotArea, hud HUD) {
 	m := hud.SRMean
 	nb := len(m)
 	if nb == 0 {
@@ -277,7 +277,7 @@ func srFFTPlan(hud HUD) (n int, effNyq float64, kLo, kHi int, ok bool) {
 // so its Nyquist extends K× past the raw single-shot Nyquist AND its noise floor
 // drops by the gained bits — the super-res win, now visible in the spectrum.
 // TRLC-LINKS: REQ-SDS-021, REQ-SDS-070
-func drawSuperresFFT(sf Surface, p plotArea, hud HUD) {
+func drawSuperresFFT(sf Canvas, p plotArea, hud HUD) {
 	n, effNyq, kLo, kHi, ok := srFFTPlan(hud)
 	if !ok {
 		DrawText(sf, 10, p.y0+10, "SR FFT - stacking...", colDim, 1)
@@ -315,7 +315,7 @@ func drawSuperresFFT(sf Surface, p plotArea, hud HUD) {
 // they pair up. Float grid ⇒ smoother than the live X-Y. The pen lifts over
 // uncovered (-1 gap) bins rather than drawing a false chord (matches the web).
 // TRLC-LINKS: REQ-SDS-021
-func drawSuperresXY(sf Surface, p plotArea, hud HUD) {
+func drawSuperresXY(sf Canvas, p plotArea, hud HUD) {
 	c1Mean, c2Mean := hud.SRMean, hud.SRMean2
 	if hud.SRAlign == 1 {
 		c1Mean, c2Mean = hud.SRMean2, hud.SRMean

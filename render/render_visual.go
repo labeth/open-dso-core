@@ -27,7 +27,7 @@ const kindData = "data"
 const visTop = 14
 
 // visChColours colour MIDI's sixteen channels (the web's colours).
-var visChColours = [16]uint16{
+var visChColours = [16]Color{
 	rgb(79, 195, 247), rgb(255, 183, 77), rgb(129, 199, 132), rgb(229, 115, 115), rgb(186, 104, 200), rgb(255, 241, 118),
 	rgb(77, 182, 172), rgb(240, 98, 146), rgb(149, 117, 205), rgb(161, 136, 127), rgb(174, 213, 129), rgb(100, 181, 246),
 	rgb(255, 138, 101), rgb(144, 164, 174), rgb(220, 231, 117), rgb(121, 134, 203),
@@ -35,7 +35,7 @@ var visChColours = [16]uint16{
 
 // drawVisualPane draws the frame's bus as what it carries in the plot.
 // TRLC-LINKS: REQ-SDS-281
-func drawVisualPane(sf Surface, p plotArea, f *sample.Frame, hud HUD) {
+func drawVisualPane(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	// under the status line (channels, timebase, trigger): it stays
 	if top := visTop - p.y0; top > 0 {
 		p.y0, p.h = visTop, p.h-top
@@ -71,7 +71,7 @@ type visArea struct {
 
 // visDrawBus draws the decode's picture; it gives the title and a line beside it.
 // TRLC-LINKS: REQ-SDS-281
-func visDrawBus(sf Surface, a visArea, res decode.Result) (string, string) {
+func visDrawBus(sf Canvas, a visArea, res decode.Result) (string, string) {
 	p := res.Proto
 	switch {
 	case p == "midi":
@@ -155,7 +155,7 @@ func visMIDIEvents(spans []decode.Span) []visMIDIEvent {
 // at the key) and releases (hollow) above their keys, each as high as it is
 // long before the capture's end, the keys pushed and not released in it lit.
 // TRLC-LINKS: REQ-SDS-281
-func visDrawMIDI(sf Surface, a visArea, spans []decode.Span) string {
+func visDrawMIDI(sf Canvas, a visArea, spans []decode.Span) string {
 	ev := visMIDIEvents(spans)
 	const lo, hi = 21, 108
 	black := func(n int) bool { m := n % 12; return m == 1 || m == 3 || m == 6 || m == 8 || m == 10 }
@@ -267,7 +267,7 @@ func visDrawMIDI(sf Surface, a visArea, spans []decode.Span) string {
 // visDrawDMX draws the levels of the capture's longest packet (one the
 // record's end cuts short holds fewer slots) as 512 bars, 32 a row.
 // TRLC-LINKS: REQ-SDS-281
-func visDrawDMX(sf Surface, a visArea, spans []decode.Span) string {
+func visDrawDMX(sf Canvas, a visArea, spans []decode.Span) string {
 	var pkt, cur []int
 	in := false
 	keep := func() {
@@ -313,7 +313,7 @@ func visDrawDMX(sf Surface, a visArea, spans []decode.Span) string {
 
 // visDrawLEDs draws the capture's last latched frame's LEDs (GRB) in their colours.
 // TRLC-LINKS: REQ-SDS-281
-func visDrawLEDs(sf Surface, a visArea, spans []decode.Span) string {
+func visDrawLEDs(sf Canvas, a visArea, spans []decode.Span) string {
 	var frame, cur []int
 	for _, sp := range spans {
 		switch {
@@ -349,7 +349,7 @@ func visDrawLEDs(sf Surface, a visArea, spans []decode.Span) string {
 // visDrawPS2 lists the capture's key presses and releases (the scan codes,
 // an extended key E0-prefixed), the newest last.
 // TRLC-LINKS: REQ-SDS-281
-func visDrawPS2(sf Surface, a visArea, spans []decode.Span) string {
+func visDrawPS2(sf Canvas, a visArea, spans []decode.Span) string {
 	var lines []string
 	ext, brk := false, false
 	for _, sp := range spans {
@@ -388,7 +388,7 @@ func visDrawPS2(sf Surface, a visArea, spans []decode.Span) string {
 
 // visDrawText writes the capture's text (a byte not printable as a dot).
 // TRLC-LINKS: REQ-SDS-281
-func visDrawText(sf Surface, a visArea, spans []decode.Span) string {
+func visDrawText(sf Canvas, a visArea, spans []decode.Span) string {
 	var b strings.Builder
 	for _, sp := range spans {
 		if sp.Kind != kindData {
@@ -426,7 +426,7 @@ func visDrawText(sf Surface, a visArea, spans []decode.Span) string {
 // identifier's six bits, CAN's identifier): each one's newest bytes and how
 // many came.
 // TRLC-LINKS: REQ-SDS-281
-func visDrawFrames(sf Surface, a visArea, spans []decode.Span, lin bool) string {
+func visDrawFrames(sf Canvas, a visArea, spans []decode.Span, lin bool) string {
 	type fr struct {
 		bytes []int
 		n     int
@@ -507,7 +507,7 @@ func visDrawFrames(sf Surface, a visArea, spans []decode.Span, lin bool) string 
 // visBigLast writes the capture's newest reading large (read from its spans
 // by reading: its text and the line under it; ok false none).
 // TRLC-LINKS: REQ-SDS-281
-func visBigLast(sf Surface, a visArea, spans []decode.Span, reading func([]decode.Span) (string, string, bool)) string {
+func visBigLast(sf Canvas, a visArea, spans []decode.Span, reading func([]decode.Span) (string, string, bool)) string {
 	big, small, ok := reading(spans)
 	if !ok {
 		DrawText(sf, 8, a.y0+a.h/2, "no whole reading in this capture", colDim, 1)

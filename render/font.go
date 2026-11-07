@@ -21,9 +21,19 @@ func TextWidth(s string, scale int) int {
 // Bit 7 is a descender row: g, j, p, q and y drop below the baseline, so g
 // does not read as 9 ("Sp9m", "phase de9").
 // TRLC-LINKS: REQ-SDS-021
-func DrawText(sf Surface, x, y int, s string, c uint16, scale int) {
-	m, mem := sf.(*MemSurface)
-	lo, hi := byte(c&0xff), byte(c>>8)
+func DrawText(sf Canvas, x, y int, s string, c Color, scale int) {
+	if m, ok := sf.(*Image565); ok {
+		textPx(sf, m.px(), W, H, x, y, s, pack565(c), c, scale)
+		return
+	}
+	textPx[uint16](sf, nil, 0, 0, x, y, s, 0, c, scale)
+}
+
+// textPx is DrawText on a w×h page of pixels px, n being c in its format;
+// glyphs off the page, or every glyph without pixels, go through sf.
+// TRLC-LINKS: REQ-SDS-021
+func textPx[P pixel](sf Canvas, px []P, w, h, x, y int, s string, n P, c Color, scale int) {
+	mem := px != nil
 	for _, r := range s {
 		var g [5]byte
 		ok := false
@@ -34,13 +44,13 @@ func DrawText(sf Surface, x, y int, s string, c uint16, scale int) {
 		}
 		switch {
 		case !ok:
-		case mem && scale == 1 && x >= 0 && y >= 0 && x+5 <= W && y+8 <= H:
+		case mem && scale == 1 && x >= 0 && y >= 0 && x+5 <= w && y+8 <= h:
 			// Most of the HUD: one pixel a set bit, a column at a time.
-			glyphPx(m.px(), y*W+x, &g, c)
-		case mem && x >= 0 && y >= 0 && x+5*scale <= W && y+8*scale <= H:
+			glyphPx(px, w, y*w+x, &g, n)
+		case mem && x >= 0 && y >= 0 && x+5*scale <= w && y+8*scale <= h:
 			// The glyph's box is on the screen: its pixels written
 			// directly, as SetPixel would write them.
-			glyphPix(m.Pix, x, y, &g, scale, lo, hi)
+			glyphPix(px, w, x, y, &g, scale, n)
 		default:
 			glyphAt(sf, x, y, &g, scale, c)
 		}
@@ -48,25 +58,25 @@ func DrawText(sf Surface, x, y int, s string, c uint16, scale int) {
 	}
 }
 
-// glyphPx writes a glyph at scale 1 into the page's words from offset o (its
-// top-left pixel): one pixel a set bit, a column at a time.
+// glyphPx writes a glyph at scale 1 into a page w pixels wide from offset o
+// (its top-left pixel): one pixel a set bit, a column at a time.
 // TRLC-LINKS: REQ-SDS-021
-func glyphPx(px []uint16, o int, g *[5]byte, c uint16) {
+func glyphPx[P pixel](px []P, w, o int, g *[5]byte, c P) {
 	for col := range 5 {
 		p := o + col
 		for bits := g[col]; bits != 0; bits >>= 1 {
 			if bits&1 != 0 {
 				px[p] = c
 			}
-			p += W
+			p += w
 		}
 	}
 }
 
-// glyphPix writes a scaled glyph whose box is on the page straight into its
-// bytes (lo, hi: the colour's two), as SetPixel would write them.
+// glyphPix writes a scaled glyph whose box is on a page w pixels wide
+// straight into its pixels, as SetPixel would write them.
 // TRLC-LINKS: REQ-SDS-021
-func glyphPix(pix []byte, x, y int, g *[5]byte, scale int, lo, hi byte) {
+func glyphPix[P pixel](px []P, w, x, y int, g *[5]byte, scale int, c P) {
 	for col := range 5 {
 		bits := g[col]
 		for row := range 8 {
@@ -74,9 +84,9 @@ func glyphPix(pix []byte, x, y int, g *[5]byte, scale int, lo, hi byte) {
 				continue
 			}
 			for dy := range scale {
-				o := ((y+row*scale+dy)*W + x + col*scale) * 2
+				o := (y+row*scale+dy)*w + x + col*scale
 				for dx := range scale {
-					pix[o+2*dx], pix[o+2*dx+1] = lo, hi
+					px[o+dx] = c
 				}
 			}
 		}
@@ -85,7 +95,7 @@ func glyphPix(pix []byte, x, y int, g *[5]byte, scale int, lo, hi byte) {
 
 // glyphAt draws a glyph pixel by pixel through the surface, clipped by it.
 // TRLC-LINKS: REQ-SDS-021
-func glyphAt(sf Surface, x, y int, g *[5]byte, scale int, c uint16) {
+func glyphAt(sf Canvas, x, y int, g *[5]byte, scale int, c Color) {
 	for col := range 5 {
 		bits := g[col]
 		for row := range 8 { // row 7: descenders (g j p q y)
@@ -114,6 +124,6 @@ var asciiGlyphs, asciiHave = func() (g [128][5]byte, have [128]bool) {
 
 // DrawTextRight right-aligns: draws ending at xr.
 // TRLC-LINKS: REQ-SDS-021
-func DrawTextRight(sf Surface, xr, y int, s string, c uint16, scale int) {
+func DrawTextRight(sf Canvas, xr, y int, s string, c Color, scale int) {
 	DrawText(sf, xr-TextWidth(s, scale), y, s, c, scale)
 }

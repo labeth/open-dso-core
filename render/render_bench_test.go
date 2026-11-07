@@ -21,7 +21,7 @@ import (
 // TRLC-LINKS: REQ-SDS-021
 func benchRender(b *testing.B, f *sample.Frame, h render.HUD) {
 	b.Helper()
-	sf := render.NewMemSurface()
+	sf := render.NewImage565()
 	b.ReportAllocs()
 	for range b.N {
 		render.Render(sf, f, h, true)
@@ -60,7 +60,7 @@ func BenchmarkRenderBusEye(b *testing.B) {
 
 // TRLC-LINKS: REQ-SDS-221
 func BenchmarkDrawSaver(b *testing.B) {
-	sf := render.NewMemSurface()
+	sf := render.NewImage565()
 	f := rendertest.YTFrame()
 	h := rendertest.YTHUD()
 	h.MaskMode = 1
@@ -131,7 +131,7 @@ func BenchmarkDrawMeasPanel(b *testing.B) {
 	f.Seq = 7 // measured once, then cached: the panel's own cost
 	h := rendertest.YTHUD()
 	h.MeasItems = []string{"1:pkpk", "1:freq", "1:duty", "1:rise", "2:pkpk", "2:mean", "2:period", "2:ovsh"}
-	sf := render.NewMemSurface()
+	sf := render.NewImage565()
 	for b.Loop() {
 		render.DrawMeasPanel(sf, render.FullPlot, f, h)
 	}
@@ -157,7 +157,7 @@ func BenchmarkMathCodes(b *testing.B) {
 func BenchmarkDrawSoundPane(b *testing.B) {
 	s := rendertest.SoundPane("MODULATION", []wsview.Span{{Text: "TREMOLO (AM)", Col: wsview.Amber}, {Text: "depth 30.0%  5.4 dB", Col: wsview.Text}})
 	p := render.PlotOf(wsview.Layout{MenuW: 30, PlotTop: 262})
-	sf := render.NewMemSurface()
+	sf := render.NewImage565()
 	for b.Loop() {
 		render.DrawSoundPane(sf, p, s)
 		render.DrawSoundTrace(sf, p, s)
@@ -167,7 +167,7 @@ func BenchmarkDrawSoundPane(b *testing.B) {
 // TRLC-LINKS: REQ-SDS-021
 func BenchmarkDrawSuperresTrace(b *testing.B) {
 	h := rendertest.SuperresHUD()
-	sf := render.NewMemSurface()
+	sf := render.NewImage565()
 	for b.Loop() {
 		render.DrawSuperresTrace(sf, render.FullPlot, h)
 	}
@@ -189,22 +189,22 @@ func TestDrawSaver(t *testing.T) {
 	hud := rendertest.YTHUD()
 	hud.Running = true
 	for _, step := range []int{0, 137, 1450} {
-		m := render.NewMemSurface()
+		m := render.NewImage565()
 		m.Fill(render.ColC1) // the workspace that was shown
 		render.DrawSaver(m, f, hud, step)
 		x0, y0 := render.SaverPos(step)
 		var c1, ok int
 		for y := range render.H {
 			for x := range render.W {
-				c := m.At(x, y)
+				c := render.At565(m, x, y)
 				in := x >= x0 && x < x0+render.SaverW && y >= y0 && y < y0+render.SaverBoxH
 				if c != 0 && !in {
 					t.Fatalf("step %d: pixel (%d,%d) lit outside the box at (%d,%d)", step, x, y, x0, y0)
 				}
 				switch {
-				case c == render.ColC1 && y < y0+render.SaverH:
+				case c == render.Pack565(render.ColC1) && y < y0+render.SaverH:
 					c1++ // the trace
-				case c == render.ColOK && y >= y0+render.SaverH:
+				case c == render.Pack565(render.ColOK) && y >= y0+render.SaverH:
 					ok++ // RUN
 				}
 			}
