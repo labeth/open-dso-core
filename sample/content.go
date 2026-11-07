@@ -251,6 +251,27 @@ type Scale struct {
 // TRLC-LINKS: REQ-DSO-1003
 func (s Scale) Volts(word float64) float64 { return (word-s.Zero)*s.PerCode - s.OffsetV }
 
+// Word converts volts back to a word, the inverse of Volts. A word within
+// wordSnap of a 1/256 step (a code, or a Q8.8 fraction of one such as a
+// learned threshold half way between two codes) is that step exactly, so a
+// level that was a word survives a round trip through volts bit for bit:
+// the float error of the trip cannot move it across a rounding the board
+// applies (an x.5 code rounding down after the trip). Any other word comes
+// back within the trip's float error.
+// TRLC-LINKS: REQ-DSO-1003
+func (s Scale) Word(v float64) float64 {
+	w := (v+s.OffsetV)/s.PerCode + s.Zero
+	if q := math.Round(w*256) / 256; math.Abs(w-q) < wordSnap {
+		return q
+	}
+	return w
+}
+
+// wordSnap is how near a 1/256 word step a converted level snaps to it: far
+// above a volts round trip's float error (about 1e-13 words for offsets of
+// thousands of codes), far below any step a board resolves.
+const wordSnap = 1e-6
+
 // The 8-bit view: every format's words mapped onto the scale of an 8-bit
 // converter centred at 128, so kernels written for 8-bit codes and Q8.8
 // precision words serve any converter. A word is the format's mid at 128.0;
