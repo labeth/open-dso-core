@@ -2,6 +2,7 @@ package simboard
 
 import (
 	"math"
+	"time"
 
 	dec "github.com/labeth/open-dso-core/decode"
 	"github.com/labeth/open-dso-core/engine"
@@ -21,6 +22,16 @@ const (
 	busLow  = 28
 	busMid  = 128
 	busHigh = 228
+)
+
+// The receiver's pacing: it reads at most busEvals samples of each line a
+// look, a look every busPollEvery, so a fast bus with no match (a clock
+// that never pauses) cannot take the thread the whole product shares in a
+// browser; what passes meanwhile is missed, as a receiver re-arming misses
+// it.
+const (
+	busEvals     = 32768
+	busPollEvery = 20 * time.Millisecond
 )
 
 // busBack bounds how far before the scan point the receiver reads again,
@@ -103,8 +114,8 @@ func (b *Board) scanBus(q *acquisition, bus *prototrig.Bus, now float64) {
 	}
 	// a scan fallen far behind skips ahead, as a receiver misses what passes
 	// while it is not armed
-	if (now-from+back)/step > scanEvals {
-		from = now - scanEvals*step + back
+	if (now-from+back)/step > busEvals {
+		from = now - busEvals*step + back
 	}
 	t0 := from - back
 	n := int((now - t0) / step)

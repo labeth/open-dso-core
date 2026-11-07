@@ -262,7 +262,11 @@ func (b *Board) poll() (st hal.Status, ready bool, next time.Duration, err error
 	}
 	st = hal.Status{Triggered: q.found && !q.forced}
 	if !q.found {
-		return st, false, pollEvery, nil
+		next := pollEvery
+		if st0 := q.set.trigger.Stages; len(st0) > 0 && st0[0].Node == hal.NodeProtocol {
+			next = busPollEvery
+		}
+		return st, false, next, nil
 	}
 	wall := time.Now()
 	if gap := b.frameInterval() - wall.Sub(b.lastDone); gap > 0 {
