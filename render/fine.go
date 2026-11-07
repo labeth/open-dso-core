@@ -98,7 +98,10 @@ func drawFineTrace(sf Canvas, p plotArea, q []uint16, held []bool, win int, xc f
 		for x := range p.w {
 			a := int(math.Floor(left + float64(x)*float64(win)/float64(p.w)))
 			b := int(math.Floor(left+float64(x+1)*float64(win)/float64(p.w))) - 1
-			a, b = min(max(a, 0), n-1), min(max(b, a), n-1)
+			// b is clamped against the clamped a: a column left of the
+			// record (a pan past its start) has both below 0
+			a = min(max(a, 0), n-1)
+			b = min(max(b, a), n-1)
 			lo, hi := q[a], q[a]
 			for _, v := range q[a+1 : b+1] {
 				lo, hi = min(lo, v), max(hi, v)
