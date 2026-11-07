@@ -88,16 +88,17 @@ func underOf(sf Canvas) image.Rectangle {
 // one page) and the test canvas.
 // TRLC-LINKS: REQ-SDS-021
 type Image565 struct {
-	Pix []byte // RGB565 little-endian, W*H*2 bytes
-	pix []uint16
-	m   *Metrics
+	Pix  []byte // RGB565 little-endian, W*H*2 bytes
+	pix  []uint16
+	m    *Metrics
+	w, h int // m's, held here: the fast paths read them per segment
 }
 
 // NewImage565 returns a blank (black) RGB565 page of screen m's size.
 // TRLC-LINKS: REQ-SDS-021
 func NewImage565(m *Metrics) *Image565 {
 	pix := make([]uint16, m.W*m.H)
-	return &Image565{Pix: unsafe.Slice((*byte)(unsafe.Pointer(&pix[0])), 2*len(pix)), pix: pix, m: m} //nolint:gosec // the words' own bytes, little-endian as the panel takes them
+	return &Image565{Pix: unsafe.Slice((*byte)(unsafe.Pointer(&pix[0])), 2*len(pix)), pix: pix, m: m, w: m.W, h: m.H} //nolint:gosec // the words' own bytes, little-endian as the panel takes them
 }
 
 // Format is RGB565.
@@ -109,10 +110,10 @@ func (m *Image565) Metrics() *Metrics { return m.m }
 // SetPixel sets one pixel; one off the page is ignored.
 // TRLC-LINKS: REQ-SDS-021
 func (m *Image565) SetPixel(x, y int, c Color) {
-	if uint(x) >= uint(m.m.W) || uint(y) >= uint(m.m.H) {
+	if uint(x) >= uint(m.w) || uint(y) >= uint(m.h) {
 		return
 	}
-	m.pix[y*m.m.W+x] = pack565(c)
+	m.pix[y*m.w+x] = pack565(c)
 }
 
 // px is the page's pixels as RGB565 words (little-endian, native on ARM and
@@ -128,16 +129,16 @@ func (m *Image565) Fill(c Color) {
 		clear(m.pix)
 		return
 	}
-	fillPx(m.pix, m.m.W, m.m.H, 0, 0, m.m.W, m.m.H, p)
+	fillPx(m.pix, m.w, m.h, 0, 0, m.w, m.h, p)
 }
 
 // At reads one pixel (Transparent off the page).
 // TRLC-LINKS: REQ-SDS-021
 func (m *Image565) At(x, y int) Color {
-	if uint(x) >= uint(m.m.W) || uint(y) >= uint(m.m.H) {
+	if uint(x) >= uint(m.w) || uint(y) >= uint(m.h) {
 		return Transparent
 	}
-	return c565(m.pix[y*m.m.W+x])
+	return c565(m.pix[y*m.w+x])
 }
 
 // FadeToBlack dims every pixel toward black by 1/4 (the persistence decay
@@ -190,6 +191,7 @@ type Image32 struct {
 	format hal.PixelFormat
 	opaque uint32          // or-ed into every pixel: the alpha byte on XRGB8888
 	under  image.Rectangle // a hardware renderer's plane shows here (SetUnder)
+	w, h   int             // m's, held here: the fast paths read them per segment
 }
 
 // NewImage32 returns a blank 32-bit page of screen m's size: black on
@@ -197,7 +199,7 @@ type Image32 struct {
 // TRLC-LINKS: REQ-SDS-021
 func NewImage32(m *Metrics, format hal.PixelFormat) *Image32 {
 	pix := make([]uint32, m.W*m.H)
-	img := &Image32{Pix: unsafe.Slice((*byte)(unsafe.Pointer(&pix[0])), 4*len(pix)), pix: pix, m: m, format: format} //nolint:gosec // the words' own bytes, little-endian as a framebuffer takes them
+	img := &Image32{Pix: unsafe.Slice((*byte)(unsafe.Pointer(&pix[0])), 4*len(pix)), pix: pix, m: m, format: format, w: m.W, h: m.H} //nolint:gosec // the words' own bytes, little-endian as a framebuffer takes them
 	if format != hal.ARGB8888 {
 		img.format, img.opaque = hal.XRGB8888, 0xff000000
 		img.Fill(Transparent)
@@ -232,10 +234,10 @@ func (m *Image32) native(c Color) uint32 { return uint32(c) | m.opaque }
 // SetPixel sets one pixel; one off the page is ignored.
 // TRLC-LINKS: REQ-SDS-021
 func (m *Image32) SetPixel(x, y int, c Color) {
-	if uint(x) >= uint(m.m.W) || uint(y) >= uint(m.m.H) {
+	if uint(x) >= uint(m.w) || uint(y) >= uint(m.h) {
 		return
 	}
-	m.pix[y*m.m.W+x] = m.native(c)
+	m.pix[y*m.w+x] = m.native(c)
 }
 
 // Fill sets every pixel of the page to c.
@@ -244,17 +246,17 @@ func (m *Image32) Fill(c Color) {
 	if p := m.native(c); p == 0 {
 		clear(m.pix)
 	} else {
-		fillPx(m.pix, m.m.W, m.m.H, 0, 0, m.m.W, m.m.H, p)
+		fillPx(m.pix, m.w, m.h, 0, 0, m.w, m.h, p)
 	}
 }
 
 // At reads one pixel (Transparent off the page).
 // TRLC-LINKS: REQ-SDS-021
 func (m *Image32) At(x, y int) Color {
-	if uint(x) >= uint(m.m.W) || uint(y) >= uint(m.m.H) {
+	if uint(x) >= uint(m.w) || uint(y) >= uint(m.h) {
 		return Transparent
 	}
-	return Color(m.pix[y*m.m.W+x])
+	return Color(m.pix[y*m.w+x])
 }
 
 // FadeToBlack dims every pixel toward black by 1/4, as Image565's does.
@@ -371,10 +373,10 @@ func vlinePx[P pixel](px []P, w, x, y0, y1 int, c P) {
 func fillSpan(sf Canvas, x0, y0, x1, y1 int, c Color) bool {
 	switch m := sf.(type) {
 	case *Image565:
-		fillPx(m.pix, m.m.W, m.m.H, x0, y0, x1, y1, pack565(c))
+		fillPx(m.pix, m.w, m.h, x0, y0, x1, y1, pack565(c))
 		return true
 	case *Image32:
-		fillPx(m.pix, m.m.W, m.m.H, x0, y0, x1, y1, m.native(c))
+		fillPx(m.pix, m.w, m.h, x0, y0, x1, y1, m.native(c))
 		return true
 	}
 	return false
@@ -387,9 +389,9 @@ func fillSpan(sf Canvas, x0, y0, x1, y1 int, c Color) bool {
 func vline(sf Canvas, x, y0, y1 int, c Color) {
 	switch m := sf.(type) {
 	case *Image565:
-		vlineClip(m.pix, m.m.W, m.m.H, x, y0, y1, pack565(c))
+		vlineClip(m.pix, m.w, m.h, x, y0, y1, pack565(c))
 	case *Image32:
-		vlineClip(m.pix, m.m.W, m.m.H, x, y0, y1, m.native(c))
+		vlineClip(m.pix, m.w, m.h, x, y0, y1, m.native(c))
 	default:
 		for y := y0; y <= y1; y++ {
 			sf.SetPixel(x, y, c)

@@ -24,9 +24,9 @@ func TextWidth(s string, scale int) int {
 func DrawText(sf Canvas, x, y int, s string, c Color, scale int) {
 	switch m := sf.(type) {
 	case *Image565:
-		textPx(sf, m.pix, m.m.W, m.m.H, x, y, s, pack565(c), c, scale)
+		textPx(sf, m.pix, m.w, m.h, x, y, s, pack565(c), c, scale)
 	case *Image32:
-		textPx(sf, m.pix, m.m.W, m.m.H, x, y, s, m.native(c), c, scale)
+		textPx(sf, m.pix, m.w, m.h, x, y, s, m.native(c), c, scale)
 	default:
 		textPx[uint16](sf, nil, 0, 0, x, y, s, 0, c, scale)
 	}

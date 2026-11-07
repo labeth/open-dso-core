@@ -260,7 +260,7 @@ func drawLine(sf Canvas, x0, y0, x1, y1 int, c Color) {
 	// per-pixel clip (a sparse trace is one segment per column).
 	switch m := sf.(type) {
 	case *Image565:
-		if w, h := uint(m.m.W), uint(m.m.H); uint(x0) < w && uint(x1) < w && uint(y0) < h && uint(y1) < h {
+		if w, h := uint(m.w), uint(m.h); uint(x0) < w && uint(x1) < w && uint(y0) < h && uint(y1) < h {
 			// The loop in line, not linePx: on 32-bit ARM a call passes its
 			// arguments on the stack, and a sparse trace is a short segment
 			// per column.
@@ -286,8 +286,8 @@ func drawLine(sf Canvas, x0, y0, x1, y1 int, c Color) {
 			}
 		}
 	case *Image32:
-		if w, h := uint(m.m.W), uint(m.m.H); uint(x0) < w && uint(x1) < w && uint(y0) < h && uint(y1) < h {
-			linePx(m.pix, m.m.W, x0, y0, x1, y1, m.native(c))
+		if w, h := uint(m.w), uint(m.h); uint(x0) < w && uint(x1) < w && uint(y0) < h && uint(y1) < h {
+			linePx(m.pix, m.w, x0, y0, x1, y1, m.native(c))
 			return
 		}
 	}
@@ -515,6 +515,7 @@ func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool,
 	defer spanScratchPool.Put(sc)
 	top, bot, cc := &sc.top, &sc.bot, &sc.cc
 	w := min(p.w, MaxW)
+	last := p.m.H - 1
 	prevY := -1
 	for x := range w {
 		yTop, yBot := y(cols.mx[x]), y(cols.mn[x])
@@ -525,7 +526,7 @@ func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool,
 		if held != nil && columnHeld(held, left, win, p.w, x) {
 			c = heldColor(sf.Format(), col)
 		}
-		yTop, yBot = max(yTop, 0), min(yBot, p.m.H-1)
+		yTop, yBot = max(yTop, 0), min(yBot, last)
 		top[x], bot[x], cc[x] = int16(yTop), int16(yBot), c
 		prevY = y(cols.last[x])
 	}
@@ -563,7 +564,7 @@ func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
 		for i, c := range cc[:min(len(cc), MaxW)] {
 			nc[i] = pack565(c)
 		}
-		fillSpansPx(m.pix, m.m.W, m.m.H, top, bot, nc[:len(cc)])
+		fillSpansPx(m.pix, m.w, m.h, top, bot, nc[:len(cc)])
 	case *Image32:
 		sc := spanScratchPool.Get().(*spanScratch)
 		defer spanScratchPool.Put(sc)
@@ -571,7 +572,7 @@ func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
 		for i, c := range cc[:min(len(cc), MaxW)] {
 			nc[i] = m.native(c)
 		}
-		fillSpansPx(m.pix, m.m.W, m.m.H, top, bot, nc[:len(cc)])
+		fillSpansPx(m.pix, m.w, m.h, top, bot, nc[:len(cc)])
 	default:
 		for x := range top {
 			vline(sf, x, int(top[x]), int(bot[x]), cc[x])

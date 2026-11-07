@@ -189,12 +189,12 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 		return
 	}
 	// blit the heatmap region, nearest neighbour when the plot is smaller
-	if m, ok := sf.(*Image565); ok && x0 >= 0 && x1 <= m.m.W && y0 >= 0 && y1 <= m.m.H {
+	if m, ok := sf.(*Image565); ok && x0 >= 0 && x1 <= m.w && y0 >= 0 && y1 <= m.h {
 		sg.mu565.Lock()
 		defer sg.mu565.Unlock()
 		// Row by row from the image's pixels: the full-screen plot is a
 		// straight copy, a smaller one maps its columns once.
-		w := m.m.W
+		w := m.w
 		dst := m.pix
 		var xmap []int
 		if cols != sgCols {
@@ -222,8 +222,8 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 			scaleRow(line[:cols], srow, xmap)
 			copy(drow, line[:cols])
 		}
-	} else if m, ok := sf.(*Image32); ok && x0 >= 0 && x1 <= m.m.W && y0 >= 0 && y1 <= m.m.H {
-		w := m.m.W
+	} else if m, ok := sf.(*Image32); ok && x0 >= 0 && x1 <= m.w && y0 >= 0 && y1 <= m.h {
+		w := m.w
 		for y := range rows {
 			r := sg.imgRow(y * sgRows / rows)
 			srow := sg.img[r*sgCols : (r+1)*sgCols]
