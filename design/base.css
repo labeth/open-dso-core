@@ -149,6 +149,17 @@
   .vg .vh { font-size: 11px; font-weight: 600; letter-spacing: .08em; }
   .vg .readout { min-width: 0; text-align: left; }
   .vg .step select { min-width: 0; flex: 1 1 auto; }
+  /* past two channels a column is narrow: a choice's buttons share its width
+     and wrap to a second line rather than run past the cell, and the
+     steppers and sliders shrink */
+  .vg.vg-n { column-gap: 6px; }
+  .vg.vg-n .vc { gap: 2px; }
+  .vg.vg-n .seg { display: flex; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; row-gap: 2px; }
+  .vg.vg-n .seg > button { flex: 1 0 auto; padding-left: 3px; padding-right: 3px; border-right-width: 1px; border-radius: 4px; }
+  .vg.vg-n .step { flex-wrap: wrap; row-gap: 2px; }
+  .vg.vg-n .step > select { order: -1; flex: 1 0 100%; padding-left: 2px; padding-right: 0; }
+  .vg.vg-n .step > button { padding-left: 4px; padding-right: 4px; flex: 1 0 auto; }
+  .vg.vg-n .vc > input[type=range] { min-width: 0; width: 100%; }
   .q { border-top: 1px dashed var(--edge); margin-top: 5px; padding-top: 3px; }
   .tsum { font-size: 12px; padding: 6px 9px; border-radius: 5px; border: 1px solid var(--edge2); background: var(--well); color: var(--dim); margin: 2px 0 4px; }
   .tsum.is-on { border-color: var(--trigger); color: var(--trigger); }
