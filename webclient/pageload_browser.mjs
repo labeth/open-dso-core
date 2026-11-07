@@ -61,14 +61,20 @@ const trig = await (async () => {
     if (s.type === list.pick) break;
   }
   await page.waitForTimeout(400); // the rows of the type are built from the status
-  const num = await page.$("#trigAll input[type=number]");
-  let setting = "", value = 0;
-  if (num) {
-    setting = await num.getAttribute("data-trig");
-    value = 0.125;
-    await num.fill(String(value));
-    await num.dispatchEvent("change");
+  // The rows are rebuilt when the caps or the type move: a setting is
+  // named by its data-trig and looked up again for each step.
+  const setting = await page.evaluate(() => {
+    const e = document.querySelector("#trigAll input[type=number]");
+    return e ? e.dataset.trig : "";
+  });
+  const value = 0.125;
+  if (setting) {
+    const sel = `#trigAll input[data-trig="${setting}"]`;
     for (let i = 0; i < 40; i++) {
+      try {
+        await page.locator(sel).first().fill(String(value), { timeout: 2000 });
+        await page.locator(sel).first().dispatchEvent("change");
+      } catch (e) { await page.waitForTimeout(100); continue; }
       await page.waitForTimeout(100);
       s = (await status()).trig || {};
       if (s.params && s.params[setting] === value) break;
