@@ -278,6 +278,10 @@ func Run(t *testing.T, newScope func() webserver.Scope, opts ...webserver.Option
 			t.Fatalf("screen: %d", rec.Code)
 		}
 	})
+	t.Run("caps", func(t *testing.T) {
+		c, sc := open(t)
+		checkCaps(t, c, sc)
+	})
 	t.Run("extensions", func(t *testing.T) {
 		_, sc := open(t)
 		for _, r := range sc.Extensions() {
