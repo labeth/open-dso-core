@@ -289,3 +289,46 @@ func (x *FrameMask) window(m *Mask, f *sample.Frame, valid int, posFrac float64)
 	x.mapped = MaskMapState{Key: key, Lo: lo, Hi: hi}
 	return w, lo, hi, true
 }
+
+// MaskFromFrame builds a mask around channel ch of frame f, its trigger
+// posFrac across a screen of divsH divisions: each screen column's sample
+// on the 8-bit view, widened by xDivs divisions either way in time and
+// yDivs divisions either way in level (a pass/fail mask made from the
+// current waveform). Nil when f has no such trace or no trigger.
+// TRLC-LINKS: REQ-DSO-014
+func MaskFromFrame(f *sample.Frame, ch int, posFrac, xDivs, yDivs float64, divsH int) *Mask {
+	if f == nil || f.TriggerAt < 0 || divsH <= 0 {
+		return nil
+	}
+	var tr *sample.Trace
+	for i := range f.Traces {
+		if f.Traces[i].Ch == ch {
+			tr = &f.Traces[i]
+		}
+	}
+	valid := f.Len()
+	w := f.WinPoints
+	if w <= 0 || w > valid {
+		w = valid
+	}
+	if tr == nil || w <= 0 {
+		return nil
+	}
+	lo, hi := make([]uint8, w), make([]uint8, w)
+	left := int(math.Round(f.TriggerAt - float64(w)*posFrac))
+	for j := range w {
+		lo[j], hi[j] = 255, 0 // a column off the record stays untested
+		if s := left + j; s >= 0 && s < valid {
+			v := tr.Format.Code8(tr.Word(s))
+			lo[j], hi[j] = v, v
+		}
+	}
+	cols := int(math.Round(xDivs * float64(w) / float64(divsH)))
+	codes := int(math.Round(yDivs * tr.CodesPerDiv8()))
+	m := BuildMaskFromEnvelope(lo, hi, w, cols, codes, ch)
+	if m != nil {
+		m.TdivS, m.SampleS, m.FrameIdent = f.Snapshot.TdivS, f.SampleS, true
+		m.PeakDetect = f.Content == sample.PeakPairs
+	}
+	return m
+}
