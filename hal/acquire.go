@@ -76,7 +76,12 @@ type Planner interface {
 
 // Acquirer runs acquisitions into the board's record memory.
 type Acquirer interface {
-	Configure(p Plan) error // COMMIT; the trigger is staged only by Trigger.Program
+	// Configure stages plan p; the trigger is staged only by Trigger.Program.
+	// What is staged stays staged across arms: a plain re-arm commits it
+	// again without another Configure, and a Configure of the plan already
+	// staged changes nothing (the next Arm is no commit arm for it), so an
+	// owner may configure at every pass or only on a change. COMMIT.
+	Configure(p Plan) error
 	// Arm commits the staged FrontEnd, Plan and Trigger to the hardware, in
 	// that order, and starts an acquisition. The board tells the two kinds
 	// of arm apart from its own state: a commit arm (something staged differs
