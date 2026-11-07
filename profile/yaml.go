@@ -438,6 +438,33 @@ func (f *flow) plain() *node {
 	return &node{kind: scalarNode, value: v, line: f.no}
 }
 
+// entry reads one "key: value" of a flow mapping into n.
+// TRLC-LINKS: REQ-DSO-1002
+func (f *flow) entry(n *node) error {
+	k, err := f.value()
+	if err != nil {
+		return err
+	}
+	if k.kind != scalarNode {
+		return f.errf("a key must be a scalar")
+	}
+	f.space()
+	if f.i >= len(f.s) || f.s[f.i] != ':' {
+		return f.errf("want \"key: value\" in {}")
+	}
+	f.i++
+	v, err := f.value()
+	if err != nil {
+		return err
+	}
+	if _, dup := n.m[k.value]; dup {
+		return f.errf("duplicate key %q", k.value)
+	}
+	n.keys = append(n.keys, k.value)
+	n.m[k.value] = v
+	return nil
+}
+
 // TRLC-LINKS: REQ-DSO-1002
 func (f *flow) collection(closer byte) (*node, error) {
 	f.i++ // the opener
@@ -455,27 +482,9 @@ func (f *flow) collection(closer byte) (*node, error) {
 			return n, nil
 		}
 		if closer == '}' {
-			k, err := f.value()
-			if err != nil {
+			if err := f.entry(n); err != nil {
 				return nil, err
 			}
-			if k.kind != scalarNode {
-				return nil, f.errf("a key must be a scalar")
-			}
-			f.space()
-			if f.i >= len(f.s) || f.s[f.i] != ':' {
-				return nil, f.errf("want \"key: value\" in {}")
-			}
-			f.i++
-			v, err := f.value()
-			if err != nil {
-				return nil, err
-			}
-			if _, dup := n.m[k.value]; dup {
-				return nil, f.errf("duplicate key %q", k.value)
-			}
-			n.keys = append(n.keys, k.value)
-			n.m[k.value] = v
 		} else {
 			v, err := f.value()
 			if err != nil {

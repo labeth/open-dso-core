@@ -122,27 +122,26 @@ func matchNodes(nodes []node, parts []string, suf *[]int) bool {
 	}
 	n := nodes[0]
 	if len(parts) > 0 {
-		if v, ok := matchNode(n, parts[0]); ok {
-			save := len(*suf)
-			if n.suffix {
-				*suf = append(*suf, v)
-			}
-			if matchNodes(nodes[1:], parts[1:], suf) {
-				return true
-			}
-			*suf = (*suf)[:save]
-		}
-	}
-	if n.optional {
-		save := len(*suf)
-		if n.suffix {
-			*suf = append(*suf, 1)
-		}
-		if matchNodes(nodes[1:], parts, suf) {
+		if v, ok := matchNode(n, parts[0]); ok && matchRest(nodes, parts[1:], suf, v) {
 			return true
 		}
-		*suf = (*suf)[:save]
 	}
+	return n.optional && matchRest(nodes, parts, suf, 1)
+}
+
+// matchRest takes nodes[0] as matched, with suffix value v when it has one,
+// and matches the remaining nodes against parts; on a miss the suffixes are
+// as they were.
+// TRLC-LINKS: REQ-DSO-024
+func matchRest(nodes []node, parts []string, suf *[]int, v int) bool {
+	save := len(*suf)
+	if nodes[0].suffix {
+		*suf = append(*suf, v)
+	}
+	if matchNodes(nodes[1:], parts, suf) {
+		return true
+	}
+	*suf = (*suf)[:save]
 	return false
 }
 

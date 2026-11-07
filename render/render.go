@@ -908,6 +908,27 @@ func strokeRect(sf Canvas, x, y, w, h int, c Color) {
 	vline(sf, x+w-1, y, y+h-1, c)
 }
 
+// drawTraces draws the views' traces. Persistence: when on (Y-T only,
+// non-envelope), the traces go onto a separate layer that decays each frame,
+// then composite over the fresh graticule — an afterglow that catches
+// jitter/glitches. The layer is owned by the caller (LCD loop); nil disables
+// it (screenshot path, tests).
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
+func drawTraces(sf Canvas, p plotArea, f *sample.Frame, hud HUD, pb Layer) {
+	persisting := pb != nil && hud.Persist && hud.ViewMode == 0 && f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0
+	traceTarget := sf
+	if persisting {
+		pb.FadeToBlack()
+		traceTarget = pb
+	}
+	drawViews(sf, traceTarget, p, f, hud)
+	if persisting { // composite the decayed trace layer over the graticule
+		if l, ok := sf.(Layer); ok {
+			l.BlitBright(pb)
+		}
+	}
+}
+
 // Render draws one complete frame into the back buffer (spec 07 §3.2):
 // fill → graticule → trace/envelope → liveness strip → readouts → the
 // workspace UI (the pane, the rail, a sheet or the picker). Never blanks on
@@ -949,27 +970,12 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 		}
 	}
 
-	// Persistence: when on (Y-T only, non-envelope), draw the traces onto a
-	// separate layer that decays each frame, then composite it over the fresh
-	// graticule — an afterglow that catches jitter/glitches. The layer is owned
-	// by the caller (LCD loop); nil disables it (screenshot path, tests).
-	var pb Layer
-	if len(persist) > 0 {
-		pb = persist[0]
-	}
-	persisting := traces && !hw && pb != nil && hud.Persist && hud.ViewMode == 0 && f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0
-	traceTarget := sf
-	if persisting {
-		pb.FadeToBlack()
-		traceTarget = pb
-	}
 	if traces && !hw {
-		drawViews(sf, traceTarget, p, f, hud)
-	}
-	if persisting { // composite the decayed trace layer over the graticule
-		if l, ok := sf.(Layer); ok {
-			l.BlitBright(pb)
+		var pb Layer
+		if len(persist) > 0 {
+			pb = persist[0]
 		}
+		drawTraces(sf, p, f, hud, pb)
 	}
 
 	// Liveness strip: green only for a fresh frame with real signal.

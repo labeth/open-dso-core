@@ -24,17 +24,7 @@ func checkCaps(t *testing.T, c client, sc webserver.Scope) {
 	status := c.json(http.MethodGet, "/api/status", "", http.StatusOK)
 	cs, ok := sc.(webserver.CapsSource)
 	if !ok {
-		if rec := c.do(http.MethodGet, "/api/caps", ""); rec.Code != http.StatusNotFound {
-			t.Fatalf("/api/caps without caps: %d", rec.Code)
-		}
-		if _, has := status["caps_gen"]; has {
-			t.Fatalf("a status without caps carries caps_gen")
-		}
-		if _, ok := sc.Frames().(webserver.FramesV2); !ok {
-			if rec := c.do(http.MethodGet, "/api/frame.bin?v=2&cols=64", ""); len(rec.Body.Bytes()) == 0 || rec.Body.Bytes()[0] != wire.BinMagic {
-				t.Fatalf("v2 asked of a v1 scope: not v1")
-			}
-		}
+		checkNoCaps(t, c, sc, status)
 		return
 	}
 	rec := c.do(http.MethodGet, "/api/caps", "")
@@ -51,6 +41,47 @@ func checkCaps(t *testing.T, c client, sc webserver.Scope) {
 	if g, _ := status["caps_gen"].(float64); uint64(g) != caps.Gen || status["api"] != float64(webserver.APIVersion) {
 		t.Fatalf("status caps_gen %v api %v, caps gen %d", status["caps_gen"], status["api"], caps.Gen)
 	}
+	checkCapsLists(t, caps)
+	if !slices.Contains(caps.Wire.Frame, 1) {
+		t.Fatalf("frame wire %v", caps.Wire.Frame)
+	}
+	_, v2 := sc.Frames().(webserver.FramesV2)
+	if slices.Contains(caps.Wire.Frame, 2) != v2 {
+		t.Fatalf("frame wire %v, FramesV2 %v", caps.Wire.Frame, v2)
+	}
+	if rec := c.do(http.MethodPost, "/api/caps", "{}"); rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("POST /api/caps: %d", rec.Code)
+	}
+	if v2 {
+		checkFramesV2(t, c, caps)
+	}
+}
+
+// checkNoCaps checks a scope without caps: no document, no caps_gen in its
+// status, and a v2 frame request answered in v1 unless it serves v2.
+// TRLC-LINKS: REQ-DSO-163, REQ-DSO-164
+func checkNoCaps(t *testing.T, c client, sc webserver.Scope, status map[string]any) {
+	t.Helper()
+	if rec := c.do(http.MethodGet, "/api/caps", ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("/api/caps without caps: %d", rec.Code)
+	}
+	if _, has := status["caps_gen"]; has {
+		t.Fatalf("a status without caps carries caps_gen")
+	}
+	if _, ok := sc.Frames().(webserver.FramesV2); ok {
+		return
+	}
+	if rec := c.do(http.MethodGet, "/api/frame.bin?v=2&cols=64", ""); len(rec.Body.Bytes()) == 0 || rec.Body.Bytes()[0] != wire.BinMagic {
+		t.Fatalf("v2 asked of a v1 scope: not v1")
+	}
+}
+
+// checkCapsLists checks the lists the page builds from: channels in order
+// with names, trigger sources that are channels (or EXT/LINE), and a reason
+// for every unavailable feature.
+// TRLC-LINKS: REQ-DSO-163, REQ-DSO-164
+func checkCapsLists(t *testing.T, caps wire.Caps) {
+	t.Helper()
 	if len(caps.Channels) == 0 || caps.Codes.CodesPerDiv <= 0 || caps.Codes.Storage == "" {
 		t.Fatalf("caps without channels or a code format: %+v", caps)
 	}
@@ -69,19 +100,13 @@ func checkCaps(t *testing.T, c client, sc webserver.Scope) {
 			t.Fatalf("feature %s unavailable without a reason", name)
 		}
 	}
-	if !slices.Contains(caps.Wire.Frame, 1) {
-		t.Fatalf("frame wire %v", caps.Wire.Frame)
-	}
-	_, v2 := sc.Frames().(webserver.FramesV2)
-	if slices.Contains(caps.Wire.Frame, 2) != v2 {
-		t.Fatalf("frame wire %v, FramesV2 %v", caps.Wire.Frame, v2)
-	}
-	if rec := c.do(http.MethodPost, "/api/caps", "{}"); rec.Code != http.StatusMethodNotAllowed {
-		t.Fatalf("POST /api/caps: %d", rec.Code)
-	}
-	if !v2 {
-		return
-	}
+}
+
+// checkFramesV2 checks v2 frames: traces in the caps' channel order with
+// their scales, a held frame unchanged, and raw frames.
+// TRLC-LINKS: REQ-DSO-163, REQ-DSO-164
+func checkFramesV2(t *testing.T, c client, caps wire.Caps) {
+	t.Helper()
 	h := c.frame2("/api/frame.bin?v=2&cols=100")
 	if h.Unchanged {
 		t.Skip("the scope has published no frame")

@@ -141,6 +141,53 @@ func validMnemonic(m string) bool {
 // TRLC-LINKS: REQ-DSO-024
 func isAlpha(c byte) bool { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') }
 
+// lexString lexes the quoted string at s[*i] (a doubled quote is one quote
+// character) and moves *i past it; ok=false when it is not closed.
+// TRLC-LINKS: REQ-DSO-024
+func lexString(s string, i *int) (Token, bool) {
+	q := s[*i]
+	var b strings.Builder
+	*i++
+	for *i < len(s) {
+		if s[*i] == q {
+			if *i+1 < len(s) && s[*i+1] == q {
+				b.WriteByte(q)
+				*i += 2
+				continue
+			}
+			*i++
+			return Token{Kind: TokString, Str: b.String()}, true
+		}
+		b.WriteByte(s[*i])
+		*i++
+	}
+	return Token{}, false
+}
+
+// lexExpr lexes the parenthesised expression at s[*i] (nested parentheses
+// included) and moves *i past it; ok=false when it is not closed.
+// TRLC-LINKS: REQ-DSO-024
+func lexExpr(s string, i *int) (Token, bool) {
+	start := *i
+	d := 0
+	for *i < len(s) {
+		if s[*i] == '(' {
+			d++
+		} else if s[*i] == ')' {
+			d--
+			if d == 0 {
+				*i++
+				break
+			}
+		}
+		*i++
+	}
+	if d != 0 {
+		return Token{}, false
+	}
+	return Token{Kind: TokExpr, Str: s[start+1 : *i-1]}, true
+}
+
 // lexParams tokenises the program data of a unit. ok=false on a syntax error.
 // TRLC-LINKS: REQ-DSO-024
 func lexParams(s string) ([]Token, bool) {
@@ -165,27 +212,11 @@ func lexParams(s string) ([]Token, bool) {
 		c := s[i]
 		switch {
 		case c == '"' || c == '\'':
-			var b strings.Builder
-			i++
-			closed := false
-			for i < len(s) {
-				if s[i] == c {
-					if i+1 < len(s) && s[i+1] == c {
-						b.WriteByte(c)
-						i += 2
-						continue
-					}
-					i++
-					closed = true
-					break
-				}
-				b.WriteByte(s[i])
-				i++
-			}
-			if !closed {
+			var ok bool
+			t, ok = lexString(s, &i)
+			if !ok {
 				return toks, false
 			}
-			t = Token{Kind: TokString, Str: b.String()}
 		case c == '#' && i+1 < len(s) && strings.ContainsRune("HhBbQq", rune(s[i+1])):
 			base := map[byte]int{'H': 16, 'B': 2, 'Q': 8}[s[i+1]&^0x20]
 			i += 2
@@ -215,23 +246,11 @@ func lexParams(s string) ([]Token, bool) {
 			t = Token{Kind: TokBlock, Data: []byte(s[i+2+nd : i+2+nd+n])}
 			i = i + 2 + nd + n
 		case c == '(':
-			d := 0
-			for i < len(s) {
-				if s[i] == '(' {
-					d++
-				} else if s[i] == ')' {
-					d--
-					if d == 0 {
-						i++
-						break
-					}
-				}
-				i++
-			}
-			if d != 0 {
+			var ok bool
+			t, ok = lexExpr(s, &i)
+			if !ok {
 				return toks, false
 			}
-			t = Token{Kind: TokExpr, Str: s[start+1 : i-1]}
 		case (c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.':
 			var ok bool
 			t, ok = lexNumber(s, &i)

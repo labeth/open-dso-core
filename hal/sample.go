@@ -2,19 +2,28 @@ package hal
 
 import "github.com/labeth/open-dso-core/sample"
 
-// Content and the other types here alias the frame's vocabulary, which lives
-// in package sample: the HAL's Readout fills it and every consumer reads it;
-// the aliases let board and server code name it through the HAL.
+// The frame's vocabulary lives in package sample, which the HAL's Readout
+// fills and every consumer reads; these aliases let board and server code
+// name it through the HAL.
 type (
-	Content     = sample.Content
-	ContentSet  = sample.ContentSet
+	// Content is sample.Content.
+	Content = sample.Content
+	// ContentSet is sample.ContentSet.
+	ContentSet = sample.ContentSet
+	// ContentFlag is sample.ContentFlag.
 	ContentFlag = sample.ContentFlag
-	CodeFormat  = sample.CodeFormat
-	Scale       = sample.Scale
-	RecordID    = sample.RecordID
-	Status      = sample.Status
-	Counters    = sample.Counters
-	Role        = sample.Role
+	// CodeFormat is sample.CodeFormat.
+	CodeFormat = sample.CodeFormat
+	// Scale is sample.Scale.
+	Scale = sample.Scale
+	// RecordID is sample.RecordID.
+	RecordID = sample.RecordID
+	// Status is sample.Status.
+	Status = sample.Status
+	// Counters is sample.Counters.
+	Counters = sample.Counters
+	// Role is sample.Role.
+	Role = sample.Role
 )
 
 // The window roles, as in package sample.
