@@ -15,6 +15,7 @@ package sample
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -225,3 +226,32 @@ type Scale struct {
 
 // Volts converts one word.
 func (s Scale) Volts(word float64) float64 { return (word-s.Zero)*s.PerCode - s.OffsetV }
+
+// The 8-bit view: every format's words mapped onto the scale of an 8-bit
+// converter centred at 128, so kernels written for 8-bit codes and Q8.8
+// precision words serve any converter. A word is the format's mid at 128.0;
+// one 8-bit step is Unit8 words.
+
+// q88Shift is how far a word's code moves left to land on the Q8.8 scale.
+func (f CodeFormat) q88Shift() int { return 16 - int(f.Bits) - int(f.Shift) - int(f.Frac) }
+
+// Unit8 is how many words make one step of the 8-bit view: 1 for 8-bit
+// codes, 256 for 12-bit codes left-aligned in 16-bit words.
+func (f CodeFormat) Unit8() float64 { return math.Ldexp(1, 8-f.q88Shift()) }
+
+// Q88 maps word w onto the 8-bit view in Q8.8: the format's mid is 0x8000,
+// clamped to the 16-bit range.
+func (f CodeFormat) Q88(w uint32) uint16 {
+	d := int64(w) - int64(f.Mid)
+	if s := f.q88Shift(); s >= 0 {
+		d <<= s
+	} else {
+		d >>= -s
+	}
+	return uint16(min(max(d+0x8000, 0), 0xFFFF)) //nolint:gosec // G115: clamped to 16 bits
+}
+
+// Code8 maps word w onto the 8-bit view, rounded: the format's mid is 128.
+func (f CodeFormat) Code8(w uint32) uint8 {
+	return uint8(min((uint32(f.Q88(w))+0x80)>>8, 255)) //nolint:gosec // G115: at most 255
+}

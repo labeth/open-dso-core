@@ -177,3 +177,26 @@ func TestTriggerName(t *testing.T) {
 		}
 	}
 }
+
+// The 8-bit view maps an 8-bit code to itself and a left-aligned 12-bit
+// word to its high byte, each format's mid to 128.
+func TestEightBitView(t *testing.T) {
+	f8 := CodeFormat{Bits: 8, Storage: U8, Max: 255, Mid: 128}
+	f12 := CodeFormat{Bits: 12, Storage: U16, Shift: 4, Min: 0x0800, Max: 0xF7F0, Mid: 0x8000}
+	r12 := CodeFormat{Bits: 12, Storage: U16, Max: 4095, Mid: 2048}
+	for _, c := range []struct {
+		f    CodeFormat
+		w    uint32
+		q    uint16
+		c8   uint8
+		unit float64
+	}{
+		{f8, 128, 0x8000, 128, 1}, {f8, 0, 0, 0, 1}, {f8, 255, 0xFF00, 255, 1}, {f8, 153, 153 << 8, 153, 1},
+		{f12, 0x8000, 0x8000, 128, 256}, {f12, 0x9980, 0x9980, 154, 256}, {f12, 0xFFF0, 0xFFF0, 255, 256},
+		{r12, 2048, 0x8000, 128, 16}, {r12, 2048 + 16*25, 0x8000 + 25<<8, 153, 16}, {r12, 0, 0, 0, 16},
+	} {
+		if q, c8, u := c.f.Q88(c.w), c.f.Code8(c.w), c.f.Unit8(); q != c.q || c8 != c.c8 || u != c.unit {
+			t.Errorf("%+v word %#x: q88 %#x code %d unit %v, want %#x %d %v", c.f, c.w, q, c8, u, c.q, c.c8, c.unit)
+		}
+	}
+}
