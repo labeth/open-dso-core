@@ -6,10 +6,10 @@
 function peaksVisible() { return view.mode === "FFT" || view.mode === "YT"; }
 
 // TRLC-LINKS: REQ-SDS-070
-function chOn(ch) { return ch === 1 ? view.c1 : view.c2; }
+function chOn(ch) { return chanShown(ch); }
 
 // TRLC-LINKS: REQ-SDS-070
-function chHas(ch) { return !!(frame && (ch === 1 ? frame.c1 : frame.c2)); }
+function chHas(ch) { return !!chanArr(frame, ch); }
 
 // In FFT mode over a LIVE band the frequency source is the full-record RAW feed
 // (fftRaw), not the display frame: on native-fast the display is an interpolated
@@ -18,11 +18,11 @@ function chHas(ch) { return !!(frame && (ch === 1 ? frame.c1 : frame.c2)); }
 // → true Nyquist + fine resolution). Frozen/single and the super-res review keep
 // their own shown frame.
 // TRLC-LINKS: REQ-SDS-070
-function fftUseRaw() { return (view.mode === "FFT" || view.mode === "SPG") && fftRaw && fftRaw.c1 && !frozen && !(typeof sr !== "undefined" && sr.showing); }
+function fftUseRaw() { return (view.mode === "FFT" || view.mode === "SPG") && fftRaw && chanNums().some((n) => fftRaw["c" + n]) && !frozen && !(typeof sr !== "undefined" && sr.showing); }
 // TRLC-LINKS: REQ-SDS-070
 function peakSrcCh(ch) {
-  if (fftUseRaw()) { const s = ch === 2 ? fftRaw.c2 : fftRaw.c1; if (s) return s; }
-  return frame ? (ch === 2 ? frame.c2 : frame.c1) : null;
+  if (fftUseRaw()) { const s = chanArr(fftRaw, ch); if (s) return s; }
+  return frame ? chanArr(frame, ch) || null : null;
 }
 
 // TRLC-LINKS: REQ-SDS-070
@@ -32,7 +32,7 @@ function peakNyq() {
   // A frame may carry NO per-sample array for a channel (channel disabled, or an
   // envelope/roll band ships env min/max instead of c1) — use whichever channel
   // array exists; 0 when neither does (callers already treat 0 as "no Nyquist").
-  const sig = frame ? (frame.c1 || frame.c2) : null;
+  const sig = frame ? chanNums().map((n) => frame["c" + n]).find(Boolean) || null : null;
   const dt = sig ? frameDtS(frame, sig.length) : 0; // dt_s-aware: true Nyquist on the nominal bands
   return dt > 0 ? 1 / (2 * dt) : 0;
 }
@@ -103,7 +103,7 @@ function fftBandHz() { const f = fftUseRaw() ? fftRaw : frame; return (f && f.ba
 // displayNyq is the span the FFT shows (the reduced Nyquist, or the filter's
 // band) — used by every FFT frequency mapping so the axis stays self-consistent.
 // TRLC-LINKS: REQ-SDS-070
-function displayNyq() { const s = spectrumFor(1) || spectrumFor(2); return s ? s.nyq : peakNyq(); }
+function displayNyq() { let s = null; for (const n of chanNums()) if ((s = spectrumFor(n))) break; return s ? s.nyq : peakNyq(); }
 
 // TRLC-LINKS: REQ-SDS-070
 function spectrumFor(ch) {
@@ -160,8 +160,8 @@ function drawFFTHover() {
   ctx.beginPath(); ctx.moveTo(0, py + .5); ctx.lineTo(CW, py + .5); ctx.stroke();
   ctx.setLineDash([]);
   const lines = ["f " + eng(freq, "Hz", 4) + " · ptr " + ptrDb.toFixed(1) + " dB"];
-  for (const ch of [1, 2]) {
-    if (!(ch === 1 ? view.c1 : view.c2)) continue;
+  for (const ch of chanNums()) {
+    if (!chanShown(ch)) continue;
     const spec = specMemo[ch].spec;
     if (!spec) continue;
     const k = Math.round(frac * (spec.half - 1));
@@ -177,9 +177,8 @@ function drawFFTHover() {
   ctx.fillStyle = "rgba(5,8,12,.88)";
   ctx.fillRect(bx, by, w, h);
   ctx.strokeStyle = "rgba(255,210,63,.5)"; ctx.strokeRect(bx + .5, by + .5, w - 1, h - 1);
-  const cols = { 0: "#ffd24f", 1: C1COL, 2: C2COL };
   lines.forEach((t, i) => {
-    ctx.fillStyle = i === 0 ? cols[0] : (t.startsWith("C1") ? C1COL : C2COL);
+    ctx.fillStyle = i === 0 ? "#ffd24f" : chanColor(+t.slice(1, t.indexOf(" ")));
     ctx.fillText(t, bx + 6 * dpr, by + (i + 1) * 14 * dpr - 2 * dpr);
   });
   ctx.restore();
@@ -192,7 +191,7 @@ function drawFFT() {
   const fw = view.fwin, fspan = fw.b - fw.a;
   // TRLC-LINKS: REQ-SDS-070
   const yAt = db => CH * Math.min(1, -db / 80); // 80 dB span
-  for (const ch of [1, 2]) {
+  for (const ch of chanNums()) {
     const spec = computePeaksCh(ch);
     updateFFTListCh(ch);
     if (!spec) continue;
@@ -202,7 +201,7 @@ function drawFFT() {
     // bin (fractional) → screen x through the frequency window
     // TRLC-LINKS: REQ-SDS-070
     const xAt = frac => (frac / (half - 1) - fw.a) / fspan * (CW - 1);
-    const base = ch === 1 ? C1COL : C2COL;
+    const base = chanColor(ch);
     const kLo = Math.max(0, Math.floor(fw.a * (half - 1)) - 1);
     const kHi = Math.min(half - 1, Math.ceil(fw.b * (half - 1)) + 1);
     ctx.strokeStyle = base; ctx.lineWidth = 1.3 * dpr; ctx.globalAlpha = 0.85; ctx.beginPath();
@@ -279,20 +278,20 @@ function drawYTPeaks(g) {
   // Nothing selected and no residual math → the spectra only feed the pick
   // lists. Refresh those at ~1 Hz instead of paying two full-record FFTs per
   // frame (the dominant avoidable per-frame client cost at 20 fps).
-  const needFFT = fftCh[1].sel.length || fftCh[2].sel.length || mathFn === "res1" || mathFn === "res2";
+  const needFFT = chanNums().some((n) => fftCh[n].sel.length) || /^res\d+$/.test(mathFn);
   if (!needFFT) {
     const now = performance.now();
     if (now - peakListLastT > 1000) {
       peakListLastT = now;
-      for (const ch of [1, 2]) { computePeaksCh(ch); updateFFTListCh(ch); }
+      for (const ch of chanNums()) { computePeaksCh(ch); updateFFTListCh(ch); }
     }
     return;
   }
-  for (const ch of [1, 2]) { computePeaksCh(ch); updateFFTListCh(ch); }
+  for (const ch of chanNums()) { computePeaksCh(ch); updateFFTListCh(ch); }
   g.save();
   g.font = "bold " + (12 * dpr) + "px system-ui";
   let row = 0;
-  for (const ch of [1, 2]) {
+  for (const ch of chanNums()) {
     const S = fftCh[ch];
     // a pick whose tone is gone: its frequency, greyed, until it is cleared
     for (const f of (S.lostSince || new Map()).keys()) {
@@ -301,7 +300,7 @@ function drawYTPeaks(g) {
       row++;
     }
     if (!S.selIdx.size) continue;
-    const src = peakSrcCh(ch), zoom = ch === 1 ? (st ? st.zoom1 : 1) : (st ? st.zoom2 : 1), pal = COMPCOLS[ch];
+    const src = peakSrcCh(ch), zoom = st ? st["zoom" + ch] : 1, pal = COMPCOLS[ch];
     if (!src) continue; // selections can outlive a channel being toggled off
     let k = 0;
     for (const i of [...S.selIdx].sort((a, b) => a - b)) {
@@ -327,7 +326,7 @@ function drawYTPeaks(g) {
 function peakVolts(ch, p) {
   const spec = specMemo[ch].spec, src = specMemo[ch].src;
   if (!spec || !frame) return 0;
-  const vpc = (ch === 2 ? frame.vpc2 : frame.vpc1) || 1 / 25;
+  const vpc = chanVpc(frame, ch);
   // The fitted tone, not the Hann bin: between bins the bin reads up to
   // 1.42 dB low (scalloping) — 1.70 V for a 1.98 V fundamental.
   const span = src ? peakSpanS(src) : 0;
@@ -388,7 +387,7 @@ function updateFFTSel(ch) {
 
 // pkChannel is the channel SPECTRUM's peak table shows (its C1/C2 choice).
 // TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
-function pkChannel() { return $("pkCh").value === "2" ? 2 : 1; }
+function pkChannel() { const n = +$("pkCh").value | 0; return chanNums().includes(n) ? n : 1; }
 
 // peakDBV is a peak's level in dBV (RMS) from its tone level (peaks.js lvl: the
 // Hann bin corrected for scalloping, within 0.06 dB between bins): amplitude =
@@ -399,7 +398,7 @@ function pkChannel() { return $("pkCh").value === "2" ? 2 : 1; }
 function peakDBV(ch, p) {
   const spec = specMemo[ch] && specMemo[ch].spec;
   if (!spec || !frame) return -Infinity;
-  const vpc = (ch === 2 ? frame.vpc2 : frame.vpc1) || 1 / 25;
+  const vpc = chanVpc(frame, ch);
   const v = 4 * spec.peak * Math.pow(10, peakLvl(p) / 20) / spec.points * vpc / Math.SQRT2;
   return v > 0 ? 20 * Math.log10(v) : -Infinity;
 }
@@ -449,7 +448,7 @@ function updateFFTListCh(ch) {
 }
 
 // TRLC-LINKS: REQ-SDS-070
-function updateFFTLists() { updateFFTListCh(1); updateFFTListCh(2); }
+function updateFFTLists() { for (const n of chanNums()) updateFFTListCh(n); }
 
 // ==== wiring ====
 
@@ -478,7 +477,7 @@ $("fftN").oninput = $("fftN").onchange = () => {
   const v = Math.round(+$("fftN").value);
   maxPeaks = Number.isFinite(v) && v >= 1 ? Math.min(64, v) : 8;
   peakListLastT = 0;
-  for (const ch of [1, 2]) computePeaksCh(ch);
+  for (const ch of chanNums()) computePeaksCh(ch);
   updateFFTLists(); redraw();
 };
 // pkShow shows SPECTRUM's peak table for the channel chosen.
@@ -495,3 +494,16 @@ function pkFollow(ch) {
 // A choice here is the scope's FFT source, as on the LCD.
 // TRLC-LINKS: REQ-SDS-070, REQ-SDS-216
 $("pkCh").onchange = () => { $("pkCh")._userAt = performance.now(); pkShow(); sheetSet("view.fft_source", pkChannel() - 1); };
+
+// fftChans gives every caps channel its peak list, spectrum memo and pick
+// palette (channels 1 and 2 have theirs from the start: C1 warm, C2 cool;
+// a channel past them takes the palette of its parity).
+// TRLC-LINKS: REQ-SDS-070
+function fftChans() {
+  for (const n of chanNums()) {
+    if (!fftCh[n]) fftCh[n] = { peaks: [], sel: [], selIdx: new Set() };
+    if (!specMemo[n]) specMemo[n] = { src: null, spec: null };
+    if (!COMPCOLS[n]) COMPCOLS[n] = COMPCOLS[2 - (n % 2)];
+  }
+}
+CAPS_HOOKS.push(fftChans);
