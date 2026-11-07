@@ -39,8 +39,8 @@ func (m *Model) Snapshot() Stats {
 	st := Stats{
 		Running: s.Running, Norm: s.Sweep == hal.NormalSweep || s.Sweep == hal.Single, Single: s.Single,
 		TdivS: s.TimeDivS, DisplayedS: s.TimeDivS, TrigPosFrac: posFrac(s),
-		TrigRising: s.Trigger.Slope != hal.Falling, TrigSource: s.Trigger.Source.Index,
-		TrigType: s.TrigType, TrigQual: s.Qual, HoldoffS: s.Trigger.HoldoffS,
+		TrigRising: s.Trigger.Slope() != hal.Falling, TrigSource: s.Trigger.Source().Index,
+		TrigType: int(s.Trigger.running()), TrigQual: qualOf(s), HoldoffS: s.Trigger.Active().HoldoffS,
 		AvgCount: s.Averages, EresLen: s.EresLen, ETS: s.ETS, MemDepth: s.Depth,
 		Roll: run == Rolling,
 	}
@@ -194,67 +194,214 @@ func runRules(old State, s *State, r *runMemory) {
 	}
 }
 
-// SetTrigSource takes the edge's source among the analog channels.
+// SetTrigSource takes the running type's source among the analog
+// channels; a type without a single source (a pattern) keeps its inputs.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetTrigSource(ch int) {
 	m.set(func(s *State) {
 		if ch >= 0 && ch < len(s.Channels) {
-			s.Trigger.Source = hal.Source{Kind: hal.Analog, Index: ch}
+			_ = s.Trigger.SetSource(hal.Source{Kind: hal.Analog, Index: ch}, len(s.Channels))
 		}
 	})
 }
 
-// SetTrigSlope picks the rising or the falling edge.
+// SetTrigSlope picks the rising or the falling edge of the running type.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetTrigSlope(rising bool) {
 	m.set(func(s *State) {
-		s.Trigger.Slope = hal.Falling
+		sl := hal.Falling
 		if rising {
-			s.Trigger.Slope = hal.Rising
+			sl = hal.Rising
 		}
+		_ = s.Trigger.SetSlope(sl, len(s.Channels))
 	})
 }
 
-// SetTrigType picks edge, pulse, slope or video; out of range is edge.
+// SetTrigType picks the trigger type by its number (TrigType); out of range
+// is edge. A type the trigger's capabilities do not serve is refused and
+// the type stays (SetTrigCaps); SetTrigTypeOf says why.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetTrigType(t int) {
-	if t < 0 || t > 3 {
+	if t < 0 || t >= int(NumTrigTypes) {
 		t = 0
 	}
-	m.set(func(s *State) { s.TrigType = t })
+	_ = m.SetTrigTypeOf(TrigType(t))
 }
 
-// SetHoldoff stages the holdoff (0: off) and returns it.
+// SetTrigTypeOf picks trigger type t, or returns why it cannot run.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
+func (m *Model) SetTrigTypeOf(t TrigType) error {
+	if t < 0 || t >= NumTrigTypes {
+		return hal.Refuse("trigger type", "not a trigger type")
+	}
+	return m.Change(func(s *State) error { s.Trigger.Type = t; return nil })
+}
+
+// TrigTypes is every trigger type with whether the trigger's capabilities
+// serve it and why not; without capabilities every type is offered.
+// TRLC-LINKS: REQ-DSO-011
+func (m *Model) TrigTypes() []TypeAvail {
+	m.mu.Lock()
+	caps := m.caps
+	m.mu.Unlock()
+	out := make([]TypeAvail, NumTrigTypes)
+	for t := range NumTrigTypes {
+		out[t] = TypeAvail{Type: t, OK: true}
+		if caps != nil {
+			out[t].OK, out[t].Why = t.Avail(caps())
+		}
+	}
+	return out
+}
+
+// TypeAvail is a trigger type with whether it can run and why not.
+type TypeAvail struct {
+	Type TrigType
+	OK   bool
+	Why  string
+}
+
+// SetHoldoff stages the running type's holdoff (0: off) and returns it.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetHoldoff(sec float64) float64 {
 	if !(sec > 0) || math.IsInf(sec, 0) {
 		sec = 0
 	}
-	m.set(func(s *State) { s.Trigger.HoldoffS = sec })
+	m.set(func(s *State) { s.Trigger.Running().HoldoffS = sec })
 	return sec
 }
 
-// SetPulseParams sets the pulse qualifier.
+// The UI model's qualifier settings give levels as fractions of the
+// source's screen (vertDivs divisions, 0 its bottom) and times in
+// nanoseconds, with the conditions any, < min, > max and in range; the
+// HAL's qualifier compares Shorter with its upper limit and Longer with
+// its lower. A condition maps onto the limit it compares: "< min" is
+// Shorter than min, "> max" Longer than max, so the other limit is the
+// one the panel does not show for that condition.
+const vertDivs = 8
+
+// levelOfFrac is the level at fraction f of channel ch's screen, volts at
+// the tip; fracOfLevel its inverse.
+// TRLC-LINKS: REQ-DSO-011
+func levelOfFrac(s *State, src hal.Source, f float64) float64 {
+	if src.Kind != hal.Analog || src.Index < 0 || src.Index >= len(s.Channels) {
+		return 0
+	}
+	c := s.Channels[src.Index]
+	return (f-.5)*vertDivs*c.VoltsDiv - c.OffsetV
+}
+
+// TRLC-LINKS: REQ-DSO-011
+func fracOfLevel(s *State, src hal.Source, v float64) float64 {
+	if src.Kind != hal.Analog || src.Index < 0 || src.Index >= len(s.Channels) || !(s.Channels[src.Index].VoltsDiv > 0) {
+		return .5
+	}
+	c := s.Channels[src.Index]
+	return .5 + (v+c.OffsetV)/(vertDivs*c.VoltsDiv)
+}
+
+// qualSet sets a stage's time condition from the panel's condition and
+// limits (nanoseconds).
+// TRLC-LINKS: REQ-DSO-011
+func qualSet(st *hal.TrigStage, minNs, maxNs float64, cond int) {
+	q := stageQual(st)
+	q.MinS, q.MaxS = minNs/1e9, maxNs/1e9
+	switch cond {
+	case 1: // < min
+		q.Op, q.MaxS = hal.Shorter, minNs/1e9
+	case 2: // > max
+		q.Op, q.MinS = hal.Longer, maxNs/1e9
+	case 3:
+		q.Op = hal.Inside
+	default:
+		q.Op = 0
+	}
+}
+
+// qualGet is a stage's time condition as the panel's condition and limits.
+// TRLC-LINKS: REQ-DSO-011
+func qualGet(st hal.TrigStage) (minNs, maxNs float64, cond int) {
+	q := st.Qual
+	if q == nil {
+		return 0, 0, 0
+	}
+	minNs, maxNs = q.MinS*1e9, q.MaxS*1e9
+	switch q.Op {
+	case hal.Shorter:
+		return maxNs, maxNs, 1
+	case hal.Longer:
+		return minNs, minNs, 2
+	case hal.Inside, hal.Outside:
+		return minNs, maxNs, 3
+	}
+	return minNs, maxNs, 0
+}
+
+// qualOf is state s's pulse, slope and video settings as the panel reads
+// them.
+// TRLC-LINKS: REQ-DSO-011
+func qualOf(s State) TrigQual {
+	var q TrigQual
+	if c := s.Trigger.Configs[TrigPulse]; len(c.Stages) > 0 {
+		st := c.Stages[0]
+		q.PulseLvl = fracOfLevel(&s, st.Source, st.Levels.High)
+		q.PulseMinNs, q.PulseMaxNs, q.PulseCond = qualGet(st)
+	}
+	if c := s.Trigger.Configs[TrigSlope]; len(c.Stages) > 0 {
+		st := c.Stages[0]
+		q.SlopeLo, q.SlopeHi = fracOfLevel(&s, st.Source, st.Levels.Low), fracOfLevel(&s, st.Source, st.Levels.High)
+		q.SlopeMinNs, q.SlopeMaxNs, q.SlopeCond = qualGet(st)
+	}
+	if c := s.Trigger.Configs[TrigVideo]; len(c.Stages) > 0 && c.Stages[0].Video != nil {
+		v := c.Stages[0].Video
+		q.VideoStd = 1 // NTSC
+		if v.Standard == "pal" {
+			q.VideoStd = 0
+		}
+		if !v.AnyLine {
+			q.VideoLine = v.Line
+		}
+		q.VideoNeg = !v.Positive
+	}
+	return q
+}
+
+// SetPulseParams sets the pulse trigger's level and width condition.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetPulseParams(lvlFrac, wMinNs, wMaxNs float64, cond int) {
 	m.set(func(s *State) {
-		s.Qual.PulseLvl, s.Qual.PulseMinNs, s.Qual.PulseMaxNs, s.Qual.PulseCond = lvlFrac, wMinNs, wMaxNs, cond
+		st := firstStage(&s.Trigger.Configs[TrigPulse])
+		st.Levels.High = levelOfFrac(s, st.Source, lvlFrac)
+		qualSet(st, wMinNs, wMaxNs, cond)
 	})
 }
 
-// SetSlopeParams sets the slope qualifier.
+// SetSlopeParams sets the slope trigger's levels and time condition.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetSlopeParams(loFrac, hiFrac, tMinNs, tMaxNs float64, cond int) {
 	m.set(func(s *State) {
-		q := &s.Qual
-		q.SlopeLo, q.SlopeHi, q.SlopeMinNs, q.SlopeMaxNs, q.SlopeCond = loFrac, hiFrac, tMinNs, tMaxNs, cond
+		st := firstStage(&s.Trigger.Configs[TrigSlope])
+		st.Levels.Low, st.Levels.High = levelOfFrac(s, st.Source, loFrac), levelOfFrac(s, st.Source, hiFrac)
+		qualSet(st, tMinNs, tMaxNs, cond)
 	})
 }
 
-// SetVideoParams sets the video trigger's standard, line and sync polarity.
+// SetVideoParams sets the video trigger's standard (0 PAL, 1 NTSC), line
+// (0: every line) and sync polarity.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetVideoParams(std, line int, neg bool) {
-	m.set(func(s *State) { s.Qual.VideoStd, s.Qual.VideoLine, s.Qual.VideoNeg = std, line, neg })
+	m.set(func(s *State) {
+		st := firstStage(&s.Trigger.Configs[TrigVideo])
+		if st.Video == nil {
+			st.Video = &hal.Video{Field: 1}
+		}
+		v := st.Video
+		v.Standard = "ntsc"
+		if std == 0 {
+			v.Standard = "pal"
+		}
+		v.AnyLine, v.Line, v.Positive = line <= 0, max(line, 1), !neg
+	})
 }
 
 // SetAcqMode picks the acquisition mode by its number (Controls).

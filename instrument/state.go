@@ -18,6 +18,10 @@ import (
 // trigger mode, AUTO or NORMAL; Single is a single shot armed, which waits
 // in that mode and stops the run after its triggered frame. A controller
 // that writes Sweep = hal.Single arms a shot (Change keeps that meaning).
+//
+// Trigger holds every trigger type's configuration and the type that runs
+// (ADR-TRIGGER-STATE): the owner programs the running type's stages, the
+// others wait as they were left.
 type State struct {
 	Channels []hal.Channel // at the probe tip
 	TimeDivS float64
@@ -27,28 +31,17 @@ type State struct {
 	Averages int // the average's frame count (Mode Average)
 	EresLen  int // the high-resolution filter's length (Mode HighRes)
 	ETS      bool
-	Trigger  Edge
-	TrigType int      // 0 edge, 1 pulse, 2 slope, 3 video (the edge's source and slope serve every type)
-	Qual     TrigQual // the pulse, slope and video qualifiers
+	Trigger  Trigger
 	Sweep    hal.Sweep
 	Single   bool
 	Running  bool
 }
 
-// Edge is the edge trigger's setting.
-type Edge struct {
-	Source      hal.Source
-	Slope       hal.Slope
-	LevelV      float64
-	Coupling    hal.TrigCoupling
-	NoiseReject bool
-	HoldoffS    float64 // 0: off
-}
-
-// Clone is s with its own Channels.
+// Clone is s with its own Channels and trigger stages.
 // TRLC-LINKS: REQ-DSO-008
 func (s State) Clone() State {
 	s.Channels = append([]hal.Channel(nil), s.Channels...)
+	s.Trigger = s.Trigger.Clone()
 	return s
 }
 
@@ -65,8 +58,7 @@ func (s State) Equal(o State) bool {
 	}
 	return s.TimeDivS == o.TimeDivS && s.DelayS == o.DelayS && s.Depth == o.Depth && s.Mode == o.Mode &&
 		s.Averages == o.Averages && s.EresLen == o.EresLen && s.ETS == o.ETS &&
-		s.Trigger == o.Trigger && s.TrigType == o.TrigType && s.Qual == o.Qual &&
-		s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running
+		s.Trigger.Equal(o.Trigger) && s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running
 }
 
 // Request is what the planner is asked for in state s: the channels that
@@ -82,18 +74,10 @@ func (s State) Request() hal.Request {
 	return hal.Request{Channels: on, TimePerDivS: s.TimeDivS, DelayS: s.DelayS, Depth: s.Depth, Mode: s.Mode}
 }
 
-// TriggerSpec is the edge trigger of state s in the HAL's terms.
-// TRLC-LINKS: REQ-DSO-008
-func (s State) TriggerSpec() hal.TriggerSpec {
-	t := s.Trigger
-	return hal.TriggerSpec{
-		Stages:      []hal.TrigStage{{Node: hal.NodeEdge, Source: t.Source, Levels: hal.Levels{High: t.LevelV, Slope: t.Slope}}},
-		Sweep:       s.BoardSweep(),
-		Coupling:    t.Coupling,
-		NoiseReject: t.NoiseReject,
-		HoldoffS:    t.HoldoffS,
-	}
-}
+// TriggerSpec is the running trigger type of state s in the HAL's terms,
+// at the sweep the board runs.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
+func (s State) TriggerSpec() hal.TriggerSpec { return s.Trigger.Spec(s.BoardSweep()) }
 
 // BoardSweep is the sweep the board runs: a single shot armed in NORMAL is
 // the board's single sweep; one armed in AUTO free-runs until a triggered

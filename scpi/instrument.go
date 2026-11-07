@@ -28,8 +28,18 @@ type Instrument interface {
 // State is the instrument's settings (package instrument).
 type State = instrument.State
 
-// Edge is the edge trigger's setting.
-type Edge = instrument.Edge
+// Trigger is the trigger setting: every type's configuration and the type
+// that runs (package instrument).
+type Trigger = instrument.Trigger
+
+// TrigConfig is one trigger type's configuration (package instrument).
+type TrigConfig = instrument.TrigConfig
+
+// TrigType is a trigger type (package instrument).
+type TrigType = instrument.TrigType
+
+// TrigEdge is the edge trigger type.
+const TrigEdge = instrument.TrigEdge
 
 // RunState is the acquisition's run state.
 type RunState = instrument.RunState

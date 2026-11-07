@@ -31,6 +31,7 @@ type Model struct {
 	last    *sample.Frame
 	runMem  runMemory // the trigger mode an armed single shot replaced
 	tdivs   []float64 // the timebase ladder SetTdiv snaps to
+	caps    func() hal.TrigCaps
 }
 
 // FrameSource gives a reader the newest published frame: the engine's
@@ -45,10 +46,22 @@ type FrameSource interface {
 // TRLC-LINKS: REQ-DSO-008
 func New(s State, check func(State) error) *Model {
 	s = s.Clone()
+	s.Trigger.Fill(len(s.Channels))
 	if s.Sweep == hal.Single { // a shot armed from the start
 		s.Sweep, s.Single = hal.NormalSweep, true
 	}
 	return &Model{want: s, gen: 1, check: check, run: Armed}
+}
+
+// SetTrigCaps gives the trigger's capabilities (the board's
+// Trigger.Caps): a change to a trigger type they do not serve is refused
+// with the reason, on the caller's goroutine, and the type stays as it was.
+// Without them any type is staged and the board refuses at the commit.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
+func (m *Model) SetTrigCaps(caps func() hal.TrigCaps) {
+	m.mu.Lock()
+	m.caps = caps
+	m.mu.Unlock()
 }
 
 // SetFrames makes src the frames WithFrame reads (the engine's fan-out).
@@ -89,6 +102,12 @@ func (m *Model) Change(fn func(*State) error) error {
 // check passes; m.mu is held.
 // TRLC-LINKS: REQ-DSO-008
 func (m *Model) commitLocked(s State, r runMemory) error {
+	s.Trigger.Fill(len(s.Channels))
+	if s.Trigger.Type != m.want.Trigger.Type && m.caps != nil {
+		if ok, why := s.Trigger.Type.Avail(m.caps()); !ok {
+			return hal.Refuse("the "+s.Trigger.Type.String()+" trigger", why)
+		}
+	}
 	if m.check != nil {
 		if err := m.check(s); err != nil {
 			return err
