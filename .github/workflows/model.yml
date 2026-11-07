@@ -1,0 +1,43 @@
+name: model
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # The engineering model (model/) must validate without errors: requirements,
+  # catalog, and every function's TRLC-LINKS across the tree. engdoc exits
+  # non-zero on any error; warnings are reported but pass. It runs inside
+  # model/ with --code-root ..: the code scan and the test scan both resolve
+  # that path, one from the manifest's directory and one from the working
+  # directory, so only from model/ do both reach the repository. The scope
+  # repositories compose this model (alias core) from a checkout next to
+  # theirs; the same engine release is pinned in their model jobs.
+  model:
+    runs-on: ubuntu-latest
+    env:
+      ENGMODEL_VERSION: v0.10.0 # pin: the engine release the model is validated with (commit 4fb9b77)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: false
+      # Three tries: a module proxy lookup that times out is not a model error.
+      - name: Install engdoc
+        run: |
+          for try in 1 2 3; do
+            go install "github.com/labeth/engineering-model-go/cmd/engdoc@${ENGMODEL_VERSION}" && exit 0
+            sleep 15
+          done
+          exit 1
+      - name: validate the model
+        working-directory: model
+        run: >
+          engdoc --model engmod.yml --requirements requirements.yml
+          --design views.yml --code-root .. --lock check
+          --out "$RUNNER_TEMP/ARCHITECTURE.adoc"

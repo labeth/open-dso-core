@@ -41,6 +41,27 @@ module implements `agent.Board` (`hal.SupervisorBoard` and its takeover's landin
 check this code against a scope's web UI and FPGA sources. They find the scope checkout through
 `DSO_SCOPE_DIR`, or a sibling `open-sds1000cml` directory, and skip without one.
 
+## Engineering model
+
+`model/` is the core's engineering model for
+[engineering-model-go](https://github.com/labeth/engineering-model-go): the requirements the core
+implements (`REQ-DSO-*`), one functional unit per package (`FU-DSO-*`, named in each file's
+`ENGMODEL-OWNER-UNIT`), the capabilities a scope composes (`CAP-DSO-*`, publication `public`) and the
+family's decision log (`decisions.yml`). Every function names the requirements it serves in
+`TRLC-LINKS`. The model is held to the product tier (`ADR-CORE-MODEL-TIER`); how its IDs relate to a
+scope's is `ADR-CORE-MODEL-IDS`. CI (`.github/workflows/model.yml`) validates it with `engdoc` at the
+pinned release, from `model/`:
+
+```sh
+cd model
+engdoc --model engmod.yml --requirements requirements.yml \
+  --design views.yml --code-root .. --lock check --out /tmp/ARCHITECTURE.adoc
+```
+
+A scope's model composes this one as the CUE module `github.com/labeth/open-dso-core/model@v0`
+(`model/cue.mod/module.cue`). Until it is published to a registry, the scope resolves it from a
+checkout next to its own through an `engmod.work.yml` above both repositories.
+
 ## Licence
 
 MIT, see [LICENSE](LICENSE).
