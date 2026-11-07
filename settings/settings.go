@@ -227,11 +227,13 @@ type Display struct {
 	XYCh       [2]int                `json:"xy_ch,omitzero"`
 	// Set marks the blocks below (an older file has none: invert off, no
 	// zoom, the cursors where they were). A recalled setup brings them back.
-	Set     bool       `json:"set,omitempty"`
-	Invert  [2]bool    `json:"invert"`   // the channel drawn upside down (the CH tabs' Invert)
-	CurMode int        `json:"cur_mode"` // the cursors: 0 off, 1 time, 2 volts
-	CurX    [2]float64 `json:"cur_x"`    // A and B, screen fractions across
-	CurY    [2]float64 `json:"cur_y"`    // A and B, screen fractions down
+	Set    bool    `json:"set,omitempty"`
+	Invert [2]bool `json:"invert"` // the channel drawn upside down (the CH tabs' Invert)
+	// InvertMore are the channels past C2 drawn upside down (C3, C4).
+	InvertMore [MaxChannels - 2]bool `json:"invert_more,omitzero"`
+	CurMode    int                   `json:"cur_mode"` // the cursors: 0 off, 1 time, 2 volts
+	CurX       [2]float64            `json:"cur_x"`    // A and B, screen fractions across
+	CurY       [2]float64            `json:"cur_y"`    // A and B, screen fractions down
 	// The cursors anchored to the signal (CurAt; an older file has only
 	// their screen places): times from the trigger (s), volts at the tip of
 	// channel CurVCh.

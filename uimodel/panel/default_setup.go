@@ -77,7 +77,7 @@ func (c *Controller) DefaultSetup() {
 		c.lv.ResetTrigLevel()
 	}
 	if c.inverter != nil { // the traces the right way up
-		for ch := range min(c.nch, 2) { // the display invert is C1 and C2's
+		for ch := range c.nch {
 			c.inverter.SetInverted(ch, false)
 		}
 	}

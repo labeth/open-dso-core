@@ -18,10 +18,23 @@ import (
 // preset and installs it in the engine. Zones stay web-only in v1 (drawing
 // rectangles with knobs is a poor fit; the mask flow is the device-native use).
 
-// maskTols are the Tol softkey presets: ±samples horizontal / ±codes vertical.
-// The floor rule (plan §1.4): horizontal must cover trigger-point jitter,
-// vertical ≥ ~3× the noise σ.
+// maskTols are the Tol softkey presets: ±samples horizontal / ±codes
+// vertical at an 8-bit converter's 25 codes a division (maskTolCodes
+// restates them at a trace's own scale, so a preset is the same fraction of
+// a division on any converter). The floor rule (plan §1.4): horizontal must
+// cover trigger-point jitter, vertical ≥ ~3× the noise σ.
 var maskTols = [][2]int{{3, 6}, {5, 8}, {8, 12}, {12, 20}}
+
+// maskTolCodes is a preset's vertical tolerance tol (codes at 25 a
+// division) in the codes of a trace of cpd codes a division on the 8-bit
+// view.
+// TRLC-LINKS: REQ-DSO-139
+func maskTolCodes(tol int, cpd float64) int {
+	if cpd == defaultCodesPerDiv {
+		return tol
+	}
+	return max(int(math.Round(float64(tol)*cpd/defaultCodesPerDiv)), 1)
+}
 
 // maskBuildStart launches a build with the page's current settings. Refuses
 // while one is running, without a frame source, or when the trigger-source
@@ -65,7 +78,7 @@ func (c *Controller) maskBuildRun(gen uint64, n, tolT, tolV, ch int, posFrac flo
 	}
 	var lo, hi []uint8
 	win, got := 0, 0
-	var sampleS, tdivS float64
+	var sampleS, tdivS, cpd float64
 	var peak bool
 	var lastSeq uint64
 	start := time.Now()
@@ -97,6 +110,7 @@ func (c *Controller) maskBuildRun(gen uint64, n, tolT, tolV, ch int, posFrac flo
 				// Start a new envelope when acquisition geometry changes.
 				got = 0
 				sampleS, tdivS, peak = f.SampleS, f.Snapshot.TdivS, f.Content == sample.PeakPairs
+				cpd = traceCodesPerDiv(f, ch)
 				win = w
 				lo = make([]uint8, win)
 				hi = make([]uint8, win)
@@ -125,7 +139,7 @@ func (c *Controller) maskBuildRun(gen uint64, n, tolT, tolV, ch int, posFrac flo
 		c.maskSetMsg("MASK: build failed - no locked frames: put the trigger level on the signal")
 		return
 	}
-	m := engine.BuildMaskFromEnvelope(lo, hi, win, tolT, tolV, ch)
+	m := engine.BuildMaskFromEnvelope(lo, hi, win, tolT, maskTolCodes(tolV, cpd), ch)
 	if m == nil {
 		c.maskSetMsg("MASK: build failed")
 		return

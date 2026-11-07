@@ -4,6 +4,7 @@ package engine
 
 import (
 	"math"
+	"slices"
 	"sync"
 	"time"
 
@@ -26,6 +27,44 @@ type SoundScale struct {
 	From  uint64     `json:"from"` // the first sample it applies to
 	VdivV [2]float64 `json:"vdiv_v"`
 	OffV  [2]float64 `json:"off_v"`
+	// Chans names the scope channel each lane carries (lane i is channel
+	// Chans[i]); nil: C1 and C2, as a two-channel scope streams.
+	Chans []int `json:"chans,omitempty"`
+}
+
+// LaneOf is the lane carrying scope channel ch at scale s, -1 when none
+// does.
+// TRLC-LINKS: REQ-DSO-265
+func (s SoundScale) LaneOf(ch int) int {
+	if s.Chans == nil {
+		if ch == 0 || ch == 1 {
+			return ch
+		}
+		return -1
+	}
+	for i, c := range s.Chans {
+		if c == ch && i < 2 {
+			return i
+		}
+	}
+	return -1
+}
+
+// Lane is block b's samples of scope channel ch (nil when no lane carries
+// it), by the lanes of its newest scale.
+// TRLC-LINKS: REQ-DSO-265
+func (b SoundBlock) Lane(ch int) []uint16 {
+	var sc SoundScale
+	if k := len(b.Scales); k > 0 {
+		sc = b.Scales[k-1]
+	}
+	switch sc.LaneOf(ch) {
+	case 0:
+		return b.Q1
+	case 1:
+		return b.Q2
+	}
+	return nil
 }
 
 // SoundMark is a level crossing the FPGA marked (wire.SoundMark: it goes to
@@ -136,7 +175,7 @@ func (r *SoundRing) PushWords(raw []byte, sc SoundScale, gap bool, now time.Time
 	if gap && r.Next > 0 && (len(r.Gaps) == 0 || r.Gaps[len(r.Gaps)-1] != r.Next) {
 		r.Gaps = append(r.Gaps, r.Next)
 	}
-	if k := len(r.scales); k == 0 || r.scales[k-1].VdivV != sc.VdivV || r.scales[k-1].OffV != sc.OffV {
+	if k := len(r.scales); k == 0 || r.scales[k-1].VdivV != sc.VdivV || r.scales[k-1].OffV != sc.OffV || !slices.Equal(r.scales[k-1].Chans, sc.Chans) {
 		sc.From = r.Next
 		r.scales = append(r.scales, sc)
 	}
@@ -287,8 +326,19 @@ func UnwrapWord(w uint32, ref uint64) uint64 {
 	return v
 }
 
+// ChanVolts is SoundVolts for the lane carrying scope channel ch (0, 0
+// when none does).
+// TRLC-LINKS: REQ-DSO-265
+func (s SoundScale) ChanVolts(ch int) (vpc, off float64) {
+	lane := s.LaneOf(ch)
+	if lane < 0 {
+		return 0, 0
+	}
+	return s.SoundVolts(lane)
+}
+
 // SoundVolts is the scale's volts per code and offset at the analog input
-// for channel ch (times the probe factor at the tip).
+// for lane ch (times the probe factor at the tip).
 // TRLC-LINKS: REQ-DSO-265
 func (s SoundScale) SoundVolts(ch int) (vpc, off float64) {
 	ch &= 1

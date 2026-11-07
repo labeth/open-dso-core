@@ -83,17 +83,18 @@ func (c *Controller) srFPGARun() {
 	if busy {
 		return
 	}
+	if ch > 1 { // the stacking image's request names one of two channels (ChannelMask 3)
+		c.srSetStatus("FPGA stacking takes C1 or C2")
+		return
+	}
 	var sig []uint8
 	var fine []float64
 	var sampleS, edgeX float64
 	c.frameFn(func(f *sample.Frame) {
-		if f == nil || f.Flags.Has(sample.Envelope) || f.Len() < 8 || f.Len() > len(f.Codes8(0)) {
+		if f == nil || f.Flags.Has(sample.Envelope) || f.Len() < 8 || f.Len() > len(f.Codes8(ch)) {
 			return
 		}
-		src, q := f.Codes8(0), f.Precision(0)
-		if ch == 1 && len(f.Codes8(1)) >= f.Len() {
-			src, q = f.Codes8(1), f.Precision(1)
-		}
+		src, q := f.Codes8(ch), f.Precision(ch)
 		sig = append([]uint8(nil), src[:f.Len()]...)
 		fine = make([]float64, f.Len())
 		for i := range fine {

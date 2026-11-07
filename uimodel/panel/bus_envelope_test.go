@@ -181,10 +181,10 @@ func TestEnvelopeHidesOnlyTheBusLines(t *testing.T) {
 		l    look
 		hide bool
 	}{
-		{"UART at 1ms/div, bits filling the buckets", look{res: uart, sampleS: 1.024e-6, envRun: [2]float64{13e-6, 0}}, false},
-		{"ARINC 429 at 200us/div, half bits in pairs of buckets", look{res: decode.Result{OK: true, Proto: "arinc429", SPB: 39, Baud: 100000}, sampleS: 256e-9, envRun: [2]float64{2.6e-6, 0}}, false},
-		{"UART beside a fast C2", look{res: uart, sampleS: 1.024e-6, envRun: [2]float64{0, 0.5e-6}}, false},
-		{"the 104 MHz flash read as I2C", look{res: i2c, sampleS: 128e-9, envRun: [2]float64{1.31e-6, 0}}, true},
+		{"UART at 1ms/div, bits filling the buckets", look{res: uart, sampleS: 1.024e-6, envRun: [maxChans]float64{13e-6, 0}}, false},
+		{"ARINC 429 at 200us/div, half bits in pairs of buckets", look{res: decode.Result{OK: true, Proto: "arinc429", SPB: 39, Baud: 100000}, sampleS: 256e-9, envRun: [maxChans]float64{2.6e-6, 0}}, false},
+		{"UART beside a fast C2", look{res: uart, sampleS: 1.024e-6, envRun: [maxChans]float64{0, 0.5e-6}}, false},
+		{"the 104 MHz flash read as I2C", look{res: i2c, sampleS: 128e-9, envRun: [maxChans]float64{1.31e-6, 0}}, true},
 		{"an I2C with no envelope seen", look{res: i2c, sampleS: 128e-9}, false},
 	} {
 		if got := envHides(c.l); got != c.hide {
@@ -194,11 +194,11 @@ func TestEnvelopeHidesOnlyTheBusLines(t *testing.T) {
 	// a find whose frames' checks passed stands whatever the envelope shows
 	// (USB PD's CRC-32: its half bits are close to the buckets at 200us/div);
 	// one with no check does not
-	pd := look{found: true, res: decode.Result{OK: true, Proto: "usbpd", SPB: 13, Baud: 300000}, sampleS: 256e-9, envRun: [2]float64{0.6e-6, 0}}
+	pd := look{found: true, res: decode.Result{OK: true, Proto: "usbpd", SPB: 13, Baud: 300000}, sampleS: 256e-9, envRun: [maxChans]float64{0.6e-6, 0}}
 	if !envHides(pd) || !stands(pd) {
 		t.Errorf("USB PD with its CRC checked: hides %v, stands %v", envHides(pd), stands(pd))
 	}
-	flash := look{found: true, res: i2c, sampleS: 128e-9, envRun: [2]float64{1.31e-6, 0}}
+	flash := look{found: true, res: i2c, sampleS: 128e-9, envRun: [maxChans]float64{1.31e-6, 0}}
 	if stands(flash) {
 		t.Error("the flash read as I2C stands")
 	}
@@ -302,10 +302,10 @@ func TestShortRunsAskForTheEnvelope(t *testing.T) {
 		l     look
 		short bool
 	}{
-		{"the flash read as I2C", look{res: i2c, runs: [2]int{2, 15}}, true},
-		{"the flash read as I2C, its data runs longer", look{res: i2c, runs: [2]int{12, 7}}, true},
-		{"a bench I2C", look{res: i2c, runs: [2]int{14, 14}}, false},
-		{"a UART beside a fast C2", look{res: uart, runs: [2]int{35, 2}}, false},
+		{"the flash read as I2C", look{res: i2c, runs: [maxChans]int{2, 15}}, true},
+		{"the flash read as I2C, its data runs longer", look{res: i2c, runs: [maxChans]int{12, 7}}, true},
+		{"a bench I2C", look{res: i2c, runs: [maxChans]int{14, 14}}, false},
+		{"a UART beside a fast C2", look{res: uart, runs: [maxChans]int{35, 2}}, false},
 	} {
 		if got := shortRuns(c.l); got != c.short {
 			t.Errorf("%s: short runs %v", c.name, got)
@@ -327,11 +327,11 @@ func TestAShortRunFindNeedsTheEnvelope(t *testing.T) {
 	})
 	all := func(*sample.Frame, bool) bool { return true }
 	i2c := decode.Result{OK: true, Proto: "i2c", SPB: 28, Roles: decode.Roles{ChA: 1, ChB: 0}}
-	short := look{res: i2c, sampleS: 256e-9, found: true, runs: [2]int{2, 7}}
+	short := look{res: i2c, sampleS: 256e-9, found: true, runs: [maxChans]int{2, 7}}
 	if c.weighEnvelope(&short, all) {
 		t.Error("the flash's I2C reading stood with no envelope read")
 	}
-	bench := look{res: i2c, sampleS: 256e-9, found: true, runs: [2]int{14, 14}}
+	bench := look{res: i2c, sampleS: 256e-9, found: true, runs: [maxChans]int{14, 14}}
 	if !c.weighEnvelope(&bench, all) {
 		t.Error("a bench I2C did not stand")
 	}
@@ -470,7 +470,7 @@ func TestTheClockedPairsTakeTheirClockFromTheRecord(t *testing.T) {
 	}
 	cj := look{
 		found: true, res: decode.Result{OK: true, Proto: "cjtag", SPB: 40, Bytes: []int{1, 2, 3}, Roles: decode.Roles{ChA: 1, ChB: 0}},
-		sampleS: 1.024e-6, envRun: [2]float64{0.2e-6, 0.2e-6}, envSeen: true,
+		sampleS: 1.024e-6, envRun: [maxChans]float64{0.2e-6, 0.2e-6}, envSeen: true,
 	}
 	if stands(cj) {
 		t.Error("a cJTAG read off a 10 MHz bus's decimated record stood against its envelope")

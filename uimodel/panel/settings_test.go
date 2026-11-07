@@ -223,7 +223,7 @@ func (i *fakeInverter) SetInverted(ch int, on bool) { i.inv[ch&1] = on }
 func TestSettingsViewDisplayStateRoundTrip(t *testing.T) {
 	c, _, _ := newC(t)
 	inv := &fakeInverter{}
-	c.SetInverter(inv)
+	c.SetInverter(Inverter2(inv))
 	want := settings.Display{
 		Set: true, Invert: [2]bool{true, false}, CurMode: 2, CurX: [2]float64{0.2, 0.7},
 		CurY: [2]float64{0.3, 0.6}, CurSel: 1, Zoom: 5, ZoomOff: 0.25,

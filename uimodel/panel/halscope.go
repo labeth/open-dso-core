@@ -21,13 +21,14 @@ type HALScope struct {
 	b       hal.Board
 	product string
 	mask    *engine.FrameMask
+	bode    *engine.Bode // the frequency response, measured beside the owner loop (Watch)
 }
 
 // NewHALScope is the UI model's view of board b through instrument state
 // m; product is the firmware line the SYS tab names.
 // TRLC-LINKS: REQ-DSO-135, REQ-DSO-008
 func NewHALScope(m *instrument.Model, b hal.Board, product string) *HALScope {
-	return &HALScope{m: m, b: b, product: product}
+	return &HALScope{m: m, b: b, product: product, bode: engine.NewBode()}
 }
 
 // WithMask gives the UI model the mask test the owner runs on the frames
@@ -40,7 +41,7 @@ func (s *HALScope) WithMask(x *engine.FrameMask) *HALScope {
 
 // Engine is the Model's controls with the owner's mask test.
 // TRLC-LINKS: REQ-DSO-135
-func (s *HALScope) Engine() Engine { return halEngine{s.m, s.mask} }
+func (s *HALScope) Engine() Engine { return halEngine{s.m, s.mask, s.bode} }
 
 // Analog is the front end through the Model.
 // TRLC-LINKS: REQ-DSO-135
@@ -65,10 +66,11 @@ func (s *HALScope) Settings() settings.Analog { return halAnalog{s} }
 func (s *HALScope) Tdivs() []float64 { return s.b.Profile().Timebase.TdivS }
 
 // halEngine is the Model with the owner's mask test (none: the mask
-// staging does nothing).
+// staging does nothing) and the frequency response measured beside it.
 type halEngine struct {
 	*instrument.Model
 	mask *engine.FrameMask
+	bode *engine.Bode
 }
 
 // TRLC-LINKS: REQ-DSO-014
@@ -92,10 +94,14 @@ func (e halEngine) ClearMaskFails() {
 	}
 }
 
-// Snapshot is the Model's with the mask test's counts.
-// TRLC-LINKS: REQ-DSO-135, REQ-DSO-014
+// Snapshot is the Model's with the mask test's counts and the frequency
+// response's state.
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-014, REQ-DSO-066
 func (e halEngine) Snapshot() instrument.Stats {
 	st := e.Model.Snapshot()
+	if e.bode != nil {
+		e.bode.FillStats(&st)
+	}
 	if e.mask != nil {
 		k := e.mask.Counts()
 		st.MaskMode, st.MaskPass, st.MaskFail, st.MaskSkip = k.Mode, int64(k.Pass), int64(k.Fail), int64(k.Skip) //nolint:gosec // G115: frame counts

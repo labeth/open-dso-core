@@ -47,6 +47,10 @@ func sndEnum(id, label, help string, opts []opt, get func(SoundSettings) int, se
 	}
 }
 
+// gateOpts are the envelope trigger's choices: the signal, or a gate on a
+// channel.
+var gateOpts = []opt{{-1, "Signal"}, {0, "Gate C1"}, {1, "Gate C2"}, {2, "Gate C3"}, {3, "Gate C4"}}
+
 // soundRows are the SOUND tab's rows.
 // TRLC-LINKS: REQ-DSO-273
 func soundRows() []*row {
@@ -67,7 +71,8 @@ func soundRows() []*row {
 		pages = append(pages, opt{i, n})
 	}
 	ch := sndEnum("snd.ch", "Tuned channel", "The channel the tuner, the cycle trace, modulation and harmonics read (the VCO for V/oct, its CV on the other).",
-		chans, func(s SoundSettings) int { return s.Ch }, func(s *SoundSettings, v int) { s.Ch = v & 1 })
+		chans, func(s SoundSettings) int { return s.Ch }, func(s *SoundSettings, v int) { s.Ch = v })
+	ch.opts = chanOpts
 	ch.hdr = "TUNER  (SPECTRUM: F3 again to SOUND)"
 	ch.knob = "In the SOUND view: push Position."
 	a4 := numRow("snd.a4", "A4", "Hz", func(s *sv) float64 { return s.snd.A4 }, constLim(400, 480), constStep(1),
@@ -96,12 +101,14 @@ func soundRows() []*row {
 		[]opt{{1, "1"}, {2, "2"}, {4, "4"}}, func(s SoundSettings) int { return s.Cycles }, func(s *SoundSettings, v int) { s.Cycles = v })
 	cyc.knob = "In the SOUND view: turn Position."
 	abIn := sndEnum("snd.ab_in", "A/B input", "The circuit's input channel; its output on the other.",
-		chans, func(s SoundSettings) int { return s.ABIn }, func(s *SoundSettings, v int) { s.ABIn = v & 1 })
+		chans, func(s SoundSettings) int { return s.ABIn }, func(s *SoundSettings, v int) { s.ABIn = v })
+	abIn.opts = chanOpts
 	env := sndEnum("snd.env", "Envelope of", "A tone's amplitude, or a CV read as the envelope itself (an envelope generator's output).",
 		[]opt{{0, "Tone"}, {1, "CV"}}, func(s SoundSettings) int { return b2ic(s.EnvCV) }, func(s *SoundSettings, v int) { s.EnvCV = v == 1 })
 	env.hdr = "ENVELOPE (ADSR)"
 	gate := sndEnum("snd.gate", "Envelope trigger", "The FPGA's edge that starts a capture: the signal crossing its level, or a gate on C1 or C2 (its fall ends the gate).",
-		[]opt{{-1, "Signal"}, {0, "Gate C1"}, {1, "Gate C2"}}, func(s SoundSettings) int { return s.Gate }, func(s *SoundSettings, v int) { s.Gate = clampInt(v, -1, 1) })
+		gateOpts, func(s SoundSettings) int { return s.Gate }, func(s *SoundSettings, v int) { s.Gate = clampInt(v, -1, maxChans-1) })
+	gate.opts = func(s *sv) []opt { return gateOpts[:1+min(max(s.nch, 2), maxChans)] }
 	gateV := numRow("snd.gate_v", "Trigger level", "V", func(s *sv) float64 { return s.snd.GateV }, constLim(-20, 20), constStep(0.05),
 		func(c *Controller, v float64) error {
 			c.snd.update(func(s *SoundSettings) { s.GateV = v })

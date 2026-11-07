@@ -221,23 +221,66 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 	case "on":
 		return v, false, edit(func(st *instrument.State) error { st.Channels[req.Ch].On = v != 0; return nil })
 	}
-	if mr, ok := c.s.cfg.Parts.Masks.(MaskRunner); ok {
-		switch req.Name {
-		case "maskmode":
-			if v != 0 && v != 1 && v != 2 {
-				return nil, false, errors.New("maskmode is 0 off, 1 test or 2 stop on fail")
-			}
-			mr.SetMaskMode(int(v))
-			return v, false, nil
-		case "maskclear":
-			mr.ClearMaskFails()
-			return v, false, nil
-		}
+	if ok, err := c.maskControl(req); ok {
+		return v, false, err
+	}
+	if ok, err := c.bodeControl(req, len(m.State().Channels)); ok {
+		return v, false, err
 	}
 	if _, ok := otherControls[req.Name]; ok {
 		return nil, false, fmt.Errorf("%s: not available on this scope", req.Name)
 	}
 	return applied, false, errUnknown
+}
+
+// maskControl applies maskmode and maskclear to a mask test the scope
+// drives; ok is false for another control or without one.
+// TRLC-LINKS: REQ-DSO-162, REQ-DSO-014
+func (c controls) maskControl(req webserver.Control) (bool, error) {
+	mr, ok := c.s.cfg.Parts.Masks.(MaskRunner)
+	if !ok {
+		return false, nil
+	}
+	switch req.Name {
+	case "maskmode":
+		v := req.Value
+		if v != 0 && v != 1 && v != 2 {
+			return true, errors.New("maskmode is 0 off, 1 test or 2 stop on fail")
+		}
+		mr.SetMaskMode(int(v))
+		return true, nil
+	case "maskclear":
+		mr.ClearMaskFails()
+		return true, nil
+	}
+	return false, nil
+}
+
+// bodeSweep is a Bode part that is armed and cleared from the page.
+type bodeSweep interface {
+	SetBodeMode(on bool, refCh, dutCh int)
+	ClearBode()
+}
+
+// bodeControl applies bodemode (value 0 off, else on; the reference and
+// DUT channels in lo and hi, 0 = C1) and bodeclear when the scope's Bode
+// part takes them; ok false for another control or without one.
+// TRLC-LINKS: REQ-DSO-066
+func (c controls) bodeControl(req webserver.Control, nch int) (ok bool, err error) {
+	b, has := c.s.cfg.Parts.Bode.(bodeSweep)
+	if !has || (req.Name != "bodemode" && req.Name != "bodeclear") {
+		return false, nil
+	}
+	if req.Name == "bodeclear" {
+		b.ClearBode()
+		return true, nil
+	}
+	ref, dut := int(req.Lo), int(req.Hi)
+	if ref < 0 || ref >= nch || dut < 0 || dut >= nch || ref == dut {
+		return true, fmt.Errorf("bodemode: the reference and DUT are two of this scope's %d channels (lo, hi; 0 = C1)", nch)
+	}
+	b.SetBodeMode(req.Value != 0, ref, dut)
+	return true, nil
 }
 
 // otherControls are the v1 controls of features the shared settings do not

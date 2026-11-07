@@ -875,7 +875,7 @@ func drawMiniScope(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 		y := y0 + h - 1 - int((float64(v)-(sample.Mid8-span/2))/span*float64(h-1)+0.5)
 		return min(max(y, y0), y0+h-1)
 	}
-	if f != nil && len(f.Codes8(0)) > 0 && (!f.Flags.Has(sample.Envelope) || len(f.Min8(0)) != 0) {
+	if f != nil && f.Codes8Len() > 0 && (!f.Flags.Has(sample.Envelope) || f.Min8Len() != 0) {
 		for ch := hud.numChans() - 1; ch >= 0; ch-- { // C1 on top
 			if hud.shown(ch) {
 				miniScopeChan(sf, f, hud, ch, x0, w, yOf)
@@ -900,7 +900,7 @@ func miniScopeChan(sf Canvas, f *sample.Frame, hud HUD, ch, x0, w int, yOf func(
 	if f.Flags.Has(sample.Envelope) {
 		mn, mx := f.Min8(ch), f.Max8(ch)
 		for x := range w {
-			c := x * len(f.Min8(0)) / w
+			c := x * f.Min8Len() / w
 			if c < len(mn) && c < len(mx) {
 				vline(sf, x0+x, yOf(mx[c]), yOf(mn[c]), col)
 			}
@@ -1315,7 +1315,7 @@ func drawThumb(sf Canvas, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
 		switch sh.ThumbView {
 		case 1:
 			tag = "X-Y"
-			drawThumbXY(sf, f, x0, y0, w, h)
+			drawThumbXY(sf, f, hud, x0, y0, w, h)
 		case 2:
 			tag = "FFT CH" + itoa(sh.FFTCh+1)
 			drawThumbFFT(sf, f, hud, sh.FFTCh, x0, y0, w, h)
@@ -1366,19 +1366,20 @@ func drawThumb(sf Canvas, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
 	DrawText(sf, x0+3, y0+h-10, tag, tagCol, 1)
 }
 
-// drawThumbXY is the X-Y mini view.
+// drawThumbXY is the X-Y mini view of the X-Y pair (HUD.XYCh).
 // TRLC-LINKS: REQ-DSO-212
-func drawThumbXY(sf Canvas, f *sample.Frame, x0, y0, w, h int) {
-	if f == nil || f.Flags.Has(sample.Envelope) || len(f.Codes8(0)) == 0 {
+func drawThumbXY(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
+	if f == nil || f.Flags.Has(sample.Envelope) || f.Codes8Len() == 0 {
 		return
 	}
 	valid := frameValid(f)
-	if len(f.Codes8(1)) < valid {
+	xa, ya := hud.chanPair(hud.XYCh)
+	if len(f.Codes8(xa)) < valid || len(f.Codes8(ya)) < valid {
 		return
 	}
 	step := max(1, valid/600)
 	px, py := -1, -1
-	c1, c2 := f.Codes8(0), f.Codes8(1)
+	c1, c2 := f.Codes8(xa), f.Codes8(ya)
 	for i := 0; i < valid; i += step {
 		x := x0 + 1 + int(float64(c1[i])*float64(w-3)/255)
 		y := y0 + h - 2 - int(float64(c2[i])*float64(h-3)/255)
@@ -1392,7 +1393,7 @@ func drawThumbXY(sf Canvas, f *sample.Frame, x0, y0, w, h int) {
 // drawThumbFFT is the FFT mini view (column maxima, -80 dB at the bottom).
 // TRLC-LINKS: REQ-DSO-212
 func drawThumbFFT(sf Canvas, f *sample.Frame, hud HUD, ch, x0, y0, w, h int) {
-	if f == nil || f.Flags.Has(sample.Envelope) || len(f.Codes8(0)) == 0 {
+	if f == nil || f.Flags.Has(sample.Envelope) || f.Codes8Len() == 0 {
 		return
 	}
 	spec, ok := framecalc.SpectrumHeld(f, ch, hud.SampleS)

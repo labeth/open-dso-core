@@ -232,7 +232,7 @@ func (c *Controller) setBWL(ch int, on bool) error {
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) setInvert(ch int, on bool) error {
 	if c.inverter == nil {
-		return errors.New("invert unavailable")
+		return errors.New(noInvert)
 	}
 	c.inverter.SetInverted(ch, on)
 	return nil

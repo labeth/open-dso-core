@@ -121,7 +121,7 @@ type HUD struct {
 	SRBits    float64
 	SRMean    []float32 // align-channel review trace on the L·K fine grid; -1 = gap (nil unless review)
 	SRMean2   []float32 // the OTHER channel's review trace (stacked X-Y / dual FFT); -1 = gap
-	SRAlign   int       // which physical channel SRMean is (0=C1,1=C2); SRMean2 is the other
+	SRAlign   int       // which scope channel SRMean is; SRMean2 is superres.Other(SRAlign)'s
 	SRSampleS float64   // the stack's raw per-sample seconds (fine dt = SRSampleS/SRk)
 	SRk       int
 	SRGateLo  int
@@ -858,12 +858,17 @@ func drawEnvelope(sf Canvas, p plotArea, mn, mx []uint8, cols int, col Color, zo
 	fillSpans(sf, top[:w], bot[:w], cc[:w])
 }
 
-// codesPerDiv is frame f's codes a division on the 8-bit view: its first
-// trace's, or an 8-bit converter's when it states none.
+// codesPerDiv is frame f's codes a division on the 8-bit view: the first
+// trace's that states one (a channel switched off states none), or an
+// 8-bit converter's when none does.
 // TRLC-LINKS: REQ-DSO-021
 func codesPerDiv(f *sample.Frame) float64 {
-	if f != nil && len(f.Traces) > 0 && f.Traces[0].CodesPerDiv > 0 {
-		return f.Traces[0].CodesPerDiv8()
+	if f != nil {
+		for i := range f.Traces {
+			if f.Traces[i].CodesPerDiv > 0 {
+				return f.Traces[i].CodesPerDiv8()
+			}
+		}
 	}
 	return defaultCodesPerDiv
 }
@@ -872,7 +877,7 @@ func codesPerDiv(f *sample.Frame) float64 {
 // alternate-view renderers below).
 // TRLC-LINKS: REQ-DSO-021
 func frameValid(f *sample.Frame) int {
-	valid := min(max(f.Len(), 1), len(f.Codes8(0)))
+	valid := min(max(f.Len(), 1), f.Codes8Len())
 	return valid
 }
 
@@ -948,7 +953,7 @@ func strokeRect(sf Canvas, x, y, w, h int, c Color) {
 // it (screenshot path, tests).
 // TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
 func drawTraces(sf Canvas, p plotArea, f *sample.Frame, hud HUD, pb Layer) {
-	persisting := pb != nil && hud.Persist && hud.ViewMode == 0 && f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0
+	persisting := pb != nil && hud.Persist && hud.ViewMode == 0 && f != nil && !f.Flags.Has(sample.Envelope) && f.Codes8Len() > 0
 	traceTarget := sf
 	if persisting {
 		pb.FadeToBlack()
@@ -1077,9 +1082,9 @@ func drawViews(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 		default:
 			drawSuperresTrace(traceTarget, p, hud)
 		}
-	case hud.ViewMode == 1 && f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0:
+	case hud.ViewMode == 1 && f != nil && !f.Flags.Has(sample.Envelope) && f.Codes8Len() > 0:
 		drawXY(sf, p, f, hud)
-	case hud.ViewMode == 2 && f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0:
+	case hud.ViewMode == 2 && f != nil && !f.Flags.Has(sample.Envelope) && f.Codes8Len() > 0:
 		drawFFT(sf, p, f, hud)
 	case hud.ViewMode == 3:
 		drawBode(sf, p, hud)
@@ -1087,7 +1092,7 @@ func drawViews(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 		drawSoundTrace(sf, p, hud.UI.Sound)
 	case hud.ViewMode == 4:
 		drawSpectrogramMark(sf, p, hud.Spect, hud.UI.Layout.HideViewCaptions, hud.UI.Spec)
-	case f != nil && len(f.Codes8(0)) > 0:
+	case f != nil && f.Codes8Len() > 0:
 		drawYT(sf, traceTarget, p, f, hud)
 	}
 	if hud.StreamOn && !streamFullScreen(hud) && hud.Stream.State != streamwire.Idle {
@@ -1100,7 +1105,7 @@ func drawViews(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 // TRLC-LINKS: REQ-DSO-021
 func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	valid := frameValid(f)
-	if f.Flags.Has(sample.Envelope) && len(f.Min8(0)) > 0 {
+	if f.Flags.Has(sample.Envelope) && f.Min8Len() > 0 {
 		drawEnvelopes(sf, p, f, hud)
 		return
 	}
@@ -1134,7 +1139,7 @@ func drawEnvelopes(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 		if hud.Ch[ch].Inv { // INVS mirrors the band: min'=inv(max), max'=inv(min)
 			mn, mx = invertCodes(mx), invertCodes(mn)
 		}
-		drawEnvelope(sf, p, mn, mx, len(f.Min8(0)), chanColor(ch), hud.Ch[ch].Zoom)
+		drawEnvelope(sf, p, mn, mx, f.Min8Len(), chanColor(ch), hud.Ch[ch].Zoom)
 	}
 }
 
@@ -1213,10 +1218,6 @@ func absI(x int) int {
 	}
 	return x
 }
-
-// shownChans is C1's and C2's display enable (shown).
-// TRLC-LINKS: REQ-DSO-021
-func (h HUD) shownChans() (bool, bool) { return h.shown(0), h.shown(1) }
 
 // numChans is how many channels the HUD describes, C1 at least.
 // TRLC-LINKS: REQ-DSO-021

@@ -98,10 +98,10 @@ func (c *Controller) captureRefFrom(f *sample.Frame, slot int) {
 	if !(posFrac > 0 && posFrac <= 1) {
 		posFrac = .5
 	}
-	if f == nil || len(f.Codes8(0)) == 0 || f.Flags.Has(sample.Envelope) {
+	if f == nil || f.Codes8Len() == 0 || f.Flags.Has(sample.Envelope) {
 		return
 	}
-	valid := min(max(f.Len(), 1), len(f.Codes8(0)))
+	valid := min(max(f.Len(), 1), f.Codes8Len())
 	win := f.WinPoints
 	if win <= 0 || win > valid {
 		win = valid
