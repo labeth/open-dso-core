@@ -14,7 +14,19 @@ type (
 	RecordID    = sample.RecordID
 	Status      = sample.Status
 	Counters    = sample.Counters
+	Role        = sample.Role
 )
+
+// The window roles, as in package sample.
+const (
+	Main    = sample.Main
+	Zoom    = sample.Zoom
+	Edge    = sample.Edge
+	EdgeOpp = sample.EdgeOpp
+)
+
+// RoleView is the n-th magnified view's detail window.
+func RoleView(n int) Role { return sample.RoleView(n) }
 
 // The content kinds, as in package sample.
 const (

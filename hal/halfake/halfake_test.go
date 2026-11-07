@@ -92,12 +92,12 @@ func TestOwnerCycle16BitPeakPairs(t *testing.T) {
 		t.Fatalf("content %v traces %d", f.Content, len(f.Traces))
 	}
 	tr := f.Traces[3]
-	if len(tr.Min16) != 100 || len(tr.Max16) != 100 || len(tr.Codes8) != 0 {
-		t.Fatalf("min16 %d max16 %d", len(tr.Min16), len(tr.Max16))
+	if len(tr.Codes16) != 200 || tr.Valid != 200 || len(tr.Codes8) != 0 {
+		t.Fatalf("codes16 %d valid %d", len(tr.Codes16), tr.Valid)
 	}
 	// A bucket of the 100-sample square wave holds both levels.
-	if tr.Min16[10] >= tr.Max16[10] {
-		t.Errorf("bucket min %#x max %#x", tr.Min16[10], tr.Max16[10])
+	if tr.Codes16[20] >= tr.Codes16[21] {
+		t.Errorf("bucket min %#x max %#x", tr.Codes16[20], tr.Codes16[21])
 	}
 }
 

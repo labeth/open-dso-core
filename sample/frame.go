@@ -24,12 +24,13 @@ type Status struct {
 // TrigKind is how a frame's trigger position was found.
 type TrigKind uint8
 
-// The trigger kinds; the zero value is none (an untriggered roll or stream).
+// The trigger kinds; the zero value is not stated.
 const (
 	HardwareNode    TrigKind = iota + 1 // a hardware trigger node fired
 	SoftwareRefined                     // software placed it on the captured data
 	Forced                              // a forced acquisition: no trigger condition met
 	StreamStop                          // where a stream was stopped
+	Untriggered                         // nothing could trigger: a free-running capture or a roll view
 )
 
 // Match is where a protocol trigger's match ended.
@@ -46,11 +47,27 @@ type Conditioning struct {
 	NoiseGain   float64 // ideal noise gain of the filter
 }
 
-// StreamPos places a stream window on one time axis with its neighbours.
+// StreamPos places a capture window on one time axis with its neighbours.
+// A board that measures them gives every record its duration and the gap
+// before it; Seq numbers the windows of a stream (0: not a stream window).
 type StreamPos struct {
 	Seq     uint64  // monotonic window counter
 	WindowS float64 // this window's captured duration
 	GapS    float64 // measured blackout before this window
+}
+
+// Detail is a further window of a frame's record, read beside it at more
+// detail: the full-rate stretch around the trigger edge, a magnified view's
+// stretch. Its frame is read-only once published, so copies share it.
+type Detail struct {
+	Role Role
+	// From, To are where the window lies among the frame's samples
+	// (fractional indices); 0, 0 when the board does not place it.
+	From, To float64
+	// Read numbers the read the window came from: a window carried to the
+	// frames between reads keeps its number, so statistics count it once.
+	Read  uint64
+	Frame *Frame
 }
 
 // Settings is the configuration a frame was drained with, so a setting
@@ -76,9 +93,10 @@ type Frame struct {
 	WinPoints int     // delivered samples spanning the 10-division screen
 	TriggerAt float64 // delivered-sample index with any fine (sub-sample) position folded in; -1: a flat rail
 	TrigKind  TrigKind
+	TrigNode  string // the hardware node that fired, by name (edge, zone, a protocol)
 	Match     *Match
 	Cond      Conditioning
-	Stream    *StreamPos
+	Stream    StreamPos
 	Seq       uint64 // advances only on a publish
 	// ContentID is the same for frames that show the same conditioned record
 	// (a stopped record re-shown at a new scale): consumers may reuse results
@@ -86,12 +104,105 @@ type Frame struct {
 	ContentID uint64
 	Status    Status
 	Snapshot  Settings
+	// SourcePtp is the peak-to-peak, in codes, of the channel the trigger
+	// watches: whether there is a signal to trigger on.
+	SourcePtp int
+	Details   []Detail
+}
+
+// TriggerName names how the frame's trigger was found, as the web page and
+// the logs show it: "hardware-edge", "forced", "untriggered", "roll".
+func (f *Frame) TriggerName() string {
+	switch {
+	case f.Flags.Has(Roll):
+		return "roll"
+	case f.TrigKind == HardwareNode:
+		return "hardware-" + f.TrigNode
+	case f.TrigKind == SoftwareRefined:
+		return "software-" + f.TrigNode
+	case f.TrigKind == Forced:
+		return "forced"
+	case f.TrigKind == StreamStop:
+		return "stream"
+	case f.TrigKind == Untriggered:
+		return "untriggered"
+	}
+	return ""
+}
+
+// Len is the delivered sample count: the valid prefix the traces share.
+func (f *Frame) Len() int {
+	if len(f.Traces) == 0 {
+		return 0
+	}
+	return f.Traces[0].Valid
+}
+
+// SetLen sets every trace's valid prefix to n.
+func (f *Frame) SetLen(n int) {
+	for i := range f.Traces {
+		f.Traces[i].Valid = n
+	}
+}
+
+// Codes8 is trace ch's 8-bit codes, nil when the frame has no such trace.
+// The slices returned by these accessors are the trace's own, with its full
+// length; the samples are their first Len().
+func (f *Frame) Codes8(ch int) []uint8 {
+	if ch >= len(f.Traces) {
+		return nil
+	}
+	return f.Traces[ch].Codes8
+}
+
+// Precision is trace ch's precision words, nil when absent.
+func (f *Frame) Precision(ch int) []uint16 {
+	if ch >= len(f.Traces) {
+		return nil
+	}
+	return f.Traces[ch].Precision
+}
+
+// Min8 is trace ch's 8-bit display envelope minima, nil when absent.
+func (f *Frame) Min8(ch int) []uint8 {
+	if ch >= len(f.Traces) {
+		return nil
+	}
+	return f.Traces[ch].Min8
+}
+
+// Max8 is trace ch's 8-bit display envelope maxima, nil when absent.
+func (f *Frame) Max8(ch int) []uint8 {
+	if ch >= len(f.Traces) {
+		return nil
+	}
+	return f.Traces[ch].Max8
+}
+
+// Held is trace ch's held-sample marks (Trace.Held), nil when absent.
+func (f *Frame) Held(ch int) []bool {
+	if ch >= len(f.Traces) {
+		return nil
+	}
+	return f.Traces[ch].Held
+}
+
+// Detail returns the frame's detail window of role r, or nil.
+func (f *Frame) Detail(r Role) *Detail {
+	for i := range f.Details {
+		if f.Details[i].Role == r {
+			return &f.Details[i]
+		}
+	}
+	return nil
 }
 
 // Trace is one channel. Exactly one of Codes8 and Codes16 holds the samples,
-// as Format.Storage says; PeakPairs frames use the Min/Max pair of the same
-// storage instead. Precision is an optional finer word stream beside 8-bit
-// codes (fixed point with PrecisionFrac fraction bits), flagged on the frame.
+// as Format.Storage says; a PeakPairs frame holds each bucket's two extremes
+// there, interleaved. Precision is an optional finer word stream beside
+// 8-bit codes (fixed point with PrecisionFrac fraction bits), flagged on the
+// frame. Min/Max hold a display envelope of their own length, one (min, max)
+// per screen column, on an Envelope frame.
 type Trace struct {
 	Ch            int
 	Format        CodeFormat
@@ -102,7 +213,7 @@ type Trace struct {
 	Precision     []uint16
 	PrecisionFrac uint8
 	Held          []bool // roll: samples no capture covered
-	Valid         int    // the valid prefix of every slice above
+	Valid         int    // the valid prefix of the codes, precision words and held marks
 	Scale         Scale
 	CodesPerDiv   float64
 }
@@ -120,11 +231,12 @@ func (t *Trace) Volts(i int) float64 { return t.Scale.Volts(float64(t.Word(i))) 
 
 // CopyFrom deep-copies src into f, reusing f's buffers: a consumer's copy for
 // long work outside the publisher's lock. Pointer fields are copied as new
-// values, so the copy shares nothing with src.
+// values, so the copy shares nothing with src but the detail windows' frames,
+// which are read-only.
 // TRLC-LINKS: REQ-SDS-020
 func (f *Frame) CopyFrom(src *Frame) {
-	traces := f.Traces
-	match, stream := f.Match, f.Stream
+	traces, details := f.Traces, f.Details
+	match := f.Match
 	*f = *src
 	f.Traces = traces[:0]
 	for i := range src.Traces {
@@ -136,7 +248,7 @@ func (f *Frame) CopyFrom(src *Frame) {
 		f.Traces[i].copyFrom(&src.Traces[i])
 	}
 	f.Match = copyPtr(match, src.Match)
-	f.Stream = copyPtr(stream, src.Stream)
+	f.Details = reuse(details, src.Details)
 }
 
 // copyFrom copies src's valid prefix into t's storage.
@@ -147,10 +259,10 @@ func (t *Trace) copyFrom(src *Trace) {
 	*t = *src
 	t.Codes8 = reuse(c8, prefix(src.Codes8, src.Valid))
 	t.Codes16 = reuse(c16, prefix(src.Codes16, src.Valid))
-	t.Min8 = reuse(n8, prefix(src.Min8, src.Valid))
-	t.Max8 = reuse(x8, prefix(src.Max8, src.Valid))
-	t.Min16 = reuse(n16, prefix(src.Min16, src.Valid))
-	t.Max16 = reuse(x16, prefix(src.Max16, src.Valid))
+	t.Min8 = reuse(n8, src.Min8)
+	t.Max8 = reuse(x8, src.Max8)
+	t.Min16 = reuse(n16, src.Min16)
+	t.Max16 = reuse(x16, src.Max16)
 	t.Precision = reuse(p, prefix(src.Precision, src.Valid))
 	t.Held = reuse(h, prefix(src.Held, src.Valid))
 }

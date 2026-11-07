@@ -26,7 +26,7 @@ type Content uint8
 const (
 	RawFullRate   Content = iota + 1 // every converter sample at the acquisition rate
 	RawDecimated                     // every Nth sample, or a filtered decimation
-	PeakPairs                        // min/max per bucket (Trace.Min*/Max*)
+	PeakPairs                        // the two extremes of each bucket, interleaved in the codes (in time order with Ordered)
 	Resampled                        // interpolated or resampled to N points
 	DisplayDomain                    // already in a display code space
 )
@@ -118,7 +118,23 @@ const (
 	Held                              // a held frame shown while stopped
 	Segmented                         // one of several segments of a record
 	Precision                         // traces carry Precision words beside their codes
+	// Envelope: the traces' Min*/Max* hold a display envelope, one (min,
+	// max) per screen column, to draw instead of the codes (an untriggered
+	// band over a record faster than the screen).
+	Envelope
 )
+
+// Has reports whether every flag in x is set.
+func (f ContentFlag) Has(x ContentFlag) bool { return f&x == x }
+
+// Set sets the flags in x when on, else clears them.
+func (f *ContentFlag) Set(x ContentFlag, on bool) {
+	if on {
+		*f |= x
+	} else {
+		*f &^= x
+	}
+}
 
 // StorageKind is the word type a trace's codes are stored in. (It is not
 // called Storage: the HAL's Storage is the board's settings store.)

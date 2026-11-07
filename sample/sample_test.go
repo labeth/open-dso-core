@@ -128,3 +128,52 @@ func BenchmarkCopyFrom(b *testing.B) {
 		dst.CopyFrom(src)
 	}
 }
+
+// An envelope keeps its own length, the detail windows' frames are shared,
+// and the accessors tolerate a missing trace.
+func TestCopyFromEnvelopeAndDetails(t *testing.T) {
+	edge := &Frame{SampleS: 2e-9}
+	src := &Frame{
+		Flags:   Envelope,
+		Traces:  []Trace{{Valid: 2, Codes8: []uint8{1, 2}, Min8: []uint8{1, 2, 3}, Max8: []uint8{4, 5, 6}}},
+		Details: []Detail{{Role: Edge, Read: 3, Frame: edge}},
+	}
+	var dst Frame
+	dst.CopyFrom(src)
+	if len(dst.Min8(0)) != 3 || dst.Max8(0)[2] != 6 {
+		t.Errorf("envelope cut to the codes' length: %v %v", dst.Min8(0), dst.Max8(0))
+	}
+	src.Details[0].Read = 9
+	if d := dst.Detail(Edge); d == nil || d.Read != 3 || d.Frame != edge {
+		t.Errorf("detail %+v", d)
+	}
+	if dst.Detail(EdgeOpp) != nil || dst.Codes8(1) != nil || dst.Precision(1) != nil || dst.Held(4) != nil {
+		t.Error("an absent trace or detail is not nil")
+	}
+	if !dst.Flags.Has(Envelope) || dst.Len() != 2 {
+		t.Errorf("flags %v len %d", dst.Flags, dst.Len())
+	}
+	dst.SetLen(1)
+	dst.Flags.Set(Envelope, false)
+	if dst.Traces[0].Valid != 1 || dst.Flags.Has(Envelope) {
+		t.Error("SetLen or Flags.Set")
+	}
+}
+
+func TestTriggerName(t *testing.T) {
+	for _, c := range []struct {
+		f    Frame
+		want string
+	}{
+		{Frame{TrigKind: HardwareNode, TrigNode: "edge"}, "hardware-edge"},
+		{Frame{TrigKind: Forced}, "forced"},
+		{Frame{TrigKind: Untriggered}, "untriggered"},
+		{Frame{TrigKind: StreamStop}, "stream"},
+		{Frame{TrigKind: Untriggered, Flags: Roll}, "roll"},
+		{Frame{}, ""},
+	} {
+		if got := c.f.TriggerName(); got != c.want {
+			t.Errorf("%+v: %q, want %q", c.f, got, c.want)
+		}
+	}
+}

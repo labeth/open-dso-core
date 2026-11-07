@@ -466,11 +466,17 @@ func (r readout) fill(w hal.Window, app setup, status sample.Status, f *sample.F
 	f.Depth = app.plan.Depth
 	f.WinPoints = int(math.Round(float64(app.plan.WinSamples) / bucket))
 	f.TriggerAt = float64(-w.StartSample) / bucket
+	if want == sample.PeakPairs {
+		// Each delivered value is half a bucket: a (min, max) pair per bucket.
+		f.SampleS /= 2
+		f.WinPoints *= 2
+		f.TriggerAt *= 2
+	}
 	f.TrigKind = sample.HardwareNode
 	if status.Forced {
 		f.TrigKind = sample.Forced
 	}
-	f.Match, f.Stream = nil, nil
+	f.Match, f.Stream, f.Details = nil, sample.StreamPos{}, f.Details[:0]
 	f.Cond = sample.Conditioning{}
 	f.ContentID = uint64(status.Record.Seq)
 	f.Status = status
@@ -511,6 +517,9 @@ func (r readout) trace(t *sample.Trace, ch int, c hal.Channel, start int64, buck
 		Codes16: t.Codes16[:0],
 		Min8:    t.Min8[:0], Max8: t.Max8[:0], Min16: t.Min16[:0], Max16: t.Max16[:0],
 	}
+	if want == sample.PeakPairs {
+		t.Valid = 2 * points // a (min, max) pair per bucket
+	}
 	for i := range points {
 		s0 := start + int64(float64(i)*bucket)
 		s1 := start + int64(float64(i+1)*bucket)
@@ -522,11 +531,9 @@ func (r readout) trace(t *sample.Trace, ch int, c hal.Channel, start int64, buck
 		}
 		switch {
 		case want == sample.PeakPairs && fm.Storage == sample.U16:
-			t.Min16 = append(t.Min16, uint16(vmin))
-			t.Max16 = append(t.Max16, uint16(vmax))
+			t.Codes16 = append(t.Codes16, uint16(vmin), uint16(vmax))
 		case want == sample.PeakPairs:
-			t.Min8 = append(t.Min8, uint8(vmin))
-			t.Max8 = append(t.Max8, uint8(vmax))
+			t.Codes8 = append(t.Codes8, uint8(vmin), uint8(vmax))
 		case fm.Storage == sample.U16:
 			t.Codes16 = append(t.Codes16, uint16(v))
 		default:
