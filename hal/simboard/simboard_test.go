@@ -215,6 +215,7 @@ func TestRefusals(t *testing.T) {
 		"roll":     {TimePerDivS: 1, Mode: hal.RollMode},
 		"segments": {TimePerDivS: 1e-3, Segments: 10},
 		"channel":  {TimePerDivS: 1e-3, Channels: []int{2}},
+		"position": {TimePerDivS: 1e-9, DelayS: -1},
 	} {
 		if _, err := b.Planner().Plan(req); !errors.As(err, &r) || r.Reason == "" {
 			t.Errorf("%s: %v", name, err)

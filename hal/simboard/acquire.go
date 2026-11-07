@@ -142,6 +142,14 @@ func (p planner) Plan(r hal.Request) (hal.Plan, error) {
 	if plan.Depth > prof.MaxDepth {
 		return hal.Plan{}, hal.Refuse("record", fmt.Sprintf("%d samples do not fit the %d-sample record", plan.Depth, prof.MaxDepth))
 	}
+	// The samples before the trigger are the record's: a screen further
+	// before the trigger than the deepest record reaches is refused, not
+	// waited for.
+	if g := geometryOf(plan); -g.first > int64(prof.MaxDepth) {
+		return hal.Plan{}, hal.Refuse("horizontal position", fmt.Sprintf(
+			"the screen lies %.3g s before the trigger; at this time/div the record holds %.3g s before it",
+			g.pre, float64(prof.MaxDepth)*plan.SampleS))
+	}
 	for _, f := range r.Need {
 		if f.Accepts&plan.Content == 0 {
 			return hal.Plan{}, hal.Refuse(f.Name, fmt.Sprintf("this timebase gives %v records, which it does not take", plan.Content))
