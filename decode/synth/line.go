@@ -19,6 +19,11 @@
 // against it is checked against an independent writer.
 package synth
 
+import (
+	"math"
+	"sort"
+)
+
 // Logic levels as two-level ADC codes (Codes): well apart around the
 // decoders' default threshold of 128.
 const (
@@ -162,4 +167,52 @@ func lvl(b int) byte {
 		return 1
 	}
 	return 0
+}
+
+// Wave is a line as a periodic signal: level L[i] (0 low … 1 high, a
+// bipolar line's null at 0.5) from T[i] to T[i+1], the last up to Period,
+// then again from T[0] = 0. A signal source samples it at any time.
+type Wave struct {
+	T, L   []float64
+	Period float64
+}
+
+// Wave is the line repeating every period seconds (period ≤ T: the line's
+// own length); what lies beyond the period is cut.
+// TRLC-LINKS: REQ-DSO-018
+func (w *Line) Wave(period float64) Wave {
+	if period <= 0 {
+		period = w.T
+	}
+	out := Wave{Period: period}
+	for _, s := range w.Steps {
+		if s.At >= period {
+			break
+		}
+		out.T = append(out.T, s.At)
+		out.L = append(out.L, w.Fraction(s.Level))
+	}
+	if len(out.T) == 0 || out.T[0] != 0 { // a line that opens with a held level of no length
+		first := byte(0)
+		if len(w.Steps) > 0 {
+			first = w.Steps[0].Level
+		}
+		out.T = append([]float64{0}, out.T...)
+		out.L = append([]float64{w.Fraction(first)}, out.L...)
+	}
+	return out
+}
+
+// At is the wave's level at t seconds (any t: the wave repeats).
+// TRLC-LINKS: REQ-DSO-018
+func (w Wave) At(t float64) float64 {
+	if w.Period <= 0 || len(w.T) == 0 {
+		return 0
+	}
+	t -= math.Floor(t/w.Period) * w.Period
+	i := sort.SearchFloat64s(w.T, t)
+	if i == len(w.T) || w.T[i] > t {
+		i--
+	}
+	return w.L[max(i, 0)]
 }

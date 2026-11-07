@@ -252,3 +252,17 @@ func chunks(b []int, n int) [][]int {
 	}
 	return out
 }
+
+// Waves are the bus's lines as periodic signals, the bus repeating after
+// idle seconds of idle (idle < 0: a tenth of its length), in Roles' order.
+// TRLC-LINKS: REQ-DSO-018
+func (b Bus) Waves(idle float64) []Wave {
+	if idle < 0 {
+		idle = b.Period / 10
+	}
+	out := make([]Wave, len(b.Lines))
+	for i, l := range b.Lines {
+		out[i] = l.Wave(b.Period + idle)
+	}
+	return out
+}
