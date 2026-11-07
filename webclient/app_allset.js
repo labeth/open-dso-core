@@ -82,6 +82,42 @@ const ALL_EXCLUDE = new Set(["decodeText", "tab-scope", "tab-bus", "tab-spectrum
   "exportBtn", "setupsBtn", "quickMore", "pkDetect", "streamDetect", "tdivDn", "tdivUp", "vdiv1Dn", "vdiv1Up", "vdiv2Dn", "vdiv2Up", "mYT", "mXY", "mFFT", "mSPG", "mBODE",
   "sndTakeScope", "visFull"]);
 
+// allChans makes the catalogue the scope's channels: a "Channel n" group
+// for every channel past the second, made from channel 2's (its controls
+// are channel 2's copies), groups of channels the scope no longer has
+// removed, and X-Y's channel choice when the page offers one. A built list
+// is built again.
+// TRLC-LINKS: REQ-SDS-219
+function allChans() {
+  const nums = chanNums(), base = ALL_GROUPS.find(([g]) => g === "Channel 2");
+  for (let i = ALL_GROUPS.length - 1; i >= 0; i--) {
+    const m = /^Channel (\d+)$/.exec(ALL_GROUPS[i][0]);
+    if (m && +m[1] > 2 && !nums.includes(+m[1])) ALL_GROUPS.splice(i, 1);
+  }
+  for (const n of nums) {
+    if (n <= 2 || !base || ALL_GROUPS.some(([g]) => g === "Channel " + n)) continue;
+    const ren = (t) => t.replace(/^(tC|vdiv|off|zero|cpl|probe|bwl|inv)2(Dn|Up)?$/, "$1" + n + "$2").replace(/\bCH2\b/g, "CH" + n);
+    const list = base[1].map(([id, label, kw, also]) => [ren(id), ren(label), kw].concat(also ? [also.map(ren)] : []));
+    const after = ALL_GROUPS.findIndex(([g]) => /^Channel (\d+)$/.test(g) && +g.slice(8) === n - 1);
+    ALL_GROUPS.splice(after + 1, 0, ["Channel " + n, list]);
+    ALL_EXCLUDE.add("vdiv" + n + "Dn"); ALL_EXCLUDE.add("vdiv" + n + "Up");
+  }
+  const disp = ALL_GROUPS.find(([g]) => g === "Display")[1];
+  for (const [id, label] of [["xyX", "X-Y horizontal channel"], ["xyY", "X-Y vertical channel"]]) {
+    const at = disp.findIndex((e) => e[0] === id);
+    if ($(id) && at < 0) disp.splice(disp.findIndex((e) => e[0] === "viewScope") + 1 + (id === "xyY"), 0, [id, label, "x-y xy lissajous channel"]);
+    else if (!$(id) && at >= 0) disp.splice(at, 1);
+  }
+  if (!allBuilt) return;
+  // the rows are mirrors: the old ones go with their records
+  const list = $("allList");
+  for (let i = MIRRORS.length - 1; i >= 0; i--) if (list.contains(MIRRORS[i].m)) MIRRORS.splice(i, 1);
+  list.replaceChildren();
+  allBuilt = false; allIndex = null;
+  if (!$("allcol").hidden) { allBuild(); allFilterApply(); }
+}
+CAPS_HOOKS.push(allChans);
+
 let allBuilt = false, allW = 380;
 let allIndex = null;
 // TRLC-LINKS: REQ-SDS-219
