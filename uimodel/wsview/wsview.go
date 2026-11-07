@@ -48,7 +48,23 @@ const (
 	Mask              // mask overlay
 	Screen            // the screen colour (dark drawing on an amber fill)
 	Cursor            // cursors
+	C3                // channel 3
+	C4                // channel 4
 )
+
+// ChanCol is channel ch's colour, C1 first.
+// TRLC-LINKS: REQ-DSO-211
+func ChanCol(ch int) Col {
+	switch ch {
+	case 0:
+		return C1
+	case 1:
+		return C2
+	case 2:
+		return C3
+	}
+	return C4
+}
 
 // Span is a run of text in one colour.
 type Span struct {
@@ -300,7 +316,8 @@ type MeasPane struct {
 	Empty    bool
 	Stats    []StatRow
 	More     string
-	AllRows  [18][3]string // param, C1, C2 (two columns)
+	AllRows  [18][5]string // param, C1..C4
+	AllChans int           // the channel columns (0: two)
 	AllN     int
 	AllSplit int // the first column's rows (0: nine)
 	Cursor   []Span
@@ -382,7 +399,7 @@ type Row struct {
 	Edit   bool
 	// Enum
 	Opts []Opt
-	Meas [2]string // MEAS rows: the live C1 / C2 values ("" = channel off)
+	Meas [4]string // MEAS rows: the live C1..C4 values ("" = channel off)
 	// Number
 	Value string
 	Gauge float64 // 0..1

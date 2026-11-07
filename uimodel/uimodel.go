@@ -2,6 +2,8 @@
 
 package uimodel
 
+import "encoding/json"
+
 // WorkspaceCount is the number of workspaces (SCOPE, BUS, SPECTRUM,
 // MEASURE, COMPARE).
 const WorkspaceCount = 5
@@ -72,7 +74,10 @@ type ToolSeg struct{ Knob, Job string }
 // Display is the instrument display state the LCD renders the frame with
 // (the trace overlays the panel owns).
 type Display struct {
-	ShowC1, ShowC2   bool
+	ShowC1, ShowC2 bool
+	// ShowCh is every channel's trace shown, C1 first, on a scope with more
+	// than two (on two, ShowC1 and ShowC2 say it all).
+	ShowCh           []bool `json:",omitempty"`
 	ShowMeas         bool
 	MeasItems        []string // "1:pkpk": the chosen readouts, channel and parameter
 	ViewMode         int      // 0 Y-T, 1 X-Y, 2 FFT, 3 Bode, 4 spectrogram
@@ -151,6 +156,9 @@ type RowModel struct {
 	Ladder    []float64  `json:",omitempty"`
 	Presets   []string   `json:",omitempty"` // a number row's labelled values, run by /api/sheets/action
 	Actions   []ActModel `json:",omitempty"`
+	// Live is a MEAS row's live values, C1 first, as the LCD writes them
+	// beside the row ("" for a channel not measured); absent while none is.
+	Live []string `json:",omitempty"`
 }
 
 // OptModel is one option of an enum row.
@@ -194,12 +202,38 @@ type RefExport struct {
 	Cols    int        `json:"cols"`
 	C1      []int      `json:"c1,omitempty"`
 	C2      []int      `json:"c2,omitempty"`
-	Vdiv    [2]float64 `json:"vdiv"` // at the probe tip, as the web's volts per code
-	Off     [2]float64 `json:"off"`  // at the probe tip
-	Probe   [2]float64 `json:"probe"`
+	C3      []int      `json:"c3,omitempty"`
+	C4      []int      `json:"c4,omitempty"`
+	Vdiv    ChanValues `json:"vdiv"` // at the probe tip, as the web's volts per code
+	Off     ChanValues `json:"off"`  // at the probe tip
+	Probe   ChanValues `json:"probe"`
 	TdivS   float64    `json:"tdiv_s"`
 	PosFrac float64    `json:"pos_frac"`
 	Setup   *RefSetup  `json:"setup,omitempty"`
+}
+
+// ChanValues are one value a channel, C1 first. On the wire they are at
+// least two: the two-channel lists the pages have always read, zeros for a
+// slot that holds nothing.
+type ChanValues []float64
+
+// MarshalJSON writes the values, padded with zeros to two.
+// TRLC-LINKS: REQ-DSO-138
+func (v ChanValues) MarshalJSON() ([]byte, error) {
+	out := []float64(v)
+	if len(out) < 2 {
+		out = append(append(make([]float64, 0, 2), out...), make([]float64, 2-len(out))...)
+	}
+	return json.Marshal(out)
+}
+
+// At is channel ch's value, 0 past the list.
+// TRLC-LINKS: REQ-DSO-138
+func (v ChanValues) At(ch int) float64 {
+	if ch < 0 || ch >= len(v) {
+		return 0
+	}
+	return v[ch]
 }
 
 // RefSetup is the setup a reference was stored at (AUTO in COMPARE puts the
@@ -208,7 +242,7 @@ type RefExport struct {
 type RefSetup struct {
 	TdivS   float64    `json:"tdiv_s"`
 	PosFrac float64    `json:"pos_frac"`
-	Vdiv    [2]float64 `json:"vdiv"`
+	Vdiv    ChanValues `json:"vdiv"`
 	TrigSrc int        `json:"trig_src"`
 	Rising  bool       `json:"rising"`
 }
