@@ -1,7 +1,7 @@
 package scpi
 
 import (
-	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 )
 
@@ -25,64 +25,21 @@ type Instrument interface {
 	Force() error
 }
 
-// State is the instrument's settings.
-type State struct {
-	Channels []hal.Channel // at the probe tip
-	TimeDivS float64
-	DelayS   float64 // the screen centre's time after the trigger
-	Depth    int     // samples per channel; 0: chosen by the scope
-	Mode     hal.AcqMode
-	Trigger  Edge
-	Sweep    hal.Sweep
-	Running  bool
-}
+// State is the instrument's settings (package instrument).
+type State = instrument.State
 
 // Edge is the edge trigger's setting.
-type Edge struct {
-	Source      hal.Source
-	Slope       hal.Slope
-	LevelV      float64
-	Coupling    hal.TrigCoupling
-	NoiseReject bool
-	HoldoffS    float64 // 0: off
-}
-
-// Clone is s with its own Channels.
-// TRLC-LINKS: REQ-DSO-024
-func (s State) Clone() State {
-	s.Channels = append([]hal.Channel(nil), s.Channels...)
-	return s
-}
+type Edge = instrument.Edge
 
 // RunState is the acquisition's run state.
-type RunState int
+type RunState = instrument.RunState
 
 // The run states.
 const (
-	Armed     RunState = iota // waiting for the first trigger
-	Ready                     // armed, a trigger is due
-	AutoRun                   // running without a trigger
-	Triggered                 // triggered
-	Stopped
-	Rolling
+	Armed     = instrument.Armed
+	Ready     = instrument.Ready
+	AutoRun   = instrument.AutoRun
+	Triggered = instrument.Triggered
+	Stopped   = instrument.Stopped
+	Rolling   = instrument.Rolling
 )
-
-// String is the state as SCPI spells it.
-// TRLC-LINKS: REQ-DSO-024
-func (r RunState) String() string {
-	switch r {
-	case Armed:
-		return "Arm"
-	case Ready:
-		return "Ready"
-	case AutoRun:
-		return "Auto"
-	case Triggered:
-		return "Trig'd"
-	case Stopped:
-		return "Stop"
-	case Rolling:
-		return "Roll"
-	}
-	return "Stop"
-}
