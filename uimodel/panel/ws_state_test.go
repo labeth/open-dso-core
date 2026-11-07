@@ -103,6 +103,9 @@ func TestMenuKeyOpensTheWorkspaceSheet(t *testing.T) {
 func TestPrintedKeysOpenAndCloseTheirTabs(t *testing.T) {
 	c, _, _ := newC(t)
 	for key, ti := range keyTabs {
+		if !tabShown(ti, c.nch) { // CH3 and CH4 on a two-channel scope: no key
+			continue
+		}
 		press(t, c, key)
 		st := mustState(t, c, "SCOPE", "sheet")
 		if st.Sheet.Tab != sheetTabs[ti].id {
