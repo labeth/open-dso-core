@@ -1,5 +1,7 @@
 package prototrig
 
+import "slices"
+
 // SerialParams is the self-contained serial-trigger config: the protocol +
 // channel roles + decode params to use, and the byte/address pattern to match.
 // It is the core decoder registry's request (the protocol ids are package
@@ -52,6 +54,26 @@ type SerialParams struct {
 	// Pattern, when set, replaces Bytes with tokens that may be wildcards or
 	// errors and run up to 32 long (ADR-PROTOCOL-SEQUENCE-TRIGGER).
 	Pattern []PatternElem `json:"pattern,omitempty"`
+}
+
+// Equal reports that p and o ask the same: every field, Bytes and Pattern
+// element by element (nil apart from empty).
+// TRLC-LINKS: REQ-DSO-013
+func (p *SerialParams) Equal(o *SerialParams) bool {
+	return p.SPIClockHz == o.SPIClockHz && p.I2CClockHz == o.I2CClockHz && p.Fine == o.Fine &&
+		p.SPIDelayNs == o.SPIDelayNs && p.Inverted == o.Inverted && p.Proto == o.Proto &&
+		p.ChA == o.ChA && p.ChB == o.ChB && p.Baud == o.Baud && p.Bits == o.Bits && p.Parity == o.Parity &&
+		p.CPOL == o.CPOL && p.CPHA == o.CPHA && p.MSB == o.MSB && p.IEEE == o.IEEE && p.TickNs == o.TickNs &&
+		p.Nibbles == o.Nibbles && p.DataBaud == o.DataBaud && p.Overdrive == o.Overdrive &&
+		p.Threshold == o.Threshold && p.HaveThr == o.HaveThr && p.ThresholdB == o.ThresholdB &&
+		p.HaveThrB == o.HaveThrB && p.Addr == o.Addr && p.RW == o.RW &&
+		sliceEqual(p.Bytes, o.Bytes) && sliceEqual(p.Pattern, o.Pattern)
+}
+
+// sliceEqual reports that a and b are both nil or hold equal elements.
+// TRLC-LINKS: REQ-DSO-013
+func sliceEqual[E comparable](a, b []E) bool {
+	return (a == nil) == (b == nil) && slices.Equal(a, b)
 }
 
 // Empty reports that no protocol is set.
