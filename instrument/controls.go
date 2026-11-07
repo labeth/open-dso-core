@@ -49,3 +49,14 @@ type Timebase struct {
 	TdivS   float64
 	SampleS float64
 }
+
+// TrigLevelSaved is a trigger level kept to put back exactly: a setting
+// undone or recalled returns to the same step of the board's level grid
+// whatever the vertical setting did meanwhile. Word is the board's own
+// encoding of the step (a comparator DAC code, a volts value's bits); zero
+// is no level kept (the board's power-on level).
+type TrigLevelSaved struct{ Word uint64 }
+
+// Set reports a kept level.
+// TRLC-LINKS: REQ-DSO-098
+func (s TrigLevelSaved) Set() bool { return s.Word != 0 }
