@@ -16,6 +16,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/labeth/open-dso-core/uimodel"
 	"github.com/labeth/open-dso-core/webserver"
 	"github.com/labeth/open-dso-core/webserver/wire"
 )
@@ -220,7 +221,9 @@ func checkFrames(t *testing.T, c client, sc webserver.Scope) {
 	}
 }
 
-// checkUI checks the panel and the remote sheets, present or absent.
+// checkUI checks the panel and the remote sheets, present or absent; a
+// scope's sheets list every row the page and the phone drive
+// (uimodel.PageRows), in use or out of use with the reason.
 // TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
 func checkUI(t *testing.T, c client, sc webserver.Scope) {
 	t.Helper()
@@ -246,6 +249,13 @@ func checkUI(t *testing.T, c client, sc webserver.Scope) {
 	sheets := c.json(http.MethodGet, "/api/sheets", "", http.StatusOK)
 	if _, ok := sheets["Tabs"].([]any); !ok {
 		t.Fatalf("sheets: %v", sheets)
+	}
+	var m uimodel.SheetsModel
+	if err := json.Unmarshal(c.do(http.MethodGet, "/api/sheets", "").Body.Bytes(), &m); err != nil {
+		t.Fatalf("sheets: %v", err)
+	}
+	for _, p := range uimodel.CheckRows(m) {
+		t.Errorf("the page's rows: %s", p)
 	}
 	c.json(http.MethodGet, "/api/panel/wait?timeout_ms=1", "", http.StatusOK)
 	if out := c.json(http.MethodPost, "/api/sheets/set", `{"value":1}`, http.StatusOK); out["ok"] == true {
