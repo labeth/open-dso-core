@@ -60,7 +60,7 @@ const stabCols = 400
 // TRLC-LINKS: REQ-DSO-218
 func screenExtremes(f *sample.Frame, s *sv, ch, cols int) (lows, highs []float64) {
 	valid := framecalc.Valid(f)
-	if ch == 1 && len(f.Codes8(1)) < valid {
+	if ch > 0 && len(f.Codes8(ch)) < valid {
 		return nil, nil
 	}
 	g := geom{valid: valid, winCols: f.WinPoints, edgeX: f.TriggerAt, sampleS: f.SampleS}
@@ -69,7 +69,7 @@ func screenExtremes(f *sample.Frame, s *sv, ch, cols int) (lows, highs []float64
 	if s.cpl[ch] != dsp.CoupleDC {
 		sig = dsp.CoupleDisplay(sig, s.cpl[ch])
 	}
-	z := float64(max(s.vert[ch].zoom, 1)) / 25
+	z := float64(max(s.vert[ch].zoom, 1)) / frameCodesPerDiv(f, s, ch)
 	lows, highs = make([]float64, cols), make([]float64, cols)
 	// Column x ends where x+1 starts: one floor a column, and from a
 	// non-negative left the floor is the conversion's truncation (no float
@@ -87,7 +87,7 @@ func screenExtremes(f *sample.Frame, s *sv, ch, cols int) (lows, highs []float64
 		lo := clampInt(start, 0, valid-1)
 		hi := clampInt(next-1, lo, valid-1)
 		mn, mx := dsp.MinMax8(sig[lo : hi+1])
-		lows[x], highs[x] = (float64(mn)-128)*z, (float64(mx)-128)*z
+		lows[x], highs[x] = (float64(mn)-sample.Mid8)*z, (float64(mx)-sample.Mid8)*z
 	}
 	return lows, highs
 }
@@ -116,7 +116,7 @@ func floorInt(v float64) int {
 // TRLC-LINKS: REQ-DSO-218, REQ-DSO-227
 func screenPoints(f *sample.Frame, s *sv, ch int) []float64 {
 	valid := framecalc.Valid(f)
-	if ch == 1 && len(f.Codes8(1)) < valid {
+	if ch > 0 && len(f.Codes8(ch)) < valid {
 		return nil
 	}
 	g := geom{valid: valid, winCols: f.WinPoints, edgeX: f.TriggerAt, sampleS: f.SampleS}
@@ -125,7 +125,7 @@ func screenPoints(f *sample.Frame, s *sv, ch int) []float64 {
 	if s.cpl[ch] != dsp.CoupleDC {
 		sig = dsp.CoupleDisplay(sig, s.cpl[ch])
 	}
-	z := float64(max(s.vert[ch].zoom, 1))
+	z, cpd := float64(max(s.vert[ch].zoom, 1)), frameCodesPerDiv(f, s, ch)
 	out := make([]float64, RefCols)
 	for x := range out {
 		pos := min(max(left+float64(x)*float64(win)/RefCols, 0), float64(valid-1))
@@ -134,7 +134,7 @@ func screenPoints(f *sample.Frame, s *sv, ch int) []float64 {
 		if f.Flags.Has(sample.Interp) && i+1 < valid {
 			v += (float64(sig[i+1]) - v) * (pos - float64(i))
 		}
-		out[x] = (v - 128) * z / 25
+		out[x] = (v - sample.Mid8) * z / cpd
 	}
 	return out
 }
@@ -143,8 +143,8 @@ func screenPoints(f *sample.Frame, s *sv, ch int) []float64 {
 // their bits): built each frame, it formats nothing.
 type stabK struct {
 	src, trigType, acq, zoom, serial int
-	cpl                              [2]int
-	vdiv, offV, probe                [2]uint64
+	cpl                              [maxChans]int
+	vdiv, offV, probe                [maxChans]uint64
 	tdiv, pos, zoomOff, holdoff      uint64
 	rising                           bool
 	trigLevel                        instrument.TrigLevelSaved
@@ -154,18 +154,22 @@ type stabK struct {
 // TRLC-LINKS: REQ-DSO-218
 func stabKey(s *sv) stabK {
 	b := math.Float64bits
-	return stabK{
-		src: s.st.TrigSource & 1, trigType: s.st.TrigType, acq: s.st.AcqMode, zoom: s.zoom, serial: s.st.SerialMode,
-		vdiv: [2]uint64{b(s.vert[0].vdiv), b(s.vert[1].vdiv)}, cpl: s.cpl, offV: [2]uint64{b(s.offV[0]), b(s.offV[1])}, probe: [2]uint64{b(s.probe[0]), b(s.probe[1])},
+	k := stabK{
+		src: s.chOf(s.st.TrigSource), trigType: s.st.TrigType, acq: s.st.AcqMode, zoom: s.zoom, serial: s.st.SerialMode,
+		cpl:  s.cpl,
 		tdiv: b(s.st.TdivS), pos: b(s.st.TrigPosFrac), zoomOff: b(s.zoomOff), holdoff: b(s.st.HoldoffS),
 		rising: s.st.TrigRising, trigLevel: s.trigSaved,
 	}
+	for ch := range s.nch {
+		k.vdiv[ch], k.offV[ch], k.probe[ch] = b(s.vert[ch].vdiv), b(s.offV[ch]), b(s.probe[ch])
+	}
+	return k
 }
 
 // stabFrame tests the trigger source's capture against the previous one.
 // TRLC-LINKS: REQ-DSO-218
 func (c *Controller) stabFrame(a *anaState, s *sv, f *sample.Frame) {
-	src := s.st.TrigSource & 1
+	src := s.chOf(s.st.TrigSource)
 	if s.st.AcqMode == engine.AcqAverage || !s.chDisp[src] || f.Flags.Has(sample.Envelope) {
 		a.stabLows, a.stabHighs = nil, nil
 		return
@@ -216,7 +220,7 @@ func stabVerdict(a *anaState) (nOK, n int, stable, ok bool) {
 // refDiffFrame compares each stored reference with the live trace.
 // TRLC-LINKS: REQ-DSO-218
 func (c *Controller) refDiffFrame(a *anaState, s *sv, f *sample.Frame) {
-	src := s.st.TrigSource & 1
+	src := s.chOf(s.st.TrigSource)
 	c.mu.Lock()
 	refs := c.refs
 	c.mu.Unlock()
@@ -231,10 +235,7 @@ func (c *Controller) refDiffFrame(a *anaState, s *sv, f *sample.Frame) {
 		case f.Flags.Has(sample.Envelope):
 			d.why = "no sampled frame"
 		default:
-			codes := r.c1
-			if src == 1 {
-				codes = r.c2
-			}
+			codes := r.cs[src]
 			live := screenPoints(f, s, src)
 			if len(codes) != RefCols || live == nil {
 				d.why = "no trace"
@@ -247,7 +248,7 @@ func (c *Controller) refDiffFrame(a *anaState, s *sv, f *sample.Frame) {
 			probes := max(r.probe[src], 1) / max(s.probe[src], 1)
 			ref := make([]float64, RefCols)
 			for x, v := range codes {
-				volts := ((float64(v)-128)*r.vdiv[src]/25 - r.off[src]) * probes
+				volts := ((float64(v)-sample.Mid8)*r.vdiv[src]/r.codesPerDiv(src) - r.off[src]) * probes
 				ref[x] = (volts + offLive) / vdivLive
 			}
 			for x := range live { // live in divisions of the analog range
@@ -271,7 +272,7 @@ var blockAvgRE = regexp.MustCompile(`\baverage (\d+)/(\d+)`)
 // TRLC-LINKS: REQ-DSO-218
 func (c *Controller) stackStart() error {
 	s := c.snap()
-	src := s.st.TrigSource & 1
+	src := s.chOf(s.st.TrigSource)
 	if !s.chDisp[src] {
 		err := fmt.Errorf("No master: the trigger source CH%d is off, and the master is stacked from it", src+1) //nolint:staticcheck // ST1005: the error is the notice the LCD shows, a capitalised sentence
 		c.toast(err.Error(), 1800*time.Millisecond)
@@ -387,7 +388,7 @@ func (c *Controller) stackFinish(f *sample.Frame) {
 		return
 	}
 	c.captureRefFrom(f, 0)
-	same := c.eng.Snapshot().TrigSource&1 == st.src
+	same := c.chOf(c.eng.Snapshot().TrigSource) == st.src
 	c.eng.SetAcqMode(st.prevMode)
 	c.eng.SetAvgCount(st.prevAvg)
 	c.mu.Lock()
@@ -499,7 +500,7 @@ func (c *Controller) cmpAction() {
 			c.toast("Mask test: "+[]string{"off", "counting (pass/fail)", "stops on the first fail"}[next], 1400*time.Millisecond)
 			return
 		}
-		src := s.st.TrigSource & 1
+		src := s.chOf(s.st.TrigSource)
 		if !s.chDisp[src] {
 			c.toast(fmt.Sprintf("The trigger source CH%d is off", src+1), 1500*time.Millisecond)
 			return
@@ -540,7 +541,7 @@ func cmpActionText(s *sv, row int) string {
 		if s.st.MaskSet {
 			return "push: " + map[int]string{1: "stop on fail", 2: "clear mask", 0: "count"}[s.st.MaskMode]
 		}
-		return fmt.Sprintf("push: build from C%d", s.st.TrigSource&1+1)
+		return fmt.Sprintf("push: build from C%d", s.chOf(s.st.TrigSource)+1)
 	}
 	return "push: math " + mathNames[mathNext[s.mathMode]]
 }
@@ -572,7 +573,7 @@ func (c *Controller) RepeatCaption() (string, bool) {
 // repeatCaption is RepeatCaption's text and colour.
 // TRLC-LINKS: REQ-DSO-218
 func (c *Controller) repeatCaption(s *sv) (string, wsview.Col) {
-	src := s.st.TrigSource & 1
+	src := s.chOf(s.st.TrigSource)
 	c.amu.Lock()
 	nOK, n, stable, known := stabVerdict(&c.ana)
 	c.amu.Unlock()
@@ -599,7 +600,7 @@ func (c *Controller) repeatCaption(s *sv) (string, wsview.Col) {
 func (c *Controller) cmpPane(s *sv) *wsview.CmpPane {
 	p := &wsview.CmpPane{}
 	p.Title = "COMPARE"
-	src := s.st.TrigSource & 1
+	src := s.chOf(s.st.TrigSource)
 	c.amu.Lock()
 	_, _, stable, known := stabVerdict(&c.ana)
 	diffs := c.ana.refDiff

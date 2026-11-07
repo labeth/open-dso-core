@@ -81,11 +81,14 @@ func (c *Controller) Input(ev hal.InputEvent) {
 			return
 		}
 		key, _ := KeyName(ev.Key)
+		if !c.hasKey(key) {
+			return
+		}
 		if !c.noteInput(true) { // a key that wakes the screen does nothing else
 			c.lcdButton(key)
 		}
 	case hal.KnobEvent:
-		if ev.Steps == 0 || !knobNames[ev.Knob] {
+		if ev.Steps == 0 || !knobNames[ev.Knob] || !c.hasKey(ev.Knob) {
 			return
 		}
 		// Autoset owns the shadows while it sweeps; resync() below writes
@@ -117,6 +120,9 @@ func (c *Controller) Input(ev hal.InputEvent) {
 // button handles a front-panel key press.
 // TRLC-LINKS: REQ-DSO-135
 func (c *Controller) button(key string) {
+	if !c.hasKey(key) {
+		return
+	}
 	// While an autoset sweep runs, ignore everything except AUTO (which cancels)
 	// — this both gives a clean "busy" UX and avoids racing its scale changes.
 	c.mu.Lock()
@@ -156,10 +162,11 @@ func (c *Controller) button(key string) {
 		_ = c.force() // cannot fail
 	case KeyPrint:
 		c.printScreen()
-	case KeyCh1VdivPush, KeyCh2VdivPush:
-		c.variablePush(b2ic(key == KeyCh2VdivPush))
-	case KeyCh1PosPush, KeyCh2PosPush:
-		ch := b2ic(key == KeyCh2PosPush)
+	case KeyCh1VdivPush, KeyCh2VdivPush, KeyCh3VdivPush, KeyCh4VdivPush:
+		ch, _, _ := keyChan(key)
+		c.variablePush(ch)
+	case KeyCh1PosPush, KeyCh2PosPush, KeyCh3PosPush, KeyCh4PosPush:
+		ch, _, _ := keyChan(key)
 		if c.fe != nil {
 			_ = c.setOffsetTip(ch, 0) // Zero: the trace back to 0 V
 			c.toast(fmt.Sprintf("CH%d offset 0 V", ch+1), 900*time.Millisecond)
@@ -177,8 +184,9 @@ func (c *Controller) button(key string) {
 		c.menuKey()
 	case KeyHelp:
 		c.helpKey()
-	case KeyCh1, KeyCh2:
-		c.chanKey(b2ic(key == KeyCh2))
+	case KeyCh1, KeyCh2, KeyCh3, KeyCh4:
+		ch, _, _ := keyChan(key)
+		c.chanKey(ch)
 	default:
 		for i, sk := range softkeys {
 			if key == sk {
@@ -209,7 +217,7 @@ func (c *Controller) resync() {
 // returning the channels' V/div at the BNC; ok false when it read nothing
 // (Autoset sweeping).
 // TRLC-LINKS: REQ-DSO-135
-func (c *Controller) resyncInto(st *instrument.Stats) (vdiv [2]float64, ok bool) {
+func (c *Controller) resyncInto(st *instrument.Stats) (vdiv [maxChans]float64, ok bool) {
 	// Autoset owns the shadows while it sweeps (it writes them under mu on its own
 	// goroutine). Skip here so the injected-knob path can't race it either.
 	c.mu.Lock()
@@ -229,7 +237,9 @@ func (c *Controller) resyncInto(st *instrument.Stats) (vdiv [2]float64, ok bool)
 		}
 	}
 	if c.fe != nil {
-		vdiv = [2]float64{c.fe.VdivV(0), c.fe.VdivV(1)}
+		for ch := range c.nch {
+			vdiv[ch] = c.fe.VdivV(ch)
+		}
 	}
 	return vdiv, true
 }
@@ -237,6 +247,9 @@ func (c *Controller) resyncInto(st *instrument.Stats) (vdiv [2]float64, ok bool)
 // dispatch turns knob name dir (+1 clockwise) by steps detents.
 // TRLC-LINKS: REQ-DSO-135
 func (c *Controller) dispatch(name string, dir, steps int) {
+	if !c.hasKey(name) {
+		return
+	}
 	c.mu.Lock()
 	busy := c.autosetBusy
 	c.mu.Unlock()
@@ -249,11 +262,8 @@ func (c *Controller) dispatch(name string, dir, steps int) {
 		// CW (+1) → faster timebase, toward "nS" on the knob's printed arc
 		// ("S ... nS"); a sheet turns its tab instead, a zoom its factor.
 		c.tdivTurn(dir)
-	case "ch1vdiv", "ch2vdiv":
-		ch := 0
-		if name == "ch2vdiv" {
-			ch = 1
-		}
+	case KnobCh1Vdiv, KnobCh2Vdiv, KnobCh3Vdiv, KnobCh4Vdiv:
+		ch, _, _ := keyChan(name)
 		if c.fe == nil {
 			return // claim-and-ignore without an analog front end
 		}
@@ -263,11 +273,8 @@ func (c *Controller) dispatch(name string, dir, steps int) {
 		if err := c.setVpos(ch, clampInt(c.vpos(ch)-dir, 0, len(c.ladder(ch))-1)); err != nil {
 			c.logf("panel: SetVdiv: %v", err)
 		}
-	case "ch1pos", "ch2pos":
-		ch := 0
-		if name == "ch2pos" {
-			ch = 1
-		}
+	case KnobCh1Pos, KnobCh2Pos, KnobCh3Pos, KnobCh4Pos:
+		ch, _, _ := keyChan(name)
 		if c.fe == nil {
 			return // no analog front end: offset knob claim-and-ignore
 		}
@@ -280,7 +287,7 @@ func (c *Controller) dispatch(name string, dir, steps int) {
 		// CW raises the level. The step is 40 level steps (DAC codes) per
 		// accel step at 1 V/div, scaled by the source's displayed V/div (at
 		// least one): a fixed 40 was 22 div at 2 mV/div.
-		c.lv.StepTrigLevel(dir*c.trigSteps()*steps, c.eng.Snapshot().TrigSource&1)
+		c.lv.StepTrigLevel(dir*c.trigSteps()*steps, c.chOf(c.eng.Snapshot().TrigSource))
 	case "adjust":
 		// The workspace's tool, the sheet's row, or the picker's byte.
 		c.adjustTurn(dir, steps)
@@ -304,14 +311,14 @@ func (c *Controller) trigSteps() int {
 	if c.fe == nil {
 		return int(panelTrigStepsPerVdiv)
 	}
-	return trigStepsAt([2]float64{c.fe.VdivV(0), c.fe.VdivV(1)}, c.eng.Snapshot().TrigSource&1)
+	return trigStepsAt(c.fe.VdivV(c.chOf(c.eng.Snapshot().TrigSource)))
 }
 
-// trigStepsAt is trigSteps for the channels' V/div at the BNC vdiv and
-// trigger source src already read (snap holds both).
+// trigStepsAt is trigSteps for the trigger source's V/div at the BNC vdiv
+// already read (snap holds it).
 // TRLC-LINKS: REQ-DSO-135
-func trigStepsAt(vdiv [2]float64, src int) int {
-	return max(1, int(math.Round(panelTrigStepsPerVdiv*vdiv[src])))
+func trigStepsAt(vdiv float64) int {
+	return max(1, int(math.Round(panelTrigStepsPerVdiv*vdiv)))
 }
 
 // setTrigMid is SET TO 50%: the trigger level at the midpoint of the source
@@ -320,7 +327,7 @@ func trigStepsAt(vdiv [2]float64, src int) int {
 // TRLC-LINKS: REQ-DSO-135
 func (c *Controller) setTrigMid() {
 	m, ok := c.measureChans()
-	src := c.eng.Snapshot().TrigSource & 1
+	src := c.chOf(c.eng.Snapshot().TrigSource)
 	if !ok || !has(m[src]) {
 		c.toast(fmt.Sprintf("Set to 50 %%: no signal on C%d", src+1), 1500*time.Millisecond)
 		return

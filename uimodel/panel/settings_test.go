@@ -133,7 +133,7 @@ func TestApplySettingsViewKeepsTwoSignalRolesOpposite(t *testing.T) {
 func TestSettingsViewDisplayRoundTrip(t *testing.T) {
 	a, _, _ := newC(t)
 	a.mu.Lock()
-	a.mathMode, a.showMeas, a.persist, a.chDisp = 3, true, true, [2]bool{true, false}
+	a.mathMode, a.showMeas, a.persist, a.chDisp = 3, true, true, [maxChans]bool{true, false}
 	a.mu.Unlock()
 	b, _, _ := newC(t)
 	b.ApplySettingsView(a.SettingsView())

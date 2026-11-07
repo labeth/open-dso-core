@@ -181,7 +181,8 @@ func (c *Controller) status(s *sv) Status {
 	if u.open {
 		t := sheetTabs[u.tab]
 		st.Sheet = SheetStatus{Open: true, Tab: t.id, TabName: t.name, TabTitle: t.title, Edit: u.edit}
-		for _, ti := range tabOrder(u.ws) {
+		order, _ := tabOrder(u.ws, s.nch)
+		for _, ti := range order {
 			st.Sheet.Tabs = append(st.Sheet.Tabs, sheetTabs[ti].name)
 		}
 		rm := rowModel(s, curRow(u))
@@ -280,11 +281,14 @@ func (c *Controller) displayAndView(s *sv) (Display, wsview.View) {
 		CurT: s.curT, CurV: s.curV, CurVCh: s.curVCh,
 		AutosetBusy: busy, AutosetMsg: amsg,
 	}
+	if s.nch > 2 {
+		d.ShowCh = append([]bool(nil), s.chDisp[:s.nch]...)
+	}
 	if len(s.meas) > 0 {
 		d.MeasItems = make([]string, 0, len(s.meas))
 	}
 	for _, it := range s.meas {
-		d.MeasItems = append(d.MeasItems, measItemLabels[it.ch&1][it.param])
+		d.MeasItems = append(d.MeasItems, measItemLabels[s.chOf(it.ch)][it.param])
 	}
 	if s.remoteNotices && s.now.Before(s.ui.remoteUnt) {
 		d.Remote = s.ui.remote
@@ -346,8 +350,11 @@ func finiteOr(v float64) float64 {
 // TRLC-LINKS: REQ-DSO-212
 func sheetSig(s *sv) uint64 {
 	h := newSig()
-	for _, t := range sheetTabs {
-		for _, r := range t.rows {
+	for ti := range sheetTabs {
+		if !tabShown(ti, s.nch) {
+			continue
+		}
+		for _, r := range tabRows(ti, s.nch) {
 			h.str(r.id)
 			h.u64(uint64(b2ic(r.relevant(s)))) //nolint:gosec // G115: 0 or 1
 			if r.kind == wsview.Enum {
@@ -420,8 +427,11 @@ func (h *sig64) u64(v uint64) {
 // TRLC-LINKS: REQ-DSO-212, REQ-DSO-220
 func rowKeys(s *sv) []uint64 {
 	keys := make([]uint64, 0, len(rowByID))
-	for _, t := range sheetTabs {
-		for _, r := range t.rows {
+	for ti := range sheetTabs {
+		if !tabShown(ti, s.nch) {
+			continue
+		}
+		for _, r := range tabRows(ti, s.nch) {
 			h := newSig()
 			hashValue(&h, s, r)
 			keys = append(keys, uint64(h))
@@ -469,8 +479,11 @@ func (c *Controller) changesSince(m changeMark) ([]string, string) {
 	c.mu.Unlock()
 	var out []string
 	i := 0
-	for _, t := range sheetTabs {
-		for _, r := range t.rows {
+	for ti := range sheetTabs {
+		if !tabShown(ti, s.nch) {
+			continue
+		}
+		for _, r := range tabRows(ti, s.nch) {
 			if keys[i] != m.keys[i] {
 				out = append(out, r.id)
 			}
@@ -586,10 +599,18 @@ func (c *Controller) Sheets() SheetsModel {
 	m.Seq, m.SheetsSeq = c.remote.seq, c.remote.sheetsSeq
 	c.rmu.Unlock()
 	s := c.snap()
-	for _, t := range sheetTabs {
+	c.amu.Lock()
+	allVals, allOK := c.ana.allVals, c.ana.allOK
+	c.amu.Unlock()
+	for ti, t := range sheetTabs {
+		if !tabShown(ti, s.nch) {
+			continue
+		}
 		tm := TabModel{ID: t.id, Name: t.name, Title: t.title, Key: t.key}
-		for _, r := range t.rows {
-			tm.Rows = append(tm.Rows, rowModel(s, r))
+		for _, r := range tabRows(ti, s.nch) {
+			rm := rowModel(s, r)
+			rm.Live = liveMeas(s, r, allVals, allOK)
+			tm.Rows = append(tm.Rows, rm)
 		}
 		if t.id == tabIDTrig {
 			// whether the FPGA decides the trigger, or why it cannot yet
@@ -600,6 +621,25 @@ func (c *Controller) Sheets() SheetsModel {
 		m.Tabs = append(m.Tabs, tm)
 	}
 	return m
+}
+
+// liveMeas is a MEAS row's live values per channel as the sheet shows them,
+// nil for another row or while no channel's values are in.
+// TRLC-LINKS: REQ-DSO-217
+func liveMeas(s *sv, r *row, allVals [maxChans][]float64, allOK [maxChans]bool) []string {
+	if r.meas <= 0 {
+		return nil
+	}
+	var out []string
+	for ch := range s.nch {
+		if s.chDisp[ch] && allOK[ch] && len(allVals[ch]) > r.meas-1 {
+			if out == nil {
+				out = make([]string, s.nch)
+			}
+			out[ch] = fmtMeas(r.meas-1, allVals[ch][r.meas-1])
+		}
+	}
+	return out
 }
 
 // onPanel runs fn on the panel goroutine and waits for it (bounded), so a
@@ -902,7 +942,7 @@ func (c *Controller) TypeText(text string) SetResult {
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) setRow(id string, value any, text string, remote bool) SetResult {
 	r := rowByID[id]
-	if r == nil {
+	if r == nil || !rowShown(id, c.nch) {
 		return SetResult{Row: id, Error: fmt.Sprintf("no row %q", id)}
 	}
 	if remote && c.AutosetBusy() {
@@ -998,7 +1038,7 @@ func (c *Controller) applyRow(r *row, s *sv, value any, text string) error {
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) runAction(id, action string, remote bool) SetResult {
 	r := rowByID[id]
-	if r == nil {
+	if r == nil || !rowShown(id, c.nch) {
 		return SetResult{Row: id, Error: fmt.Sprintf("no row %q", id)}
 	}
 	if remote && id != "sys.autoset" && c.AutosetBusy() {
@@ -1163,7 +1203,7 @@ func (c *Controller) afterInput() {
 
 // measItemLabels names each readout as Display.MeasItems does ("1:pkpk"),
 // made once: the display state is read every LCD frame.
-var measItemLabels = func() (l [2][]string) {
+var measItemLabels = func() (l [maxChans][]string) {
 	for ch := range l {
 		for _, p := range measParams {
 			l[ch] = append(l[ch], string(rune('1'+ch))+":"+p.id)

@@ -79,9 +79,14 @@ func (c *Controller) setVpos(ch, pos int) error {
 	return c.fe.SetVdivV(ch, l[pos].vdiv)
 }
 
-// vposs is both channels' places on their ladders.
+// vposs is the channels' places on their ladders.
 // TRLC-LINKS: REQ-DSO-212
-func (c *Controller) vposs() [2]int { return [2]int{c.vpos(0), c.vpos(1)} }
+func (c *Controller) vposs() (p [maxChans]int) {
+	for ch := range c.nch {
+		p[ch] = c.vpos(ch)
+	}
+	return p
+}
 
 // tipLadder is channel ch's V/div ladder at the probe tip; 1 V/div alone
 // without a front end.

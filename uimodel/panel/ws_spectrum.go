@@ -38,10 +38,10 @@ func (c *Controller) specFrame(a *anaState, s *sv, f *sample.Frame) {
 			a.specLease = true
 		}
 	}
-	ch := s.fftSrc & 1
+	ch := s.chOf(s.fftSrc)
 	sp, ok := framecalc.SpectrumHeld(f, ch, f.SampleS)
 	// the display holding the spectrum it analysed: its levels and peaks stand
-	vpc := voltsPerCode(s, ch)
+	vpc := voltsPerCodeIn(f, s, ch)
 	if ok && a.specOK && a.specCh == ch && len(sp.Mags) > 0 && len(a.spec.Mags) == len(sp.Mags) &&
 		&a.spec.Mags[0] == &sp.Mags[0] && a.specVPC == vpc {
 		return
@@ -84,7 +84,7 @@ func (c *Controller) setBodeChannel(dut bool, ch int) error {
 		return errors.New("this engine has no frequency response")
 	}
 	st := c.eng.Snapshot()
-	ref, d := st.BodeRef&1, st.BodeDut&1
+	ref, d := c.chOf(st.BodeRef), c.chOf(st.BodeDut)
 	if dut {
 		if ch == ref {
 			ref = d
@@ -395,7 +395,7 @@ func (c *Controller) bodePane(s *sv, p *wsview.SpecPane) {
 	p.TimeLabel = "INPUTS"
 	p.Head = [4]string{"FREQ", "GAIN", "PHASE", ""}
 	if len(pts) == 0 {
-		p.Caption = fmt.Sprintf("BODE  sweeping the source (ref C%d, DUT C%d)...", s.st.BodeRef&1+1, s.st.BodeDut&1+1)
+		p.Caption = fmt.Sprintf("BODE  sweeping the source (ref C%d, DUT C%d)...", s.chOf(s.st.BodeRef)+1, s.chOf(s.st.BodeDut)+1)
 		p.Empty = "Sweeping..."
 		if why := s.st.BodeWhy; why != "" { // a capture gave no point: say why
 			p.Empty = "No point: " + why
@@ -414,7 +414,7 @@ func (c *Controller) bodePane(s *sv, p *wsview.SpecPane) {
 // the marker, the start, peak and -3 dB readouts, and the marker's line.
 // TRLC-LINKS: REQ-DSO-216
 func bodeSweep(s *sv, p *wsview.SpecPane, pts []engine.BodePoint) {
-	p.Caption = fmt.Sprintf("BODE  ref C%d, DUT C%d  %d points", s.st.BodeRef&1+1, s.st.BodeDut&1+1, len(pts))
+	p.Caption = fmt.Sprintf("BODE  ref C%d, DUT C%d  %d points", s.chOf(s.st.BodeRef)+1, s.chOf(s.st.BodeDut)+1, len(pts))
 	if why := s.st.BodeWhy; why != "" {
 		p.Caption += "  - " + why
 	}

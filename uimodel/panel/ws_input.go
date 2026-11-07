@@ -568,7 +568,7 @@ func (c *Controller) scopeAdjustPush() {
 	}
 	ti := rowTab[r.id]
 	c.openSheetLocked(ti, "adjust")
-	c.ui.rowAt[ti] = rowIndex(r.id)
+	c.ui.rowAt[ti] = rowIndex(r.id, c.nch)
 }
 
 // ---- run control ----
@@ -655,6 +655,7 @@ func (c *Controller) defaultSetupUI() {
 	c.mu.Lock()
 	old := c.ui
 	c.ui = freshUI()
+	c.ui.nch = c.nch
 	c.ui.ws = old.ws
 	if c.apiDepth > 0 {
 		u := &c.ui

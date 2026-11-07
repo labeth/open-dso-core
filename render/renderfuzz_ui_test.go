@@ -117,7 +117,7 @@ func fuzzView(rng *rand.Rand) wsview.View {
 		for i := rng.Intn(40); i > 0; i-- {
 			r := wsview.Row{
 				Kind: wsview.RowKind(rng.Intn(8)), Header: str(), Label: str(), Rel: pick(2), Focus: pick(4), Edit: pick(4),
-				Value: str(), Gauge: rng.Float64()*3 - 1, Status: str(), Armed: pick(2), Used: pick(2), Meas: [2]string{str(), str()},
+				Value: str(), Gauge: rng.Float64()*3 - 1, Status: str(), Armed: pick(2), Used: pick(2), Meas: [4]string{str(), str()},
 			}
 			for j := rng.Intn(15); j > 0; j-- {
 				r.Opts = append(r.Opts, wsview.Opt{Text: str(), Sel: pick(4), Quiet: pick(2)})

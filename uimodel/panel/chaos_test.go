@@ -96,7 +96,7 @@ func TestPanelChaos(t *testing.T) {
 		c.srCancel("cancelled")
 		c.mu.Lock()
 		u := c.ui
-		if u.ws < 0 || int(u.ws) >= 5 || u.tab < 0 || u.tab >= numTabs || u.rowAt[u.tab] < 0 || u.rowAt[u.tab] >= len(sheetTabs[u.tab].rows) {
+		if u.ws < 0 || int(u.ws) >= 5 || u.tab < 0 || u.tab >= numTabs || u.rowAt[u.tab] < 0 || u.rowAt[u.tab] >= len(tabRows(u.tab, u.nch)) {
 			t.Fatalf("seed %d: UI out of range: ws %d tab %d row %d", seed, u.ws, u.tab, u.rowAt[u.tab])
 		}
 		if c.tdivIdx < 0 || c.tdivIdx >= len(c.tdivs) || c.zoom < 1 {

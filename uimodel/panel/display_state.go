@@ -81,9 +81,12 @@ func (c *Controller) SetMenuOpen(on bool) {
 // TraceOn reports whether a channel's trace is shown (the CH1/CH2 keys).
 // TRLC-LINKS: REQ-DSO-136
 func (c *Controller) TraceOn(ch int) bool {
+	if cs, ok := c.fe.(channelShower); ok {
+		return cs.ChannelOn(c.chOf(ch))
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.chDisp[ch&1]
+	return c.chDisp[c.chOf(ch)]
 }
 
 // SetTraceOn shows or hides a channel's trace (SCPI Cn:TRA), as its key does,
@@ -91,8 +94,9 @@ func (c *Controller) TraceOn(ch int) bool {
 // TRLC-LINKS: REQ-DSO-136
 func (c *Controller) SetTraceOn(ch int, on bool) {
 	c.mu.Lock()
-	c.chDisp[ch&1] = on
+	c.chDisp[c.chOf(ch)] = on
 	c.mu.Unlock()
+	c.pushShown()
 	c.pushLEDs()
 }
 

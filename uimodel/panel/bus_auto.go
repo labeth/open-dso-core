@@ -120,7 +120,7 @@ func (c *Controller) runBusAuto(stop chan struct{}) {
 	// a 10x probe set as 1x, sliced at 0.7 div and lost one AUTO in three),
 	// and GND shows no line at all
 	if c.fe != nil {
-		for ch := range 2 {
+		for ch := range c.nch {
 			if c.fe.Coupling(ch) != dsp.CoupleDC {
 				_ = c.setCoupling(ch, dsp.CoupleDC)
 			}
@@ -429,7 +429,7 @@ func (c *Controller) idleTrigger(ch int, w float64) {
 	if st.SerialMode != 0 {
 		c.setTrigTypeIndex(st, 0)
 	}
-	c.eng.SetTrigSource(ch & 1)
+	c.eng.SetTrigSource(c.chOf(ch))
 	c.eng.SetTrigSlope(true) // a high pulse: the idle
 	_ = c.editPulse(func() {
 		c.pulseLvl, c.pulseCond = 0.5, engine.CondGreater

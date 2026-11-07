@@ -16,8 +16,16 @@ import (
 func (c *Controller) FillHUD(hud *render.HUD) {
 	d, v := c.Snapshot() // the display state and the workspace UI, read together
 	hud.Ch[0].Show, hud.Ch[1].Show, hud.ChanExplicit = d.ShowC1, d.ShowC2, true
+	for ch, on := range d.ShowCh {
+		if ch < len(hud.Ch) {
+			hud.Ch[ch].Show = on
+		}
+	}
 	hud.ShowMeas, hud.MeasItems = d.ShowMeas, d.MeasItems
 	hud.ViewMode, hud.MathMode, hud.FFTSrc = d.ViewMode, d.MathMode, d.FFTSrc
+	c.mu.Lock()
+	hud.MathCh, hud.XYCh = c.mathCh, c.xyCh
+	c.mu.Unlock()
 	hud.AutosetBusy, hud.AutosetMsg = d.AutosetBusy, d.AutosetMsg
 	hud.Notice, hud.Remote = v.Notice, d.Remote
 	hud.UI = v
@@ -31,7 +39,7 @@ func (c *Controller) FillHUD(hud *render.HUD) {
 	hud.DecFormat, hud.DecDelayNs = d.DecFormat, d.DecDelayNs
 	rv := c.RefView()
 	for i := range 2 {
-		hud.RefC1[i], hud.RefC2[i], hud.RefShow[i] = rv[i].C1, rv[i].C2, rv[i].Show
+		hud.Ref[i], hud.RefShow[i] = rv[i].Ch, rv[i].Show
 		hud.RefVdiv[i], hud.RefOff[i], hud.RefProbe[i] = rv[i].Vdiv, rv[i].Off, rv[i].Probe
 	}
 	hud.CurOn, hud.CurType, hud.CurSel = d.CurOn, d.CurType, d.CurSel
@@ -64,7 +72,7 @@ func (c *Controller) HUD(chans int) render.HUD {
 		hud.Ch[ch] = render.Channel{VdivV: 1, Show: true}
 	}
 	if c.fe != nil {
-		for ch := range min(hud.NumChans, 2) {
+		for ch := range min(hud.NumChans, c.nch) {
 			k := &hud.Ch[ch]
 			k.VdivV, k.Probe, k.Cpl = c.fe.VdivV(ch), c.fe.ProbeFactor(ch), c.fe.Coupling(ch)
 			if v := k.VdivV; v > 0 {
@@ -75,7 +83,7 @@ func (c *Controller) HUD(chans int) render.HUD {
 			}
 		}
 	}
-	if src := st.TrigSource; src >= 0 && src < 2 && hud.Ch[src].VdivV > 0 {
+	if src := st.TrigSource; src >= 0 && src < hud.NumChans && hud.Ch[src].VdivV > 0 {
 		v := c.lv.TrigLevelOrIn(st, 0, src)
 		probe := max(hud.Ch[src].Probe, 1)
 		hud.TrigLvlV = v

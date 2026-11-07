@@ -27,11 +27,11 @@ func TestRefSavesTheScreenWindow(t *testing.T) {
 	c.SetFrameSource(func(fn func(*sample.Frame)) { fn(f) })
 	c.captureRef(0)
 	r := c.RefView()[0]
-	if len(r.C1) != RefCols || !r.Show {
-		t.Fatalf("ref %d columns, show %v", len(r.C1), r.Show)
+	if len(r.Ch[0]) != RefCols || !r.Show {
+		t.Fatalf("ref %d columns, show %v", len(r.Ch[0]), r.Show)
 	}
 	edge := -1
-	for x, v := range r.C1 {
+	for x, v := range r.Ch[0] {
 		if v == 200 {
 			edge = x
 			break
@@ -148,7 +148,7 @@ func TestWebRefActionsAreTheScopes(t *testing.T) {
 		t.Fatalf("status refs after storing B: %+v", tags)
 	}
 	b := c.RefsExport()[1]
-	if b.Gen != tags[1].Gen || b.At == 0 || b.Probe != [2]float64{1, 10} || b.Setup == nil || b.Setup.TdivS != 100e-6 ||
+	if b.Gen != tags[1].Gen || b.At == 0 || len(b.Probe) != 2 || b.Probe[0] != 1 || b.Probe[1] != 10 || b.Setup == nil || b.Setup.TdivS != 100e-6 ||
 		b.Setup.Vdiv[1] != 10*detentRange(fe.idx[1]) {
 		t.Fatalf("export of B: gen %d at %d probe %v setup %+v", b.Gen, b.At, b.Probe, b.Setup)
 	}
