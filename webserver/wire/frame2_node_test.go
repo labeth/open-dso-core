@@ -243,3 +243,16 @@ func v1Replies() map[string]wire.FrameReply {
 	empty.C1, empty.C2 = []int16{-1, -1, -1, -1, -1, -1}, []int16{-1, -1, -1, -1, -1, -1}
 	return map[string]wire.FrameReply{"native": native, "deep": deep, "env": env, "precision": prec, "empty": empty}
 }
+
+// binframe2.js's own checks: hand-built v2 messages of every shape and the
+// protocol failures it refuses.
+// TRLC-LINKS: REQ-SDS-023, REQ-SDS-163
+func TestBinframe2JS(t *testing.T) {
+	testenv.NeedNode(t)
+	cmd := exec.CommandContext(t.Context(), "node", "binframe2.test.cjs")
+	cmd.Dir = webclient.Dir()
+	out, err := cmd.CombinedOutput()
+	if err != nil || !bytes.Contains(out, []byte("ALL PASS")) {
+		t.Fatalf("binframe2.test.cjs: %v\n%s", err, out)
+	}
+}
