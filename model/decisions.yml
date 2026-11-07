@@ -767,3 +767,14 @@ decisions:
   decision: 'A change in a MEAS row''s live value moves SheetsSeq, so the web fetches the sheets again.'
   consequences:
   - 'More sheet fetches while MEAS is open; to review if the web''s request rate matters.'
+
+- id: ADR-PROVENANCE-HARDWARE-FACTS
+  title: 'Hardware facts are published as hardware description; vendor material never is'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The family rule kept anything derived from vendor firmware or bitstreams out of public repositories. Taken literally, that also kept out the register maps, initialisation sequences, timings and pin maps a scope cannot run without, so a scope could not be published, or joined by people who own one, before the family owner had measured every fact on a unit. The owner decided to publish such facts.'
+  decision: 'Hardware facts may be published as hardware description, in our own words and without attribution, marked UNVERIFIED until measured on a unit: register maps, initialisation values and sequences, timings, pin and ball maps, I/O standards and key codes, also when they were learned from the vendor firmware or bitstream. Never published: vendor code, vendor files verbatim or transcribed, vendor strings, symbol, function and accessor names, internal codenames, and descriptions of how the vendor firmware behaves internally. Interoperation literals stay verbatim: device paths, file names the firmware must open or forbid, device-tree compatibles, and the public instrument interface (SCPI names from the public guides, waveform formats and their public field names).'
+  consequences:
+  - 'A scope repository can be public before a unit is on the family''s bench; its specifications say which facts are UNVERIFIED, and its status says verified in simulation only.'
+  - 'The provenance review of a scope repository checks its whole tree and history against this line: facts stay, attributions, internals and vendor strings go.'
+  - 'open-dso/docs/contributing.md states the rule for contributors; the family requirement REQ-FAM-007 is verified against it.'
