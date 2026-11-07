@@ -21,12 +21,15 @@ func (s *Server) hSet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
 		return
 	}
-	var req Control
+	req := Control{Ch: -1}
 	// 4 KB cap: a scalar-verb body is tens of bytes; an unbounded decoder
 	// would buffer an attacker-sized body on a 64 MB-class ARM.
 	if err := DecodeSmall(r.Body, &req); err != nil {
 		WriteBadJSON(w)
 		return
+	}
+	if req.ValueV != nil {
+		req.Value, req.ValueV = *req.ValueV, nil
 	}
 	for _, v := range []float64{req.Value, req.Lvl, req.Lo, req.Hi, req.Min, req.Max} {
 		if math.IsNaN(v) || math.IsInf(v, 0) {
@@ -34,6 +37,7 @@ func (s *Server) hSet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	req.Translate()
 	a := s.sc.Settings().Set(r.Context(), req)
 	out := map[string]any{"ok": a.OK}
 	if a.Value != nil {
