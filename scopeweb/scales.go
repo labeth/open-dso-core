@@ -3,7 +3,6 @@
 package scopeweb
 
 import (
-	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 )
@@ -101,7 +100,7 @@ func (v stateScales) Inverted() (inv [2]bool) {
 // TRLC-LINKS: REQ-DSO-163
 func (v stateScales) Position() (float64, bool, bool) {
 	st := v.s.state()
-	return posFrac(st, v.s.divsH()), st.Running, st.Sweep == hal.Single
+	return posFrac(st, v.s.divsH()), st.Running, st.Running && st.Single
 }
 
 // divsH is the graticule's divisions across (10 by default).

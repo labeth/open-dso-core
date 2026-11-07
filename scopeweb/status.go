@@ -127,7 +127,7 @@ func (s *Scope) status() any {
 	pos := posFrac(st, s.divsH())
 	out := map[string]any{
 		"version": s.cfg.Version, "seq": seq, "fps": fps, "frames": seq, "published": seq,
-		"running": st.Running, sweepSingle: st.Running && st.Sweep == hal.Single, "norm": st.Sweep == hal.NormalSweep,
+		"running": st.Running, sweepSingle: st.Running && st.Single, "norm": st.Sweep == hal.NormalSweep,
 		"tdiv_s": tdiv, "tdiv_set_s": st.TimeDivS, "displayed_sdiv_s": displayed,
 		"tdivs": p.Timebase.TdivS, "full_rate_tdiv_s": p.Timebase.FullRateTdivS,
 		"trig_pos_frac": pos, "holdoff_s": st.Trigger.HoldoffS,
@@ -173,7 +173,7 @@ func (s *Scope) status() any {
 		slope = "either"
 	}
 	out["run"] = RunStatus{
-		Running: st.Running, Single: st.Running && st.Sweep == hal.Single, Mode: sweepName(st.Sweep),
+		Running: st.Running, Single: st.Running && st.Single, Mode: sweepName(st.BoardSweep()),
 		State: run, FPS: fps, Seq: seq,
 	}
 	out["time"] = TimeStatus{TdivS: tdiv, DisplayedS: displayed, PosFrac: pos, DelayS: st.DelayS, HoldoffS: st.Trigger.HoldoffS, Depth: st.Depth}
