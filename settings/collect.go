@@ -304,7 +304,7 @@ var _ Extension = ModelLevel{}
 // CollectTrigger writes the level's volts.
 // TRLC-LINKS: REQ-DSO-089
 func (x ModelLevel) CollectTrigger(t *Trigger) {
-	t.LevelV, t.LevelSet = x.Model.State().Trigger.LevelV, true
+	t.LevelV, t.LevelSet = x.Model.State().Trigger.LevelV(), true
 }
 
 // ApplyTrigger stages a saved level; the board snaps it to its grid when
@@ -314,5 +314,5 @@ func (x ModelLevel) ApplyTrigger(t Trigger) {
 	if !t.LevelSet || !finite(t.LevelV) {
 		return
 	}
-	_ = x.Model.Change(func(st *instrument.State) error { st.Trigger.LevelV = t.LevelV; return nil })
+	_ = x.Model.Change(func(st *instrument.State) error { return st.Trigger.SetLevel(t.LevelV, len(st.Channels)) })
 }

@@ -54,6 +54,10 @@ type Options struct {
 	Check    func(instrument.State) error
 	// Publish hears every frame the core's owner loop publishes.
 	Publish func(*sample.Frame)
+	// SoftwareMask runs the mask test in software on every frame the
+	// core's owner loop reads (engine.FrameMask, Env.Mask): for a board
+	// whose hardware has no mask comparison.
+	SoftwareMask bool
 	// Owner is a scope's own acquisition owner, run in place of the core's
 	// HAL loop until the scope is HAL terms throughout.
 	Owner Owner
@@ -137,8 +141,11 @@ type Env struct {
 	Frames   *fanout.Fanout[sample.Frame]
 	// HALScope is the UI model's view of the board (nil with an Owner).
 	HALScope *panel.HALScope
-	UI       *panel.Controller
-	SCPI     SCPI
+	// Mask is the software mask test the owner loop runs (nil without
+	// Options.SoftwareMask): the UI model, SCPI and the web drive it.
+	Mask *engine.FrameMask
+	UI   *panel.Controller
+	SCPI SCPI
 	// Setups is the setup memory the panel, SCPI and the web share (set
 	// after the settings are restored).
 	Setups *panel.SharedSetups
@@ -146,6 +153,16 @@ type Env struct {
 	Web *webserver.Server
 
 	display *display
+}
+
+// MaskTest is the software mask test as the web scope takes it: nil (no
+// part) without one.
+// TRLC-LINKS: REQ-DSO-014
+func (e *Env) MaskTest() scopeweb.MaskTest {
+	if e.Mask == nil {
+		return nil
+	}
+	return e.Mask
 }
 
 // Render draws the display's picture headless into dst.
@@ -216,7 +233,12 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 			return errors.New("scopeapp: a HAL scope needs its default state")
 		}
 		m := instrument.New(o.Defaults(b.Profile().Channels), o.Check)
+		// A trigger type the board cannot run is refused when it is chosen.
+		m.SetTrigCaps(b.Trigger().Caps)
 		env.Model, env.Controls = m, m
+		if o.SoftwareMask {
+			env.Mask = engine.NewFrameMask()
+		}
 		h.snap = m.Snapshot
 		h.beats = func() uint64 { return m.Snapshot().Published }
 	}
@@ -227,7 +249,7 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		go o.Owner.Run()
 		go env.Frames.Run(o.Owner, stop)
 	} else {
-		loop, cycle := engine.NewHALLoop(engine.HALConfig{Board: b, Instrument: env.Model, Logf: logf, Publish: o.Publish})
+		loop, cycle := engine.NewHALLoop(engine.HALConfig{Board: b, Instrument: env.Model, Logf: logf, Publish: o.Publish, Mask: env.Mask})
 		env.Model.SetFrames(env.Frames)
 		go env.Frames.Run(cycle, stop)
 		go loop.Run(ctx)
@@ -353,7 +375,7 @@ func buildUI(env *Env, o Options) error {
 		if env.Model == nil {
 			return errors.New("scopeapp: a scope with its own owner builds its UI model")
 		}
-		s := panel.NewHALScope(env.Model, env.Board, env.Product)
+		s := panel.NewHALScope(env.Model, env.Board, env.Product).WithMask(env.Mask)
 		env.Model.SetTimebases(s.Tdivs())
 		env.HALScope = s
 		env.UI = panel.New(s.Engine(), s.Analog(), s.Levels(), s.Hardware(), s.Tdivs(), env.Model.State().TimeDivS, env.Logf)
@@ -461,7 +483,7 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 	}
 	return scopeweb.New(scopeweb.Config{
 		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, UI: env.UI,
-		Setups: WebSetups{env.Setups},
+		Setups: WebSetups{env.Setups}, Parts: scopeweb.Parts{Masks: env.MaskTest()},
 	}).WithCaps(), nil
 }
 
