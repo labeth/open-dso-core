@@ -221,6 +221,11 @@ func TestDevices(t *testing.T) {
 			t.Errorf("%s present", name)
 		}
 	}
+	for _, part := range hal.OptionalParts {
+		if b.Profile().Absent[part] == "" {
+			t.Errorf("no reason for the absent %s", part)
+		}
+	}
 	if g := b.Trigger().LevelGrid(hal.Source{Kind: hal.Analog}); g.Step <= 0 || g.Min >= g.Max {
 		t.Errorf("level grid %+v", g)
 	}
@@ -243,5 +248,54 @@ func TestExport(t *testing.T) {
 	}
 	if tr.Ch != 1 || tr.Valid != plan.Depth || len(tr.Codes8) != plan.Depth {
 		t.Errorf("export ch %d valid %d codes %d, depth %d", tr.Ch, tr.Valid, len(tr.Codes8), plan.Depth)
+	}
+}
+
+func TestTriggerDefault(t *testing.T) {
+	b := New(Config{})
+	st, err := b.Trigger().Default(hal.NodeEdge, hal.Source{Kind: hal.Analog, Index: 1})
+	if err != nil || st.Node != hal.NodeEdge || st.Source.Index != 1 || st.Levels.Slope != hal.Rising {
+		t.Errorf("default %+v %v", st, err)
+	}
+	if _, err := b.Trigger().Default(hal.NodeVideo, hal.Source{Kind: hal.Analog}); err == nil {
+		t.Error("a node the board lacks has a default")
+	}
+}
+
+func TestSelfCal(t *testing.T) {
+	b := New(Config{})
+	var steps []float64
+	rep, err := b.FrontEnd().SelfCal(context.Background(), func(x float64) { steps = append(steps, x) })
+	if err != nil || len(rep.Failed) != 0 || !rep.Source.Valid || rep.Source.Author != "open" {
+		t.Fatalf("report %+v %v", rep, err)
+	}
+	if len(steps) == 0 || steps[len(steps)-1] != 1 {
+		t.Errorf("progress %v", steps)
+	}
+	if c := b.FrontEnd().Calibration(); c != rep.Source {
+		t.Errorf("calibration %+v after the report's %+v", c, rep.Source)
+	}
+	plan, _ := b.Planner().Plan(hal.Request{TimePerDivS: 1e-6})
+	_ = b.Acquirer().Configure(plan)
+	_ = b.Acquirer().Arm()
+	if _, err := b.FrontEnd().SelfCal(context.Background(), nil); err == nil {
+		t.Error("self-calibration while armed")
+	}
+}
+
+func TestBeeperAndTouch(t *testing.T) {
+	b := New(Config{})
+	in := b.Input()
+	if err := in.SetSound(true); err != nil {
+		t.Fatal(err)
+	}
+	if err := in.Beep(50 * time.Millisecond); err != nil {
+		t.Fatal(err)
+	}
+	if beeps, sound := b.Beeps(); !sound || len(beeps) != 1 {
+		t.Errorf("beeps %v sound %v", beeps, sound)
+	}
+	if _, ok := hal.AsRefusal(in.SetTouch(false)); !ok {
+		t.Error("touch switch on a board without touch is not refused")
 	}
 }

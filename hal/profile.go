@@ -18,10 +18,14 @@ type Profile struct {
 	Inputs     InputSpec      `yaml:"inputs"`
 	Supervisor SupervisorSpec `yaml:"supervisor"`
 	Options    OptSet         `yaml:"options"` // optional hardware fitted
-	Budget     Budget         `yaml:"budget"`
-	Stage      int            `yaml:"stage"` // 1: vendor bitstream, 2: open bitstream
-	Timebase   TimebaseSpec   `yaml:"timebase"`
-	Limits     Limits         `yaml:"limits"`
+	// Absent gives the reason for each optional part this scope lacks,
+	// keyed by part name (OptionalParts), so a feature that needs it is
+	// refused with the scope's own words.
+	Absent   map[string]string `yaml:"absent"`
+	Budget   Budget            `yaml:"budget"`
+	Stage    int               `yaml:"stage"` // 1: vendor bitstream, 2: open bitstream
+	Timebase TimebaseSpec      `yaml:"timebase"`
+	Limits   Limits            `yaml:"limits"`
 }
 
 // Identity is what bring-up reads from the unit. Profile variants match on
@@ -82,10 +86,11 @@ const (
 
 // InputSpec is the front panel's controls, by core name.
 type InputSpec struct {
-	Keys  []string `yaml:"keys"`
-	Knobs []string `yaml:"knobs"`
-	Lamps []string `yaml:"lamps"`
-	Touch bool     `yaml:"touch"`
+	Keys   []string `yaml:"keys"`
+	Knobs  []string `yaml:"knobs"`
+	Lamps  []string `yaml:"lamps"`
+	Touch  bool     `yaml:"touch"`
+	Beeper bool     `yaml:"beeper"`
 }
 
 // SupervisorSpec says who restarts a hung app on this scope.
@@ -144,4 +149,17 @@ type Limits struct {
 	SetupSlots int `yaml:"setup_slots"`
 	RefSlots   int `yaml:"ref_slots"`
 	RecordMax  int `yaml:"record_max"` // samples per channel one record download may hold
+}
+
+// OptionalParts names the optional parts, as Board's optional accessors and
+// Profile.Absent name them.
+var OptionalParts = []string{"streamer", "images", "stacker", "segments", "counter", "logic-probe", "generator"}
+
+// AbsentReason is why part is absent on this scope: the profile's reason,
+// or a generic one when the profile gives none.
+func (p Profile) AbsentReason(part string) string {
+	if r := p.Absent[part]; r != "" {
+		return r
+	}
+	return "this scope has no " + part
 }
