@@ -42,9 +42,11 @@ func checkCaps(t *testing.T, c client, sc webserver.Scope) {
 		t.Fatalf("status caps_gen %v api %v, caps gen %d", status["caps_gen"], status["api"], caps.Gen)
 	}
 	checkCapsLists(t, caps)
-	if !slices.Contains(caps.Wire.Frame, 1) {
-		t.Fatalf("frame wire %v", caps.Wire.Frame)
+	_, only := sc.Frames().(webserver.V2Only)
+	if slices.Contains(caps.Wire.Frame, 1) == only {
+		t.Fatalf("frame wire %v on a scope that serves v1: %v", caps.Wire.Frame, !only)
 	}
+	checkControlsV2(t, c, caps)
 	_, v2 := sc.Frames().(webserver.FramesV2)
 	if slices.Contains(caps.Wire.Frame, 2) != v2 {
 		t.Fatalf("frame wire %v, FramesV2 %v", caps.Wire.Frame, v2)
@@ -103,7 +105,7 @@ func checkCapsLists(t *testing.T, caps wire.Caps) {
 }
 
 // checkFramesV2 checks v2 frames: traces in the caps' channel order with
-// their scales, a held frame unchanged, and raw frames.
+// their scales, a held frame unchanged (or a newer one), and raw frames.
 // TRLC-LINKS: REQ-DSO-163, REQ-DSO-164
 func checkFramesV2(t *testing.T, c client, caps wire.Caps) {
 	t.Helper()
@@ -122,7 +124,7 @@ func checkFramesV2(t *testing.T, c client, caps wire.Caps) {
 			t.Fatalf("trace %d scale %+v", i, tr.Scale)
 		}
 	}
-	if again := c.frame2("/api/frame.bin?v=2&cols=100&since=" + jsonUint(h.Seq)); !again.Unchanged || len(again.Segs) != 0 {
+	if again := c.frame2("/api/frame.bin?v=2&cols=100&since=" + jsonUint(h.Seq)); again.Seq <= h.Seq && (!again.Unchanged || len(again.Segs) != 0) {
 		t.Fatalf("the frame held: %+v", again)
 	}
 	if raw := c.frame2("/api/frame.bin?v=2&raw=1"); !raw.Unchanged && (!raw.Raw || len(raw.Segs) == 0 || raw.Segs[0].Role != wire.RoleRaw) {
@@ -166,4 +168,22 @@ func (c client) frame2(path string) wire.FrameHeader {
 		}
 	}
 	return h
+}
+
+// checkControlsV2 checks settings v2 where caps list the per-channel
+// controls: a channel past the last, or none, is refused with why.
+// TRLC-LINKS: REQ-DSO-162
+func checkControlsV2(t *testing.T, c client, caps wire.Caps) {
+	t.Helper()
+	if !slices.ContainsFunc(caps.Controls, func(k wire.CapsControl) bool { return k.Name == "vdiv" && k.PerChannel }) {
+		return
+	}
+	for _, body := range []string{
+		`{"control":"vdiv","ch":` + jsonUint(uint64(len(caps.Channels))) + `,"value":1}`,
+		`{"control":"vdiv","value":1}`,
+	} {
+		if out := c.json(http.MethodPost, "/api/set", body, http.StatusOK); out["ok"] != false || out["err"] == "" {
+			t.Fatalf("%s: %v", body, out)
+		}
+	}
 }

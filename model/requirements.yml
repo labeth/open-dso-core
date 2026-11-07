@@ -435,6 +435,7 @@ requirements:
   - FU-DSO-STREAMWIRE
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   notes: 'Source-derived contract for ten decoder families: UART, I2C, SPI, Manchester, SENT, CAN/CAN-FD, MIL1553,
     ARINC429, USB LS/FS and FlexRay. All eleven Go implementation files are reviewed. OK is protocol-specific and
     can coexist with error spans; callers must inspect those spans. SPI has no chip-select input and I2C has seven-bit
@@ -2012,6 +2013,7 @@ requirements:
   appliesTo:
   - FU-DSO-RENDER
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - inspection
   - test
@@ -2135,6 +2137,7 @@ requirements:
   appliesTo:
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - inspection
   - test
@@ -2162,6 +2165,7 @@ requirements:
   - CODE-WEBSERVER-WEBTEST-WEBTEST-GO
   appliesTo:
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - inspection
   - test
@@ -2205,6 +2209,7 @@ requirements:
   appliesTo:
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - inspection
   - test
@@ -2237,6 +2242,7 @@ requirements:
   - CODE-WEBSERVER-WEBTEST-WEBTEST-GO
   appliesTo:
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - inspection
   - test
@@ -2933,6 +2939,7 @@ requirements:
   appliesTo:
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - test
   verificationCriteria: Browser tests drive every workspace and setting through the new layout.
@@ -3403,6 +3410,7 @@ requirements:
   - FU-DSO-DECODE
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - test
   verificationCriteria: Each gap-free protocol's synthetic frames, reduced to the stream's peak words (with converter
@@ -3939,6 +3947,7 @@ requirements:
   - FU-DSO-SOUND
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - test
   verificationCriteria: The ring keeps every sample in order across its wrap with the scale, gaps and marks; a headless
@@ -4207,6 +4216,7 @@ requirements:
   appliesTo:
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - test
   verificationCriteria: A headless browser reaches SOUND with Alt+6, reads a synthetic tone's note and cents, the
@@ -4240,6 +4250,7 @@ requirements:
   - FU-DSO-SOUND
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - test
   verificationCriteria: The engine's trigger takes the first crossing after the arm (a mark that came with others
@@ -4273,6 +4284,7 @@ requirements:
   appliesTo:
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - test
   verificationCriteria: With a page's SOUND streaming the LCD names the web page or the phone; a key through /api/panel
@@ -4351,6 +4363,7 @@ requirements:
   appliesTo:
   - FU-DSO-WEBCLIENT
   - FU-DSO-WEBSERVER
+  - FU-DSO-SCOPEWEB
   verificationMethods:
   - test
   verificationCriteria: /api/record.bin serves a record sampled as finely as asked after the envelope frames, and

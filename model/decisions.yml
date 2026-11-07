@@ -515,3 +515,58 @@ decisions:
   decision: 'CML run control stays out of instrument.State until the UI model decides the run-control semantics.'
   consequences:
   - 'From the owner-loop move (S7).'
+
+- id: ADR-UMBRELLA-REPO
+  title: open-dso is the family's public front door and system model
+  status: accepted
+  date: '2026-11-07'
+  context: Someone arriving at one scope repository saw a scope, not a family; the cross-cutting documentation (architecture, adding a scope, provenance, status) belonged to no single code repository.
+  decision: labeth/open-dso is a public, docs-only repository with the family's README, its documentation and a system-of-systems engineering model that composes the public repositories' models (like atlas-industries' company-portfolio). It holds no code and copies no decision or specification; it links to the single sources.
+  consequences:
+  - Private scopes appear there as planned subsystems and join the family model when they become public.
+  - A GitHub organisation (open-dso/...) remains a later option; it would change every Go module path.
+
+- id: ADR-WEB-SCOPE-HOOKS
+  title: 'scopeweb takes hooks for state the instrument model does not hold yet'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The CML''s status counters, v1 set switch, scales and leases live in its engine, not yet in the instrument model.'
+  decision: 'scopeweb is one implementation over the board, the instrument model and the fan-out; Status, Controls, Scales, Quiet and Routes hooks stand in for state not yet in core, each naming what it replaces so it can go when that state moves.'
+  consequences:
+  - 'From the core web scope step (S8).'
+
+- id: ADR-WEB-V2-ONLY-SERVES-V2
+  title: 'A scope with only frame wire v2 answers every frame request in v2'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The page asks for its first frame before reading caps and reads a 409 as another page taking over.'
+  decision: 'A v2-only scope serves v2 to every frame request; the page tells the wires apart by their first bytes. Departs from the design''s 409.'
+  consequences:
+  - 'From the core web scope step (S8).'
+
+- id: ADR-HAL-PUBLISH-SEQ
+  title: 'The HAL cycle numbers the frames it publishes'
+  status: proposed
+  date: '2026-11-07'
+  context: 'The core HAL cycle published every frame with seq 0, so the fan-out never woke a waiting page; scopeweb numbers them meanwhile.'
+  decision: 'The engine''s HAL cycle assigns the publish sequence.'
+  consequences:
+  - 'From the core web scope step (S8).'
+
+- id: ADR-WEB-SETTINGS-ALIAS
+  title: 'The server translates v1 setting names to v2'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Deployed pages and tools send vdiv1, offset2 and similar.'
+  decision: 'The server maps the v1 per-channel names onto {control, ch, value} before the scope sees them.'
+  consequences:
+  - 'From the core web scope step (S8).'
+
+- id: ADR-WEB-CAPS-OFF-CML-UNTIL-S9
+  title: 'The CML serves no capabilities document until the UI model moves'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Serving caps puts api and caps_gen at the front of every status reply, changing the CML''s status bytes.'
+  decision: 'The CML keeps caps off until the UI model step; other scopes serve caps.'
+  consequences:
+  - 'From the core web scope step (S8).'

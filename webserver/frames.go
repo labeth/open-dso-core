@@ -13,6 +13,16 @@ import (
 // screenCols is the frame's column count when a page names none.
 const screenCols = 800
 
+// V2Only is optional on Frames (with FramesV2): frames that wire v1 cannot
+// carry (more than two channels, words wider than 8 bits). Every frame
+// request is served in wire v2, whose magic tells a client which wire it
+// reads, and caps list frame wire 2 only. A refusal would not do: the page
+// asks its first frames before it has read caps, and a 409 on frame.bin is
+// how the page learns that another page took the scope over.
+type V2Only interface {
+	V2Only()
+}
+
 // hFrameBin is the long-poll binary frame endpoint: a small JSON header and
 // the raw code payload (wire.EncodeBinFrame) — about 1 ms on a scope's ARM
 // against 50-150 ms of reflective JSON over int16 arrays, which capped the

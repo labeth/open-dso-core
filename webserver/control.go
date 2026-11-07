@@ -21,12 +21,15 @@ func (s *Server) hSet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
 		return
 	}
-	var req Control
+	req := Control{Ch: -1}
 	// 4 KB cap: a scalar-verb body is tens of bytes; an unbounded decoder
 	// would buffer an attacker-sized body on a 64 MB-class ARM.
 	if err := DecodeSmall(r.Body, &req); err != nil {
 		WriteBadJSON(w)
 		return
+	}
+	if req.ValueV != nil {
+		req.Value, req.ValueV = *req.ValueV, nil
 	}
 	for _, v := range []float64{req.Value, req.Lvl, req.Lo, req.Hi, req.Min, req.Max} {
 		if math.IsNaN(v) || math.IsInf(v, 0) {
@@ -34,6 +37,7 @@ func (s *Server) hSet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	req.Translate()
 	a := s.sc.Settings().Set(r.Context(), req)
 	out := map[string]any{"ok": a.OK}
 	if a.Value != nil {
@@ -46,7 +50,8 @@ func (s *Server) hSet(w http.ResponseWriter, r *http.Request) {
 }
 
 // hZones installs the zone-trigger rectangles (POST JSON array of zones in
-// edge-anchored seconds x display codes). Empty array clears.
+// edge-anchored seconds x display codes, or in the v2 body x volts at the
+// probe tip: v_lo, v_hi). Empty array clears.
 // TRLC-LINKS: REQ-DSO-162
 func (s *Server) hZones(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -59,12 +64,14 @@ func (s *Server) hZones(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var zs []struct {
-		DtLoS  float64 `json:"dt_lo_s"`
-		DtHiS  float64 `json:"dt_hi_s"`
-		CodeLo int     `json:"code_lo"`
-		CodeHi int     `json:"code_hi"`
-		Avoid  bool    `json:"avoid"`
-		Ch     int     `json:"ch"`
+		DtLoS  float64  `json:"dt_lo_s"`
+		DtHiS  float64  `json:"dt_hi_s"`
+		CodeLo int      `json:"code_lo"`
+		CodeHi int      `json:"code_hi"`
+		VLo    *float64 `json:"v_lo"` // v2: volts at the probe tip
+		VHi    *float64 `json:"v_hi"`
+		Avoid  bool     `json:"avoid"`
+		Ch     int      `json:"ch"`
 	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<16)).Decode(&zs); err != nil {
 		WriteBadJSON(w)
@@ -72,6 +79,28 @@ func (s *Server) hZones(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(zs) > 4 {
 		zs = zs[:4]
+	}
+	if len(zs) > 0 && zs[0].VLo != nil {
+		zv, ok := tr.(ZonesV2)
+		if !ok {
+			WriteJSON(w, map[string]any{"ok": false, "err": "this scope's zone trigger takes display codes (code_lo, code_hi)"})
+			return
+		}
+		out := make([]wire.ZoneV, 0, len(zs))
+		for _, z := range zs {
+			if z.VLo == nil || z.VHi == nil || !finite(z.DtLoS, z.DtHiS, *z.VLo, *z.VHi) {
+				WriteJSON(w, map[string]any{"ok": false, "err": "a zone needs dt_lo_s, dt_hi_s, v_lo and v_hi, all numbers"})
+				return
+			}
+			out = append(out, wire.ZoneV{DtLoS: z.DtLoS, DtHiS: z.DtHiS, VLo: *z.VLo, VHi: *z.VHi, Avoid: z.Avoid, Ch: z.Ch})
+		}
+		n, err := zv.SetZonesV(out)
+		if err != nil {
+			WriteJSON(w, map[string]any{"ok": false, "err": err.Error()})
+			return
+		}
+		WriteJSON(w, map[string]any{"ok": true, "zones": n})
+		return
 	}
 	out := make([]wire.Zone, 0, len(zs))
 	for _, z := range zs {
@@ -133,6 +162,17 @@ func (s *Server) hSerialProtocols(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	WriteJSON(w, tr.SerialProtocols())
+}
+
+// finite reports whether every value is a number.
+// TRLC-LINKS: REQ-DSO-162
+func finite(vs ...float64) bool {
+	for _, v := range vs {
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return false
+		}
+	}
+	return true
 }
 
 // TRLC-LINKS: REQ-DSO-162
@@ -253,6 +293,10 @@ func (s *Server) hMaskFail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	f := ring[i]
+	if r.URL.Query().Get("v") == "2" {
+		WriteJSON(w, maskFailV2(mk, f, i, len(ring)))
+		return
+	}
 	// Current calibrated vertical scales, so the replay view reads real volts.
 	// The ring stores raw codes only, so these are the scales NOW — exact
 	// unless V/div, offset, or probe changed since the failure was captured,
@@ -267,4 +311,35 @@ func (s *Server) hMaskFail(w http.ResponseWriter, r *http.Request) {
 		"vpc1": vpc[0], "vpc2": vpc[1], "off1_v": off[0], "off2_v": off[1],
 		"c1": shape.RawInt16(f.C1), "c2": shape.RawInt16(f.C2),
 	})
+}
+
+// maskFailV2 is a captured failing frame in the v2 shape: its traces with
+// their format and scale (volts at the tip now), any channel.
+// TRLC-LINKS: REQ-DSO-162
+func maskFailV2(mk Masks, f wire.MaskFail, i, count int) map[string]any {
+	off, vpc := mk.VertScales()
+	type trace struct {
+		Ch    int             `json:"ch"`
+		Fmt   wire.CodeFormat `json:"fmt"`
+		Scale wire.TraceScale `json:"scale"`
+		Codes []int16         `json:"codes"`
+	}
+	fmt8 := wire.CodeFormat{Bits: 8, Storage: "u8", Max: 255, Mid: 128}
+	var traces []trace
+	for ch, c := range [][]uint8{f.C1, f.C2} {
+		if len(c) == 0 {
+			continue
+		}
+		traces = append(traces, trace{
+			Ch: ch, Fmt: fmt8, Codes: shape.RawInt16(c),
+			Scale: wire.TraceScale{Zero: 128, PerCodeV: vpc[ch], OffV: off[ch], CodesPerDiv: 25},
+		})
+	}
+	return map[string]any{
+		"ok": true, "i": i, "count": count,
+		"seq": f.Seq, "at_ms": f.AtNs / 1e6,
+		"fail_col": f.FailCol, "fail_code": f.FailCode, "fail_sample": f.FailSample,
+		"edge_x": f.EdgeX, "sample_s": f.SampleS, "valid": f.Valid, "win_cols": f.WinCols,
+		"traces": traces,
+	}
 }
