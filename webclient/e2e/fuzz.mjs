@@ -73,8 +73,11 @@ async function selRandom(op, id) {
   if (!c || !c.opts.length) throw new Error(`choice #${id} missing/empty`);
   const v = c.opts[Math.floor(rng() * c.opts.length)];
   const b = c.seg ? await op.page.$(`#${id} > button[data-value="${v}"]`) : null;
-  if (b && (await b.isVisible())) await b.click({ timeout: 6000 });
-  else {
+  if (b && (await b.isVisible())) {
+    // a choice this scope refuses is disabled with its reason: skipped, as clickId does
+    if (!(await b.isEnabled())) return `${v} disabled (${(await b.getAttribute("title")) || "no reason given"}) — skipped`;
+    await b.click({ timeout: 6000 });
+  } else {
     await op.page.evaluate((a) => {
       const e = document.getElementById(a.id);
       e.value = a.v; e.dispatchEvent(new Event("change", { bubbles: true }));
