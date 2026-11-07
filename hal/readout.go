@@ -23,7 +23,12 @@ type Window struct {
 	Span        int64 // acquired samples covered
 	// Points is how many samples to deliver; Span/Points is the readout
 	// compression. 0: what the board delivers for Span (a board that cannot
-	// resample to any count), reported back in the frame.
+	// resample to any count), reported back in the frame. For PeakPairs it
+	// counts buckets (each two codes); fewer buckets than the record holds
+	// merge whole pairs, the minimum of the minima and the maximum of the
+	// maxima, so a board whose hardware compression keeps every Nth word
+	// (and would split pairs) reads peak windows uncompressed and merges
+	// them itself.
 	Points int
 	Want   Content
 }
