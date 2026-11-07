@@ -29,3 +29,24 @@ jobs:
         with:
           version: v2.15.0
           working-directory: ${{ matrix.module }}
+
+  # The browser demo: the WebAssembly engine and the static site build from
+  # the core's test scope (simdemo/testdata). Each scope's own CI builds its
+  # site with `make demo`; publishing is not this job's.
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: build the WebAssembly demo
+        run: GOOS=js GOARCH=wasm go build -o /dev/null ./cmd/dsodemo-wasm
+      - name: build the demo site
+        run: |
+          go run ./cmd/dsodemo-site -profile simdemo/testdata/profile.yaml -demo simdemo/testdata/demo.json -out build/demo
+          ls -l build/demo/dsodemo.wasm
+          echo "gzipped: $(gzip -9 -c build/demo/dsodemo.wasm | wc -c) bytes"
+      - name: test the simulated board, the generator and the demo
+        run: go test -short ./hal/simboard/... ./siggen/... ./simdemo/...

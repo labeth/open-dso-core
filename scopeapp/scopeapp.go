@@ -75,6 +75,10 @@ type Options struct {
 
 	// Listen is the web server's address; "" serves none.
 	Listen string
+	// Serve hands the web server's handler to a host that serves it
+	// itself (the browser demo's service worker), beside or instead of
+	// Listen; nil: none.
+	Serve func(h http.Handler)
 	// Web builds the web scope; nil: the core's web scope over the board,
 	// the instrument state and the UI model, with its capabilities.
 	Web        func(env *Env) (webserver.Scope, error)
@@ -270,7 +274,7 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 
 	// The web server.
 	var srv *http.Server
-	if o.Listen != "" {
+	if o.Listen != "" || o.Serve != nil {
 		sc, err := buildWeb(env, o)
 		if err != nil {
 			return err
@@ -278,7 +282,12 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		ws := webserver.New(sc, o.WebOptions...)
 		env.Web = ws
 		env.display.web.Store(ws)
-		srv = newWebServer(o.Listen, ws.Handler())
+		if o.Serve != nil {
+			o.Serve(ws.Handler())
+		}
+	}
+	if o.Listen != "" {
+		srv = newWebServer(o.Listen, env.Web.Handler())
 		go func() {
 			logf("web ui listening on %s", o.Listen)
 			mark("web up")
@@ -492,7 +501,7 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 	}
 	return scopeweb.New(scopeweb.Config{
 		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, UI: env.UI,
-		Setups: WebSetups{env.Setups}, Parts: WebParts(env),
+		Setups: WebSetups{env.Setups}, Parts: WebParts(env), Screen: env.ScreenPNG,
 	}).WithCaps(), nil
 }
 
