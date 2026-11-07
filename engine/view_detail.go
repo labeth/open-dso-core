@@ -3,8 +3,9 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/sample"
 	"sync/atomic"
+
+	"github.com/labeth/open-dso-core/sample"
 )
 
 // ViewSurface is who asks for a view window.

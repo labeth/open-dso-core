@@ -3,10 +3,11 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/webserver/wire"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/labeth/open-dso-core/webserver/wire"
 )
 
 // SoundLog2 is the audio stream's decimation (sound.StreamLog2).

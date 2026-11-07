@@ -3,12 +3,13 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/decode"
-	"github.com/labeth/open-dso-core/sample"
 	"math"
 	"slices"
 	"sync/atomic"
 	"time"
+
+	"github.com/labeth/open-dso-core/decode"
+	"github.com/labeth/open-dso-core/sample"
 )
 
 // SerialLevels is what the captures taught about the lines.

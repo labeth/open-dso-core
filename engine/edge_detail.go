@@ -3,9 +3,10 @@
 package engine
 
 import (
+	"time"
+
 	"github.com/labeth/open-dso-core/measure"
 	"github.com/labeth/open-dso-core/sample"
-	"time"
 )
 
 // OppositeEdgeBucket is the first bucket after the trigger's (trig) where the

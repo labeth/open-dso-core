@@ -3,9 +3,10 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/sample"
 	"math"
 	"math/bits"
+
+	"github.com/labeth/open-dso-core/sample"
 )
 
 // EresQ8 keeps fractional codes through a centred moving average. The

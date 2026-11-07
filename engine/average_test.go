@@ -3,9 +3,10 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/sample"
 	"math"
 	"testing"
+
+	"github.com/labeth/open-dso-core/sample"
 )
 
 // TRLC-LINKS: REQ-SDS-012

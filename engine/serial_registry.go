@@ -6,9 +6,10 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"github.com/labeth/open-dso-core/decode"
 	"slices"
 	"sync"
+
+	"github.com/labeth/open-dso-core/decode"
 )
 
 // SerialDecoder receives chronological samples with their acquisition interval.

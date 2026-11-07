@@ -3,8 +3,9 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/decode"
 	"testing"
+
+	"github.com/labeth/open-dso-core/decode"
 )
 
 // TRLC-LINKS: REQ-SDS-013

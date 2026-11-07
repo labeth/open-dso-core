@@ -3,11 +3,12 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/decode"
-	"github.com/labeth/open-dso-core/sample"
 	"math"
 	"testing"
 	"time"
+
+	"github.com/labeth/open-dso-core/decode"
+	"github.com/labeth/open-dso-core/sample"
 )
 
 // packetSpans is a decode of n packets: a start of frame, then size bytes.

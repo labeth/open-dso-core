@@ -3,8 +3,9 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/sample"
 	"testing"
+
+	"github.com/labeth/open-dso-core/sample"
 )
 
 // A decimated record's clock replaces a learned SPI clock only where it

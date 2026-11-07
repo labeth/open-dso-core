@@ -3,8 +3,9 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/sample"
 	"math"
+
+	"github.com/labeth/open-dso-core/sample"
 )
 
 // The acquisition modes (SetAcqMode).

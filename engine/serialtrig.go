@@ -3,10 +3,11 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/decode"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/labeth/open-dso-core/decode"
 )
 
 // The decode.Span kinds the serial trigger and the streams read.

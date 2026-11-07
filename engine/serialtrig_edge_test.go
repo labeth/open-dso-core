@@ -3,8 +3,9 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/decode"
 	"testing"
+
+	"github.com/labeth/open-dso-core/decode"
 )
 
 // adversarial matchI2C span sequences (repeated-START, missing R/W, cross-txn data).

@@ -3,8 +3,9 @@
 package engine
 
 import (
-	"github.com/labeth/open-dso-core/sample"
 	"sync"
+
+	"github.com/labeth/open-dso-core/sample"
 )
 
 // Arena is the triple buffer between the engine owner and consumers
