@@ -371,6 +371,9 @@ func (c *HALCycle) request(s instrument.State) hal.Request {
 	if n.SampleS > 0 && s.TimeDivS > 0 {
 		want = max(want, int(math.Ceil(s.TimeDivS*float64(divsH(p))/n.SampleS)))
 	}
+	if pl, err := c.b.Planner().Plan(r); n.FullRate && err == nil && pl.AcqDecim <= 1 {
+		n.FullRate = false // the record is at the full rate already: it stays as deep
+	}
 	if n.FullRate {
 		// the screen at the full rate and half a screen more, when the
 		// deepest record holds it at the full rate; the deepest otherwise
