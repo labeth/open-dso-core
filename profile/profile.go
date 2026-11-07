@@ -188,6 +188,11 @@ func Validate(p hal.Profile) error {
 			return fmt.Errorf("timebase.tdiv_s[%d]: want positive and ascending", i)
 		}
 	}
+	for _, part := range slices.Sorted(maps.Keys(p.Absent)) {
+		if !slices.Contains(hal.OptionalParts, part) {
+			return fmt.Errorf("absent.%s: not an optional part (%s)", part, strings.Join(hal.OptionalParts, ", "))
+		}
+	}
 	return nil
 }
 

@@ -35,7 +35,8 @@
 // stopped, and trigger levels are volts that need the vertical setting.
 // Readout calls yield between chunks of a long read; the core runs
 // Platform.Service there, so a board's panel shares the bus with the owner
-// instead of running its own goroutine on it.
+// instead of running its own goroutine on it. The one exception is a
+// running stream's transfer goroutine (see Streamer).
 //
 // Acquirer.Stop is the user's STOP, not a step of the cycle. Arm is one
 // call for two kinds of arm: the board runs a commit arm (start delay,

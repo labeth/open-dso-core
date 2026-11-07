@@ -5,9 +5,22 @@ import "context"
 // Streamer is the optional gap-free stream capability: roll, sound and
 // decoded streams through a lease/release ring, so the hot path never
 // allocates. A loss is reported as a fault, never as a silent gap.
+//
+// A stream is the one place a board may run its own goroutine on the bus
+// (an exception to the Service hook rule): the transfer engine that fills
+// the ring cannot wait for the owner's commit points without losing
+// blocks. The board's stream goroutine owns the transfer path between
+// Start and Stop and nothing else; while it runs the board refuses
+// Acquirer.Arm and Readout.Read with the reason rather than sharing the
+// path, Platform.Service still runs on the owner, and Stop returns only
+// after the goroutine has let go of the bus. Start commits what the stream
+// needs from the staged plan itself; a board whose plan only a stream can
+// serve (a roll plan on a scope that rolls by streaming) refuses Arm on it.
 type Streamer interface {
-	Kinds() []Payload         // ANY: which payloads the current image set can stream
-	Start(s StreamSpec) error // OWNER
+	Kinds() []Payload // ANY: which payloads the current image set can stream
+	// Start commits the staged plan's stream settings and starts the
+	// board's stream goroutine. OWNER.
+	Start(s StreamSpec) error
 	// Lease blocks for the next filled block. ANY, one consumer.
 	Lease(ctx context.Context) (StreamBlock, error)
 	Release(b StreamBlock) // ANY
@@ -42,6 +55,12 @@ type StreamSpec struct {
 }
 
 // StreamBlock is a leased region of the stream ring.
+//
+// With several channels, PayloadCodes and PayloadChunks blocks hold equal
+// runs per channel, channel-major in StreamSpec.Channels order: channel i's
+// n samples are Words[i*n:(i+1)*n] (or Bytes), n = len/len(Formats); Held
+// has n entries, one per sample time, shared by every channel. Run returns
+// one channel's run.
 type StreamBlock struct {
 	Payload Payload
 	Formats []CodeFormat // per channel, for PayloadCodes and PayloadChunks
@@ -66,4 +85,20 @@ type StreamFaults struct {
 	LostBlocks uint64
 	SeqJumps   uint64
 	Stalls     uint64
+}
+
+// Run returns channel i's run of a PayloadCodes or PayloadChunks block
+// (i indexes Formats): bytes for codes stored as 8-bit words, words for
+// 16-bit ones; both nil when i is out of range.
+func (b StreamBlock) Run(i int) (bytes []byte, words []uint16) {
+	nch := len(b.Formats)
+	if i < 0 || i >= nch {
+		return nil, nil
+	}
+	if b.Words != nil {
+		n := len(b.Words) / nch
+		return nil, b.Words[i*n : (i+1)*n]
+	}
+	n := len(b.Bytes) / nch
+	return b.Bytes[i*n : (i+1)*n], nil
 }

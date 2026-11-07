@@ -37,6 +37,8 @@ triggers:
   sources: [analog]
 supervisor: {watchdog: dev-watchdog, restart: watchdog}
 options: []
+absent:
+  logic-probe: "no digital input on this model"
 stage: 2
 budget:
   ram_bytes: 0x10000000
@@ -229,6 +231,7 @@ func TestValidate(t *testing.T) {
 		{"format", "{format: {bits: 12, storage: u8, max: 255}}", "do not fit"},
 		{"stage", "{stage: 3}", "stage 3"},
 		{"timebase order", "{timebase: {tdiv_s: [2e-9, 1e-9]}}", "ascending"},
+		{"absent part", "{absent: {probe: \"none\"}}", "absent.probe"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -306,5 +309,18 @@ func TestRefusalUnwraps(t *testing.T) {
 	var r *hal.Refusal
 	if !errors.As(err, &r) {
 		t.Fatalf("err %v", err)
+	}
+}
+
+func TestAbsentReasons(t *testing.T) {
+	p, err := Load([]byte(doc(oneVariant)), hal.Identity{Model: "SDS1102CML+"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := p.AbsentReason("logic-probe"); got != "no digital input on this model" {
+		t.Errorf("logic-probe reason %q", got)
+	}
+	if got := p.AbsentReason("generator"); got != "this scope has no generator" {
+		t.Errorf("generator reason %q", got)
 	}
 }

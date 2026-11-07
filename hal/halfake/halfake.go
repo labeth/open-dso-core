@@ -5,7 +5,11 @@
 //
 // Every OWNER and COMMIT call is logged (Calls), so a test can check the
 // owner's cycle and commit order. Optional capabilities are absent: each
-// accessor returns false, as on a board without them.
+// accessor returns false, as on a board without them, and the profile gives
+// a reason for each. The fake has a beeper but no touch screen, and a
+// self-calibration that changes nothing. It also implements
+// hal.CensusBoard, the supervisor-side census, so census consumers have a
+// fake to run against.
 package halfake
 
 import (
@@ -55,6 +59,9 @@ type Board struct {
 	backlight       float64
 	lamps           []string
 	reboots         []string
+	sound           bool
+	beeps           []time.Duration
+	selfCals        int
 
 	events   chan hal.InputEvent
 	settings *KV
@@ -75,6 +82,14 @@ func (s setup) clone() setup {
 
 func (s setup) equal(o setup) bool {
 	return slices.Equal(s.channels, o.channels) && fmt.Sprint(s.plan) == fmt.Sprint(o.plan) && fmt.Sprint(s.trigger) == fmt.Sprint(o.trigger)
+}
+
+// absent is the fake profile's reason for each optional part.
+var absent = map[string]string{
+	"streamer": "the fake board does not stream", "images": "the fake board has one fixed image",
+	"stacker": "the fake board has no stacker", "segments": "the fake board keeps one record",
+	"counter": "the fake board has no hardware counter", "logic-probe": "the fake board has no digital input",
+	"generator": "the fake board drives no signal source",
 }
 
 var ladder = []float64{0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10}
@@ -110,7 +125,8 @@ func New(cfg Config) *Board {
 			RawAccess: hal.RawAccess{MaxDepth: 100000},
 			Triggers:  hal.TrigCaps{Nodes: nodes, MaxStages: 1, Sources: []hal.SourceKind{hal.Analog}},
 			Display:   hal.DisplaySpec{W: 64, H: 48, Format: hal.RGB565, DivsH: 10, DivsV: 8},
-			Inputs:    hal.InputSpec{Keys: []string{"run", "single", "auto"}, Knobs: []string{"tdiv", "triglevel"}, Lamps: []string{"run", "stop"}},
+			Inputs:    hal.InputSpec{Keys: []string{"run", "single", "auto"}, Knobs: []string{"tdiv", "triglevel"}, Lamps: []string{"run", "stop"}, Beeper: true},
+			Absent:    absent,
 			Stage:     2,
 			Timebase:  hal.TimebaseSpec{TdivS: []float64{1e-9, 1e-6, 1e-3, 1}},
 			Limits:    hal.Limits{WebClients: 4, SetupSlots: 4, RefSlots: 2, RecordMax: 100000},
@@ -207,7 +223,9 @@ func (b *Board) Input() hal.Input { return input{b} }
 // Storage implements hal.Board.
 func (b *Board) Storage() hal.Storage { return storage{b} }
 
-// Census implements hal.Board.
+var _ hal.CensusBoard = (*Board)(nil)
+
+// Census implements hal.CensusBoard.
 func (b *Board) Census() hal.Census { return census{} }
 
 // Streamer implements hal.Board: absent.
@@ -595,6 +613,18 @@ func (t trigger) LevelGrid(src hal.Source) hal.Grid {
 	return hal.Grid{Step: c.VoltsDiv / t.b.codesPerDiv(), Min: -half - c.OffsetV, Max: half - c.OffsetV}
 }
 
+// Default is a rising stage at 0 V on an analog channel for the fake's
+// nodes.
+func (t trigger) Default(node hal.TrigNode, src hal.Source) (hal.TrigStage, error) {
+	if !t.b.profile.Triggers.Has(node) {
+		return hal.TrigStage{}, hal.Refuse("trigger "+node.String(), "this board has no such trigger node")
+	}
+	if src.Kind != hal.Analog || src.Index < 0 || src.Index >= t.b.cfg.Channels {
+		return hal.TrigStage{}, hal.Refuse("trigger source", "this board triggers on its analog channels only")
+	}
+	return hal.TrigStage{Node: node, Source: src, Levels: hal.Levels{Slope: hal.Rising}}, nil
+}
+
 func (t trigger) Events(_ []hal.Event) (int, error) { return 0, nil }
 
 func (t trigger) Matches() (hal.MatchStats, bool) { return hal.MatchStats{}, false }
@@ -661,7 +691,43 @@ func (fe frontEnd) Couplings(int) []hal.CouplingOption {
 	return []hal.CouplingOption{{Coupling: hal.DC}, {Coupling: hal.AC, Software: true}, {Coupling: hal.GND}}
 }
 
-func (fe frontEnd) Calibration() hal.CalSource { return hal.CalSource{Source: "none"} }
+func (fe frontEnd) Calibration() hal.CalSource {
+	fe.b.mu.Lock()
+	defer fe.b.mu.Unlock()
+	return fe.b.calSource()
+}
+
+func (b *Board) calSource() hal.CalSource {
+	if b.selfCals > 0 {
+		return hal.CalSource{Source: "fake-selfcal", Author: "open", Valid: true}
+	}
+	return hal.CalSource{Source: "none"}
+}
+
+// SelfCal reports progress in quarters and changes nothing but the
+// calibration source. It refuses while armed, as a board must.
+func (fe frontEnd) SelfCal(ctx context.Context, progress func(float64)) (hal.CalReport, error) {
+	fe.b.mu.Lock()
+	fe.b.log("SelfCal")
+	if fe.b.state == hal.Armed || fe.b.state == hal.Reading {
+		fe.b.mu.Unlock()
+		return hal.CalReport{}, hal.Refuse("self-calibration", "the acquisition runs: stop it first")
+	}
+	fe.b.mu.Unlock()
+	for i := range 5 {
+		if err := ctx.Err(); err != nil {
+			return hal.CalReport{}, err
+		}
+		if progress != nil {
+			progress(float64(i) / 4)
+		}
+	}
+	fe.b.mu.Lock()
+	defer fe.b.mu.Unlock()
+	fe.b.selfCals++
+	fe.b.state, fe.b.stopped = hal.Idle, true
+	return hal.CalReport{Source: fe.b.calSource()}, nil
+}
 
 type display struct{ b *Board }
 
@@ -729,12 +795,37 @@ func (in input) SetLamps(on []string) error {
 	return nil
 }
 
+func (in input) SetSound(on bool) error {
+	in.b.mu.Lock()
+	defer in.b.mu.Unlock()
+	in.b.sound = on
+	return nil
+}
+
+func (in input) Beep(d time.Duration) error {
+	in.b.mu.Lock()
+	defer in.b.mu.Unlock()
+	in.b.beeps = append(in.b.beeps, d)
+	return nil
+}
+
+func (in input) SetTouch(bool) error {
+	return hal.Refuse("touch", "this board has no touch screen")
+}
+
+// Beeps returns the beeps sounded so far and whether key clicks are on.
+func (b *Board) Beeps() (beeps []time.Duration, sound bool) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return slices.Clone(b.beeps), b.sound
+}
+
 type storage struct{ b *Board }
 
 func (s storage) Settings() hal.KV           { return s.b.settings }
 func (s storage) Setups() (hal.KV, bool)     { return s.b.setups, true }
 func (s storage) Captures() (string, error)  { return "", nil }
-func (s storage) Calibration() hal.CalSource { return hal.CalSource{Source: "none"} }
+func (s storage) Calibration() hal.CalSource { return frontEnd(s).Calibration() }
 
 type census struct{}
 

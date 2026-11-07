@@ -25,11 +25,16 @@ type Content uint8
 // The content kinds. The zero value is unknown: a frame that does not say
 // what it holds must not be fed to a consumer that needs a particular kind.
 const (
-	RawFullRate   Content = iota + 1 // every converter sample at the acquisition rate
-	RawDecimated                     // every Nth sample, or a filtered decimation
-	PeakPairs                        // the two extremes of each bucket, interleaved in the codes (in time order with Ordered)
-	Resampled                        // interpolated or resampled to N points
-	DisplayDomain                    // already in a display code space
+	RawFullRate  Content = iota + 1 // every converter sample at the acquisition rate
+	RawDecimated                    // every Nth sample, or a filtered decimation
+	// PeakPairs: the two extremes of each bucket, interleaved in the
+	// codes. Without Ordered each pair is (min, max); with Ordered the two
+	// are in the order they occurred, so the codes read as samples. Either
+	// way SampleS and TriggerAt count codes (half a bucket each), not
+	// pairs.
+	PeakPairs
+	Resampled     // interpolated or resampled to N points
+	DisplayDomain // already in a display code space
 )
 
 var contentNames = [...]string{"", "raw-full-rate", "raw-decimated", "peak-pairs", "resampled", "display-domain"}
@@ -113,12 +118,16 @@ type ContentFlag uint16
 
 // The flags.
 const (
-	Ordered   ContentFlag = 1 << iota // peak pairs in time order: decodable as samples at SampleS
-	Interp                            // the consumer should interpolate between samples
-	Roll                              // a scrolling roll view, newest sample last, untriggered
-	Held                              // a held frame shown while stopped
-	Segmented                         // one of several segments of a record
-	Precision                         // traces carry Precision words beside their codes
+	// Ordered: each peak pair is in time order, decodable as samples at
+	// SampleS. A board sets it only when it knows which extreme came first;
+	// a pair whose order the hardware does not record is (min, max) and
+	// unflagged.
+	Ordered   ContentFlag = 1 << iota
+	Interp                // the consumer should interpolate between samples
+	Roll                  // a scrolling roll view, newest sample last, untriggered
+	Held                  // a held frame shown while stopped
+	Segmented             // one of several segments of a record
+	Precision             // traces carry Precision words beside their codes
 	// Envelope: the traces' Min*/Max* hold a display envelope, one (min,
 	// max) per screen column, to draw instead of the codes (an untriggered
 	// band over a record faster than the screen).
