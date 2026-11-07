@@ -27,9 +27,9 @@ async function run(reject,pos=.5){
  // TRLC-LINKS: REQ-SDS-014
  if(url==='/api/mask'){body=JSON.parse(opts.body);body.lo=Array.from(Buffer.from(body.lo_b64,'base64'));body.hi=Array.from(Buffer.from(body.hi_b64,'base64'));return {ok:true,json:async()=>({ok:!reject,err:'rejected for test'})};}
  // TRLC-LINKS: REQ-SDS-014
- return {arrayBuffer:async()=>({seq:++seq,edge_x:2,sample_s:1e-6,tdiv_s:1e-3,cols:4,win_cols:4,c1:[60.25,60.25,190.75,190.75]})};
+ return {ok:true,arrayBuffer:async()=>({seq:++seq,edge_x:2,sample_s:1e-6,tdiv_s:1e-3,cols:4,win_cols:4,c1:[60.25,60.25,190.75,190.75]})};
  }};
- vm.createContext(c);vm.runInContext(code,c);await els.zmBuild.onclick();
+ vm.createContext(c);vm.runInContext(fs.readFileSync('caps.js','utf8'),c);vm.runInContext(code,c);await els.zmBuild.onclick();
  assert.equal(body.win,4);assert.deepEqual(body.lo,pos===0?[190,190,0,0]:[60,60,190,190]);assert.deepEqual(body.hi,pos===0?[191,191,255,255]:[61,61,191,191]);
  if(reject){assert.match(message,/failed.*rejected/);assert.equal(c.zm.mask,undefined);}else{assert.match(message,/mask built from 4/);assert.equal(c.zm.mask.win,4);}
 }
@@ -59,9 +59,9 @@ async function fullRecord(n=131072,tol=65536) {
   // TRLC-LINKS: REQ-SDS-014
   if(url==='/api/mask'){body=JSON.parse(opts.body);body.lo=Array.from(Buffer.from(body.lo_b64,'base64'));body.hi=Array.from(Buffer.from(body.hi_b64,'base64'));return {ok:true,json:async()=>({ok:true})};}
   // TRLC-LINKS: REQ-SDS-014
-  return {arrayBuffer:async()=>({seq:++seq,edge_x:n/2,sample_s:2e-9,tdiv_s:.0002,cols:n,win_cols:n,c1:sig})};
+  return {ok:true,arrayBuffer:async()=>({seq:++seq,edge_x:n/2,sample_s:2e-9,tdiv_s:.0002,cols:n,win_cols:n,c1:sig})};
  }};
- vm.createContext(c);vm.runInContext(code,c);const start=Date.now();await els.zmBuild.onclick();
+ vm.createContext(c);vm.runInContext(fs.readFileSync('caps.js','utf8'),c);vm.runInContext(code,c);const start=Date.now();await els.zmBuild.onclick();
  assert.match(message,/mask built from 4/);assert.equal(body.win,n);
  for(const j of [0,1,92,99,100,107,108,392,399,400,n-1].filter(j=>j<n)){
   if(tol<100){const v=sig.slice(Math.max(0,j-tol),Math.min(n,j+tol+1));assert.equal(body.lo[j],Math.floor(Math.min(...v)-2));assert.equal(body.hi[j],Math.ceil(Math.max(...v)+2));}
@@ -94,9 +94,9 @@ async function geometryTransition() {
   if(url==='/api/mask'){body=JSON.parse(opts.body);return {ok:true,json:async()=>({ok:true})};}
   ++seq;const n=seq<=2?4:6;
   // TRLC-LINKS: REQ-SDS-014
-  return {arrayBuffer:async()=>({seq,edge_x:n/2,sample_s:1e-6,tdiv_s:n*.001,cols:n,win_cols:n,c1:Array(n).fill(n===4?60.25:200.25)})};
+  return {ok:true,arrayBuffer:async()=>({seq,edge_x:n/2,sample_s:1e-6,tdiv_s:n*.001,cols:n,win_cols:n,c1:Array(n).fill(n===4?60.25:200.25)})};
  }};
- vm.createContext(c);vm.runInContext(code,c);await els.zmBuild.onclick();
+ vm.createContext(c);vm.runInContext(fs.readFileSync('caps.js','utf8'),c);vm.runInContext(code,c);await els.zmBuild.onclick();
  assert.equal(seq,6,'only fresh geometry contributes to the requested frame count');
  assert.equal(body.tdiv_s,.006);assert.equal(body.sample_s,1e-6);assert.equal(body.peak_detect,false);assert.equal(body.win,6);assert.deepEqual([...Buffer.from(body.lo_b64,'base64')],Array(6).fill(200));assert.deepEqual([...Buffer.from(body.hi_b64,'base64')],Array(6).fill(201));assert.match(message,/mask built from 4/);
 }
@@ -127,9 +127,9 @@ async function droppedTransfer() {
   if(url==='/api/mask'){body=JSON.parse(opts.body);return {ok:true,json:async()=>({ok:true})};}
   if(++calls===2)throw new TypeError('network error');
   // TRLC-LINKS: REQ-SDS-014
-  return {arrayBuffer:async()=>({seq:++seq,edge_x:2,sample_s:1e-6,tdiv_s:1e-3,cols:4,win_cols:4,c1:[60,60,190,190]})};
+  return {ok:true,arrayBuffer:async()=>({seq:++seq,edge_x:2,sample_s:1e-6,tdiv_s:1e-3,cols:4,win_cols:4,c1:[60,60,190,190]})};
  }};
- vm.createContext(c);vm.runInContext(code,c);await els.zmBuild.onclick();
+ vm.createContext(c);vm.runInContext(fs.readFileSync('caps.js','utf8'),c);vm.runInContext(code,c);await els.zmBuild.onclick();
  assert.match(message,/mask built from 4/);assert.equal(body.win,4);
 }
 (async()=>{await run(false);await run(true);await run(false,0);await geometryTransition();await droppedTransfer();await fullRecord(500,7);await fullRecord();console.log('ALL PASS')})().catch(e=>{console.error(e);process.exit(1)});

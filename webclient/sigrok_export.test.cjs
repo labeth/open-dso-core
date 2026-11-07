@@ -111,6 +111,21 @@ function unzip(u8) {
     check("series: no invert given, as acquired", sigrokSeries(fi).ch[0].v[0] === 1);
   }
   check("series: c2 of mismatched length dropped", sigrokSeries({ c1: new Int16Array(4), c2: new Int16Array(3), col_span_s: 1e-6 }).ch.length === 1);
+  // four channels of 12-bit codes in the display domain: every channel, in
+  // order, as volts; the inverts by channel number
+  {
+    const f4 = { seq: 3, c1: new Int16Array([128, 153]), c2: new Int16Array([128, 103]), c3: Float32Array.from([128.5, 140.25]),
+      c4: Float32Array.from([128, 103.75]), col_span_s: 2e-6, vpc1: 0.04, vpc2: 0.04, vpc3: 0.02, vpc4: 0.5 / 25, off4_v: 0.25 };
+    const s4 = sigrokSeries(f4, [false, false, false, true]);
+    check("series: four channels named CH1..CH4", s4 && s4.ch.map((c) => c.name).join() === "CH1,CH2,CH3,CH4");
+    check("series: a 12-bit channel's volts", Math.abs(s4.ch[2].v[0] - 0.01) < 1e-12 && Math.abs(s4.ch[2].v[1] - 0.245) < 1e-12);
+    check("series: C4 inverted by its number", s4.ch[3].inverted && Math.abs(s4.ch[3].v[1] - (0.485 + 0.25)) < 1e-12);
+    const w4 = sigrokWAV(s4), v4 = sigrokVCD(s4), z4 = unzip(sigrokSR(s4));
+    check("wav: four channels", w4[22] === 4 && w4[32] === 16);
+    check("vcd: four vars", (v4.match(/\$var real/g) || []).length === 4);
+    check("sr: four analog channels and four probes", z4.some((e) => e.name === "analog-1-8-1") && text(z4.find((e) => e.name === "metadata").data).includes("total analog=4"));
+    check("series: a frame of C3 alone", sigrokSeries({ c3: Float32Array.from([128, 130]), vpc3: 0.5, col_span_s: 2e-6 }).ch[0].name === "CH3");
+  }
 }
 
 // ---- srzip ----

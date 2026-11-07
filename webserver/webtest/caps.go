@@ -95,6 +95,15 @@ func Caps4x12() wire.Caps {
 		"measure": {OK: false, Why: "measurements of 12-bit codes are not served yet"},
 		"eye":     {OK: false, Why: "needs full-rate raw records"},
 	}
+	c.Controls = []wire.CapsControl{
+		{Name: "vdiv", Unit: "V", PerChannel: true, Ladder: "vertical.vdivs"},
+		{Name: "offset", Unit: "V", PerChannel: true},
+		{Name: "probe", PerChannel: true, Ladder: "vertical.probes"},
+		{Name: "coupling", PerChannel: true, Ladder: "vertical.couplings"},
+		{Name: "bwlimit", PerChannel: true, Ladder: "vertical.bw_limits"},
+		{Name: "invert", PerChannel: true},
+		{Name: "triglevel", Unit: "V"},
+	}
 	c.Screen = wire.CapsScreen{W: 1024, H: 600, Format: "RGB565", Touch: true}
 	return c
 }
@@ -197,12 +206,56 @@ func (w *Wide) Status() any {
 		"running": w.running, "seq": w.seq, "tdiv_s": w.tdivS, "fps": 20.0, "band": "sim", "version": "wide",
 		"tdivs": tdivLadder(), "vdivs": vdivLadder(0.0005), "trig_source": 0, "trig_rising": true,
 		"trig_volts": 0.0, "trig_pos_frac": 0.5, "mem_depth": fakeN, "cal_source": "fake", "mmap_drain": true, "mask_gen": w.maskGen,
+		"win_cols": 1000,
 	}
 	for n := 1; n <= 4; n++ {
 		k := strconv.Itoa(n)
 		st["vdiv"+k], st["probe"+k], st["cpl"+k], st["off"+k+"_v"], st["zoom"+k] = 0.5, 1, 0, 0.0, 1
+		st["bwl"+k], st["inv"+k] = 0, 0
 	}
 	return st
+}
+
+// Sound is the Fake's stream, its two lanes carrying the tuned channel and
+// C1 (C2 when C1 is tuned), named in its scales: a scope of more channels
+// than lanes.
+// TRLC-LINKS: REQ-SDS-265
+func (w *Wide) Sound() (webserver.Sound, bool) { return wideSound{fakeSound{w.Fake}}, true }
+
+// SoundControls is the Fake's SOUND settings.
+// TRLC-LINKS: REQ-SDS-274
+func (w *Wide) SoundControls() (webserver.SoundControls, bool) {
+	return wideSound{fakeSound{w.Fake}}, true
+}
+
+// wideSound is the Fake's sound with its lanes named.
+type wideSound struct{ fakeSound }
+
+// WideLanes is the channels (0-based) the four-channel fake's two sound
+// lanes carry when channel ch is tuned.
+// TRLC-LINKS: REQ-SDS-265
+func WideLanes(ch int) []int {
+	if ch == 0 {
+		return []int{0, 1}
+	}
+	return []int{ch, 0}
+}
+
+// Read is the Fake's block with the lanes named in its scales.
+// TRLC-LINKS: REQ-SDS-265
+func (s wideSound) Read(from uint64, limit int) wire.SoundBlock {
+	b := s.fakeSound.Read(from, limit)
+	lanes := WideLanes(s.SoundSettings().Ch)
+	for i := range b.Scales {
+		b.Scales[i].Chans = lanes
+	}
+	return b
+}
+
+// Take is the Fake's take with the lanes named.
+// TRLC-LINKS: REQ-SDS-275
+func (s wideSound) Take() *wire.SoundTake {
+	return &wire.SoundTake{SoundBlock: s.Read(0, 16), ID: 1, Why: "stop"}
 }
 
 // Twin is the Fake serving Caps2x8 and its frames in wire v2 too: the

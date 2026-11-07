@@ -14,6 +14,7 @@ const c = Object.assign({ specMemo: {}, frame: { vpc1: 0.04, vpc2: 0.04 }, peakS
   // TRLC-LINKS: REQ-SDS-216
   { peakLvl: (p) => Number.isFinite(p.lvl) ? p.lvl : p.db });
 vm.createContext(c);
+vm.runInContext(fs.readFileSync('caps.js', 'utf8'), c);
 vm.runInContext(pick('peakDBV') + pick('peakVolts'), c);
 const dt = 128e-9, n = 15753, f = 500e3, g = new Float64Array(n);
 for (let i = 0; i < n; i++) g[i] = 128 + 40 * Math.sin(2 * Math.PI * f * i * dt);

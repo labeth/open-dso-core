@@ -22,7 +22,7 @@ for(const [file,key,loop,end] of [['app_eye.js','ej','ejLoop','// TRLC-LINKS: RE
   // TRLC-LINKS: REQ-SDS-019, REQ-SDS-067
   setTimeout(){queued++;},
   Date,Math};
- vm.createContext(c);vm.runInContext(code,c);
+ vm.createContext(c);vm.runInContext(fs.readFileSync('caps.js','utf8'),c);vm.runInContext(code,c);
  await c[loop](1);assert.equal(ingested,0);assert.equal(stopped,0);assert.equal(queued,1,'keep requesting raw data during transition');
  sample={seq:2,c1:[1,2,3],full_rate:true};await c[loop](1);assert.equal(ingested,1);if(key==='sr')assert.equal(state.rawWaitAt,0);
  c.st.running=false;sample={seq:3,is_env:true};await c[loop](1);

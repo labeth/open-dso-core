@@ -53,6 +53,7 @@ const c = {
     return new Promise((r) => held.push(() => r(answer)));
   }};
 vm.createContext(c);
+vm.runInContext(fs.readFileSync('caps.js', 'utf8'), c);
 vm.runInContext(compare + '\n' + refAct, c);
 // TRLC-LINKS: REQ-SDS-227
 const settle = () => new Promise((r) => setTimeout(r, 5));

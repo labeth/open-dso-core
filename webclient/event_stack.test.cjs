@@ -3,6 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const lib=require('./superres.js'),{decodeUART}=require('./decode.js');
 const source=fs.readFileSync('app_superres.js','utf8');
 const code=source.slice(source.indexOf('function srEvtDecode('),source.indexOf('function srIngest('));
+const lanes=source.slice(source.indexOf('// sr.lanes are the channels'),source.indexOf('// ==== ETS'));
 for(const parity of ['none','even','odd']){
  const value=0x48,spb=20,dt=1/(115200*spb),bits=[1,1,1,1,0];
  for(let i=0;i<8;i++)bits.push((value>>i)&1);
@@ -19,7 +20,7 @@ for(const parity of ['none','even','odd']){
   srStatus(){},
   // TRLC-LINKS: REQ-SDS-019
   srStop:s=>{throw Error(s)}};
- vm.createContext(c);vm.runInContext(code,c);
+ vm.createContext(c);vm.runInContext(lanes+code,c);
  const frame={cols:sig.length,c1:sig,c2:sig,sample_s:dt,tdiv_s:.0001};
  // software never triggers: an untriggered record, or one the FPGA triggered
  // elsewhere, stacks nothing; the FPGA's UART trigger on the byte (its point
