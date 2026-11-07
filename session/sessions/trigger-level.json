@@ -1,0 +1,16 @@
+{
+  "name": "trigger-level",
+  "about": "The trigger level knob steps the level, Set To 50% centres it on the signal, the edge row changes source and slope",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1V"}},
+  "steps": [
+    {"check": {"name": "start", "fields": ["row.trig.level", "row.trig.edge"]}},
+    {"knob": "triglevel", "steps": 5},
+    {"check": {"name": "knob-up", "fields": ["row.trig.level"], "expect": {"row.trig.level": {"differs": "start"}}}},
+    {"key": "set50"},
+    {"check": {"name": "set50", "fields": ["row.trig.level"], "tol": {"row.trig.level": "abs:0.25"}}},
+    {"row": {"id": "trig.edge", "text": "C1 Fall"}},
+    {"check": {"name": "falling", "fields": ["row.trig.edge", "row.trig.type"], "expect": {"row.trig.edge": {"eq": "C1 Fall"}}}}
+  ]
+}

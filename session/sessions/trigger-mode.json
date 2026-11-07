@@ -1,0 +1,16 @@
+{
+  "name": "trigger-mode",
+  "about": "Normal mode on a level the signal never crosses waits; Auto runs again; the run state follows",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"row": {"id": "trig.level", "text": "3V"}},
+    {"row": {"id": "trig.mode", "text": "Normal"}},
+    {"wait_s": 1},
+    {"check": {"name": "normal-waits", "fields": ["row.trig.mode", "row.trig.level", "run.running", "run.norm", "run.state"], "tol": {"run.state": "info"}}},
+    {"row": {"id": "trig.mode", "text": "Auto"}},
+    {"wait_s": 1},
+    {"check": {"name": "auto-runs", "fields": ["row.trig.mode", "run.running", "run.norm", "run.state"], "tol": {"run.state": "info"}}}
+  ]
+}

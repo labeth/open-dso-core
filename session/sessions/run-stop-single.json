@@ -1,0 +1,19 @@
+{
+  "name": "run-stop-single",
+  "about": "RUN/STOP stops and runs again, SINGLE takes one record and stops; the run lamps follow",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"check": {"name": "running", "fields": ["run.running", "run.single", "lamps", "row.acq.run"], "expect": {"run.running": {"eq": true}}}},
+    {"key": "run"},
+    {"check": {"name": "stopped", "fields": ["run.running", "run.single", "lamps", "row.acq.run"], "expect": {"run.running": {"eq": false}}}},
+    {"key": "run"},
+    {"check": {"name": "running-again", "fields": ["run.running", "run.single", "lamps", "row.acq.run"], "expect": {"run.running": {"eq": true}}}},
+    {"key": "single"},
+    {"wait_s": 1},
+    {"check": {"name": "single", "fields": ["run.running", "run.single", "lamps", "row.acq.run", "run.state"], "tol": {"run.state": "info"}}},
+    {"key": "run"},
+    {"check": {"name": "run-after-single", "fields": ["run.running", "run.single", "lamps"], "expect": {"run.running": {"eq": true}}}}
+  ]
+}

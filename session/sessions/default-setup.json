@@ -1,0 +1,11 @@
+{
+  "name": "default-setup",
+  "about": "Default Setup puts every setting back to the scope's defaults (it clicks relays and resets the probes to 1x)",
+  "relays": true,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"key": "defaultsetup"},
+    {"check": {"name": "defaults", "fields": ["workspace", "view", "mode", "row.time.", "row.trig.", "row.ch1.", "row.ch2.", "row.acq.mode", "row.bus.protocol", "run.running"]}}
+  ]
+}

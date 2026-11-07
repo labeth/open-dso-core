@@ -1,0 +1,15 @@
+{
+  "name": "timebase-knob",
+  "about": "The time/div knob steps the timebase ladder one detent at a time, both ways",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "1us", "trig.level": "1.65V"}},
+  "steps": [
+    {"knob": "tdiv", "steps": 1},
+    {"check": {"name": "plus1", "fields": ["row.time.tdiv", "tdiv_s"]}},
+    {"knob": "tdiv", "steps": -3},
+    {"check": {"name": "minus2", "fields": ["row.time.tdiv", "tdiv_s"]}},
+    {"knob": "tdiv", "steps": 2},
+    {"check": {"name": "back", "fields": ["row.time.tdiv"], "expect": {"row.time.tdiv": {"eq": "1us"}}}}
+  ]
+}
