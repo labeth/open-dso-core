@@ -1,0 +1,38 @@
+# A two-channel 8-bit scope for the demo's tests: no scope's own profile.
+channels: 2
+format: {bits: 8, storage: u8, shift: 0, frac: 0, min: 0, max: 255, mid: 128}
+rates:
+  - samples_per_s: 500e6
+    max_channels: 2
+max_depth: 20480
+bandwidth: 100e6
+content: [raw-full-rate, raw-decimated, peak-pairs]
+triggers:
+  nodes:
+    edge: {slopes: [rising, falling]}
+    pulse: {qual_ops: [shorter, longer]}
+    video: {}
+  max_stages: 1
+  sources: [analog]
+display:
+  w: 800
+  h: 480
+  format: rgb565
+  divs_h: 10
+  divs_v: 8
+inputs:
+  keys: [run, single, auto, f1, f2, f3, f4, f5, ch1, ch2, trigmenu, measure, defaultsetup]
+  knobs: [tdiv, ch1vdiv, ch2vdiv, ch1pos, ch2pos, triglevel, adjust, horizpos]
+  lamps: [ch1, ch2, run, stop, single]
+stage: 2
+budget:
+  target_fps: 60
+timebase:
+  tdiv_s: [1e-6, 2e-6, 5e-6, 10e-6, 20e-6, 50e-6, 100e-6, 200e-6, 500e-6, 1e-3, 2e-3, 5e-3]
+  full_rate_tdiv_s: 1e-6
+limits:
+  setup_slots: 4
+  ref_slots: 2
+variants:
+  - name: test
+    match: {model: TEST2}

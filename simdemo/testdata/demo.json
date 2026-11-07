@@ -1,0 +1,10 @@
+{
+  "name": "test-scope",
+  "identity": {"model": "TEST2"},
+  "codes_per_div": 25,
+  "depth": 2048,
+  "signals": {"C1": "square,1e3,2,0", "C2": "sine,2e3,1,0"},
+  "start": {"tdiv": 200e-6, "volts_div": 0.5, "channels_on": [1, 2]},
+  "panel": {"items": [{"key": "run", "label": "Run/ Stop", "c": 1, "r": 1, "lamps": ["run", "stop"]},
+    {"knob": "tdiv", "label": "Time/Div", "push": "tdivpush", "c": 2, "r": 1}]}
+}
