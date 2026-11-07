@@ -46,9 +46,11 @@ function visOnDecode() {
   if (!frame || frame.seq === vis.seq) return;
   vis.seq = frame.seq;
   const r = dcfg.result;
-  if (!r || !r.ok || !frame.c1) return;
+  // the record's length from the decoded inputs' traces (any channel carries it)
+  const rec = chanNums().map((k) => frame["c" + k]).find(Boolean);
+  if (!r || !r.ok || !rec) return;
   const following = vis.stream.on && visStreamed(vis.proto);
-  const n = frame.c1.length, dt = frameDtS(frame, n), now = performance.now() / 1000;
+  const n = rec.length, dt = frameDtS(frame, n), now = performance.now() / 1000;
   if (!following) {
     visIngest(vis.s, r, now - n * dt, dt);
     if (vis.s.cap) vis.s.capT1 = now; // a capture's end: the record's last sample
