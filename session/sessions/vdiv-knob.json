@@ -1,0 +1,13 @@
+{
+  "name": "vdiv-knob",
+  "about": "The C1 V/div knob steps the vertical ladder (clicks the attenuator relays)",
+  "relays": true,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"knob": "ch1vdiv", "steps": -1},
+    {"check": {"name": "finer", "fields": ["row.ch1.vdiv", "row.ch2.vdiv"]}},
+    {"knob": "ch1vdiv", "steps": 1},
+    {"check": {"name": "back", "fields": ["row.ch1.vdiv"], "expect": {"row.ch1.vdiv": {"eq": "1V"}}}}
+  ]
+}

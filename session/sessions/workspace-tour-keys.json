@@ -1,0 +1,22 @@
+{
+  "name": "workspace-tour-keys",
+  "about": "Every workspace in turn through its F-key, as on the panel: the workspace, its view, its F-keys and the time/div",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"check": {"name": "scope", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "mode"]}},
+    {"key": "f2"},
+    {"check": {"name": "f2", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "mode"]}},
+    {"key": "f3"},
+    {"check": {"name": "f3", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "mode"]}},
+    {"key": "f4"},
+    {"check": {"name": "f4", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "mode"]}},
+    {"key": "f5"},
+    {"check": {"name": "f5", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "mode"]}},
+    {"key": "f1"},
+    {"check": {"name": "f1", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "mode"]}},
+    {"key": "f1"},
+    {"check": {"name": "f1-again", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "mode", "again"]}}
+  ]
+}

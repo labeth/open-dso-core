@@ -1,0 +1,18 @@
+{
+  "name": "bus-auto-spi",
+  "about": "AUTO in BUS on a mode-0 SPI bus at 200 kHz (clock on C2, data on C1) finds SPI and decodes the message",
+  "relays": true,
+  "signals": {
+    "C1": {"kind": "spi", "line": "mosi", "rate": 200e3, "vpp": 3.3, "offset": 1.65, "hex": "48692055aa0ff00a", "opts": {"mode": "0"}},
+    "C2": {"kind": "spi", "line": "clk", "rate": 200e3, "vpp": 3.3, "offset": 1.65, "hex": "48692055aa0ff00a", "opts": {"mode": "0"}}
+  },
+  "start": {"rows": {"trig.level": "1.65V", "trig.edge": "C2 Rise"}},
+  "steps": [
+    {"workspace": "bus"},
+    {"key": "auto"},
+    {"check": {"name": "found",
+      "fields": ["workspace", "view", "row.bus.protocol", "row.bus.clk", "row.bus.data", "row.bus.spi_mode", "decode.auto", "packets", "packets.text", "row.time.tdiv"],
+      "tol": {"packets": "overlap", "packets.text": "info", "row.time.tdiv": "ratio:2.5"},
+      "expect": {"row.bus.protocol": {"eq": "SPI"}, "row.bus.clk": {"eq": "CH2"}, "packets.text": {"contains": "Hi U"}}}}
+  ]
+}

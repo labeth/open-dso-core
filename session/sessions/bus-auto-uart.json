@@ -1,0 +1,19 @@
+{
+  "name": "bus-auto-uart",
+  "about": "AUTO in BUS on a 115200 baud UART line (the bench generator's message, on both inputs) finds UART 115k2 and decodes the message",
+  "relays": true,
+  "signals": {
+    "C1": {"kind": "uart", "rate": 115200, "vpp": 3.3, "offset": 1.65, "hex": "48692055aa0ff00a"},
+    "C2": {"kind": "uart", "rate": 115200, "vpp": 3.3, "offset": 1.65, "hex": "48692055aa0ff00a"}
+  },
+  "start": {"rows": {"trig.level": "1.65V"}},
+  "steps": [
+    {"workspace": "bus"},
+    {"check": {"name": "entered", "fields": ["workspace", "view", "row.time.tdiv", "row.bus.protocol"], "tol": {"row.time.tdiv": "info", "row.bus.protocol": "info"}}},
+    {"key": "auto"},
+    {"check": {"name": "found",
+      "fields": ["workspace", "view", "row.bus.protocol", "row.bus.baud", "decode.auto", "packets", "packets.text", "row.time.tdiv", "row.trig.type"],
+      "tol": {"packets": "overlap", "packets.text": "info", "row.time.tdiv": "ratio:2.5"},
+      "expect": {"row.bus.protocol": {"eq": "UART"}, "row.bus.baud": {"eq": "115k2"}, "packets.text": {"contains": "Hi U"}}}}
+  ]
+}

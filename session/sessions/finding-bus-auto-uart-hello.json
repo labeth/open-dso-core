@@ -1,0 +1,25 @@
+{
+  "name": "finding-bus-auto-uart-hello",
+  "about": "BUS AUTO finds a 9600 baud UART sending 'hello' on C1 while C2 sits at 0 V DC, decodes it and frames a whole message",
+  "relays": true,
+  "signals": {
+    "C1": {"kind": "uart", "rate": 9600, "vpp": 3.3, "offset": 1.65, "text": "hello"},
+    "C2": {"kind": "dc", "offset": 0}
+  },
+  "start": {"rows": {"trig.level": "1.65V"}},
+  "steps": [
+    {"key": "f2"},
+    {"check": {"name": "bus", "fields": ["workspace", "view", "row.time.tdiv", "row.bus.protocol"]}},
+    {"key": "auto"},
+    {"check": {"name": "found",
+      "fields": ["workspace", "view", "row.bus.protocol", "row.bus.baud", "row.bus.source", "decode.auto", "packets", "packets.text", "row.time.tdiv", "row.trig.type"],
+      "tol": {"packets": "overlap", "packets.text": "info", "row.time.tdiv": "ratio:2.5"},
+      "expect": {
+        "workspace": {"eq": "bus"},
+        "row.bus.protocol": {"eq": "UART"},
+        "row.bus.baud": {"eq": "9k6"},
+        "row.bus.source": {"eq": "CH1"},
+        "packets.text": {"contains": "hello"}
+      }}}
+  ]
+}

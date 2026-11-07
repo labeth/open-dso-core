@@ -1,0 +1,19 @@
+{
+  "name": "sheets-keys",
+  "about": "Menu keys open their sheet tabs and close them again; Menu On/Off closes an open sheet",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"key": "trigmenu"},
+    {"check": {"name": "trig", "fields": ["mode", "sheet.open", "sheet.tab", "sheet.row", "fkeys"], "expect": {"sheet.tab": {"eq": "trig"}}}},
+    {"key": "trigmenu"},
+    {"check": {"name": "trig-again", "fields": ["mode", "sheet.open", "sheet.tab"]}},
+    {"key": "acquire"},
+    {"check": {"name": "acquire", "fields": ["mode", "sheet.open", "sheet.tab", "sheet.row"]}},
+    {"key": "measure"},
+    {"check": {"name": "measure", "fields": ["mode", "sheet.open", "sheet.tab", "sheet.row"]}},
+    {"key": "menu"},
+    {"check": {"name": "closed", "fields": ["mode", "sheet.open"], "expect": {"sheet.open": {"eq": false}}}}
+  ]
+}
