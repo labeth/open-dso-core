@@ -606,6 +606,42 @@ decisions:
   - 'A test fake implements the whole surface once.'
   - 'The CML''s engine state moves into the Model later without changing a controller.'
 
+- id: ADR-UI-KEYS-ARE-CORE-NAMES
+  title: 'Boards decode input to the UI model''s key names'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The CML''s key chain and the SDS800X HD''s key matrix and touch panel differ.'
+  decision: 'A board decodes its keys, knobs and touch to the UI model''s key names; lamps leave the UI model by name and the board maps them to its hardware.'
+  consequences:
+  - 'From the UI model step (S9).'
+
+- id: ADR-LAMP-WORD-IS-WIRE
+  title: 'The status lamp word keeps the CML latch layout'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Pages read the lamp word from the status document.'
+  decision: 'The lamp word in the status keeps the SDS1000CML+ bit layout as a wire format; boards map named lamps onto their own hardware.'
+  consequences:
+  - 'From the UI model step (S9).'
+
+- id: ADR-CML-CAPS-WIRE-V1
+  title: 'The CML serves caps but keeps frame wire v1 for now'
+  status: proposed
+  date: '2026-11-07'
+  context: 'With v2 frames listed, the first mask the page built from a v2 raw frame differed from the v1 one.'
+  decision: 'The CML serves /api/caps with frame wire v1 only until the v2 mask difference is explained and an on-device A/B shows no cost.'
+  consequences:
+  - 'From the UI model step (S9).'
+
+- id: ADR-UI-HARDWARE-FACTS
+  title: 'The UI model plans with a board''s hardware facts, not its engine'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The panel used the CML engine''s ladders, DAC laws and SRAM plan directly.'
+  decision: 'uimodel/panel plans with a board''s Hardware facts adapter; the engine stays behind instrument.Controls.'
+  consequences:
+  - 'From the UI model step (S9).'
+
 - id: ADR-HAL-STAGED-PERSISTS
   title: 'What is staged stays staged; staging it again changes nothing'
   status: accepted
