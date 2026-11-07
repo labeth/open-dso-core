@@ -778,3 +778,57 @@ decisions:
   - 'A scope repository can be public before a unit is on the family''s bench; its specifications say which facts are UNVERIFIED, and its status says verified in simulation only.'
   - 'The provenance review of a scope repository checks its whole tree and history against this line: facts stay, attributions, internals and vendor strings go.'
   - 'open-dso/docs/contributing.md states the rule for contributors; the family requirement REQ-FAM-007 is verified against it.'
+
+- id: ADR-DEMO-SIMBOARD-IN-CORE
+  title: 'One simulated board in the core, driven by a scope''s profile'
+  status: accepted
+  date: '2026-11-07'
+  context: 'A browser demo needs a board without hardware, for every scope.'
+  decision: 'hal/simboard implements the HAL from any profile plus a scope''s demo file; there is no simulator per scope. What it does not model is refused with its reason.'
+  consequences:
+  - 'Every scope gets a demo from its data alone; the demo shows the product, not the hardware''s timing.'
+
+- id: ADR-DEMO-SOFTWARE-TRIGGER-REALTIME
+  title: 'The simulated board triggers in software against its own clock'
+  status: accepted
+  date: '2026-11-07'
+  context: 'A demo must be honest about timing.'
+  decision: 'Edge and pulse triggers scan the generated signal; a record completes only when its post-trigger signal time has passed.'
+  consequences:
+  - 'Slow timebases wait as a real scope does; protocol, zone and video triggers are refused in the demo.'
+
+- id: ADR-DEMO-SW-BRIDGE
+  title: 'A service worker serves the web API from the WebAssembly engine'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The web client must run unchanged in a browser with no server.'
+  decision: 'A service worker forwards /api and ui requests over a MessagePort to a worker running the module.'
+  consequences:
+  - 'Needs https or localhost; one module per tab.'
+
+- id: ADR-DEMO-ONE-MODULE
+  title: 'One demo module for every scope'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Several scopes ship demos.'
+  decision: 'One generic WebAssembly module; the profile and demo file are fetched at start from the scope''s site.'
+  consequences:
+  - 'Scope data stays in scope repositories; each scope''s Pages site deploys its own copy.'
+
+- id: ADR-DEMO-SEPARATE-TOOLS
+  title: 'The demo is separate tools, never a mode of a device main'
+  status: accepted
+  date: '2026-11-07'
+  context: 'One device main per scope, no hidden modes.'
+  decision: 'cmd/dsodemo (native) and cmd/dsodemo-wasm compose the core with hal/simboard; the board''s bench routes are HAL extensions under /api/sim, listed in caps.'
+  consequences:
+  - 'Nothing reaches the product except through the HAL.'
+
+- id: ADR-PAGES-PER-REPOSITORY
+  title: 'Each repository publishes its own Pages site'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Demos for several scopes and a family front door.'
+  decision: 'A scope''s CI deploys its demo to its own Pages site; open-dso''s site is the front door linking to them.'
+  consequences:
+  - 'No workflow collects builds across repositories.'

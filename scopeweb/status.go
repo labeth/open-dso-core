@@ -11,6 +11,7 @@ import (
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
+	"github.com/labeth/open-dso-core/webserver"
 )
 
 // The status document's v2 keys (WEB-API-DESIGN §2.4), beside the flat
@@ -142,6 +143,15 @@ func (s *Scope) status() any {
 		"trig_volts": st.Trigger.LevelV(), "trig_type": int(st.Trigger.Type),
 		"acq_mode": acqModeNumber(st.Mode), "mem_depth": st.Depth, "win_cols": f0.winCols,
 		"band": f0.content, "live_readout": f0.content, "vdiv_live": true, "run_state": run,
+		// the screen's record takes its span to fill: a page waits that long
+		// for a frame at a slow timebase that does not roll
+		"record_s": st.TimeDivS * float64(s.divsH()),
+	}
+	// the UI model's panel snapshot: what the display shows, and whether an
+	// Autoset sweep runs, which the page waits out before its next command
+	if ps, ok := s.cfg.UI.(webserver.UIStatus); ok {
+		v := ps.PanelStatus()
+		out["panel"] = &v
 	}
 	if s.cfg.Board != nil {
 		out["cal_source"] = s.cfg.Board.FrontEnd().Calibration().Source
