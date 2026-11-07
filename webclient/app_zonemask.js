@@ -167,16 +167,6 @@ function zmZoneList() {
 // TRLC-LINKS: REQ-DSO-014
 function zmStatus(m) { if (m !== undefined) $("zmStats").textContent = m || "—"; }
 
-// zmRefused says why the scope runs no mask test or zone trigger (its
-// caps), true when it runs none: nothing is built or armed then.
-// TRLC-LINKS: REQ-DSO-014
-function zmRefused(name, what) {
-  const f = feature(name);
-  if (f.ok) return false;
-  zmStatus(`${what} is not available on this scope: ${f.why || "its engine does not run it"}`);
-  return true;
-}
-
 // --- vertical re-anchoring: masks and zones are physically VOLTS ---
 // The engine tests raw codes and honestly SKIPS a mask whose vertical
 // mapping changed (VdivKey/OffKey identity) — but a skipping test plus a
@@ -304,6 +294,16 @@ function zmPackMask(a) {
   let out = "";
   for (let i = 0; i < a.length; i += 8192) out += String.fromCharCode(...a.slice(i, i + 8192));
   return btoa(out);
+}
+
+// zmRefused says why the scope runs no mask test or zone trigger (its
+// caps), true when it runs none: nothing is built or armed then.
+// TRLC-LINKS: REQ-DSO-014
+function zmRefused(name, what) {
+  const f = feature(name);
+  if (f.ok) return false;
+  zmStatus(`${what} is not available on this scope: ${f.why || "its engine does not run it"}`);
+  return true;
 }
 
 // --- mask build from N raw frames (dilated client-side, uploaded) ---
