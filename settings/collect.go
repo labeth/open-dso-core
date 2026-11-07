@@ -55,6 +55,7 @@ type Panel interface {
 }
 
 // channelsOf is the channels fe has, at least 2 and at most MaxChannels.
+// TRLC-LINKS: REQ-DSO-089
 func channelsOf(fe Analog) int {
 	if c, ok := fe.(interface{ Channels() int }); ok {
 		return max(2, min(c.Channels(), MaxChannels))
@@ -63,6 +64,7 @@ func channelsOf(fe Analog) int {
 }
 
 // channel is the setup's channel ch.
+// TRLC-LINKS: REQ-DSO-089
 func (s *Settings) channel(ch int) *Channel {
 	if ch < 2 {
 		return &s.Ch[ch]

@@ -127,6 +127,14 @@ architecture:
     prose: The persisted instrument setup's shape and the UI model's slice of it, which every scope's settings file and setup memories keep.
     tags:
     - package:settings
+  - id: FU-DSO-SCOPEAPP
+    name: Scope application
+    group: FG-DSO-OPERATIONS
+    prose: 'The one composition every scope''s main hands its board to: bring-up, the instrument state or the scope''s
+      own owner, the owner loop, the UI model, the display loop and its governor, SCPI, the setup''s persistence,
+      the web server and the health token.'
+    tags:
+    - package:scopeapp
   - id: FU-DSO-RENDER
     name: Display rendering
     group: FG-DSO-UI

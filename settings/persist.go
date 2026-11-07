@@ -67,6 +67,7 @@ type namer interface {
 }
 
 // nameOf is where key lives in kv, for the log.
+// TRLC-LINKS: REQ-DSO-089
 func nameOf(kv hal.KV, key string) string {
 	if n, ok := kv.(namer); ok {
 		return n.Name(key)

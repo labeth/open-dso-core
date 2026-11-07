@@ -172,6 +172,7 @@ func (e *Env) ScreenPNG() []byte {
 const webHeaderTimeout = 10 * time.Second
 
 // newWebServer is the HTTP server of h at listen.
+// TRLC-LINKS: REQ-DSO-295
 func newWebServer(listen string, h http.Handler) *http.Server {
 	return &http.Server{Addr: listen, Handler: h, ReadHeaderTimeout: webHeaderTimeout}
 }
@@ -440,6 +441,7 @@ func restoreSettings(env *Env, o Settings) *settings.Saver {
 }
 
 // nameOf is where the settings file lives, for the log.
+// TRLC-LINKS: REQ-DSO-295
 func nameOf(kv hal.KV) string {
 	if n, ok := kv.(interface{ Name(string) string }); ok {
 		return n.Name(settings.FileKey)

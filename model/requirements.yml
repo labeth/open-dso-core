@@ -5018,3 +5018,47 @@ requirements:
   - test
   verificationCriteria: Drift on in the LCD's SOUND view runs and leases the stream; F3 to the FFT view ends it and
     the lease; on from a page it ends once the page stops asking; a setup saved with it on restores it off.
+- id: REQ-DSO-293
+  title: Debounced settings saving
+  text: The instrument shall save a changed setup once it has held for the settling interval, never rewrite an
+    unchanged one, and save a pending change when the application stops.
+  status: implemented
+  realizes:
+  - CAP-DSO-SETTINGS
+  category: functional
+  appliesTo:
+  - FU-DSO-SETTINGS
+  - FU-DSO-SCOPEAPP
+  verificationMethods:
+  - test
+  verificationCriteria: With a simulated clock one change saves once after the settle window, a burst saves once,
+    an unchanged setup is never rewritten and Flush saves a pending change; a HAL scope's application stopped
+    after a change starts again with it.
+- id: REQ-DSO-294
+  title: Capture health
+  text: The instrument shall write the supervisor's health token only while its owner loop advances, attesting
+    frames once three coherent frames have been captured and diagnostics before that.
+  status: implemented
+  realizes:
+  - CAP-DSO-SUPERVISED-OPERATION
+  category: functional
+  appliesTo:
+  - FU-DSO-SCOPEAPP
+  verificationMethods:
+  - inspection
+  verificationCriteria: The token's line is the supervisor's contract, unchanged; on a unit the agent's health
+    check passes after a start and rolls back an app whose engine is wedged.
+- id: REQ-DSO-295
+  title: One application composition
+  text: The instrument shall run every scope's application as its board handed to one core composition, the
+    scope's own parts entering as named options, with no hidden modes.
+  status: implemented
+  realizes:
+  - CAP-DSO-BOARD-SUPPORT
+  category: functional
+  appliesTo:
+  - FU-DSO-SCOPEAPP
+  verificationMethods:
+  - test
+  verificationCriteria: A HAL fake board runs the composition from bring-up to frames on its framebuffer and a
+    restart restores the setup; each scope's main is its board and one call.

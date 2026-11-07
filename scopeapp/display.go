@@ -73,11 +73,20 @@ type DisplayEngine interface {
 // freeEngine is an owner that shares no core with the display.
 type freeEngine struct{}
 
-func (freeEngine) RenderPeriod() time.Duration  { return hudPeriod }
+// TRLC-LINKS: REQ-DSO-168
+func (freeEngine) RenderPeriod() time.Duration { return hudPeriod }
+
+// TRLC-LINKS: REQ-DSO-168
 func (freeEngine) SetDisplayPace(time.Duration) {}
-func (freeEngine) QuietRLock()                  {}
-func (freeEngine) QuietRUnlock()                {}
-func (freeEngine) NoteLCDFrame()                {}
+
+// TRLC-LINKS: REQ-DSO-168
+func (freeEngine) QuietRLock() {}
+
+// TRLC-LINKS: REQ-DSO-168
+func (freeEngine) QuietRUnlock() {}
+
+// TRLC-LINKS: REQ-DSO-168
+func (freeEngine) NoteLCDFrame() {}
 
 // hudPeriod is the display's tick over a hardware waveform renderer: the
 // renderer draws the traces at its own rate, so the readouts, menus and
@@ -94,6 +103,7 @@ type display struct {
 }
 
 // newDisplay is the display of env with cfg.
+// TRLC-LINKS: REQ-DSO-168
 func newDisplay(env *Env, cfg Display) *display {
 	d := &display{env: env, cfg: cfg, eng: cfg.Engine, spect: render.NewSpectrogram(), chans: env.Board.Profile().Channels}
 	if d.eng == nil {
@@ -119,6 +129,7 @@ func (d *display) hud() render.HUD {
 }
 
 // url is the address on the busy indicator.
+// TRLC-LINKS: REQ-DSO-168
 func (d *display) url() string {
 	if d.cfg.URL != nil {
 		return d.cfg.URL()
@@ -127,6 +138,7 @@ func (d *display) url() string {
 }
 
 // canvas is a fresh canvas for a headless picture.
+// TRLC-LINKS: REQ-DSO-168
 func (d *display) canvas() render.Canvas {
 	if d.cfg.Canvas != nil {
 		return d.cfg.Canvas()
@@ -158,6 +170,7 @@ func (d *display) Render(dst render.Canvas) {
 }
 
 // metricsFor is the layout table of a display spec.
+// TRLC-LINKS: REQ-DSO-168
 func metricsFor(s hal.DisplaySpec) *render.Metrics {
 	switch {
 	case s.W >= 1280:
@@ -181,6 +194,7 @@ type fbScreen struct {
 }
 
 // openBoardScreen is the board's framebuffer; an error when it has none.
+// TRLC-LINKS: REQ-DSO-168
 func openBoardScreen(b hal.Board) (Screen, error) {
 	d := b.Display()
 	if d == nil || d.Framebuffer() == nil {
@@ -202,19 +216,24 @@ func openBoardScreen(b hal.Board) (Screen, error) {
 	return s, nil
 }
 
+// TRLC-LINKS: REQ-DSO-168
 func (s *fbScreen) Canvas() render.Canvas { return s.canvas }
 
 // Layer is none: a board's framebuffer draws no afterglow (over a hardware
 // renderer the traces are the plane's).
+// TRLC-LINKS: REQ-DSO-168
 func (s *fbScreen) Layer() render.Layer { return nil }
 
+// TRLC-LINKS: REQ-DSO-168
 func (s *fbScreen) Present() { s.PresentRows(0, s.rows) }
 
+// TRLC-LINKS: REQ-DSO-168
 func (s *fbScreen) PresentRows(y0, y1 int) {
 	copyRows(s.fb.Back(), s.fb.Stride(), s.pix, s.stride, y0, y1)
 	_ = s.fb.Present() // a failed copy shows at the next picture
 }
 
+// TRLC-LINKS: REQ-DSO-168
 func (s *fbScreen) SetLight(on bool) error {
 	if on {
 		return s.d.Backlight(1)
@@ -224,6 +243,7 @@ func (s *fbScreen) SetLight(on bool) error {
 
 // copyRows copies rows y0 … y1-1 of src (srcStride bytes a row) into a
 // framebuffer of dstStride bytes a row.
+// TRLC-LINKS: REQ-DSO-168
 func copyRows(dst []byte, dstStride int, src []byte, srcStride, y0, y1 int) {
 	for y := max(y0, 0); y < y1 && (y+1)*srcStride <= len(src) && y*dstStride < len(dst); y++ {
 		copy(dst[y*dstStride:min(len(dst), (y+1)*dstStride)], src[y*srcStride:(y+1)*srcStride])
