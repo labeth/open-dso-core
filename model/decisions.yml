@@ -421,3 +421,43 @@ decisions:
   decision: render.MaxChans is 4, covering every scope in the family today.
   consequences:
   - An eight-channel scope would raise it, at the cost of a larger HUD copy per draw.
+
+- id: ADR-CORE-MODEL-TIER
+  title: The core's engineering model is held to the product life-cycle tier
+  status: accepted
+  date: '2026-11-07'
+  context: The core is the product (ADR-CORE-IS-THE-PRODUCT); every scope's firmware composes it, and the
+    SDS1000CML+ model it came from is held to the product tier. A system model at the product tier refuses a
+    dependency below it.
+  decision: 'The core model declares its life-cycle tier in engmod.yml and requirement links are strict.
+
+    Tier: Product
+
+    Bundles: Foundation, Security
+    '
+  consequences:
+  - Every core requirement realizes a core capability (CAP-DSO-*) or is derived with a rationale, and is linked
+    from the core's code; an untraced, unparented or unapproved requirement fails the model check.
+  - A scope model at the product tier composes the core without accepting a below-tier risk.
+  - The security bundle commits the core model to control, risk and trust-boundary records for the parts it
+    holds (the web server, the remote interfaces and the supervisor).
+
+- id: ADR-CORE-MODEL-IDS
+  title: A requirement the core implements keeps its number under the REQ-DSO prefix
+  status: accepted
+  date: '2026-11-07'
+  context: The code that moved from the SDS1000CML+ to the core kept its TRLC-LINKS to REQ-SDS-* requirements.
+    The modelling engine resolves a TRLC-LINKS only against the model nearest the code, and assumes each model's
+    requirement IDs are its own (a composed model sees another's only as alias::ID). Some requirements are
+    implemented in the core alone, others partly in the core and partly in a scope.
+  decision: Each model owns one prefix - REQ-DSO-* in the core, REQ-SDS-* in the SDS1000CML+, REQ-HD-* in the
+    SDS800X HD. A requirement the core implements is REQ-DSO-NNN with the number of the REQ-SDS-NNN it came from,
+    so the history maps one to one. A requirement only the core implements leaves the SDS1000CML+ model; one
+    implemented on both sides stays there as REQ-SDS-NNN for the scope's part and is REQ-DSO-NNN for the core's.
+    A requirement new to the core takes a number from 1001 up, which no scope model uses. Functional units are
+    one per core package (FU-DSO-<PACKAGE>, FU-DSO-SUPERVISOR-<PACKAGE>) and the code names them in
+    ENGMODEL-OWNER-UNIT; capabilities are CAP-DSO-<AREA>, after the SDS1000CML+ capability of the same area.
+  consequences:
+  - Code moving into the core changes its TRLC-LINKS from REQ-SDS-NNN to REQ-DSO-NNN and its owner unit to the
+    core package's, and the core model gains REQ-DSO-NNN if it lacks it.
+  - A scope model composes the core (alias core) and names core elements as core::ID.

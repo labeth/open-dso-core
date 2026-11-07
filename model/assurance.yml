@@ -1,0 +1,28 @@
+schemaVersion: 2
+assurance:
+  risks:
+  - id: RISK-CORE-SPLIT-REQUIREMENTS
+    title: Unreviewed requirements of split-born code
+    statement: The board interface, the profile, the frame format and the capability-driven client were written
+      in the split without requirements; the ones written for them since are not yet approved by the owner.
+    status: open
+    owner: ACT-MAINTAINER
+  poamItems:
+  - id: POAM-CORE-SPLIT-REQUIREMENTS
+    riskRef: RISK-CORE-SPLIT-REQUIREMENTS
+    milestone: tier:product
+    status: planned
+    responsibleRole: ACT-MAINTAINER
+    artifacts:
+    - path: model/requirements.yml
+      description: The owner reviews REQ-DSO-1001, REQ-DSO-1002, REQ-DSO-1003, REQ-DSO-1004 and sets them approved
+        (implemented once linked); this item then completes.
+    defers:
+    - code: lifecycle.requirement_unapproved
+      path: requirements[152].status
+    - code: lifecycle.requirement_unapproved
+      path: requirements[153].status
+    - code: lifecycle.requirement_unapproved
+      path: requirements[154].status
+    - code: lifecycle.requirement_unapproved
+      path: requirements[155].status
