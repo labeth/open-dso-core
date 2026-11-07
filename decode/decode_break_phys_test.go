@@ -206,23 +206,23 @@ func TestBreakPhysChecksFlagged(t *testing.T) {
 	var cases []tc
 	{
 		w := newTimeline(100e3)
-		w.add(0, 20e-3)
+		w.Add(0, 20e-3)
 		oregonBurst(w, 3, []int{0x1, 0xD, 0x2, 0x0, 0x1, 0x3, 0xA, 0x0, 0x5, 0x3}, 1/2048.0, true, 40e-3)
-		cases = append(cases, tc{"Oregon checksum", OOK(w.codes(), 1e-5, LineCfg{})})
+		cases = append(cases, tc{"Oregon checksum", OOK(w.Codes(), 1e-5, LineCfg{})})
 	}
 	{
 		w := newTimeline(500e3)
-		w.add(1, 768e-6)
+		w.Add(1, 768e-6)
 		em4100Frame(w, [5]int{1, 2, 3, 4, 5}, 256e-6, true)
-		w.add(0, 1e-3)
-		cases = append(cases, tc{"EM4100 row parity", EM4100(w.codes(), 2e-6, LineCfg{})})
+		w.Add(0, 1e-3)
+		cases = append(cases, tc{"EM4100 row parity", EM4100(w.Codes(), 2e-6, LineCfg{})})
 	}
 	{
 		w := newTimeline(4e6)
-		f := rfidField{w, true}
-		f.on(500 * rfidFC)
+		f := rfidField{W: w, Carrier: true}
+		f.On(500 * rfidFC)
 		em4305Command(f, em4305Bits(2, 5, [4]int{0xDE, 0xAD, 0xBE, 0xEF}, true))
-		cases = append(cases, tc{"EM4305 parity", EM4305(w.codes(), 2.5e-7, LineCfg{})})
+		cases = append(cases, tc{"EM4305 parity", EM4305(w.Codes(), 2.5e-7, LineCfg{})})
 	}
 	{
 		l := newTwoLine(4e6)
@@ -231,69 +231,69 @@ func TestBreakPhysChecksFlagged(t *testing.T) {
 			bits = append(bits, b...)
 		}
 		clockBits(l, bits, 4e-6)
-		cases = append(cases, tc{"SD CRC-7", SDCard(l.a.codes(), l.b.codes(), 2.5e-7, ClockedCfg{})})
+		cases = append(cases, tc{"SD CRC-7", SDCard(l.A.Codes(), l.B.Codes(), 2.5e-7, ClockedCfg{})})
 	}
 	{
 		w := newTimeline(2e6)
-		w.add(0, 500e-6)
+		w.Add(0, 500e-6)
 		pjdlFrame(w, 1, pjonPacket(0x05, 0x00, []int{0x48, 0x69}, true), 1e-3)
-		r := PJDL(w.codes(), 5e-7, LineCfg{})
+		r := PJDL(w.Codes(), 5e-7, LineCfg{})
 		r.OK = false // the header checks: only the frame's end CRC fails
 		cases = append(cases, tc{"PJON CRC", r})
 	}
 	{
 		w := newTimeline(200e3)
-		w.add(0, 5e-3)
+		w.Add(0, 5e-3)
 		qiPacket(w, []int{0x02, 0x01}, true, 8e-3)
-		cases = append(cases, tc{"Qi checksum", Qi(w.codes(), 5e-6, LineCfg{})})
+		cases = append(cases, tc{"Qi checksum", Qi(w.Codes(), 5e-6, LineCfg{})})
 	}
 	{
-		m := &mapleLine{l: newTwoLine(20e6), st: 250e-9}
-		m.set(1, 1)
-		m.frame(mapleBytes(0x01, 0x20, 0x09, []int{0xFF, 0x00, 0xA5, 0x5A}, true))
-		m.set(1, 1)
-		cases = append(cases, tc{"Maple checksum", Maple(m.l.a.codes(), m.l.b.codes(), 5e-8, ClockedCfg{})})
+		m := &mapleLine{P: newTwoLine(20e6), Step: 250e-9}
+		m.Set(1, 1)
+		m.Frame(mapleBytes(0x01, 0x20, 0x09, []int{0xFF, 0x00, 0xA5, 0x5A}, true))
+		m.Set(1, 1)
+		cases = append(cases, tc{"Maple checksum", Maple(m.P.A.Codes(), m.P.B.Codes(), 5e-8, ClockedCfg{})})
 	}
 	{
 		w := newTimeline(1000)
-		w.add(0, 1.3)
+		w.Add(0, 1.3)
 		dcf77Minute(w, 0, 0, 1, 1, 1, 0, false)
 		dcf77Minute(w, 0x37, 0x12, 0x18, 0x7, 0x10, 0x26, true)
-		r := DCF77(w.codes(), 1e-3, LineCfg{})
+		r := DCF77(w.Codes(), 1e-3, LineCfg{})
 		r.OK = false // the hour and date check: the minute's parity is broken
 		cases = append(cases, tc{"DCF77 parity", r})
 	}
 	{
 		const T = 22 / 4e6
 		w := newTimeline(20e6)
-		w.add(1, 20e-6)
+		w.Add(1, 20e-6)
 		swimFrame(w, 0, 3, 1, T, 1, true, 3*T)
-		cases = append(cases, tc{"SWIM parity", SWIM(w.codes(), 5e-8, LineCfg{})})
+		cases = append(cases, tc{"SWIM parity", SWIM(w.Codes(), 5e-8, LineCfg{})})
 	}
 	ir := func(name string, f func(l irLine)) {
 		w := newTimeline(100e3)
-		l := irLine{w: w}
-		l.space(20e-3)
+		l := irLine{W: w}
+		l.Space(20e-3)
 		f(l)
-		cases = append(cases, tc{name, IRMP(w.codes(), 1e-5, LineCfg{})})
+		cases = append(cases, tc{name, IRMP(w.Codes(), 1e-5, LineCfg{})})
 	}
 	ir("Samsung inverse", func(l irLine) {
-		l.mark(4.5e-3)
-		l.space(4.5e-3)
+		l.Mark(4.5e-3)
+		l.Space(4.5e-3)
 		bits := append(append(lsbBits(0x0707, 16), -1), append(append(lsbBits(5, 4), lsbBits(0x9A, 8)...), lsbBits(0x9A, 8)...)...)
 		for _, b := range bits {
-			l.mark(550e-6)
+			l.Mark(550e-6)
 			switch b {
 			case -1:
-				l.space(4.5e-3)
+				l.Space(4.5e-3)
 			case 1:
-				l.space(1650e-6)
+				l.Space(1650e-6)
 			default:
-				l.space(550e-6)
+				l.Space(550e-6)
 			}
 		}
-		l.mark(550e-6)
-		l.space(50e-3)
+		l.Mark(550e-6)
+		l.Space(50e-3)
 	})
 	ir("Kaseikyo parity", func(l irLine) {
 		b := append(lsbBits(0x2002, 16), lsbBits(0xF, 4)...) // a wrong parity nibble

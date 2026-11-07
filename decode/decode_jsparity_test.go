@@ -457,10 +457,10 @@ func TestJSDecoderParity(t *testing.T) {
 			c1, c2, ct := loadGzJSON(t, filepath.Join("testdata", f))
 			cs = append(cs, detectCase{f, c1, c2, ct, "swd", 0})
 		}
-		for _, sh := range []spiShape{{hz: 2e6, duty: 0.8, jitter: 1, byteGap: 1, cpha: true}, {hz: 5e6, duty: 0.5, byteGap: 2}} {
-			sr := 40 * sh.hz
+		for _, sh := range []spiShape{{Hz: 2e6, Duty: 0.8, Jitter: 1, ByteGap: 1, CPHA: true}, {Hz: 5e6, Duty: 0.5, ByteGap: 2}} {
+			sr := 40 * sh.Hz
 			l := fuzzSPI(rng, sh, sr, 24)
-			cs = append(cs, detectCase{"spi", l.a.codes(), l.b.codes(), 1 / sr, "spi", 0})
+			cs = append(cs, detectCase{"spi", l.A.Codes(), l.B.Codes(), 1 / sr, "spi", 0})
 		}
 		for _, c := range cs {
 			for range 6 * parityMult() {
@@ -477,7 +477,7 @@ func TestJSDecoderParity(t *testing.T) {
 		for _, hz := range []float64{100e3, 400e3} {
 			sr := 50 * hz
 			l := fuzzI2C(rng, hz, sr, 6)
-			c := detectCase{"i2c", l.a.codes(), l.b.codes(), 1 / sr, "i2c", 0}
+			c := detectCase{"i2c", l.A.Codes(), l.B.Codes(), 1 / sr, "i2c", 0}
 			for range 8 * parityMult() {
 				mc, _ := fuzzMutate(rng, c)
 				for _, o := range [][2][]uint8{{mc.c1, mc.c2}, {mc.c2, mc.c1}} {

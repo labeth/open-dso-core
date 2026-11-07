@@ -11,14 +11,14 @@ import "testing"
 func TestDecodeSWIMMidway(t *testing.T) {
 	sr, T := 25e6, 1/363636.0
 	w := newTimeline(sr)
-	w.add(1, 3*T)
+	w.Add(1, 3*T)
 	for _, v := range []int{0x00, 0x50, 0x0A} {
 		swimFrame(w, 0, 8, v, T, 1, false, 3*T)
 	}
 	swimFrame(w, 1, 8, 0x5A, T, 1, false, 3*T)
 	swimFrame(w, 0, 3, 1, T, 1, false, 3*T) // ROTF
 	swimFrame(w, 0, 8, 2, T, 1, false, 3*T)
-	codes := w.codes()
+	codes := w.Codes()
 	codes = codes[int(4.5*T*sr):]          // open within the first byte
 	codes = codes[:len(codes)-int(5*T*sr)] // and end within the count
 	r := SWIM(codes, 1/sr, LineCfg{})

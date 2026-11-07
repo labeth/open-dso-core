@@ -259,18 +259,18 @@ func streamBitsLines(tc streamCPUCase, seed int64, secs, ss float64, bursty bool
 	if tc.c.idle != nil {
 		idle = *tc.c.idle
 	}
-	fine.add(idle[0], idle[1], tc.quiet+2e-3)
-	for i := 0; fine.a.t < secs; i++ {
-		t0 := fine.a.t
+	fine.Add(idle[0], idle[1], tc.quiet+2e-3)
+	for i := 0; fine.A.T < secs; i++ {
+		t0 := fine.A.T
 		tc.c.gen(fine, i, rng)
 		if bursty && i%4 == 3 {
-			last := [2]byte{fine.a.bits[len(fine.a.bits)-1], fine.b.bits[len(fine.b.bits)-1]}
-			fine.add(last[0], last[1], 20*(fine.a.t-t0))
+			last := [2]byte{fine.A.Bits[len(fine.A.Bits)-1], fine.B.Bits[len(fine.B.Bits)-1]}
+			fine.Add(last[0], last[1], 20*(fine.A.T-t0))
 		}
 	}
-	fine.add(idle[0], idle[1], 2*tc.quiet+tc.longest)
-	n := min(len(fine.a.bits), len(fine.b.bits))
-	return fine.a.bits[:n], fine.b.bits[:n]
+	fine.Add(idle[0], idle[1], 2*tc.quiet+tc.longest)
+	n := min(len(fine.A.Bits), len(fine.B.Bits))
+	return fine.A.Bits[:n], fine.B.Bits[:n]
 }
 
 // edgeStreamRuns decodes the lines as a stream of samples and of edges,

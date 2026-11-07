@@ -25,23 +25,23 @@ type oracleItem struct {
 func TestOracleLIN(t *testing.T) {
 	const sr = 1000000
 	w := newTimeline(sr)
-	w.idle(200e-6)
+	w.Idle(200e-6)
 	linFrame(w, 19200, 13, 0x3c, []int{0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80}, true)
 	linFrame(w, 19200, 14, 0x12, []int{0xA5, 0x5A}, false)
 	linFrame(w, 19200, 13, 0x07, []int{0x00, 0xFF, 0x33, 0x44}, false)
 	// a frame with a wrong checksum
 	bit := 1 / 19200.0
-	w.add(0, 13*bit)
-	w.add(1, bit)
+	w.Add(0, 13*bit)
+	w.Add(1, bit)
 	tlUART(w, 0x55, 19200, "none", 1)
 	tlUART(w, linPIDParity(0x21), 19200, "none", 1)
-	w.add(1, 2*bit)
+	w.Add(1, 2*bit)
 	tlUART(w, 0x11, 19200, "none", 1)
 	tlUART(w, 0x99, 19200, "none", 1)
-	w.idle(40 * bit)
+	w.Idle(40 * bit)
 	linFrame(w, 19200, 13, 0x01, []int{0x01}, false)
 
-	r := LIN(w.codes(), 1.0/sr, LINCfg{})
+	r := LIN(w.Codes(), 1.0/sr, LINCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -58,8 +58,8 @@ func TestOracleLIN(t *testing.T) {
 		}
 	}
 	pd := "uart:rx=RX:baudrate=19200,lin:version=2"
-	good := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.bits}, pd, "lin=data")
-	bad := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.bits}, pd, "lin=inline_error")
+	good := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.Bits}, pd, "lin=data")
+	bad := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.Bits}, pd, "lin=inline_error")
 	type at struct {
 		a  ann
 		ok bool
@@ -111,7 +111,7 @@ func TestOracleDMX512(t *testing.T) {
 	}
 	const sr = 4000000
 	w := newTimeline(sr)
-	w.idle(20e-6)
+	w.Idle(20e-6)
 	var want []int
 	for p := range 2 {
 		slots := make([]int, 512)
@@ -121,11 +121,11 @@ func TestOracleDMX512(t *testing.T) {
 		dmxPacketGap(w, 120, 12, 8, p*0x55, slots)
 		want = append(append(want, p*0x55), slots...)
 	}
-	r := DMX512(w.codes(), 1.0/sr, DMXCfg{})
+	r := DMX512(w.Codes(), 1.0/sr, DMXCfg{})
 	if !r.OK || strings.Contains(r.Text, "!") {
 		t.Fatalf("repo: ok=%v %s", r.OK, r.Error)
 	}
-	anns := sigrokDecode(t, sr, []string{"DMX"}, [][]byte{w.bits}, "dmx512:dmx=DMX", "dmx512=data")
+	anns := sigrokDecode(t, sr, []string{"DMX"}, [][]byte{w.Bits}, "dmx512:dmx=DMX", "dmx512=data")
 	var orc []int
 	for _, a := range anns {
 		v, err := strconv.Atoi(strings.Fields(a.Text)[0])
@@ -142,7 +142,7 @@ func TestOracleDMX512(t *testing.T) {
 func TestOracleMIDI(t *testing.T) {
 	const sr = 1000000
 	w := newTimeline(sr)
-	w.idle(200e-6)
+	w.Idle(200e-6)
 	msgs := []int{
 		0x90, 0x3C, 0x64, 0x3E, 0x50, 0x81, 0x3C, 0x00, 0xB2, 0x07, 0x64, 0xC3, 0x05,
 		0xD4, 0x40, 0xE5, 0x00, 0x40, 0xF8, 0x90, 0x40, 0x7F,
@@ -150,8 +150,8 @@ func TestOracleMIDI(t *testing.T) {
 	for _, b := range msgs {
 		tlUART(w, b, 31250, "none", 1)
 	}
-	w.idle(2e-3)
-	r := MIDI(w.codes(), 1.0/sr, MIDICfg{})
+	w.Idle(2e-3)
+	r := MIDI(w.Codes(), 1.0/sr, MIDICfg{})
 	if !r.OK || strings.Contains(r.Text, "!") {
 		t.Fatalf("repo: %q %s", r.Text, r.Error)
 	}
@@ -175,7 +175,7 @@ func TestOracleMIDI(t *testing.T) {
 			}
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.bits}, "uart:rx=RX:baudrate=31250,midi", "midi=text-verbose")
+	anns := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.Bits}, "uart:rx=RX:baudrate=31250,midi", "midi=text-verbose")
 	chRe := regexp.MustCompile(`^Channel (\d+):`)
 	var orc []int
 	for _, a := range anns {
@@ -187,7 +187,7 @@ func TestOracleMIDI(t *testing.T) {
 	if fmt.Sprint(repo) != fmt.Sprint(orc) {
 		t.Fatalf("channel messages differ: repo %v sigrok %v", repo, orc)
 	}
-	realTime := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.bits}, "uart:rx=RX:baudrate=31250,midi", "midi=text-sysreal-verbose")
+	realTime := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.Bits}, "uart:rx=RX:baudrate=31250,midi", "midi=text-sysreal-verbose")
 	if len(realTime) != 1 {
 		t.Fatalf("sigrok real-time messages %d, want 1", len(realTime))
 	}
@@ -201,7 +201,7 @@ func TestOracleModbus(t *testing.T) {
 		stops  int
 	}{{"even", 1}, {"none", 2}} {
 		w := newTimeline(sr)
-		w.idle(3e-3)
+		w.Idle(3e-3)
 		// server responses (sigrok reads the server->client channel as such)
 		frames := [][]int{
 			{0x01, 0x03, 0x02, 0x12, 0x34},
@@ -216,8 +216,8 @@ func TestOracleModbus(t *testing.T) {
 		for _, v := range []int{0x05, 0x03, 0x02, 0x00, 0x10, 0x12, 0x34} {
 			tlUART(w, v, 19200, tc.parity, tc.stops)
 		}
-		w.idle(3e-3)
-		r := Modbus(w.codes(), 1.0/sr, ModbusCfg{})
+		w.Idle(3e-3)
+		r := Modbus(w.Codes(), 1.0/sr, ModbusCfg{})
 		if !r.OK || r.Parity != tc.parity {
 			t.Fatalf("%s: ok=%v parity %q %s", tc.parity, r.OK, r.Parity, r.Error)
 		}
@@ -240,10 +240,10 @@ func TestOracleModbus(t *testing.T) {
 			stop = "2.0"
 		}
 		pd := fmt.Sprintf("uart:rx=RX:baudrate=19200:parity=%s:stop_bits=%s,modbus:scchannel=RX", tc.parity, stop)
-		ids := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.bits}, pd, "modbus=sc-server-id")
-		fns := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.bits}, pd, "modbus=sc-function")
-		crcs := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.bits}, pd, "modbus=sc-crc")
-		for _, e := range sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.bits}, pd, "modbus=sc-error") {
+		ids := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.Bits}, pd, "modbus=sc-server-id")
+		fns := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.Bits}, pd, "modbus=sc-function")
+		crcs := sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.Bits}, pd, "modbus=sc-crc")
+		for _, e := range sigrokDecode(t, sr, []string{"RX"}, [][]byte{w.Bits}, pd, "modbus=sc-error") {
 			if strings.HasPrefix(e.Text, "CRC should be") {
 				crcs = append(crcs, e)
 			}

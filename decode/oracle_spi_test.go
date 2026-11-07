@@ -45,7 +45,7 @@ func oracleSPIBits(sr, bitRate float64, cpol, cpha, msb bool, words []spiOWord) 
 		idle = 1
 	}
 	active := 1 - idle
-	seg := func(c, d byte, dur float64) { ck.add(c, dur); da.add(d, dur) }
+	seg := func(c, d byte, dur float64) { ck.Add(c, dur); da.Add(d, dur) }
 	seg(idle, 0, 4*bt) // lead idle
 	for _, w := range words {
 		nb := w.bits
@@ -69,7 +69,7 @@ func oracleSPIBits(sr, bitRate float64, cpol, cpha, msb bool, words []spiOWord) 
 		seg(idle, 0, w.gapBits*bt)
 	}
 	seg(idle, 0, 4*bt) // trail idle
-	return ck.bits, da.bits
+	return ck.Bits, da.Bits
 }
 
 // spiOWords builds whole-byte words with a uniform inter-word gap (bit-times);

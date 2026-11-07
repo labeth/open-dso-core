@@ -18,7 +18,7 @@ func TestOracleIRMP(t *testing.T) {
 	needSigrokPD(t, "ir_irmp")
 	const sr = 200000
 	w := irOracleLine(sr, func(l irLine) {
-		gap := func() { l.space(100e-3) }
+		gap := func() { l.Space(100e-3) }
 		irSamsung32(l, 0x0707, 0xFD02)
 		gap()
 		irNEC16(l, 0x12, 0x34)
@@ -43,7 +43,7 @@ func TestOracleIRMP(t *testing.T) {
 		irSamsung32(l, 0xE0E0, 0x40BF)
 		gap()
 	})
-	r := IRMP(w.codes(), 1.0/sr, LineCfg{})
+	r := IRMP(w.Codes(), 1.0/sr, LineCfg{})
 	if !r.OK || r.FrameBits != IRSamsung32 {
 		t.Fatal(r.FrameBits, r.Error)
 	}
@@ -62,7 +62,7 @@ func TestOracleIRMP(t *testing.T) {
 			repo[len(repo)-1] += fmt.Sprintf(" %04x", sp.Val)
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.bits}, "ir_irmp:ir=IR", "ir_irmp")
+	anns := sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.Bits}, "ir_irmp:ir=IR", "ir_irmp")
 	re := regexp.MustCompile(`Protocol: (\S+) \(\d+\), Address 0x([0-9a-f]+), Command: 0x([0-9a-f]+), Flags: (\S+)`)
 	var orc []string
 	for _, a := range sortAnns(anns) {

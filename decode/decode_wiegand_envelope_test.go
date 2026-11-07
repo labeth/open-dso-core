@@ -34,7 +34,7 @@ func peakEnvelope(src []uint8, bucket int) []uint8 {
 func TestWiegandFromEnvelope(t *testing.T) {
 	for _, interval := range []float64{1e-3, 2e-3} {
 		l := newTwoLine(1e6)
-		l.add(1, 1, 3.37e-3)
+		l.Add(1, 1, 3.37e-3)
 		wiegandFrame(l, wiegandBits(26, 12, 4660), interval)
 		code := func(b []byte) []uint8 {
 			o := make([]uint8, len(b))
@@ -44,7 +44,7 @@ func TestWiegandFromEnvelope(t *testing.T) {
 			return o
 		}
 		bucket := int(interval * 1e6 / 2.5)
-		r := Wiegand(peakEnvelope(code(l.a.bits), bucket), peakEnvelope(code(l.b.bits), bucket), float64(bucket)*1e-6/2, ClockedCfg{Format: "hex"})
+		r := Wiegand(peakEnvelope(code(l.A.Bits), bucket), peakEnvelope(code(l.B.Bits), bucket), float64(bucket)*1e-6/2, ClockedCfg{Format: "hex"})
 		if !r.OK || r.Text != "26b F12 C4660" {
 			t.Fatalf("interval %v: %q %q", interval, r.Text, r.Error)
 		}

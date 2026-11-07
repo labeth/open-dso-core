@@ -54,30 +54,30 @@ func TestBusDecodeEndsWhereTheRecordCannotHoldIt(t *testing.T) {
 	var buses []bus
 	{
 		w := newTimeline(sr)
-		w.add(0, 60e-6)
+		w.Add(0, 60e-6)
 		wsFrame(w, 800e3, []int{0xFF, 0x00, 0x80, 0x12, 0x34, 0x56})
 		wsFrame(w, 800e3, []int{0x01, 0x02, 0x03})
-		buses = append(buses, bus{"WS281x", w.codes(), func(c []uint8, s float64) Result { return WS281x(c, s, WS281xCfg{}) }, true, 128, 256})
+		buses = append(buses, bus{"WS281x", w.Codes(), func(c []uint8, s float64) Result { return WS281x(c, s, WS281xCfg{}) }, true, 128, 256})
 	}
 	{
 		const T = 22 / 4e6 // low speed: a bit is 22 clocks of 4 MHz
 		w := newTimeline(sr)
-		w.add(1, 20e-6)
+		w.Add(1, 20e-6)
 		swimSync(w, T)
 		for _, f := range [][3]int{{0, 3, 1}, {0, 8, 2}, {0, 8, 0x50}, {1, 8, 0x5A}, {1, 8, 0xC3}} {
 			swimFrame(w, f[0], f[1], f[2], T, 1, false, 3*T)
 		}
-		buses = append(buses, bus{"SWIM", w.codes(), func(c []uint8, s float64) Result { return SWIM(c, s, LineCfg{}) }, true, 128, 256})
+		buses = append(buses, bus{"SWIM", w.Codes(), func(c []uint8, s float64) Result { return SWIM(c, s, LineCfg{}) }, true, 128, 256})
 	}
 	{
 		w := newTimeline(sr)
-		w.add(0, 50e-9)
+		w.Add(0, 50e-9)
 		var s [][2]int
 		for i := range 6 {
 			s = append(s, [2]int{(i * 0x1357) & 0xffffff, 0xFFFFF0 - i*0x10})
 		}
 		spdifStream(w, 48e3, 190, s)
-		buses = append(buses, bus{"S/PDIF", w.codes(), func(c []uint8, s float64) Result { return SPDIF(c, s, SPDIFCfg{}) }, true, 16, 32})
+		buses = append(buses, bus{"S/PDIF", w.Codes(), func(c []uint8, s float64) Result { return SPDIF(c, s, SPDIFCfg{}) }, true, 16, 32})
 	}
 	usbPackets := [][]int{
 		usblsPacketBits(0xD, usblsTokenBits(0x15, 0xE)),

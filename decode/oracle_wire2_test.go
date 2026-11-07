@@ -42,7 +42,7 @@ func TestOracleSDCard(t *testing.T) {
 	add(sdToken(true, 17, 0x00001000, true))
 	add(sdIdle(10))
 	clockBits(l, bits, per)
-	r := SDCard(l.a.codes(), l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := SDCard(l.A.Codes(), l.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -53,7 +53,7 @@ func TestOracleSDCard(t *testing.T) {
 		}
 	}
 	// sigrok reads CMD at the clock's rises: channels CMD, CLK
-	chans := [][]byte{l.b.bits, l.a.bits}
+	chans := [][]byte{l.B.Bits, l.A.Bits}
 	skipSigrokDefect(t, []string{"CMD", "CLK"}, "sdcard_sd:cmd=CMD:clk=CLK", "sdcard_sd=commands", "Annotation 'commands' not found")
 	anns := sigrokDecode(t, sr, []string{"CMD", "CLK"}, chans, "sdcard_sd:cmd=CMD:clk=CLK", "sdcard_sd=commands")
 	var orc []string
@@ -107,7 +107,7 @@ func TestOraclePDI(t *testing.T) {
 	chars(0x80, 0x02)
 	idle(8)
 	clockBits(l, bits, per)
-	r := PDI(l.a.codes(), l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := PDI(l.A.Codes(), l.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -120,7 +120,7 @@ func TestOraclePDI(t *testing.T) {
 			repo = append(repo, "BRK")
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.a.bits, l.b.bits}, "avr_pdi:reset=CLK:data=DATA", "avr_pdi=uart_fields")
+	anns := sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.A.Bits, l.B.Bits}, "avr_pdi:reset=CLK:data=DATA", "avr_pdi=uart_fields")
 	var orc []string
 	for _, a := range sortAnns(anns) {
 		switch {
@@ -148,7 +148,7 @@ func TestOraclePDI(t *testing.T) {
 	if fmt.Sprint(repo) != fmt.Sprint(o2) {
 		t.Fatalf("PDI differs:\n repo   %v\n sigrok %v", repo, o2)
 	}
-	cmds := sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.a.bits, l.b.bits}, "avr_pdi:reset=CLK:data=DATA", "avr_pdi=opcode")
+	cmds := sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.A.Bits, l.B.Bits}, "avr_pdi:reset=CLK:data=DATA", "avr_pdi=opcode")
 	var ops []string
 	for _, a := range sortAnns(cmds) {
 		ops = append(ops, strings.Fields(strings.TrimPrefix(a.Text, "Insn: "))[0])
@@ -170,23 +170,23 @@ func TestOraclePDI(t *testing.T) {
 func TestOracleCJTAG(t *testing.T) {
 	needSigrokPD(t, "cjtag")
 	const sr = 2000000
-	c := &cjtagLine{l: newTwoLine(sr), per: 4e-6}
+	c := &cjtagLine{P: newTwoLine(sr), Per: 4e-6}
 	for range 6 {
-		c.rise(0)
+		c.Rise(0)
 	}
-	c.escape(6)
+	c.Escape(6)
 	for i, b := range []int{1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1} {
 		_ = i
-		c.rise(b)
+		c.Rise(b)
 	}
-	c.tck(0, 0, 0, true) // reset -> run-test/idle
-	c.scan(true, 4, 0x5, 0x1)
-	c.scan(false, 32, 0x12345678, 0x4BA00477)
-	c.scan(false, 8, 0xA5, 0x3C)
+	c.TCK(0, 0, 0, true) // reset -> run-test/idle
+	c.Scan(true, 4, 0x5, 0x1)
+	c.Scan(false, 32, 0x12345678, 0x4BA00477)
+	c.Scan(false, 8, 0xA5, 0x3C)
 	for range 6 {
-		c.tck(0, 0, 0, false)
+		c.TCK(0, 0, 0, false)
 	}
-	r := CJTAG(c.l.a.codes(), c.l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := CJTAG(c.P.A.Codes(), c.P.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -196,7 +196,7 @@ func TestOracleCJTAG(t *testing.T) {
 			repo = append(repo, sp.Text[:2]+" "+strconv.FormatInt(int64(sp.Val), 16))
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"TCKC", "TMSC"}, [][]byte{c.l.a.bits, c.l.b.bits}, "cjtag:tckc=TCKC:tmsc=TMSC", "cjtag=bitstring-tdi")
+	anns := sigrokDecode(t, sr, []string{"TCKC", "TMSC"}, [][]byte{c.P.A.Bits, c.P.B.Bits}, "cjtag:tckc=TCKC:tmsc=TMSC", "cjtag=bitstring-tdi")
 	var orc []string
 	for _, a := range sortAnns(anns) {
 		// "IR TDI: 0101 (0x5), 4 bits"
@@ -211,19 +211,19 @@ func TestOracleCJTAG(t *testing.T) {
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestOracleMaple(t *testing.T) {
 	const sr = 20000000
-	m := &mapleLine{l: newTwoLine(sr), st: 250e-9}
-	m.set(1, 1)
+	m := &mapleLine{P: newTwoLine(sr), Step: 250e-9}
+	m.Set(1, 1)
 	frames := [][]int{
 		mapleBytes(0x20, 0x00, 0x01, nil, false), mapleBytes(0x00, 0x20, 0x05, []int{0x00, 0x00, 0x00, 0x01, 0x12, 0x34, 0x56, 0x78}, false),
 		mapleBytes(0x01, 0x20, 0x09, []int{0xFF, 0x00, 0xA5, 0x5A}, true),
 	}
 	for _, f := range frames {
-		m.frame(f)
+		m.Frame(f)
 		for range 20 {
-			m.set(1, 1)
+			m.Set(1, 1)
 		}
 	}
-	r := Maple(m.l.a.codes(), m.l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := Maple(m.P.A.Codes(), m.P.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -237,7 +237,7 @@ func TestOracleMaple(t *testing.T) {
 		}
 	}
 	pd := "maple_bus:sdcka=A:sdckb=B"
-	chans := [][]byte{m.l.a.bits, m.l.b.bits}
+	chans := [][]byte{m.P.A.Bits, m.P.B.Bits}
 	all := append(sigrokDecode(t, sr, []string{"A", "B"}, chans, pd, "maple_bus=fields"),
 		sigrokDecode(t, sr, []string{"A", "B"}, chans, pd, "maple_bus=checksum-error")...)
 	var orc []string
@@ -259,12 +259,12 @@ func TestOracleCaliper(t *testing.T) {
 	needSigrokPD(t, "caliper")
 	const sr = 1000000
 	l := newTwoLine(sr)
-	l.add(0, 0, 20e-3)
+	l.Add(0, 0, 20e-3)
 	caliperFrame(l, 1234, false, false, 80e-6, 30e-3)
 	caliperFrame(l, 1234, true, false, 80e-6, 30e-3)
 	caliperFrame(l, 2001, false, true, 80e-6, 30e-3)
 	caliperFrame(l, 0, false, false, 80e-6, 30e-3)
-	r := Caliper(l.a.codes(), l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := Caliper(l.A.Codes(), l.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -274,7 +274,7 @@ func TestOracleCaliper(t *testing.T) {
 			repo = append(repo, sp.Text)
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.a.bits, l.b.bits}, "caliper:clk=CLK:data=DATA", "caliper=measurement")
+	anns := sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.A.Bits, l.B.Bits}, "caliper:clk=CLK:data=DATA", "caliper=measurement")
 	var orc []string
 	for _, a := range sortAnns(anns) {
 		v := strings.TrimRight(a.Text, "minch")

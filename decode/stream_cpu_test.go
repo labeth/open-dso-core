@@ -37,31 +37,31 @@ import (
 var streamCPUExtra = []streamCase{
 	{name: "uart", baud: 115200, lines: 1, gen: func(l twoLine, i int, rng *rand.Rand) {
 		for k := range 1 + i%4 {
-			tlUART(l.a, (i*37+k*91+rng.Intn(256))&0xff, 115200, "none", 1)
+			tlUART(l.A, (i*37+k*91+rng.Intn(256))&0xff, 115200, "none", 1)
 		}
-		l.a.idle((20 + rng.Float64()*40) / 115200)
+		l.A.Idle((20 + rng.Float64()*40) / 115200)
 		oneLine(l)
 	}, dec: func(a, _ []uint8, s float64) Result {
 		return UART(a, s, UARTCfg{Baud: 115200, Bits: 8, Parity: "none", Threshold: 128, HaveThr: true})
 	}},
 	{name: "i2c", baud: 400000, lines: 2, gen: func(l twoLine, i int, rng *rand.Rand) {
 		q := 1 / (4 * 400000.0)
-		bit := func(v byte) { l.add(0, v, q); l.add(1, v, 2*q); l.add(0, v, q) }
+		bit := func(v byte) { l.Add(0, v, q); l.Add(1, v, 2*q); l.Add(0, v, q) }
 		byteOut := func(v int) {
 			for k := 7; k >= 0; k-- {
 				bit(byte(v >> k & 1))
 			}
 			bit(0) // ACK
 		}
-		l.add(1, 0, q) // START: SDA falls, SCL high
-		l.add(0, 0, q)
+		l.Add(1, 0, q) // START: SDA falls, SCL high
+		l.Add(0, 0, q)
 		byteOut(0x50<<1 | i&1)
 		for range 1 + i%3 {
 			byteOut((i*29 + rng.Intn(256)) & 0xff)
 		}
-		l.add(0, 0, q) // STOP
-		l.add(1, 0, q)
-		l.add(1, 1, (15+rng.Float64()*30)/400000)
+		l.Add(0, 0, q) // STOP
+		l.Add(1, 0, q)
+		l.Add(1, 1, (15+rng.Float64()*30)/400000)
 	}, dec: func(a, b []uint8, s float64) Result {
 		return I2C(a, b, s, I2CCfg{Threshold: 128, HaveThr: true})
 	}},
@@ -71,11 +71,11 @@ var streamCPUExtra = []streamCase{
 			v := (i*53 + rng.Intn(256)) & 0xff
 			for j := 7; j >= 0; j-- {
 				d := byte(v >> j & 1)
-				l.add(0, d, h)
-				l.add(1, d, h)
+				l.Add(0, d, h)
+				l.Add(1, d, h)
 			}
 		}
-		l.add(0, 0, (20+rng.Float64()*30)*1e-6)
+		l.Add(0, 0, (20+rng.Float64()*30)*1e-6)
 	}, dec: func(a, b []uint8, s float64) Result {
 		return SPI(a, b, s, SPICfg{MSB: true, Threshold: 128, HaveThr: true})
 	}},
@@ -87,9 +87,9 @@ var streamCPUExtra = []streamCase{
 		}
 		_, wire := canStdFrame((i*0x123+7)&0x7ff, n, data)
 		for _, b := range wire {
-			l.a.add(byte(b), 1/500000.0)
+			l.A.Add(byte(b), 1/500000.0)
 		}
-		l.a.idle((14 + rng.Float64()*40) / 500000)
+		l.A.Idle((14 + rng.Float64()*40) / 500000)
 		oneLine(l)
 	}, dec: func(a, _ []uint8, s float64) Result {
 		return CANFD(a, s, CANFDCfg{NominalBaud: 500000, DominantLow: true, Threshold: 128, HaveThr: true})
@@ -97,10 +97,10 @@ var streamCPUExtra = []streamCase{
 	{name: "manchester", baud: 100000, lines: 1, gen: func(l twoLine, i int, rng *rand.Rand) {
 		h := 0.5 / 100000
 		for _, b := range mBits([]int{0xAA, i & 0xff, rng.Intn(256), 0x5C}, true, 8) {
-			l.a.add(byte(1-b), h) // IEEE: a 1 rises mid-bit
-			l.a.add(byte(b), h)
+			l.A.Add(byte(1-b), h) // IEEE: a 1 rises mid-bit
+			l.A.Add(byte(b), h)
 		}
-		l.a.idle((12 + rng.Float64()*30) / 100000)
+		l.A.Idle((12 + rng.Float64()*30) / 100000)
 		oneLine(l)
 	}, dec: func(a, _ []uint8, s float64) Result {
 		return Manchester(a, s, ManchesterCfg{Bitrate: 100000, IEEE: true, MSB: true, Bits: 8, Threshold: 128, HaveThr: true})
@@ -177,17 +177,17 @@ func streamCPULines(tc streamCPUCase, seed int64, secs float64, bursty bool) (a,
 	if tc.c.idle != nil {
 		idle = *tc.c.idle
 	}
-	fine.add(idle[0], idle[1], tc.quiet+2e-3)
-	for i := 0; fine.a.t < secs; i++ {
-		t0 := fine.a.t
+	fine.Add(idle[0], idle[1], tc.quiet+2e-3)
+	for i := 0; fine.A.T < secs; i++ {
+		t0 := fine.A.T
 		tc.c.gen(fine, i, rng)
 		if bursty && i%4 == 3 {
-			last := [2]byte{fine.a.bits[len(fine.a.bits)-1], fine.b.bits[len(fine.b.bits)-1]}
-			fine.add(last[0], last[1], 20*(fine.a.t-t0))
+			last := [2]byte{fine.A.Bits[len(fine.A.Bits)-1], fine.B.Bits[len(fine.B.Bits)-1]}
+			fine.Add(last[0], last[1], 20*(fine.A.T-t0))
 		}
 	}
-	fine.add(idle[0], idle[1], 2*tc.quiet+tc.longest)
-	a, b = peakStream(fine.a.codes(), m, rng), peakStream(fine.b.codes(), m, rng)
+	fine.Add(idle[0], idle[1], 2*tc.quiet+tc.longest)
+	a, b = peakStream(fine.A.Codes(), m, rng), peakStream(fine.B.Codes(), m, rng)
 	n := min(len(a), len(b))
 	return a[:n], b[:n], tc.bucket / 2
 }
@@ -206,8 +206,8 @@ func streamCPUIdle(tc streamCPUCase, secs float64) (a, b []uint8, ss float64) {
 	if tc.c.idle != nil {
 		idle = *tc.c.idle
 	}
-	fine.add(idle[0], idle[1], secs)
-	a, b = peakStream(fine.a.codes(), m, rng), peakStream(fine.b.codes(), m, rng)
+	fine.Add(idle[0], idle[1], secs)
+	a, b = peakStream(fine.A.Codes(), m, rng), peakStream(fine.B.Codes(), m, rng)
 	n := min(len(a), len(b))
 	return a[:n], b[:n], tc.bucket / 2
 }

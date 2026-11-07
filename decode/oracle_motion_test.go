@@ -17,7 +17,7 @@ import (
 func TestOracleQuadrature(t *testing.T) {
 	const sr = 1000000
 	l := newTwoLine(sr)
-	l.add(0, 0, 500e-6)
+	l.Add(0, 0, 500e-6)
 	var moves []int
 	for range 12 {
 		moves = append(moves, 1)
@@ -28,11 +28,11 @@ func TestOracleQuadrature(t *testing.T) {
 	moves = append(moves, 1, -1, 1, 1)
 	quadMoves(l, moves, 100e-6, 1e-3)
 	quadMoves(l, []int{-1, -1, -1}, 60e-6, 500e-6)
-	r := Quadrature(l.a.codes(), l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := Quadrature(l.A.Codes(), l.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
-	anns := sigrokDecode(t, sr, []string{"A", "B"}, [][]byte{l.a.bits, l.b.bits}, "graycode:d0=A:d1=B", "graycode=count")
+	anns := sigrokDecode(t, sr, []string{"A", "B"}, [][]byte{l.A.Bits, l.B.Bits}, "graycode:d0=A:d1=B", "graycode=count")
 	// sigrok annotates each count from the edge that set it to the next
 	// change: a unit's count is the one that starts at its edge
 	checked := 0
@@ -63,11 +63,11 @@ func TestOracleQuadrature(t *testing.T) {
 func TestOracleStepper(t *testing.T) {
 	const sr = 1000000
 	l := newTwoLine(sr)
-	l.add(0, 1, 300e-6)
+	l.Add(0, 1, 300e-6)
 	dirs := []byte{1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1}
 	stepperMoves(l, dirs, 200e-6, 2e-3)
 	stepperMoves(l, []byte{1, 1, 1, 1}, 100e-6, 1e-3)
-	r := Stepper(l.a.codes(), l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := Stepper(l.A.Codes(), l.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -77,7 +77,7 @@ func TestOracleStepper(t *testing.T) {
 			repo = append(repo, sp.Text[1:])
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"STEP", "DIR"}, [][]byte{l.a.bits, l.b.bits}, "stepper_motor:step=STEP:dir=DIR", "stepper_motor=position")
+	anns := sigrokDecode(t, sr, []string{"STEP", "DIR"}, [][]byte{l.A.Bits, l.B.Bits}, "stepper_motor:step=STEP:dir=DIR", "stepper_motor=position")
 	var orc []string
 	for _, a := range sortAnns(anns) {
 		orc = append(orc, strings.Fields(a.Text)[0])
@@ -92,10 +92,10 @@ func TestOracleStepper(t *testing.T) {
 func TestOraclePWM(t *testing.T) {
 	const sr = 2000000
 	w := newTimeline(sr)
-	w.add(0, 30e-6)
+	w.Add(0, 30e-6)
 	pwmWave(w, 100e-6, []float64{0.25, 0.5, 0.75, 0.1, 0.9, 0.333, 0.5, 0.05, 0.95, 0.5})
 	pwmWave(w, 37e-6, []float64{0.2, 0.4, 0.6, 0.8})
-	r := PWM(w.codes(), 1.0/sr, LineCfg{})
+	r := PWM(w.Codes(), 1.0/sr, LineCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -105,7 +105,7 @@ func TestOraclePWM(t *testing.T) {
 			repo = append(repo, sp.Text)
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, "pwm:data=D", "pwm=duty-cycle")
+	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, "pwm:data=D", "pwm=duty-cycle")
 	var orc []string
 	for _, a := range sortAnns(anns) {
 		p, err := strconv.ParseFloat(strings.TrimSuffix(a.Text, "%"), 64)

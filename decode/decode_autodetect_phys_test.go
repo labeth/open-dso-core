@@ -15,18 +15,18 @@ import (
 func physDetectCases() []detectCase {
 	var cs []detectCase
 	one := func(name, proto string, sr float64, w *timeline) {
-		c := w.codes()
+		c := w.Codes()
 		cs = append(cs, detectCase{name, c, idleLike(c), 1 / sr, proto, 0})
 		cs = append(cs, detectCase{name + " on C2", idleLike(c), c, 1 / sr, proto, 1})
 	}
 	two := func(name, proto string, sr float64, l twoLine) {
-		a, b := l.a.codes(), l.b.codes()
+		a, b := l.A.Codes(), l.B.Codes()
 		cs = append(cs, detectCase{name, a, b, 1 / sr, proto, 0})
 		cs = append(cs, detectCase{name + " swapped", b, a, 1 / sr, proto, 1})
 	}
 	{
 		w := newTimeline(2e6)
-		w.add(0, 30e-6)
+		w.Add(0, 30e-6)
 		var d []float64
 		for i := range 24 {
 			d = append(d, 0.3+0.4*float64(i%7)/6)
@@ -37,14 +37,14 @@ func physDetectCases() []detectCase {
 	{
 		const a = 350e-6
 		w := newTimeline(200e3)
-		w.add(0, 40*a)
+		w.Add(0, 40*a)
 		rcFrame2262(w, []int{0, 1, 2, 0, 0, 1, 1, 2, 0, 1, 0, 0}, a)
 		rcFrame2262(w, []int{0, 1, 2, 0, 0, 1, 1, 2, 0, 1, 0, 0}, a)
 		one("RC encode", "rcencode", 200e3, w)
 	}
 	{
 		w := newTimeline(100e3)
-		w.add(0, 20e-3)
+		w.Add(0, 20e-3)
 		for range 2 {
 			oregonBurst(w, 3, []int{0xF, 0x8, 0x2, 0x4, 0x1, 0x3, 0xA, 0x0, 0x5, 0x3, 0x2, 0x0, 0x4, 0x5, 0x0}, 1/2048.0, false, 40e-3)
 		}
@@ -54,7 +54,7 @@ func physDetectCases() []detectCase {
 		T := 1.0 / 106000
 		for _, pause := range []float64{2e-6, 0} {
 			w := newTimeline(4e6)
-			w.add(1, 40e-6)
+			w.Add(1, 40e-6)
 			millerMessage(w, []int{1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0}, T, pause, 60e-6)
 			millerMessage(w, []int{0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1}, T, pause, 60e-6)
 			millerMessage(w, []int{1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0}, T, pause, 60e-6)
@@ -67,13 +67,13 @@ func physDetectCases() []detectCase {
 	}
 	{
 		w := newTimeline(2000)
-		w.add(0, 0.5)
+		w.Add(0, 0.5)
 		morseText(w, "CQ CQ DE SM5ABC", 0.06, 10) //nolint:dupword // CQ CQ is Morse's general call
 		one("Morse", "morse", 2000, w)
 	}
 	{
 		w := newTimeline(1000)
-		w.add(0, 0.3)
+		w.Add(0, 0.3)
 		dcf77Minute(w, 0x37, 0x12, 0x18, 0x7, 0x10, 0x26, false)
 		dcf77Minute(w, 0x38, 0x12, 0x18, 0x7, 0x10, 0x26, false)
 		one("DCF77", "dcf77", 1000, w)
@@ -81,20 +81,20 @@ func physDetectCases() []detectCase {
 	{
 		// a test source's code at 3 ms a second, as a search at 20 ms/div reads it
 		w := newTimeline(125e3)
-		w.add(0, 2e-3)
+		w.Add(0, 2e-3)
 		dcf77MinuteAt(w, 3e-3, 0x37, 0x12, 0x18, 0x7, 0x10, 0x26, false)
 		dcf77MinuteAt(w, 3e-3, 0x38, 0x12, 0x18, 0x7, 0x10, 0x26, false)
 		one("DCF77 at 3 ms a second", "dcf77", 125e3, w)
 	}
 	{
 		w := newTimeline(125e3)
-		w.add(0, 20e-3)
+		w.Add(0, 20e-3)
 		morseText(w, "CQ CQ DE SM5", 2e-3, 10) //nolint:dupword // CQ CQ is Morse's general call
 		one("Morse at 2 ms a unit", "morse", 125e3, w)
 	}
 	{
 		w := newTimeline(500e3)
-		w.add(1, 768e-6)
+		w.Add(1, 768e-6)
 		for range 3 {
 			em4100Frame(w, [5]int{0x01, 0x23, 0x45, 0x67, 0x89}, 256e-6, false)
 		}
@@ -106,8 +106,8 @@ func physDetectCases() []detectCase {
 			sr = 4e6 // a carrier's half cycle is 4 us
 		}
 		w := newTimeline(sr)
-		f := rfidField{w, carrier}
-		f.on(500 * rfidFC)
+		f := rfidField{W: w, Carrier: carrier}
+		f.On(500 * rfidFC)
 		em4305Command(f, em4305Bits(2, 5, [4]int{0xDE, 0xAD, 0xBE, 0xEF}, false))
 		em4305Command(f, em4305Bits(1, -1, [4]int{0x12, 0x34, 0x56, 0x78}, false))
 		name := "EM4305 envelope"
@@ -116,8 +116,8 @@ func physDetectCases() []detectCase {
 		}
 		one(name, "em4305", sr, w)
 		w = newTimeline(sr)
-		f = rfidField{w, carrier}
-		f.on(500 * rfidFC)
+		f = rfidField{W: w, Carrier: carrier}
+		f.On(500 * rfidFC)
 		t55xxCommand(f, t55xxBits(2, -1, 0, 0x00148040, 1))
 		t55xxCommand(f, t55xxBits(2, -1, 0, 0xDEADBEEF, 2))
 		one("T55xx "+name[7:], "t55xx", sr, w)
@@ -125,7 +125,7 @@ func physDetectCases() []detectCase {
 	{
 		const T = 22 / 4e6
 		w := newTimeline(20e6)
-		w.add(1, 20e-6)
+		w.Add(1, 20e-6)
 		swimSync(w, T)
 		for _, f := range [][3]int{{0, 3, 1}, {0, 8, 2}, {0, 8, 0}, {0, 8, 0x50}, {0, 8, 0x0A}, {1, 8, 0x5A}, {1, 8, 0xC3}} {
 			swimFrame(w, f[0], f[1], f[2], T, 1, false, 3*T)
@@ -135,24 +135,24 @@ func physDetectCases() []detectCase {
 	{
 		T := 1 / 98425.0
 		w := newTimeline(10e6)
-		w.add(1, 30e-6)
+		w.Add(1, 30e-6)
 		sdqBreak(w, T)
 		for _, v := range []int{0x33, 0x01, 0xFE, 0x80, 0x55} {
 			sdqByte(w, v, T)
 		}
-		w.add(1, 50e-6)
+		w.Add(1, 50e-6)
 		one("SDQ", "sdq", 10e6, w)
 	}
 	{
 		w := newTimeline(2e6)
-		w.add(0, 500e-6)
+		w.Add(0, 500e-6)
 		pjdlFrame(w, 1, pjonPacket(0x2A, 0x02, []int{0x11, 0x22, 0x33}, false), 1e-3)
 		pjdlFrame(w, 1, pjonPacket(0x05, 0x00, []int{0x48, 0x69}, false), 1e-3)
 		one("PJON", "pjdl", 2e6, w)
 	}
 	{
 		w := newTimeline(100e3)
-		w.add(0, 10e-3)
+		w.Add(0, 10e-3)
 		for _, v := range []int{0x00, 0xFF, 0x80, 0x55} {
 			dsiFrame(w, v, 12e-3)
 		}
@@ -160,15 +160,15 @@ func physDetectCases() []detectCase {
 	}
 	{
 		w := newTimeline(200e3)
-		w.add(0, 5e-3)
+		w.Add(0, 5e-3)
 		qiPacket(w, []int{0x01, 0x80}, false, 8e-3)
 		qiPacket(w, []int{0x03, 0x05}, false, 8e-3)
 		one("Qi", "qi", 200e3, w)
 	}
 	ir := func(name string, f func(l irLine)) {
 		w := newTimeline(100e3)
-		l := irLine{w: w}
-		l.space(20e-3)
+		l := irLine{W: w}
+		l.Space(20e-3)
 		f(l)
 		one(name, "irmp", 100e3, w)
 	}
@@ -178,7 +178,7 @@ func physDetectCases() []detectCase {
 	ir("IR Denon", func(l irLine) { irDenon(l, 0x0A, 0x2C4) })
 	{
 		l := newTwoLine(1e6)
-		l.add(0, 0, 300e-6)
+		l.Add(0, 0, 300e-6)
 		var moves []int
 		for range 30 {
 			moves = append(moves, 1)
@@ -188,7 +188,7 @@ func physDetectCases() []detectCase {
 	}
 	{
 		l := newTwoLine(1e6)
-		l.add(0, 1, 300e-6)
+		l.Add(0, 1, 300e-6)
 		dirs := make([]byte, 0, 30)
 		for i := range 30 {
 			dirs = append(dirs, byte(i/15))
@@ -219,33 +219,33 @@ func physDetectCases() []detectCase {
 		two("PDI", "pdi", 2e6, l)
 	}
 	{
-		c := &cjtagLine{l: newTwoLine(2e6), per: 4e-6}
+		c := &cjtagLine{P: newTwoLine(2e6), Per: 4e-6}
 		for range 4 {
-			c.rise(0)
+			c.Rise(0)
 		}
-		c.escape(6)
+		c.Escape(6)
 		for _, b := range []int{1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1} {
-			c.rise(b)
+			c.Rise(b)
 		}
-		c.tck(0, 0, 0, true)
-		c.scan(true, 4, 0x5, 0x1)
-		c.scan(false, 32, 0x12345678, 0x4BA00477)
-		two("cJTAG", "cjtag", 2e6, c.l)
+		c.TCK(0, 0, 0, true)
+		c.Scan(true, 4, 0x5, 0x1)
+		c.Scan(false, 32, 0x12345678, 0x4BA00477)
+		two("cJTAG", "cjtag", 2e6, c.P)
 	}
 	{
-		m := &mapleLine{l: newTwoLine(20e6), st: 250e-9}
-		m.set(1, 1)
-		m.frame(mapleBytes(0x20, 0x00, 0x01, nil, false))
+		m := &mapleLine{P: newTwoLine(20e6), Step: 250e-9}
+		m.Set(1, 1)
+		m.Frame(mapleBytes(0x20, 0x00, 0x01, nil, false))
 		for range 20 {
-			m.set(1, 1)
+			m.Set(1, 1)
 		}
-		m.frame(mapleBytes(0x00, 0x20, 0x05, []int{0x00, 0x00, 0x00, 0x01}, false))
-		m.set(1, 1)
-		two("Maple", "maple", 20e6, m.l)
+		m.Frame(mapleBytes(0x00, 0x20, 0x05, []int{0x00, 0x00, 0x00, 0x01}, false))
+		m.Set(1, 1)
+		two("Maple", "maple", 20e6, m.P)
 	}
 	{
 		l := newTwoLine(200e3)
-		l.add(0, 0, 20e-3)
+		l.Add(0, 0, 20e-3)
 		for i := range 3 {
 			caliperFrame(l, 1234+i, false, false, 80e-6, 30e-3)
 		}
@@ -314,10 +314,10 @@ func TestAutodetectPhysStealsNothing(t *testing.T) {
 	// a clock, and the same clock on both channels
 	w := newTimeline(10e6)
 	for range 200 {
-		w.add(1, 1e-6)
-		w.add(0, 1e-6)
+		w.Add(1, 1e-6)
+		w.Add(0, 1e-6)
 	}
-	clk := w.codes()
+	clk := w.Codes()
 	for _, pair := range [][2][]uint8{{clk, idleLike(clk)}, {clk, clk}} {
 		if r, _ := AutodetectFast(pair[0], pair[1], 1e-7, "hex"); phys[r.Proto] {
 			t.Errorf("a clock named %q", r.Proto)
@@ -329,13 +329,13 @@ func TestAutodetectPhysStealsNothing(t *testing.T) {
 		bits = append(bits, (i*7+3)%5&1)
 	}
 	w = newTimeline(4e6)
-	w.add(0, 20e-6)
+	w.Add(0, 20e-6)
 	for _, b := range bits {
-		w.add(byte(b), 5e-6)
-		w.add(byte(1-b), 5e-6)
+		w.Add(byte(b), 5e-6)
+		w.Add(byte(1-b), 5e-6)
 	}
-	w.add(0, 20e-6)
-	m := w.codes()
+	w.Add(0, 20e-6)
+	m := w.Codes()
 	if r, _ := AutodetectFast(m, idleLike(m), 2.5e-7, "hex"); phys[r.Proto] {
 		t.Errorf("Manchester named %q", r.Proto)
 	}

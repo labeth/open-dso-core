@@ -62,27 +62,6 @@ func bitsToCodes(bits []byte) []uint8 {
 	return out
 }
 
-// timeline builds a logic waveform by appending levels for durations, with
-// float sample positions floored at boundaries — so non-integer
-// samples-per-bit accumulate exactly like a real capture of an async source.
-// TRLC-LINKS: REQ-DSO-018
-type timeline struct {
-	sr   float64 // samples per second
-	t    float64 // current time, seconds
-	bits []byte
-}
-
-// TRLC-LINKS: REQ-DSO-018
-func newTimeline(sampleRate float64) *timeline { return &timeline{sr: sampleRate} }
-
-// TRLC-LINKS: REQ-DSO-018
-func (w *timeline) add(level byte, dur float64) {
-	w.t += dur
-	for len(w.bits) < int(w.t*w.sr) {
-		w.bits = append(w.bits, level)
-	}
-}
-
 // ann is one parsed sigrok-cli annotation.
 // TRLC-LINKS: REQ-DSO-018
 type ann struct {

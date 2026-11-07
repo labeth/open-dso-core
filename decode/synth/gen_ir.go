@@ -1,82 +1,82 @@
 // ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
-package decode
+package synth
 
 // Generators of the infrared remote protocols (proto_gen_test.go): marks
-// and spaces on an irLine, written active-low (a receiver's output) unless
+// and spaces on an IRLine, written active-low (a receiver's output) unless
 // activeHigh, a mark modulated at carrierHz when that is set.
 
-// irLine writes marks and spaces.
-type irLine struct {
-	w          *timeline
-	activeHigh bool
-	carrierHz  float64
+// IRLine writes marks and spaces.
+type IRLine struct {
+	W          *Line
+	ActiveHigh bool    // marks high (an emitter's drive), not low (a receiver's output)
+	CarrierHz  float64 // a mark's carrier; 0: the mark is a level
 }
 
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
-func (l irLine) level(mark bool) byte {
-	if mark == l.activeHigh {
+func (l IRLine) level(mark bool) byte {
+	if mark == l.ActiveHigh {
 		return 1
 	}
 	return 0
 }
 
-// mark appends a mark of d seconds.
+// Mark appends a mark of d seconds.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
-func (l irLine) mark(d float64) {
-	if l.carrierHz <= 0 {
-		l.w.add(l.level(true), d)
+func (l IRLine) Mark(d float64) {
+	if l.CarrierHz <= 0 {
+		l.W.Add(l.level(true), d)
 		return
 	}
-	half := 0.5 / l.carrierHz
+	half := 0.5 / l.CarrierHz
 	for t := 0.0; t < d-1e-12; t += 2 * half {
 		on := min(half, d-t)
-		l.w.add(l.level(true), on)
+		l.W.Add(l.level(true), on)
 		if off := min(half, d-t-on); off > 0 {
-			l.w.add(l.level(false), off)
+			l.W.Add(l.level(false), off)
 		}
 	}
 }
 
-// space appends a space of d seconds.
+// Space appends a space of d seconds.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
-func (l irLine) space(d float64) { l.w.add(l.level(false), d) }
+func (l IRLine) Space(d float64) { l.W.Add(l.level(false), d) }
 
-// necFrame appends an NEC frame of addr and cmd (addrHi < 0: the address's
+// NECFrame appends an NEC frame of addr and cmd (addrHi < 0: the address's
 // inverse) and the 40 ms after it.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
-func necFrame(l irLine, addr, addrHi, cmd int) {
+func NECFrame(l IRLine, addr, addrHi, cmd int) {
 	if addrHi < 0 {
 		addrHi = addr ^ 0xff
 	}
-	l.mark(9e-3)
-	l.space(4.5e-3)
+	l.Mark(9e-3)
+	l.Space(4.5e-3)
 	for _, v := range []int{addr, addrHi, cmd, cmd ^ 0xff} {
 		for i := range 8 {
-			l.mark(562.5e-6)
+			l.Mark(562.5e-6)
 			if v>>i&1 == 1 {
-				l.space(1687.5e-6)
+				l.Space(1687.5e-6)
 			} else {
-				l.space(562.5e-6)
+				l.Space(562.5e-6)
 			}
 		}
 	}
-	l.mark(562.5e-6)
-	l.space(40e-3)
+	l.Mark(562.5e-6)
+	l.Space(40e-3)
 }
 
-// necRepeat appends an NEC repeat code and the 96 ms after it.
+// NECRepeat appends an NEC repeat code and the 96 ms after it.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
-func necRepeat(l irLine) {
-	l.mark(9e-3)
-	l.space(2.25e-3)
-	l.mark(562.5e-6)
-	l.space(96e-3)
+func NECRepeat(l IRLine) {
+	l.Mark(9e-3)
+	l.Space(2.25e-3)
+	l.Mark(562.5e-6)
+	l.Space(96e-3)
 }
 
-// sircFrame appends a SIRC frame of nbits (12, 15 or 20) and the gap to 45 ms.
+// SIRCFrame appends a SIRC frame of nbits (12, 15 or 20) and the gap to 45 ms.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
-func sircFrame(l irLine, nbits, cmd, addr, ext int) {
+func SIRCFrame(l IRLine, nbits, cmd, addr, ext int) {
 	bits := make([]int, 0, nbits)
 	push := func(v, n int) {
 		for i := range n {
@@ -93,24 +93,24 @@ func sircFrame(l irLine, nbits, cmd, addr, ext int) {
 		push(addr, 5)
 		push(ext, 8)
 	}
-	l.mark(2.4e-3)
+	l.Mark(2.4e-3)
 	used := 2.4e-3
 	for _, b := range bits {
-		l.space(0.6e-3)
+		l.Space(0.6e-3)
 		d := 0.6e-3
 		if b == 1 {
 			d = 1.2e-3
 		}
-		l.mark(d)
+		l.Mark(d)
 		used += 0.6e-3 + d
 	}
-	l.space(45e-3 - used)
+	l.Space(45e-3 - used)
 }
 
-// rc5Frame appends an RC-5 frame (address 5 bits, command 6 or 7 bits:
+// RC5Frame appends an RC-5 frame (address 5 bits, command 6 or 7 bits:
 // RC-5X) and 100 ms of idle.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
-func rc5Frame(l irLine, toggle, addr, cmd int) {
+func RC5Frame(l IRLine, toggle, addr, cmd int) {
 	s2 := 1 - (cmd>>6)&1
 	bits := []int{1, s2, toggle}
 	for k := 4; k >= 0; k-- {
@@ -122,32 +122,32 @@ func rc5Frame(l irLine, toggle, addr, cmd int) {
 	const h = 889e-6
 	for _, b := range bits {
 		if b == 1 {
-			l.space(h)
-			l.mark(h)
+			l.Space(h)
+			l.Mark(h)
 		} else {
-			l.mark(h)
-			l.space(h)
+			l.Mark(h)
+			l.Space(h)
 		}
 	}
-	l.space(100e-3)
+	l.Space(100e-3)
 }
 
-// rc6Frame appends an RC-6 frame of the mode and payload bytes and 100 ms
+// RC6Frame appends an RC-6 frame of the mode and payload bytes and 100 ms
 // of idle.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
-func rc6Frame(l irLine, mode, toggle int, payload []int) {
+func RC6Frame(l IRLine, mode, toggle int, payload []int) {
 	const t = 444e-6
 	bit := func(b int, u float64) {
 		if b == 1 {
-			l.mark(u)
-			l.space(u)
+			l.Mark(u)
+			l.Space(u)
 		} else {
-			l.space(u)
-			l.mark(u)
+			l.Space(u)
+			l.Mark(u)
 		}
 	}
-	l.mark(6 * t)
-	l.space(2 * t)
+	l.Mark(6 * t)
+	l.Space(2 * t)
 	bit(1, t)
 	for k := 2; k >= 0; k-- {
 		bit(mode>>k&1, t)
@@ -158,5 +158,5 @@ func rc6Frame(l irLine, mode, toggle int, payload []int) {
 			bit(v>>k&1, t)
 		}
 	}
-	l.space(100e-3)
+	l.Space(100e-3)
 }
