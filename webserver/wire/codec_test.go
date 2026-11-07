@@ -62,3 +62,25 @@ func BenchmarkEncodeSoundBin(b *testing.B) {
 		EncodeSoundBin(h, q1, q2, 4096)
 	}
 }
+
+// JSONSafe leaves out an omitempty field that is an empty collection or a
+// nil reference, and still writes an omitempty scalar.
+// TRLC-LINKS: REQ-DSO-274
+func TestJSONSafeOmitEmpty(t *testing.T) {
+	v := struct {
+		L     []int      `json:"l,omitempty"`
+		P     *int       `json:"p,omitempty"`
+		Kept  []int      `json:"kept,omitempty"`
+		Err   string     `json:"err,omitempty"`
+		Plain []int      `json:"plain"`
+		NaN   float64    `json:"nan"`
+		Lanes SoundScale `json:"lanes"`
+	}{Kept: []int{1}, NaN: math.NaN()}
+	b, err := json.Marshal(JSONSafe(reflect.ValueOf(v)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `{"err":"","kept":[1],"lanes":{"from":0,"off":[0,0],"vpc":[0,0]},"nan":null,"plain":[]}`; string(b) != want {
+		t.Fatalf("%s, want %s", b, want)
+	}
+}
