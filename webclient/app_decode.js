@@ -5,8 +5,7 @@
 "use strict";
 // TRLC-LINKS: REQ-SDS-207
 function decCodes(role) {
-  const c = role === 2 ? (frame && frame.c2) : (frame && frame.c1);
-  return c;
+  return frame ? frame["c" + (role > 1 ? role : 1)] : frame;
 }
 
 // decodeFeatureSamples is the shortest feature of a decode's bus in samples

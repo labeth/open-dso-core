@@ -25,9 +25,9 @@ let frozen = false;
 // client SHOWS is at the probe tip, but code/DAC math is electrical (at the
 // scope input), so divide tip volts by the probe factor before sending.
 // TRLC-LINKS: REQ-SDS-204
-const probeOf = (ch) => (st && (ch === 2 ? st.probe2 : st.probe1)) || 1;
+const probeOf = (ch) => (st && st["probe" + (ch > 1 ? ch : 1)]) || 1;
 // TRLC-LINKS: REQ-SDS-204
-const trigProbe = () => probeOf(st && st.trig_source === 1 ? 2 : 1);
+const trigProbe = () => probeOf(trigChan());
 // Per-detent trigger cal pushed by the server (code = zero − cpv·V, BNC volts).
 // Falls back to the pre-cal global fit so an old server still works.
 // TRLC-LINKS: REQ-SDS-204

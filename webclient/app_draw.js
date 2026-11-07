@@ -198,11 +198,11 @@ function drawTrigMarkers(g) {
   // Horizontal trigger-LEVEL line (where the level sits on the trace = the
   // point the display now anchors on).
   if (st.trig_code) {
-    const vpc = (frame && (st.trig_source === 1 ? frame.vpc2 : frame.vpc1)) || (1 / 25);
+    const tc = trigChan(), vpc = (frame && frame["vpc" + tc]) || (1 / 25);
     // Include the source channel's offset so the level line sits where the
     // trigger actually is on the offset-shifted trace (matches the engine's
     // centering anchor and the LCD marker).
-    const off = (frame && (st.trig_source === 1 ? frame.off2_v : frame.off1_v)) || 0;
+    const off = (frame && frame["off" + tc + "_v"]) || 0;
     const y = yFor(128 + (st.trig_volts + off) / vpc, 1);
     if (y >= 0 && y <= plotH()) {
       g.strokeStyle = TRIGCOL; g.globalAlpha = 0.7; g.setLineDash([6 * dpr, 5 * dpr]); g.lineWidth = dpr;
@@ -233,8 +233,7 @@ function drawTrigMarkers(g) {
 function drawChannelMarkers(g) {
   if (!frame) return;
   g.textBaseline = "middle"; g.font = "bold " + (10 * dpr) + "px system-ui";
-  const chans = [[view.c1, frame.vpc1, frame.off1_v, st ? st.zoom1 : 1, C1COL, "1"],
-                 [view.c2, frame.vpc2, frame.off2_v, st ? st.zoom2 : 1, C2COL, "2"]];
+  const chans = chanNums().map((n) => [view["c" + n], frame["vpc" + n], frame["off" + n + "_v"], st ? st["zoom" + n] : 1, chanColor(n), String(n)]);
   for (const [en, vpc, offV, zoom, col, lbl] of chans) {
     if (!en || !vpc) continue;
     const y = yFor(128 + (offV || 0) / vpc, zoom || 1);
@@ -444,17 +443,18 @@ function drawYT(g) {
   drawGrid(g);
   drawRefs(g); // references sit UNDER the live traces
   if (frame) {
+    // the channels drawn last first, so C1 lies on top
+    const shown = chanNums().reverse().filter((n) => view["c" + n]);
+    // TRLC-LINKS: REQ-SDS-071
+    const zoom = (n) => st ? st["zoom" + n] : 1, inv = (n) => !!(st && st["inv" + n]);
     if (frame.is_env) {
-      if (view.c2) drawEnv(g, frame.e2min, frame.e2max, C2COL, st ? st.zoom2 : 1, !!(st && st.inv2));
-      if (view.c1) drawEnv(g, frame.e1min, frame.e1max, C1COL, st ? st.zoom1 : 1, !!(st && st.inv1));
+      for (const n of shown) drawEnv(g, frame["e" + n + "min"], frame["e" + n + "max"], chanColor(n), zoom(n), inv(n));
     } else if (viewCovers(frame)) {
       // zoomed into a live envelope: the stretch read again at full detail
-      if (view.c2) drawViewTrace(g, frame.vc2, frame.view_a, frame.view_b, C2COL, st ? st.zoom2 : 1, !!(st && st.inv2));
-      if (view.c1) drawViewTrace(g, frame.vc1, frame.view_a, frame.view_b, C1COL, st ? st.zoom1 : 1, !!(st && st.inv1));
+      for (const n of shown) drawViewTrace(g, frame["vc" + n], frame.view_a, frame.view_b, chanColor(n), zoom(n), inv(n));
       drawMath(g);
     } else {
-      if (view.c2) drawTraceHeld(g, frame.c2, frame.held, C2COL, st ? st.zoom2 : 1, !!(st && st.inv2));
-      if (view.c1) drawTraceHeld(g, frame.c1, frame.held, C1COL, st ? st.zoom1 : 1, !!(st && st.inv1));
+      for (const n of shown) drawTraceHeld(g, frame["c" + n], frame.held, chanColor(n), zoom(n), inv(n));
       drawMath(g);
     }
   }

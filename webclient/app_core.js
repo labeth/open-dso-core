@@ -41,8 +41,7 @@ function redraw() {
     // grid; channel/trigger markers sit on top. See R.persistFade/Composite.
     drawGrid(ctx); drawRefs(ctx);
     GLR.persistFade(0.14);
-    if (view.c2) drawTrace(ctx, frame.c2, C2COL, st ? st.zoom2 : 1, !!(st && st.inv2));
-    if (view.c1) drawTrace(ctx, frame.c1, C1COL, st ? st.zoom1 : 1, !!(st && st.inv1));
+    for (const n of chanNums().reverse()) if (view["c" + n]) drawTrace(ctx, frame["c" + n], chanColor(n), st ? st["zoom" + n] : 1, !!(st && st["inv" + n]));
     drawMath(ctx);
     GLR.persistComposite();
     drawChannelMarkers(ctx); drawTrigMarkers(ctx);
@@ -68,22 +67,24 @@ function redraw() {
 // wherever it is shown.
 // TRLC-LINKS: REQ-SDS-204, REQ-SDS-217
 function updateMeas() {
-  const clip1 = !!(frame && frame.clip1), clip2 = !!(frame && frame.clip2);
-  const sig = clip1 + ":" + clip2;
+  const nums = chanNums(), clips = nums.map((n) => !!(frame && frame["clip" + n]));
+  const sig = clips.join(":");
   if (sig !== measDomSig || !measCells) {
     measDomSig = sig;
     // TRLC-LINKS: REQ-SDS-204
     const clipTag = c => c ? ` <span class="clip" title="signal is clipping — increase V/div or probe; measurements unreliable">⚠ CLIP</span>` : "";
+    // more channels than the stylesheet's two columns: one column each
+    const qcols = nums.length > 2 ? ` style="grid-template-columns: 58px repeat(${nums.length}, minmax(0, 104px))"` : "";
     // TRLC-LINKS: REQ-SDS-204
-    const half = (keys) => `<div class="qcol"><span></span><span class="hd cc1">C1${clipTag(clip1)}</span><span class="hd cc2">C2${clipTag(clip2)}</span>` +
-      keys.map((k) => `<span class="k">${k}</span><span class="v cc1" data-meas="1:${k}"></span><span class="v cc2" data-meas="2:${k}"></span>`).join("") + `</div>`;
+    const half = (keys) => `<div class="qcol"${qcols}><span></span>` + nums.map((n, i) => `<span class="hd cc${n}">${chanName(n)}${clipTag(clips[i])}</span>`).join("") +
+      keys.map((k) => `<span class="k">${k}</span>` + nums.map((n) => `<span class="v cc${n}" data-meas="${n}:${k}"></span>`).join("")).join("") + `</div>`;
     $("quickBody").innerHTML = half(MEAS_CORE.slice(0, 4)) + half(MEAS_CORE.slice(4));
     // all values: every parameter in two columns side by side, nine and nine as
-    // on the scope, so every value shows without scrolling and C1/C2 sit close
-    // to their names
+    // on the scope, so every value shows without scrolling and the channels sit
+    // close to their names
     // TRLC-LINKS: REQ-SDS-217
-    const cell = (k) => k ? `<th>${k}</th><td class="cc1" data-meas="1:${k}"></td><td class="cc2" data-meas="2:${k}"></td>` : "<th></th><td></td><td></td>";
-    const hd = `<th></th><td class="cc1">C1${clipTag(clip1)}</td><td class="cc2">C2${clipTag(clip2)}</td>`;
+    const cell = (k) => k ? `<th>${k}</th>` + nums.map((n) => `<td class="cc${n}" data-meas="${n}:${k}"></td>`).join("") : "<th></th>" + nums.map(() => "<td></td>").join("");
+    const hd = `<th></th>` + nums.map((n, i) => `<td class="cc${n}">${chanName(n)}${clipTag(clips[i])}</td>`).join("");
     let html = `<tr class="hd">${hd}<td></td>${hd}</tr>`;
     const rows = Math.ceil(MEAS_ALL.length / 2);
     for (let i = 0; i < rows; i++) html += `<tr>${cell(MEAS_ALL[i])}<td></td>${cell(MEAS_ALL[rows + i])}</tr>`;
@@ -93,9 +94,8 @@ function updateMeas() {
       return { el, ch: +ch, k };
     });
   }
-  const m1 = frame && frame.m1, m2 = frame && frame.m2;
   for (const c of measCells) {
-    const t = fmtMeas(c.k, c.ch === 1 ? m1 : m2);
+    const t = fmtMeas(c.k, frame ? frame["m" + c.ch] : undefined);
     if (c.el.textContent !== t) c.el.textContent = t;
   }
 }
@@ -126,8 +126,8 @@ function curXAt(t) {
 // curScale is channel ch's volts per code (at the tip), detent zoom and offset.
 // TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
 function curScale(ch) {
-  return { vpc: (ch === 2 ? frame.vpc2 : frame.vpc1) || 1 / 25, z: (st && (ch === 2 ? st.zoom2 : st.zoom1)) || 1,
-    off: (ch === 2 ? frame.off2_v : frame.off1_v) || 0 };
+  const n = ch > 1 ? ch : 1;
+  return { vpc: frame["vpc" + n] || 1 / 25, z: (st && st["zoom" + n]) || 1, off: frame["off" + n + "_v"] || 0 };
 }
 
 // curVoltAt is channel ch's volts at canvas fraction y.
@@ -157,7 +157,7 @@ function curAnchored() {
 function curSync() {
   if (!curAnchored()) return;
   if (!cur.at) {
-    const ch = view.c1 || !view.c2 ? 1 : 2;
+    const ch = chanNums().find((n) => view["c" + n]) || 1;
     cur.at = { t1: curTimeAt(cur.t1), t2: curTimeAt(cur.t2), v1: curVoltAt(cur.v1, ch), v2: curVoltAt(cur.v2, ch), ch };
     return;
   }
@@ -189,15 +189,15 @@ function updateCursors() {
   const ta = curTimeAt(cur.t1), tb = curTimeAt(cur.t2), dt = Math.abs(tb - ta);
   // TRLC-LINKS: REQ-SDS-217
   const v = (y, ch) => cur.at && ch === cur.at.ch && curAnchored() ? cur.at[y] : curVoltAt(cur[y], ch);
-  const dv1 = Math.abs(v("v2", 1) - v("v1", 1)), dv2 = Math.abs(v("v2", 2) - v("v1", 2));
   const html =
     `<tr><th>A / B</th><td>${eng(ta, "s")}</td><td>${eng(tb, "s")}</td></tr>` +
     `<tr><th>Δt</th><td colspan="2">${eng(dt, "s")}</td></tr>` +
     `<tr><th>1/Δt</th><td colspan="2">${dt > 0 ? eng(1 / dt, "Hz") : "—"}</td></tr>` +
-    `<tr><th class="cc1">C1 A / B</th><td class="cc1">${eng(v("v1", 1), "V")}</td><td class="cc1">${eng(v("v2", 1), "V")}</td></tr>` +
-    `<tr><th>ΔV C1</th><td colspan="2" class="cc1">${eng(dv1, "V")}</td></tr>` +
-    `<tr><th class="cc2">C2 A / B</th><td class="cc2">${eng(v("v1", 2), "V")}</td><td class="cc2">${eng(v("v2", 2), "V")}</td></tr>` +
-    `<tr><th>ΔV C2</th><td colspan="2" class="cc2">${eng(dv2, "V")}</td></tr>`;
+    chanNums().map((n) => {
+      const name = chanName(n), dv = Math.abs(v("v2", n) - v("v1", n));
+      return `<tr><th class="cc${n}">${name} A / B</th><td class="cc${n}">${eng(v("v1", n), "V")}</td><td class="cc${n}">${eng(v("v2", n), "V")}</td></tr>` +
+        `<tr><th>ΔV ${name}</th><td colspan="2" class="cc${n}">${eng(dv, "V")}</td></tr>`;
+    }).join("");
   if (lastCurHTML !== html) { lastCurHTML = html; body.innerHTML = html; }
 }
 
@@ -269,7 +269,7 @@ function applyStatus() {
   upd($("stopped").style, "display", st.running ? "none" : "block");
   setFromStatus($("mode"), st.norm ? 1 : 0);
   setFromStatus($("slope"), st.trig_rising ? 1 : 0);
-  setFromStatus($("source"), st.trig_source === 1 ? 1 : 0);
+  setFromStatus($("source"), capsServed ? st.trig_source || 0 : st.trig_source === 1 ? 1 : 0);
   $("ets").classList.toggle("on", !!st.ets && st.band !== "sram");
   upd($("ets"), "disabled", st.band === "sram");
   upd($("ets"), "title", st.band === "sram" ? "Equivalent-time acquisition is unavailable with SRAM capture" : "Equivalent-time sampling (≤50 ns/div)");
@@ -296,23 +296,27 @@ function applyStatus() {
   upd($("memdepth"), "title", st.band === "sram" ? "Full SRAM retained; RUN transfers a preview, STOP recalls the complete record" : "Memory depth");
   if (document.activeElement !== $("holdoff")) $("holdoff").value = st.holdoff_s || 0;
   if (!lvlDragging && st.trig_code) { $("lvl").value = st.trig_volts; $("lvlv").textContent = eng(st.trig_volts, "V"); }
-  if ($("tdiv").options.length === 0 && st.tdivs)
-    for (const t of st.tdivs) { const o = document.createElement("option"); o.value = t; o.textContent = fmtTdiv(t); $("tdiv").appendChild(o); }
-  if ($("vdiv1").options.length === 0 && st.vdivs)
-    for (const id of ["vdiv1", "vdiv2"]) for (const v of st.vdivs) { const o = document.createElement("option"); o.value = v; $(id).appendChild(o); }
+  // the ladders the status carries, else the scope's caps'
+  const tdivs = st.tdivs || (capsServed && caps.timebase && caps.timebase.tdivs);
+  const vdivs = st.vdivs || (capsServed && caps.vertical && caps.vertical.vdivs);
+  const chans = chanNums();
+  if ($("tdiv").options.length === 0 && tdivs)
+    for (const t of tdivs) { const o = document.createElement("option"); o.value = t; o.textContent = fmtTdiv(t); $("tdiv").appendChild(o); }
+  if (vdivs)
+    for (const ch of chans) if ($("vdiv" + ch).options.length === 0) for (const v of vdivs) { const o = document.createElement("option"); o.value = v; $("vdiv" + ch).appendChild(o); }
   // The options carry the range at the BNC (what the scope takes) and read
   // at the probe tip, as the LCD and SCPI do: 10x at the 0.2 V range is 2 V.
-  for (const ch of [1, 2]) {
+  for (const ch of chans) {
     const el = $("vdiv" + ch), p = probeOf(ch);
     if (el._probe !== p) { el._probe = p; for (const o of el.options) o.textContent = fmtVdiv(+(o.value * p).toPrecision(3)); }
   }
-  for (const [id, val] of [["tdiv", st.tdiv_s], ["vdiv1", st.vdiv1], ["vdiv2", st.vdiv2]]) {
+  for (const [id, val] of [["tdiv", st.tdiv_s]].concat(chans.map((ch) => ["vdiv" + ch, st["vdiv" + ch]]))) {
     const el = $(id);
     if (val && document.activeElement !== el && !(el._userAt && performance.now() - el._userAt < 1500))
       for (const o of el.options) if (Math.abs(+o.value - val) <= val * 1e-6) { o.selected = true; break; }
   }
-  for (const [id, val] of [["probe1", st.probe1], ["probe2", st.probe2]]) setFromStatus($(id), val || 1);
-  for (const [id, val] of [["cpl1", st.cpl1], ["cpl2", st.cpl2]]) setFromStatus($(id), val || 0);
+  for (const ch of chans) setFromStatus($("probe" + ch), st["probe" + ch] || 1);
+  for (const ch of chans) setFromStatus($("cpl" + ch), st["cpl" + ch] || 0);
   // The strip's trigger caption names the type (and the bytes of an armed serial trigger).
   {
     const types = ["Edge", "Pulse", "Slope", "Video"];
@@ -324,13 +328,13 @@ function applyStatus() {
   // Sliders read/emit tip-referred volts. Their span and step follow each
   // channel's V/div: a fixed ±3.8 V in 50 mV steps was 25 div a step at
   // 2 mV/div and ±0.4 div end to end at 10 V/div.
-  for (const ch of [1, 2]) {
+  for (const ch of chans) {
     const vd = st["vdiv" + ch] || 1, p = probeOf(ch);
     const span = Math.min(vd <= 0.2 ? 1.6 : 40, 10 * vd) * p; // tier range, at most ±10 div
     const o = $("off" + ch); upd(o, "min", -span); upd(o, "max", span); upd(o, "step", vd * p / 25);
   }
   {
-    const src = (st.trig_source || 0) + 1, vd = st["vdiv" + src] || 1, p = trigProbe();
+    const src = trigChan(), vd = st["vdiv" + src] || 1, p = trigProbe();
     const off = Number.isFinite(st["off" + src + "_v"]) ? st["off" + src + "_v"] : 0;
     // ±5 div of screen, its ends on whole steps of one code from 0 V: a range snaps to min + n·step, and an
     // offset-shifted min (-4.56 mV after Default setup) would leave 0 V off the grid (back at the centre the
@@ -340,10 +344,11 @@ function applyStatus() {
     upd($("lvl"), "min", Math.floor((-5 * vd * p - off) / step) * step); upd($("lvl"), "max", Math.ceil((5 * vd * p - off) / step) * step);
   }
   if (!offDragging) {
-    upd($("off1v"), "textContent", Number.isFinite(st.off1_v) ? eng(st.off1_v, "V") : "—");
-    upd($("off2v"), "textContent", Number.isFinite(st.off2_v) ? eng(st.off2_v, "V") : "—");
-    if (Number.isFinite(st.off1_v)) $("off1").value = st.off1_v;
-    if (Number.isFinite(st.off2_v)) $("off2").value = st.off2_v;
+    for (const ch of chans) {
+      const v = st["off" + ch + "_v"];
+      upd($("off" + ch + "v"), "textContent", Number.isFinite(v) ? eng(v, "V") : "—");
+    }
+    for (const ch of chans) if (Number.isFinite(st["off" + ch + "_v"])) $("off" + ch).value = st["off" + ch + "_v"];
   }
   updateStatusLine();
   const state = trigState();
@@ -550,10 +555,10 @@ async function pollFrameBin() {
   if (superseded) return; // another browser took control; wait for a manual refresh
   if (frozen || document.hidden) { setTimeout(pollFrameBin, 90); return; } // idle tick; hidden tabs stop hitting the device
   try {
-    const r = await fetch("/api/frame.bin?since=" + lastSeq + "&cols=" + reqCols + "&full=1&waitms=1000&epoch=" + myEpoch + viewParam());
+    const r = await fetch("/api/frame.bin?since=" + lastSeq + "&cols=" + reqCols + "&full=1&waitms=1000&epoch=" + myEpoch + viewParam() + frameWireQuery());
     if (r.status === 409) { showSuperseded(); return; } // a newer browser claimed the device — stop loading it
     if (!r.ok) throw new Error("http " + r.status);
-    const f = decodeBinFrame(await r.arrayBuffer());
+    const f = decodeFrameReply(await r.arrayBuffer());
     if (f === null) throw new Error("bad frame"); // never render a reply that failed validation
     binFailures = 0;
     // Re-check frozen AFTER the await: the request parks server-side for up
@@ -592,8 +597,8 @@ async function fetchFftRaw() {
   fftRawBusy = true; fftRawT = performance.now();
   try {
     fftLeased = true;
-    const r = await fetch("/api/frame.bin?raw=1&lease=spectrum&waitms=300");
-    if (r.ok) { const f = decodeBinFrame(await r.arrayBuffer()); if (f && !f.unchanged && f.c1 && f.sample_s > 0) { fftRaw = f; if (view.mode === "FFT") redraw(); } }
+    const r = await fetch("/api/frame.bin?raw=1&lease=spectrum&waitms=300" + frameWireQuery());
+    if (r.ok) { const f = decodeFrameReply(await r.arrayBuffer()); if (f && !f.unchanged && f.c1 && f.sample_s > 0) { fftRaw = f; if (view.mode === "FFT") redraw(); } }
   } catch (e) { /* transient — the next tick retries */ } finally { fftRawBusy = false; }
 }
 
@@ -603,7 +608,7 @@ async function pollStatus() {
   if (superseded) return; // taken over by another browser; stop loading the device
   clearTimeout(pollTimer);
   pollBusy = true; pollKick = false;
-  try { st = await (await fetch("/api/status")).json(); applyStatus(); sheetsFollow(); if (typeof decFollowScope === "function") decFollowScope(); if (typeof cmpRepeat === "function") cmpRepeat(); if (typeof refsFollow === "function") refsFollow(); if (typeof srScopeLine === "function") srScopeLine(); }
+  try { st = await (await fetch("/api/status")).json(); capsFollow(); applyStatus(); sheetsFollow(); if (typeof decFollowScope === "function") decFollowScope(); if (typeof cmpRepeat === "function") cmpRepeat(); if (typeof refsFollow === "function") refsFollow(); if (typeof srScopeLine === "function") srScopeLine(); }
   catch (e) { $("line").textContent = "no connection"; lastLineHTML = ""; } // reset the diff guard or a static status keeps "no connection" stuck
   pollBusy = false;
   // While a SINGLE is armed or the device is loading, poll fast so the self-stop

@@ -129,13 +129,17 @@ function ptToNorm(ev) {
 // TRLC-LINKS: REQ-SDS-202
 function markerHit(p) {
   if (!st || view.mode !== "YT" || !frame) return null;
-  const vpcT = (st.trig_source === 1 ? frame.vpc2 : frame.vpc1) || (1 / 25);
+  const vpcT = frame["vpc" + trigChan()] || (1 / 25);
   if (st.trig_code && p.x > 0.85) {                 // trigger LEVEL handle (right edge)
     const ly = yFor(128 + st.trig_volts / vpcT, 1) / CH;
     if (Math.abs(p.y - ly) < 0.06) return { kind: "level", vpc: vpcT };
   }
   if (p.x < 0.13) {                                 // channel GROUND / offset arrows (left edge)
-    return offHit(p, 1, view.c1, frame.vpc1, frame.off1_v, st.zoom1 || 1) || offHit(p, 2, view.c2, frame.vpc2, frame.off2_v, st.zoom2 || 1);
+    for (const n of chanNums()) {
+      const h = offHit(p, n, view["c" + n], frame["vpc" + n], frame["off" + n + "_v"], st["zoom" + n] || 1);
+      if (h) return h;
+    }
+    return null;
   }
   return null;
 }
@@ -156,9 +160,8 @@ function moveMarker(ev) {
     const volts = (codeAtY(cy, 1) - 128) * mk.vpc; // top of screen = higher level = up
     st.trig_volts = volts; $("lvl").value = volts; $("lvlv").textContent = eng(volts, "V");
   } else {
-    const ch = mk.kind === "off1" ? 1 : 2, offV = (codeAtY(cy, mk.zoom) - 128) * mk.vpc;
-    if (ch === 1) { st.off1_v = offV; $("off1").value = offV; $("off1v").textContent = eng(offV, "V"); }
-    else { st.off2_v = offV; $("off2").value = offV; $("off2v").textContent = eng(offV, "V"); }
+    const ch = +mk.kind.slice(3), offV = (codeAtY(cy, mk.zoom) - 128) * mk.vpc;
+    st["off" + ch + "_v"] = offV; $("off" + ch).value = offV; $("off" + ch + "v").textContent = eng(offV, "V");
   }
   scheduleRender();
 }
@@ -166,7 +169,7 @@ function moveMarker(ev) {
 // TRLC-LINKS: REQ-SDS-202
 function commitMarker() {
   if (mk.kind === "level") send("triglevelcode", trigCodeFor(st.trig_volts));
-  else { const ch = mk.kind === "off1" ? 1 : 2; send("offset" + ch, (mk.kind === "off1" ? st.off1_v : st.off2_v) / probeOf(ch)); }
+  else { const ch = +mk.kind.slice(3); sendChan("offset", ch, st["off" + ch + "_v"] / probeOf(ch)); }
 }
 
 // TRLC-LINKS: REQ-SDS-202
