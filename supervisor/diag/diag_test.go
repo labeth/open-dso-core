@@ -181,11 +181,13 @@ func (b *stageBoard) Version() string { return "v-test" }
 func (b *stageBoard) Child(name string, _ []string, _ io.Writer) (int, bool) {
 	return 7, name == "child"
 }
+
 func (b *stageBoard) Passive(_ *Collection, a *Archive) bool {
 	b.ran = append(b.ran, "passive")
 	a.AddText("board/passive.txt", "x")
 	return b.reach
 }
+
 func (b *stageBoard) ActiveGate(*Collection) []Check {
 	return []Check{{Name: "scope", OK: b.activeOK, Detail: "known"}}
 }
@@ -193,6 +195,7 @@ func (b *stageBoard) Active(*Collection, *Archive) { b.ran = append(b.ran, "acti
 func (b *stageBoard) TakeoverGate(*Collection) []Check {
 	return []Check{{Name: "images", OK: b.takeoverOK, Detail: "on the stick"}}
 }
+
 func (b *stageBoard) Takeover(c *Collection, _ *Archive) {
 	b.ran = append(b.ran, "takeover")
 	c.TookOver = true

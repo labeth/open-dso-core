@@ -21,6 +21,14 @@ this core; today that is [open-sds1000cml](https://github.com/labeth/open-sds100
 | `design/` | the shared look: colour tokens (one source for web and displays), the web stylesheets, the 5×7 display font |
 | `testenv/` | test helpers: toolchain gates, and the scope checkout the parity and RTL tests run against |
 
+`supervisor/` is a second Go module (`github.com/labeth/open-dso-core/supervisor`), kept apart so
+the app-side module never lists NATS: the on-device update supervisor (`agent`: A/B slots, health
+rollback, the RPC on TCP and NATS, the takeover's crash-safe order), `watchdog` (the keeper),
+`otactl` (the host controller, library and `cmd/otactl`), `diag` (the diagnostics stick's
+framework), and `config`, `slots`, `rpcproto`, `fdinherit`, `sysinfo`, `vxi11`. A scope's `ota/`
+module implements `agent.Board` (`hal.SupervisorBoard` and its takeover's landing) and
+`diag.Board`; `agent/agenttest` is a board for tests.
+
 ## Tests
 
 `go test ./...` runs the unit tests on any host. The Go↔JS parity tests and the FPGA RTL tests

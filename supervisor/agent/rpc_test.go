@@ -89,7 +89,7 @@ func TestAppStartRequiresTakeover(t *testing.T) {
 // TRLC-LINKS: REQ-SDS-027
 func TestTakeoverRefusedByTheBoard(t *testing.T) {
 	a := testAgent(t)
-	a.board.(*fakeBoard).land = func(res *TakeoverResult, _ TakeoverOpts) bool {
+	fakeOf(a).land = func(res *TakeoverResult, _ TakeoverOpts) bool {
 		res.Err = "no inherited bus fd"
 		return false
 	}
@@ -105,7 +105,7 @@ func TestTakeoverRefusedByTheBoard(t *testing.T) {
 // TRLC-LINKS: REQ-SDS-027
 func TestTakeoverDryRunReportsCandidates(t *testing.T) {
 	a := testAgent(t)
-	a.board.(*fakeBoard).holders = []fdinherit.Holder{{PID: 4242, Comm: "vendor"}}
+	fakeOf(a).holders = []fdinherit.Holder{{PID: 4242, Comm: "vendor"}}
 	resp := a.Dispatch([]byte(`{"cmd":"takeover","args":{"dry_run":true}}`))
 	if !resp.OK {
 		t.Fatalf("dry-run should succeed: %s", resp.Err)
@@ -114,7 +114,7 @@ func TestTakeoverDryRunReportsCandidates(t *testing.T) {
 	if !strings.Contains(string(b), "dry-run") || !strings.Contains(string(b), `"pid":4242`) {
 		t.Errorf("dry-run result missing marker or candidate: %s", b)
 	}
-	if a.TakenOver() || a.board.(*fakeBoard).killed != 0 {
+	if a.TakenOver() || fakeOf(a).killed != 0 {
 		t.Error("a dry run persisted or killed")
 	}
 }
@@ -122,7 +122,7 @@ func TestTakeoverDryRunReportsCandidates(t *testing.T) {
 // TRLC-LINKS: REQ-SDS-027
 func TestTakeoverSequence(t *testing.T) {
 	a := testAgent(t)
-	fb := a.board.(*fakeBoard)
+	fb := fakeOf(a)
 	fb.holders = []fdinherit.Holder{{PID: 4242, Comm: "vendor"}}
 	t.Cleanup(a.wd.Disarm)
 	res := a.Takeover(TakeoverOpts{})
@@ -153,7 +153,7 @@ func TestTakeoverSequence(t *testing.T) {
 // TRLC-LINKS: REQ-SDS-027, REQ-SDS-086
 func TestTakeoverWithoutWatchdog(t *testing.T) {
 	a := testAgent(t)
-	a.board.(*fakeBoard).wd = nil
+	fakeOf(a).wd = nil
 	a.wd = newKeeper(a.board)
 	res := a.Takeover(TakeoverOpts{})
 	if !res.OK || strings.Contains(res.Summary(), "watchdog") {
@@ -165,7 +165,7 @@ func TestTakeoverWithoutWatchdog(t *testing.T) {
 // TRLC-LINKS: REQ-SDS-027, REQ-SDS-104
 func TestTakeoverPersistFailureStopsBeforeTheKill(t *testing.T) {
 	a := testAgent(t)
-	fb := a.board.(*fakeBoard)
+	fb := fakeOf(a)
 	fb.holders = []fdinherit.Holder{{PID: 4242}}
 	a.st.path = t.TempDir() + "/missing/state.json"
 	res := a.Takeover(TakeoverOpts{})
@@ -175,4 +175,11 @@ func TestTakeoverPersistFailureStopsBeforeTheKill(t *testing.T) {
 	if a.TakenOver() || fb.killed != 0 || a.Watchdog().Armed {
 		t.Error("a failed persist went on past the point of no return")
 	}
+}
+
+// fakeOf is the test agent's fake board.
+// TRLC-LINKS: REQ-SDS-027
+func fakeOf(a *Agent) *fakeBoard {
+	fb, _ := a.board.(*fakeBoard)
+	return fb
 }

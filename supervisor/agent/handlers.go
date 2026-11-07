@@ -109,7 +109,7 @@ func hLogs(a *Agent, args json.RawMessage) (any, error) {
 }
 
 // TRLC-LINKS: REQ-SDS-115
-func hExec(a *Agent, args json.RawMessage) (any, error) {
+func hExec(_ *Agent, args json.RawMessage) (any, error) {
 	p, err := decodeArgs[struct {
 		Argv    []string `json:"argv"`
 		Dir     string   `json:"dir"`
@@ -130,7 +130,7 @@ func hExec(a *Agent, args json.RawMessage) (any, error) {
 }
 
 // TRLC-LINKS: REQ-SDS-115
-func hSh(a *Agent, args json.RawMessage) (any, error) {
+func hSh(_ *Agent, args json.RawMessage) (any, error) {
 	p, err := decodeArgs[struct {
 		Script  string `json:"script"`
 		Timeout int    `json:"timeout_s"`
@@ -430,7 +430,7 @@ func hProbe(a *Agent, args json.RawMessage) (any, error) {
 }
 
 // TRLC-LINKS: REQ-SDS-121
-func hReboot(a *Agent, args json.RawMessage) (any, error) {
+func hReboot(_ *Agent, args json.RawMessage) (any, error) {
 	p, _ := decodeArgs[struct {
 		Confirm bool `json:"confirm"`
 	}](args)
