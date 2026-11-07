@@ -21,8 +21,12 @@ export async function launch(url) {
   if (!process.env.PLAYWRIGHT_BROWSERS_PATH && process.env.HOME)
     process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.env.HOME, ".cache/ms-playwright");
   const { chromium } = (await import(pwPath)).default;
-  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
-  const page = await browser.newPage({ viewport: { width: 1500, height: 950 } });
+  // CHROMIUM_ARGS adds browser flags (e.g. "--use-gl=egl" for WebGL in a
+  // headless run); VIEWPORT=WxH sizes the page (default 1500x950).
+  const extra = (process.env.CHROMIUM_ARGS || "").split(/\s+/).filter(Boolean);
+  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", ...extra] });
+  const [vw, vh] = (process.env.VIEWPORT || "1500x950").split("x").map(Number);
+  const page = await browser.newPage({ viewport: { width: vw || 1500, height: vh || 950 } });
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(process.env.FUZZ_STACK ? (e.stack || e.message) : e.message));
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
