@@ -832,3 +832,84 @@ decisions:
   decision: 'A scope''s CI deploys its demo to its own Pages site; open-dso''s site is the front door linking to them.'
   consequences:
   - 'No workflow collects builds across repositories.'
+
+- id: ADR-HAL-STOP-STATE
+  title: 'After Stop a board is Idle or Ready, never Armed'
+  status: accepted
+  date: '2026-11-08'
+  context: 'Boards differed in the state they report after Stop.'
+  decision: 'After Stop the state is Idle or Ready and the stored record stays readable.'
+  consequences:
+  - 'The conformance suite accepts either.'
+
+- id: ADR-HAL-MAIN-WINDOW
+  title: 'A main window with Span 0 is the plan''s screen window, and the board sizes an empty frame'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The core engine reads Window{Role: Main} with Span 0 into an empty frame; the CML board refuses that and reads only explicit spans into frames the caller sized.'
+  decision: 'Span 0 means the plan''s screen window around the trigger; a board sizes an empty frame.'
+  consequences:
+  - 'A CML readout fix; five conformance clauses are skipped on the CML until then.'
+
+- id: ADR-HAL-STAGE-FRONTEND
+  title: 'Front-end Set stages and Arm commits'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The CML front end applies at Set.'
+  decision: 'Keep the HAL rule: Set stages, Arm commits, Get reads what is applied.'
+  consequences:
+  - 'The CML front end needs staging; its clause is skipped until it has it.'
+
+- id: ADR-HAL-NEED-PLANNER
+  title: 'The planner refuses a Need it cannot serve'
+  status: accepted
+  date: '2026-11-08'
+  context: 'Neither board''s planner nor the engine checks Request.Need.'
+  decision: 'The planner refuses an unservable Need with a Refusal, as the contract says.'
+  consequences:
+  - 'Board fixes on the CML and the SDS800X HD.'
+
+- id: ADR-HAL-FREERUN
+  title: 'FreeRun is always accepted'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The SDS800X HD board refuses FreeRun.'
+  decision: 'A board without an untriggered arm forces each record.'
+  consequences:
+  - 'An SDS800X HD board fix.'
+
+- id: ADR-HAL-OPTIONS-AGREE
+  title: 'Profile options agree with the optional accessors'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The SDS800X HD serves Segments without OptSegments in its profile.'
+  decision: 'A board''s profile options list exactly the optional parts it serves.'
+  consequences:
+  - 'An SDS800X HD profile fix.'
+
+- id: ADR-HAL-RAW-COMPRESSION
+  title: 'Compressing raw content is a decimation a board may refuse'
+  status: accepted
+  date: '2026-11-08'
+  context: 'Boards differed on a full-rate window with fewer points than its span.'
+  decision: 'Points equal to Span must fill the frame; fewer points may be refused with a Refusal.'
+  consequences:
+  - 'The conformance suite tests uncompressed windows only.'
+
+- id: ADR-SESSIONS-DIFFERENTIAL
+  title: 'Demo and scope are kept aligned by recorded sessions compared across targets'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The browser demo must behave like the scope, and only the composition, the panel, the board and the signals can make them differ.'
+  decision: 'Sessions of operator actions with checkpoints read through the public API run on the real scope, the native demo, the wasm demo and the simulated SDS800X HD, and are diffed: exact for signal-independent fields, within tolerances otherwise, n/a with the reason when a target cannot produce a field. Sessions declare relay use; a minimal-relay run skips them and every bench run restores the state.'
+  consequences:
+  - 'Owner reports become sessions; the bench run is part of the release checklist.'
+
+- id: ADR-BUS-READABLE-TIMEBASE-KEPT
+  title: 'BUS sets a readable timebase and leaving BUS keeps it'
+  status: proposed
+  date: '2026-11-08'
+  context: 'On the real CML, entering BUS with a known bus sets the timebase that reads it (MIDI: 1 ms/div) and going back to SCOPE keeps it; the owner noticed the change in the demo.'
+  decision: 'Recorded as the product''s current behaviour; the demo matches it.'
+  consequences:
+  - 'Owner to decide whether leaving BUS should restore the previous timebase or the UI should say why it changed.'
