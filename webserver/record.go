@@ -24,7 +24,7 @@ const RecordNever = "this acquisition cannot serve sampled records"
 // live frames carry a screen's few thousand values, the record up to the
 // memory's half million a channel). The reply is a little-endian uint32
 // header length, the JSON header (wire.RecordReply) and the codes, C1's
-// then C2's. One record is taken at a time. A record refused (another under
+// then C2's (or, as the header's chans names them, each channel's in turn). One record is taken at a time. A record refused (another under
 // way, none in time, none this acquisition can serve) is a 409 naming why.
 // TRLC-LINKS: REQ-DSO-280
 func (s *Server) hRecord(w http.ResponseWriter, r *http.Request) {
@@ -54,12 +54,17 @@ func (s *Server) hRecord(w http.ResponseWriter, r *http.Request) {
 		recordRefused(w, err.Error())
 		return
 	}
-	n := min(len(rec.C1), len(rec.C2))
-	hdr := wire.RecordReply{
-		Seq: rec.Seq, N: n, SampleS: rec.SampleS, TdivS: rec.TdivS,
-		Vpc1: rec.Vpc[0], Vpc2: rec.Vpc[1], Off1V: rec.Off[0], Off2V: rec.Off[1],
+	var out []byte
+	if len(rec.Chans) > 0 {
+		out = encodeChans(rec)
+	} else {
+		n := min(len(rec.C1), len(rec.C2))
+		hdr := wire.RecordReply{
+			Seq: rec.Seq, N: n, SampleS: rec.SampleS, TdivS: rec.TdivS,
+			Vpc1: rec.Vpc[0], Vpc2: rec.Vpc[1], Off1V: rec.Off[0], Off2V: rec.Off[1],
+		}
+		out = wire.EncodeRecord(hdr, rec.C1[:n], rec.C2[:n])
 	}
-	out := wire.EncodeRecord(hdr, rec.C1[:n], rec.C2[:n])
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = w.Write(out)
@@ -71,4 +76,30 @@ func recordRefused(w http.ResponseWriter, why string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusConflict)
 	_ = json.NewEncoder(w).Encode(wire.RecordReply{Err: why})
+}
+
+// encodeChans lays out a record of any channels: the header names them
+// (chans) with their scales, vpc1/off1_v and vpc2/off2_v those of C1 and C2
+// where the record has them.
+// TRLC-LINKS: REQ-DSO-280
+func encodeChans(rec wire.Record) []byte {
+	n := len(rec.Chans[0].Codes)
+	for _, c := range rec.Chans {
+		n = min(n, len(c.Codes))
+	}
+	hdr := wire.RecordReply{Seq: rec.Seq, N: n, SampleS: rec.SampleS, TdivS: rec.TdivS}
+	codes := make([][]byte, 0, len(rec.Chans))
+	for _, c := range rec.Chans {
+		hdr.Chans = append(hdr.Chans, c.Ch)
+		hdr.Vpc = append(hdr.Vpc, c.Vpc)
+		hdr.Off = append(hdr.Off, c.Off)
+		switch c.Ch {
+		case 0:
+			hdr.Vpc1, hdr.Off1V = c.Vpc, c.Off
+		case 1:
+			hdr.Vpc2, hdr.Off2V = c.Vpc, c.Off
+		}
+		codes = append(codes, c.Codes[:n])
+	}
+	return wire.EncodeRecordN(hdr, codes...)
 }

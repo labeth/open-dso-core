@@ -13,6 +13,17 @@ import (
 // screenCols is the frame's column count when a page names none.
 const screenCols = 800
 
+// FrameV2OnlyText is why a v1 frame request is refused on a scope whose
+// frames v1 cannot carry.
+const FrameV2OnlyText = "this scope serves frame wire v2 only"
+
+// V2Only is optional on Frames (with FramesV2): frames that wire v1 cannot
+// carry (more than two channels, words wider than 8 bits). A v1 request is
+// answered 409 with FrameV2OnlyText, and caps list frame wire 2 only.
+type V2Only interface {
+	V2Only()
+}
+
 // hFrameBin is the long-poll binary frame endpoint: a small JSON header and
 // the raw code payload (wire.EncodeBinFrame) — about 1 ms on a scope's ARM
 // against 50-150 ms of reflective JSON over int16 arrays, which capped the
@@ -56,6 +67,14 @@ func (s *Server) hFrameBin(w http.ResponseWriter, r *http.Request) {
 			fr.Lease(Need{Kind: NeedView, Hold: 2 * time.Second, View: ViewWindow{A: a, B: b, Cols: cols}})
 		} else {
 			fr.Lease(Need{Kind: NeedView})
+		}
+	}
+	if _, only := fr.(V2Only); only {
+		if _, v2 := wantV2(fr, r); !v2 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"err":"` + FrameV2OnlyText + `"}` + "\n"))
+			return
 		}
 	}
 	var since uint64

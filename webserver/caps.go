@@ -86,8 +86,12 @@ func (s *Server) hCaps(w http.ResponseWriter, r *http.Request) {
 	}
 	c := cs.Caps()
 	c.API = APIVersion
+	fr := s.sc.Frames()
 	c.Wire.Frame = []int{1}
-	if _, ok := s.sc.Frames().(FramesV2); ok {
+	if _, only := fr.(V2Only); only {
+		c.Wire.Frame = nil
+	}
+	if _, ok := fr.(FramesV2); ok {
 		c.Wire.Frame = append(c.Wire.Frame, 2)
 	}
 	if len(c.Wire.Record) == 0 {
