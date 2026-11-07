@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/labeth/open-dso-core/engine"
+	"github.com/labeth/open-dso-core/engine/fanout"
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/hal/halfake"
 	"github.com/labeth/open-dso-core/measure"
@@ -301,7 +302,7 @@ func TestMeasCacheReuse(t *testing.T) {
 		}
 	}
 	f := &sample.Frame{Seq: 21, WinPoints: 512, TriggerAt: 256, SampleS: 1e-6, Traces: []sample.Trace{{Codes8: c1, Valid: 512}, {Ch: 1, Codes8: c2, Valid: 512}}}
-	s := scopeweb.New(scopeweb.Config{Frames: scopeweb.NewFanout()})
+	s := scopeweb.New(scopeweb.Config{Frames: fanout.NewFrames()})
 	reply := func(vpc0 float64, free bool) *measure.Result {
 		return s.BuildReply(f, scopeweb.ReplyQuery{Cols: 512, Vpc: [2]float64{vpc0, 1. / 32}, PosFrac: 0.5, MeasThrottle: free}).M1
 	}

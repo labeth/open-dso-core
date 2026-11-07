@@ -48,8 +48,9 @@ func runLoop(t *testing.T, b *halfake.Board, inst *instrument.Model, n int) []*s
 }
 
 // The loop commits in the HAL's order, arms, waits, reads and publishes;
-// re-arms without committing again while nothing changes.
-// TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
+// re-arms without committing again while nothing changes; the published
+// frames are numbered from 1.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-008, REQ-DSO-020
 func TestLoopCycle(t *testing.T) {
 	b := halfake.New(halfake.Config{})
 	inst := instrument.New(loopState(hal.Auto), nil)
@@ -67,6 +68,11 @@ func TestLoopCycle(t *testing.T) {
 	}
 	if kinds := b.ArmKinds(); kinds[0] != "commit" || slices.Contains(kinds[1:], "commit") {
 		t.Fatalf("arm kinds %v", kinds)
+	}
+	for i, f := range frames {
+		if f.Seq != uint64(i+1) {
+			t.Fatalf("frame %d published as seq %d: a consumer waiting for the next frame never wakes", i, f.Seq)
+		}
 	}
 	f := frames[0]
 	if len(f.Traces) != 2 || f.Len() == 0 {
