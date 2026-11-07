@@ -1,12 +1,18 @@
-// Package settings is the persisted instrument setup's shape: the file a
-// scope restores its last setup from at power-on, the setup memories, and
-// the slice of it the UI model owns (ViewState). Every field is comparable,
-// so a saver detects a change with plain ==. A scope's loader keeps the
-// file's bytes as they are (ADR-HAL-SETTINGS-FORMAT-KEPT).
+// Package settings is the persisted instrument setup: its shape, the file
+// a scope restores its last setup from at power-on (Load, Save, Saver), the
+// setup memories (Slots), the slice of it the UI model owns (ViewState),
+// and the paths that collect it from and apply it to the instrument's
+// controls (Collect, Apply). Every field is comparable, so a saver detects
+// a change with plain ==. The file's bytes are the SDS1000CML+'s as they
+// have always been (ADR-HAL-SETTINGS-FORMAT-KEPT): what a scope with more
+// channels or a level in volts adds is left out when it is zero.
 // ENGMODEL-OWNER-UNIT: FU-DSO-SETTINGS
 package settings
 
 import "github.com/labeth/open-dso-core/instrument"
+
+// MaxChannels is the most analog channels a setup keeps.
+const MaxChannels = 4
 
 // Version is the schema version written to (and required from) the file.
 // Bump it and add a migration in Parse when the shape changes.
@@ -27,13 +33,18 @@ type Channel struct {
 // TRLC-LINKS: REQ-DSO-072, REQ-DSO-089
 type Trigger struct {
 	Qualifiers instrument.TrigQual `json:"qualifiers"`
-	LevelCode  int                 `json:"level_code"`         // the board's trigger-level word (the SDS1000CML+'s comparator DAC code); 0 = untouched
-	Rising     bool                `json:"rising"`             // edge slope
-	Source     int                 `json:"source"`             // 0=C1 1=C2
-	Type       int                 `json:"type"`               // 0=edge 1=pulse 2=slope 3=video
-	Norm       bool                `json:"norm"`               // trigger mode: true=NORM false=AUTO
-	HoldoffS   float64             `json:"holdoff_s"`          // 0 = off
-	PosFrac    float64             `json:"pos_frac,omitempty"` // trigger position on screen; 0 = not saved
+	LevelCode  int                 `json:"level_code"` // the board's trigger-level word (the SDS1000CML+'s comparator DAC code); 0 = untouched
+	// LevelV is the level in volts at the probe tip, for a board whose
+	// level is volts in the instrument state (LevelSet marks it saved: 0 V
+	// is a level).
+	LevelV   float64 `json:"level_v,omitempty"`
+	LevelSet bool    `json:"level_set,omitempty"`
+	Rising   bool    `json:"rising"`             // edge slope
+	Source   int     `json:"source"`             // 0=C1 1=C2
+	Type     int     `json:"type"`               // 0=edge 1=pulse 2=slope 3=video
+	Norm     bool    `json:"norm"`               // trigger mode: true=NORM false=AUTO
+	HoldoffS float64 `json:"holdoff_s"`          // 0 = off
+	PosFrac  float64 `json:"pos_frac,omitempty"` // trigger position on screen; 0 = not saved
 }
 
 // Acq is the persisted acquisition mode.
@@ -88,20 +99,23 @@ type Decode struct {
 // saver detects change with plain ==.
 // TRLC-LINKS: REQ-DSO-072, REQ-DSO-089
 type Settings struct {
-	Version  int        `json:"version"`
-	TdivS    float64    `json:"tdiv_s"`
-	Ch       [2]Channel `json:"ch"`
-	VertSet  bool       `json:"vert_set"` // vertical front end was driven; false = keep the seed-don't-emit boot rule
-	Trigger  Trigger    `json:"trigger"`
-	Acq      Acq        `json:"acq"`
-	Decode   Decode     `json:"decode"`
-	ViewMode int        `json:"view_mode"` // 0=Y-T 1=X-Y 2=FFT 3=Bode 4=Spgm
-	Display  Display    `json:"display"`
-	UI       UI         `json:"ui"`
-	Serial   Serial     `json:"serial"`
-	Bode     Bode       `json:"bode,omitzero"`
-	Sound    Sound      `json:"sound,omitzero"`
-	Screen   Screen     `json:"screen,omitzero"` // the instrument's, never in a saved setup
+	Version int        `json:"version"`
+	TdivS   float64    `json:"tdiv_s"`
+	Ch      [2]Channel `json:"ch"`
+	// ChMore are the channels past C2 (C3, C4) of a scope that has them;
+	// a channel never saved has VdivV 0.
+	ChMore   [MaxChannels - 2]Channel `json:"ch_more,omitzero"`
+	VertSet  bool                     `json:"vert_set"` // vertical front end was driven; false = keep the seed-don't-emit boot rule
+	Trigger  Trigger                  `json:"trigger"`
+	Acq      Acq                      `json:"acq"`
+	Decode   Decode                   `json:"decode"`
+	ViewMode int                      `json:"view_mode"` // 0=Y-T 1=X-Y 2=FFT 3=Bode 4=Spgm
+	Display  Display                  `json:"display"`
+	UI       UI                       `json:"ui"`
+	Serial   Serial                   `json:"serial"`
+	Bode     Bode                     `json:"bode,omitzero"`
+	Sound    Sound                    `json:"sound,omitzero"`
+	Screen   Screen                   `json:"screen,omitzero"` // the instrument's, never in a saved setup
 }
 
 // Bode is the frequency response's reference (DUT input) and DUT output

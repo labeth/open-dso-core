@@ -8,6 +8,7 @@ import (
 	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/instrument"
+	"github.com/labeth/open-dso-core/settings"
 )
 
 // HALScope is the UI model's engine, front end, levels and hardware for a
@@ -44,6 +45,12 @@ func (s *HALScope) Levels() Levels { return halLevels{s} }
 // Hardware is the board's planner and profile.
 // TRLC-LINKS: REQ-DSO-135
 func (s *HALScope) Hardware() Hardware { return halHardware{s} }
+
+// Settings is the front end as the setup file collects and restores it:
+// every channel of the Model, its offset always set, any probe factor the
+// Model's check takes.
+// TRLC-LINKS: REQ-DSO-089
+func (s *HALScope) Settings() settings.Analog { return halAnalog{s} }
 
 // Tdivs is the profile's timebase ladder.
 // TRLC-LINKS: REQ-DSO-135
@@ -222,6 +229,28 @@ func (a halAnalog) BWL(ch int) bool {
 	c, _ := a.s.channel(ch)
 	return c.BWLimit > 0
 }
+
+// Emitted is true: the Model's front end is the state the board commits,
+// never a seed kept unwritten.
+// TRLC-LINKS: REQ-DSO-089
+func (halAnalog) Emitted() bool { return true }
+
+// Channels is the Model's channel count.
+// TRLC-LINKS: REQ-DSO-089
+func (a halAnalog) Channels() int { return len(a.s.m.State().Channels) }
+
+// OffsetSet is true: the Model always holds an offset.
+// TRLC-LINKS: REQ-DSO-089
+func (halAnalog) OffsetSet(int) bool { return true }
+
+// SetOffsetV stages channel ch's offset at v volts at the BNC.
+// TRLC-LINKS: REQ-DSO-095
+func (a halAnalog) SetOffsetV(ch int, v float64) { halLevels(a).SetOffset(ch, v) }
+
+// ProbeOK takes any factor of at least 1: the Model's check refuses what
+// the board does not offer.
+// TRLC-LINKS: REQ-DSO-089
+func (halAnalog) ProbeOK(x float64) bool { return x >= 1 }
 
 // halLevels are the trigger level (at the tip) and the offsets (at the
 // BNC) in the Model.
