@@ -312,3 +312,22 @@ func TestSheetsCarryLiveMeasurements(t *testing.T) {
 		t.Fatalf("live frequencies %q", l)
 	}
 }
+
+// A frame of the channels switched on (C2 off: traces C1, C3, C4) is read
+// by channel: C3's values are C3's signal.
+// TRLC-LINKS: REQ-DSO-216, REQ-DSO-1003
+func TestAnalysisReadsChannelsByNumber(t *testing.T) {
+	c, m, _ := halRig(t, 4)
+	f := frame12(4000, 100, 2, 2, 30, 1e-6)
+	f.Traces = append(f.Traces[:1], f.Traces[2:]...)
+	c.mu.Lock()
+	c.ui.ws, c.ui.measAll = wsview.Measure, true
+	c.mu.Unlock()
+	c.OnFrame(f)
+	c.amu.Lock()
+	vals, ok := c.ana.allVals[2], c.ana.allOK[2]
+	c.amu.Unlock()
+	if want := 4 * m.State().Channels[2].VoltsDiv; !ok || math.Abs(vals[measIndex("pkpk")]-want) > 0.02*want {
+		t.Fatalf("C3 read as %v (ok %v), want Vpp %g", vals, ok, want)
+	}
+}

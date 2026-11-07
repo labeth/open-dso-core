@@ -6,6 +6,23 @@ import "sync"
 // as they are, centred at Mid8.
 var Format8 = CodeFormat{Bits: 8, Storage: U8, Min: 0, Max: 255, Mid: Mid8}
 
+// placed reports whether f's traces sit at their channel's index, or name
+// no distinct channels to place by (traces that all say channel 0).
+// TRLC-LINKS: REQ-DSO-1003
+func (f *Frame) placed() bool {
+	var seen uint64
+	in := true
+	for i := range f.Traces {
+		ch := f.Traces[i].Ch
+		if ch < 0 || ch >= 64 || seen&(1<<ch) != 0 {
+			return true
+		}
+		seen |= 1 << ch
+		in = in && ch == i
+	}
+	return in
+}
+
 // Wide reports whether any of f's traces stores words wider than 8 bits.
 // TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) Wide() bool {
@@ -22,21 +39,39 @@ func (f *Frame) Wide() bool {
 	return false
 }
 
-// View8Frame is frame f on the 8-bit view the product's kernels read: an
-// 8-bit frame as it is (no copy); a frame of wider words copied with each
-// trace's codes mapped onto the view (CodeFormat.Code8), its words kept as
-// Q8.8 precision so measurements keep the converter's resolution, its codes
-// a division restated on the view, and its detail windows on the view too.
-// The copy shares nothing with f.
+// View8Frame is frame f on the 8-bit view the product's kernels read, its
+// traces at their channel's index (Frame.Codes8(ch) is channel ch's): an
+// 8-bit frame with every trace in its place as it is (no copy); otherwise
+// a copy with each trace's codes mapped onto the view (CodeFormat.Code8),
+// its words kept as Q8.8 precision so measurements keep the converter's
+// resolution, its codes a division restated on the view, its detail
+// windows on the view too, and a channel the frame does not carry (one
+// switched off) an empty trace of the frame's length. The copy shares
+// nothing with f.
 // TRLC-LINKS: REQ-DSO-1003
 func View8Frame(f *Frame) *Frame {
-	if f == nil || !f.Wide() {
+	if f == nil || !f.Wide() && f.placed() {
 		return f
 	}
 	v := *f
-	v.Traces = make([]Trace, len(f.Traces))
-	for i := range f.Traces {
-		v.Traces[i] = f.Traces[i].trace8()
+	n := f.Len()
+	if f.placed() {
+		v.Traces = make([]Trace, len(f.Traces))
+		for i := range f.Traces {
+			v.Traces[i] = f.Traces[i].trace8()
+		}
+	} else {
+		top := 0
+		for i := range f.Traces {
+			top = max(top, f.Traces[i].Ch+1)
+		}
+		v.Traces = make([]Trace, top)
+		for ch := range v.Traces {
+			v.Traces[ch] = Trace{Ch: ch, Format: Format8, Valid: n}
+		}
+		for i := range f.Traces {
+			v.Traces[f.Traces[i].Ch] = f.Traces[i].trace8()
+		}
 	}
 	if f.Details != nil {
 		v.Details = make([]Detail, len(f.Details))
@@ -49,7 +84,9 @@ func View8Frame(f *Frame) *Frame {
 		m := *f.Match
 		v.Match = &m
 	}
-	v.Flags.Set(Precision, true)
+	if f.Wide() {
+		v.Flags.Set(Precision, true)
+	}
 	return &v
 }
 
@@ -102,7 +139,7 @@ type View8Cache struct {
 // same published frame (same pointer and a non-zero Seq).
 // TRLC-LINKS: REQ-DSO-1003
 func (c *View8Cache) Of(f *Frame) *Frame {
-	if f == nil || !f.Wide() {
+	if f == nil || !f.Wide() && f.placed() {
 		return f
 	}
 	c.mu.Lock()
