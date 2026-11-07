@@ -24,6 +24,8 @@ page.on("response", (r) => {
   // a part the scope lacks answers 404 by design; anything else is a failure
   if (u.pathname.startsWith("/api/") && r.status() >= 400 && r.status() !== 404) failed.push(r.status() + " " + u.pathname);
 });
+// the scope's status now, as the page reads it
+// TRLC-LINKS: REQ-DSO-164
 const status = () => fetch(url + "/api/status").then((r) => r.json()).catch(() => ({}));
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForFunction(() => typeof frame !== "undefined" && frame && frame.c1 && document.getElementById("tdiv").options.length > 0, null, { timeout: 20000 });
