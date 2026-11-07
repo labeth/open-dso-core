@@ -513,6 +513,10 @@ func WebParts(env *Env) scopeweb.Parts {
 	var p scopeweb.Parts
 	if env.HALScope != nil {
 		p.Bode = env.HALScope.Bode()
+		p.Leases = halLeases{env.HALScope.Engine()}
+	}
+	if env.Model != nil && env.HALScope != nil {
+		p.Serial = halSerial{env.Model}
 	}
 	return p
 }
