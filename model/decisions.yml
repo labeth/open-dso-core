@@ -461,3 +461,57 @@ decisions:
   - Code moving into the core changes its TRLC-LINKS from REQ-SDS-NNN to REQ-DSO-NNN and its owner unit to the
     core package's, and the core model gains REQ-DSO-NNN if it lacks it.
   - A scope model composes the core (alias core) and names core elements as core::ID.
+
+- id: ADR-HAL-LOOP-CYCLE
+  title: 'The core owns the acquisition pass'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Scopes ran their own owner loops; the CML''s runSRAM held product logic the SDS800X HD rewrote.'
+  decision: 'The core engine.Loop owns the pass (commit points, arm, wait, AUTO force, publish gate, single shot, pacing); a scope supplies a Cycle that shrinks as its settings become HAL terms; HALCycle drives a board fully in HAL terms.'
+  consequences:
+  - 'From the owner-loop move (S7).'
+
+- id: ADR-LOOP-ARM-EVERY-PASS
+  title: 'The loop arms every pass and serves commit points inside the wait'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Settings changes must take effect without waiting for a slow trigger.'
+  decision: 'Every pass arms; the wait serves commit points between polls and aborts on a settings change or pending work.'
+  consequences:
+  - 'From the owner-loop move (S7).'
+
+- id: ADR-FORCE-PENDING-IS-THE-FRAMES
+  title: 'A pending FORCE makes the ready frame user-forced'
+  status: accepted
+  date: '2026-11-07'
+  context: 'A FORCE press can arrive as the record completes.'
+  decision: 'A FORCE still pending when the record is ready marks that frame user-forced.'
+  consequences:
+  - 'From the owner-loop move (S7).'
+
+- id: ADR-INSTRUMENT-REFUSAL-TO-SCPI
+  title: 'Commit refusals reach the SCPI error queue'
+  status: accepted
+  date: '2026-11-07'
+  context: 'A board refusing a setting at the owner commit was invisible to SCPI.'
+  decision: 'instrument.Model.OnRefused feeds scpi.Engine.Report; a hal.Refusal becomes -221 with its text, other errors -200.'
+  consequences:
+  - 'From the owner-loop move (S7).'
+
+- id: ADR-READ-CTX-AND-CUT
+  title: 'Readout.Read takes a context and cuts detail windows'
+  status: accepted
+  date: '2026-11-07'
+  context: 'A read must stop when its frame is no longer wanted.'
+  decision: 'Read(ctx, ...); a detail window is cut to what it got; a short main window is an error.'
+  consequences:
+  - 'From the owner-loop move (S7).'
+
+- id: ADR-CML-RUN-CONTROL-STAYS
+  title: 'The CML''s run control stays outside the instrument state for now'
+  status: proposed
+  date: '2026-11-07'
+  context: 'A mask stop can leave a SINGLE armed while stopped, and AUTO/NORM chosen during a SINGLE keeps it armed; Running and Sweep cannot express that.'
+  decision: 'CML run control stays out of instrument.State until the UI model decides the run-control semantics.'
+  consequences:
+  - 'From the owner-loop move (S7).'
