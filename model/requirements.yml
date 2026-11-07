@@ -4856,3 +4856,165 @@ requirements:
     as another configuration did. A held core is told from a live one only while the input moves (a snapshot of the
     ten cores at 64 instants, three codes off a core's median in an eighth of them); 64 snapshots take about 80 to
     130 ms of bus reads, so between checks the full-rate records' own samples are looked at once a second.
+- id: REQ-DSO-089
+  title: Settings snapshot persistence
+  text: The instrument shall persist versioned setup snapshots and fall back to defaults when a snapshot cannot
+    be loaded.
+  status: implemented
+  realizes:
+  - CAP-DSO-SETTINGS
+  category: functional
+  appliesTo:
+  - FU-DSO-SETTINGS
+  verificationMethods:
+  - test
+  verificationCriteria: Run the linked settings tests with a temporary file or simulated clock; this does not qualify
+    power-loss behavior on FAT storage.
+- id: REQ-DSO-095
+  title: Calibrated offset conversion
+  text: The instrument shall convert requested offset volts to a calibrated DAC code with the implemented per-tier
+    slope and range clamps.
+  status: implemented
+  realizes:
+  - CAP-DSO-ANALOG-FRONT-END
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: Run the offset mapping, calibrated zero, fixed-slope and tier-clamp tests. Inspect staging
+    hooks, fallback zero 10223, rounding and final rails separately; existing tests do not cover every hook/error
+    path.
+- id: REQ-DSO-098
+  title: Trigger calibration selection
+  text: The instrument shall select the channel and detent trigger calibration for probe-referred trigger voltage
+    conversion.
+  status: implemented
+  realizes:
+  - CAP-DSO-TRIGGER
+  category: functional
+  appliesTo:
+  - FU-DSO-INSTRUMENT
+  verificationMethods:
+  - test
+  verificationCriteria: Inspect override precedence, conversion inverses, channel/probe handling, table snapshots
+    and hook propagation. No dedicated trigger-calibration tests are present in the reviewed analog package; physical
+    accuracy remains unqualified.
+- id: REQ-DSO-135
+  title: Panel event dispatch and indicators
+  text: The instrument shall translate matrix edges and queued named actions into instrument commands, resynchronize
+    knob state from authoritative snapshots and expose running, channel and mode indicators.
+  status: implemented
+  realizes:
+  - CAP-DSO-FRONT-PANEL
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: 'Source presence and fake controls do not establish full clause coverage or physical
+    qualification.'
+- id: REQ-DSO-136
+  title: Panel menus and shared display state
+  text: The instrument shall expose softkey menus, bounded control ladders, cursor and decode settings, and shared
+    display state for rendering and setup restoration.
+  status: implemented
+  realizes:
+  - CAP-DSO-FRONT-PANEL
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: 'Source presence and fake controls do not establish full clause coverage or physical
+    qualification.'
+- id: REQ-DSO-137
+  title: Panel autoset sweep
+  text: The instrument shall offer a cancellable autoset sweep using live-frame measurements to select timebase,
+    vertical scale, centering and trigger level, with a no-signal scale restoration path.
+  status: implemented
+  realizes:
+  - CAP-DSO-AUTOSET
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: 'Source presence and fake controls do not establish full clause coverage or physical
+    qualification.'
+- id: REQ-DSO-140
+  title: Panel super-resolution workflow
+  text: The instrument shall seed a reference stack, expose channel and gate controls, accumulate new frames, and
+    publish compensated review means on selected stop criteria or sample-rate changes.
+  status: implemented
+  realizes:
+  - CAP-DSO-ENHANCED-RESOLUTION
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: 'Source presence and fake controls do not establish full clause coverage or physical
+    qualification.'
+- id: REQ-DSO-174
+  title: Application version label
+  text: The instrument shall expose its application version, commit and build-time labels from link-time metadata.
+  status: implemented
+  realizes:
+  - CAP-DSO-FIRMWARE-UPDATE
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: 'Inspect all reviewed command sources and compile six packages without invoking command mains.
+    Run both original host helper tests and all five timing subtests. Most entrypoint behavior
+    remains inspection-only. No current hardware qualification is established.'
+- id: REQ-DSO-224
+  title: AUTO frames the signal for the workspace's task
+  text: The instrument shall, when AUTO is pressed outside the BUS workspace, frame the signal for the workspace's
+    task, with about two cycles and the swing on about six divisions in SCOPE, at least ten cycles, the largest
+    swing that stays on the screen and the cursors on one period and on the top and base in MEASURE, at least fifty cycles of the FFT source on a sampled timebase with the
+    largest swing on the screen and the marker on its fundamental in SPECTRUM, and in COMPARE the setup a mask or
+    reference was stored at.
+  status: implemented
+  realizes:
+  - CAP-DSO-AUTOSET
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: Panel tests on simulated captures check each workspace's timebase, V/div, trigger and notice
+    (SCOPE two cycles of 1 MHz at 200 ns/div and 500 mV/div for 3.3 V; MEASURE ten cycles; SPECTRUM fifty cycles of the
+    FFT source, the marker on it, no envelope band; COMPARE the mask's or REF A's setup, else SCOPE's framing). On the
+    device, AUTO in each workspace on the bench sources frames as stated, with the notice saying what it did.
+- id: REQ-DSO-225
+  title: AUTO leaves no trace clipped
+  text: The instrument shall, after the autoset's vertical fit and again on the screen it leaves, step a channel whose
+    capture runs past the screen's top or bottom for a stretch to the next coarser V/div and centre it again.
+  status: implemented
+  realizes:
+  - CAP-DSO-AUTOSET
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: A panel test simulates a level the fit's capture misses (it shows only on the final screen) and
+    checks AUTO ends coarser, unclipped, and says so; a unit test checks the stretch rule. On the device, AUTO on the
+    ARINC 429 bench source twenty times leaves no channel clipped, and a bursty FlexRay bus still fits.
+- id: REQ-DSO-276
+  title: SOUND's drift log ends with SOUND
+  text: The instrument shall end SOUND's drift log when neither the LCD nor any web or phone page shows SOUND, and
+    restore it off from a saved setup.
+  status: implemented
+  realizes:
+  - CAP-DSO-SOUND
+  category: functional
+  appliesTo:
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: Drift on in the LCD's SOUND view runs and leases the stream; F3 to the FFT view ends it and
+    the lease; on from a page it ends once the page stops asking; a setup saved with it on restores it off.

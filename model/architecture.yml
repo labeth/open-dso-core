@@ -113,6 +113,20 @@ architecture:
       settings sheets and rows, set results, references, workspace views.'
     tags:
     - package:uimodel
+  - id: FU-DSO-PANEL
+    name: UI model controller
+    group: FG-DSO-UI
+    prose: 'The UI model a scope''s display, keys, knobs, touch screen, web page and phone remote drive: task workspaces
+      and their views, the settings sheets and rows, what each key and knob does, Autoset and bus Auto, references,
+      masks, SOUND, the screen saver and the lamps, over the instrument''s controls.'
+    tags:
+    - package:uimodel/panel
+  - id: FU-DSO-SETTINGS
+    name: Setup shape
+    group: FG-DSO-UI
+    prose: The persisted instrument setup's shape and the UI model's slice of it, which every scope's settings file and setup memories keep.
+    tags:
+    - package:settings
   - id: FU-DSO-RENDER
     name: Display rendering
     group: FG-DSO-UI
