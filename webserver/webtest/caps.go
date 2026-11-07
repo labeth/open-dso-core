@@ -4,11 +4,21 @@ package webtest
 
 import (
 	"math"
+	"strconv"
 
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/webserver"
 	"github.com/labeth/open-dso-core/webserver/wire"
 )
+
+// decade is m·10^e, rounded as its decimal reads.
+// TRLC-LINKS: REQ-SDS-164
+func decade(m float64, e int) float64 {
+	if e < 0 {
+		return m / math.Pow10(-e)
+	}
+	return m * math.Pow10(e)
+}
 
 // tdivLadder is a 1-2-5 timebase ladder from 1 ns to 50 s.
 // TRLC-LINKS: REQ-SDS-164
@@ -16,10 +26,10 @@ func tdivLadder() []float64 {
 	var out []float64
 	for e := -9; e <= 1; e++ {
 		for _, m := range []float64{1, 2, 5} {
-			out = append(out, m*math.Pow10(e))
+			out = append(out, decade(m, e))
 		}
 	}
-	return append(out, 50)
+	return out
 }
 
 // vdivLadder is a 1-2-5 V/div ladder from lo to 10 V.
@@ -28,7 +38,7 @@ func vdivLadder(lo float64) []float64 {
 	var out []float64
 	for e := -4; e <= 1; e++ {
 		for _, m := range []float64{1, 2, 5} {
-			if v := m * math.Pow10(e); v >= lo*(1-1e-9) && v <= 10 {
+			if v := decade(m, e); v >= lo*(1-1e-9) && v <= 10 {
 				out = append(out, v)
 			}
 		}
@@ -175,4 +185,71 @@ func (fr wideFrames) FrameV2(q webserver.FrameQueryV2, dst *wire.Frame) {
 	for i := range dst.Traces {
 		dst.Traces[i].Coupling = "DC"
 	}
+}
+
+// Status is the status document of the fields the shared page reads, for
+// four channels.
+// TRLC-LINKS: REQ-SDS-164
+func (w *Wide) Status() any {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	st := map[string]any{
+		"running": w.running, "seq": w.seq, "tdiv_s": w.tdivS, "fps": 20.0, "band": "sim", "version": "wide",
+		"tdivs": tdivLadder(), "vdivs": vdivLadder(0.0005), "trig_source": 0, "trig_rising": true,
+		"trig_volts": 0.0, "trig_pos_frac": 0.5, "mem_depth": fakeN, "cal_source": "fake", "mmap_drain": true, "mask_gen": w.maskGen,
+	}
+	for n := 1; n <= 4; n++ {
+		k := strconv.Itoa(n)
+		st["vdiv"+k], st["probe"+k], st["cpl"+k], st["off"+k+"_v"], st["zoom"+k] = 0.5, 1, 0, 0.0, 1
+	}
+	return st
+}
+
+// Twin is the Fake serving Caps2x8 and its frames in wire v2 too: the
+// two-channel 8-bit scope with caps, which the page must show exactly as
+// it shows the Fake without them.
+type Twin struct {
+	*Fake
+}
+
+// NewTwin is a running two-channel fake with caps.
+// TRLC-LINKS: REQ-SDS-164
+func NewTwin() *Twin { return &Twin{Fake: NewFake(false)} }
+
+// Caps is Caps2x8.
+// TRLC-LINKS: REQ-SDS-164
+func (t *Twin) Caps() wire.Caps { return Caps2x8() }
+
+// CapsGen is Caps2x8's generation.
+// TRLC-LINKS: REQ-SDS-164
+func (t *Twin) CapsGen() uint64 { return 1 }
+
+// Frames serves the Fake's frames in either wire.
+// TRLC-LINKS: REQ-SDS-163
+func (t *Twin) Frames() webserver.Frames { return twinFrames{fakeFrames{t.Fake}} }
+
+// twinFrames serve v2 from the Fake's v1 replies.
+type twinFrames struct{ fakeFrames }
+
+// FrameV2 is the Fake's v1 reply as v2.
+// TRLC-LINKS: REQ-SDS-163
+func (fr twinFrames) FrameV2(q webserver.FrameQueryV2, dst *wire.Frame) {
+	if !q.Raw {
+		dst.FromReply(fr.Frame(q.FrameQuery))
+		return
+	}
+	raw := fr.RawFrame(q.Since)
+	rep := raw.Header
+	if !raw.Unchanged {
+		n := len(raw.Payload) / 2
+		for i, b := range raw.Payload {
+			if i < n {
+				rep.C1 = append(rep.C1, int16(b))
+			} else {
+				rep.C2 = append(rep.C2, int16(b))
+			}
+		}
+	}
+	dst.FromReply(rep)
+	dst.Header.Raw = true
 }

@@ -114,6 +114,16 @@ func TestFrameV2NodeRoundTrip(t *testing.T) {
 		write(tag+"_v1.bin", wire.EncodeBinFrame(rep))
 		write(tag+"_v2.bin", encode2(t, f))
 	}
+	for name, rep := range v1Replies() {
+		write("reply_"+name+"_v1.bin", wire.EncodeBinFrame(rep))
+		var f wire.Frame
+		f.FromReply(rep)
+		b, err := wire.EncodeFrame2(&f)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		write("reply_"+name+"_v2.bin", b)
+	}
 	wide := webtest.WideRecord(3, 600)
 	write("wide_v2.bin", encode2(t, wide))
 
@@ -160,6 +170,33 @@ func TestFrameV2NodeRoundTrip(t *testing.T) {
 		}
 	}
 
+	for name := range v1Replies() {
+		one, two := got["reply_"+name+"_v1.bin"], got["reply_"+name+"_v2.bin"]
+		for k, raw := range one {
+			var a array
+			if json.Unmarshal(raw, &a) != nil || a.Type == "" {
+				continue
+			}
+			b := two.arr(t, k)
+			if a.Type != b.Type || len(a.V) != len(b.V) {
+				t.Fatalf("%s %s: v1 %s[%d], v2 %s[%d]", name, k, a.Type, len(a.V), b.Type, len(b.V))
+			}
+			for i := range a.V {
+				if a.V[i] != b.V[i] {
+					t.Fatalf("%s %s[%d]: v1 %g, v2 %g", name, k, i, a.V[i], b.V[i])
+				}
+			}
+		}
+		for _, k := range []string{"vpc1", "vpc2", "off1_v", "off2_v", "seq", "cols", "edge_x", "edge_frac", "win_frac", "view_n"} {
+			if _, ok := one[k]; !ok {
+				continue
+			}
+			if a, b := one.num(t, k), two.num(t, k); math.Abs(a-b) > 1e-15 {
+				t.Fatalf("%s %s: v1 %g, v2 %g", name, k, a, b)
+			}
+		}
+	}
+
 	w := got["wide_v2.bin"]
 	for ch, tr := range wide.Traces {
 		n := ch + 1
@@ -181,4 +218,28 @@ func TestFrameV2NodeRoundTrip(t *testing.T) {
 			t.Fatalf("C%d volts per unit %g", n, vpc)
 		}
 	}
+}
+
+// v1Replies are v1 replies of every shape: native, deep with margins,
+// envelope with a view window, precision words and all margin.
+// TRLC-LINKS: REQ-SDS-163
+func v1Replies() map[string]wire.FrameReply {
+	base := wire.FrameReply{Seq: 8, Cols: 6, EdgeX: 3, EdgeFrac: 0.5, WinFrac: 1, Vpc1: 0.04, Vpc2: 0.02, Off1V: 0.1, Off2V: -0.05}
+	native := base
+	native.C1, native.C2 = []int16{1, 2, 3, 4, 5, 6}, []int16{250, 251, 252, 253, 254, 255}
+	deep := base
+	deep.Depth = 6
+	deep.C1, deep.C2 = []int16{-1, -1, 30, 31, 32, -1}, []int16{-1, -1, 40, 41, 42, -1}
+	env := base
+	env.IsEnv, env.PeakDetect, env.Ordered = true, true, true
+	env.E1Min, env.E1Max = []int16{1, 2, 3, 4, 5, 6}, []int16{11, 12, 13, 14, 15, 16}
+	env.E2Min, env.E2Max = []int16{21, 22, 23, 24, 25, 26}, []int16{31, 32, 33, 34, 35, 36}
+	env.ViewA, env.ViewB, env.ViewN = 0.25, 0.75, 3
+	env.VC1, env.VC2 = []int16{7, 8, 9}, []int16{17, 18, 19}
+	prec := native
+	prec.FractionBits = 8
+	prec.Q1, prec.Q2 = []uint16{256, 512 + 128, 768, 1024, 1280, 1536 + 1}, []uint16{64000, 64001, 64002, 64003, 64004, 65535}
+	empty := base
+	empty.C1, empty.C2 = []int16{-1, -1, -1, -1, -1, -1}, []int16{-1, -1, -1, -1, -1, -1}
+	return map[string]wire.FrameReply{"native": native, "deep": deep, "env": env, "precision": prec, "empty": empty}
 }

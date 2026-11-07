@@ -19,12 +19,19 @@ func TestConformanceWide(t *testing.T) {
 	webtest.Run(t, func() webserver.Scope { return webtest.NewWide() })
 }
 
+// A two-channel 8-bit scope with caps, serving v2 from its v1 replies,
+// passes it too.
+// TRLC-LINKS: REQ-SDS-163, REQ-SDS-164
+func TestConformanceTwin(t *testing.T) {
+	webtest.Run(t, func() webserver.Scope { return webtest.NewTwin() })
+}
+
 // A scope with caps puts api and caps_gen first in its status and keeps
 // the rest of its document; one without caps has its status as before.
 // TRLC-LINKS: REQ-SDS-164
 func TestStatusCapsGen(t *testing.T) {
 	wide := serve(t, webserver.New(webtest.NewWide()).Handler(), http.MethodGet, "/api/status", "").Body.String()
-	if !strings.HasPrefix(wide, `{"api":2,"caps_gen":1,"mask_gen":0,`) {
+	if !strings.HasPrefix(wide, `{"api":2,"caps_gen":1,"band":"sim",`) {
 		t.Fatalf("status with caps: %s", wide)
 	}
 	plain := serve(t, webserver.New(webtest.NewFake(false)).Handler(), http.MethodGet, "/api/status", "").Body.String()

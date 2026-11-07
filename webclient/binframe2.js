@@ -105,10 +105,10 @@ function frameDisplay(h) {
   for (const t of h.traces) {
     const n = t.ch + 1, head = t.head | 0, tail = t.tail | 0;
     const words = t.codes || t.raw;
-    if (words) {
-      const len = head + words.length + tail;
+    if (words || head + tail > 0) {
+      const w = words || new Uint8Array(0), len = head + w.length + tail;
       if (cols > 0 && len !== cols && !h.raw) return null;
-      f["c" + n] = toDisplay(t, words, len, head);
+      f["c" + n] = toDisplay(t, w, len, head);
       if (!(cols > 0)) cols = len;
     }
     if (t.min && t.max) {

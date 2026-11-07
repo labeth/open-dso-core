@@ -113,17 +113,18 @@ function capsNormalize(c) {
 async function capsFollow() {
   if (!st || st.caps_gen === undefined || st.caps_gen === capsGenSeen || capsBusy) return;
   capsBusy = true;
+  const gen = st.caps_gen;
+  let got = null;
   try {
     const r = await fetch("/api/caps");
-    if (r.ok) {
-      caps = capsNormalize(await r.json());
-      capsServed = true;
-      capsGenSeen = st.caps_gen;
-      capsApply();
-    } else if (r.status === 404) {
-      capsGenSeen = st.caps_gen; // a status that names caps the scope does not serve: the fallback stays
-    }
+    if (r.ok) got = await r.json();
+    else if (r.status === 404) capsGenSeen = gen; // a status that names caps the scope does not serve: the fallback stays
   } catch (e) { /* the next status poll tries again */ } finally { capsBusy = false; }
+  if (!got) return;
+  caps = capsNormalize(got);
+  capsServed = true;
+  capsGenSeen = gen;
+  capsApply();
 }
 
 // capsApply makes the page's channel lists, channel controls and trigger
@@ -135,6 +136,11 @@ function capsApply() {
   for (const n of chanNums()) if (n > 2) chanControls(n);
   chanLists();
   trigLists();
+  // the instrument's name, and why a feature the page shows is missing
+  const brand = document.querySelector(".brand > span");
+  if (brand && caps.identity && caps.identity.model) brand.textContent = caps.identity.model;
+  const meas = feature("measure");
+  for (const id of ["quickBody", "measBody"]) { const el = $(id); if (el) el.title = meas.ok ? "" : meas.why || ""; }
   if (typeof measDomSig !== "undefined") measDomSig = "";
   if (typeof applyStatus === "function" && st) applyStatus();
   if (typeof redraw === "function") redraw();
@@ -280,8 +286,9 @@ function chanControls(n) {
   if (vg) {
     const cols = (vg._cols = vg._cols || 3);
     const kids = [...vg.children];
+    // channel 2's cell of each row, copied after the row's last
     for (let r = kids.length / cols - 1; r >= 0; r--) {
-      const cell = kids[r * cols + cols - 1].cloneNode(true);
+      const cell = kids[r * cols + 2].cloneNode(true);
       chanRename(cell, n);
       kids[r * cols + cols - 1].after(cell);
     }
