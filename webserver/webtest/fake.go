@@ -424,8 +424,10 @@ func (fakeSound) Info() wire.SoundInfo {
 func (fakeSound) Read(from uint64, limit int) wire.SoundBlock {
 	from = min(from, 64)
 	n := int(min(uint64(limit), 64-from))
-	b := wire.SoundBlock{First: from, N: n, Next: 64, RateHz: 48000, Q1: make([]uint16, n), Q2: make([]uint16, n),
-		Scales: []wire.SoundScale{{VPC: [2]float64{0.04, 0.04}}}}
+	b := wire.SoundBlock{
+		First: from, N: n, Next: 64, RateHz: 48000, Q1: make([]uint16, n), Q2: make([]uint16, n),
+		Scales: []wire.SoundScale{{VPC: [2]float64{0.04, 0.04}}},
+	}
 	for i := range n {
 		b.Q1[i], b.Q2[i] = 32768, 32768
 	}

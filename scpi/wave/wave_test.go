@@ -9,12 +9,14 @@ import (
 // The descriptor puts every field at its LeCroy offset.
 // TRLC-LINKS: REQ-DSO-024
 func TestDescOffsets(t *testing.T) {
-	d := Desc{Template: "WAVEACE", CommType: 1, CommOrder: 1, WaveArray1: 40, InstrumentName: "X",
+	d := Desc{
+		Template: "WAVEACE", CommType: 1, CommOrder: 1, WaveArray1: 40, InstrumentName: "X",
 		InstrumentNumber: 0xCDAB, WaveArrayCount: 20, PointsPerScreen: 18, LastValid: 19, FirstPoint: 3,
 		Sparsing: 2, SegmentIndex: -1, SweepsPerAcq: 7, PointsPerPair: 1, VerticalGain: .5, VerticalOffset: .25,
 		MaxValue: 7680, NominalBits: 16, NomSubarrayCount: -1, HorizInterval: 1e-9, HorizOffset: -1e-6,
 		PixelOffset: -1e-6, VertUnit: "V", HorUnit: "S", HorizUncertainty: 1e-9, RISSweeps: 1, Timebase: 9,
-		VertCoupling: 1, ProbeAtt: 10, FixedVertGain: 4, BandwidthLimit: 1, VerticalVernier: 1, AcqVerticalOffset: .25, WaveSource: 2}
+		VertCoupling: 1, ProbeAtt: 10, FixedVertGain: 4, BandwidthLimit: 1, VerticalVernier: 1, AcqVerticalOffset: .25, WaveSource: 2,
+	}
 	b := d.Encode()
 	le := binary.LittleEndian
 	f32 := func(o int) float32 { return math.Float32frombits(le.Uint32(b[o:])) }
@@ -23,12 +25,25 @@ func TestDescOffsets(t *testing.T) {
 		got  any
 		want any
 	}{
-		{0, string(b[0:8]), "WAVEDESC"}, {16, string(b[16:23]), "WAVEACE"}, {32, le.Uint16(b[32:]), uint16(1)},
-		{36, le.Uint32(b[36:]), uint32(346)}, {60, le.Uint32(b[60:]), uint32(40)}, {92, le.Uint32(b[92:]), uint32(0xCDAB)},
-		{120, le.Uint32(b[120:]), uint32(18)}, {140, int32(le.Uint32(b[140:])), int32(-1)}, {144, le.Uint32(b[144:]), uint32(7)},
-		{164, f32(164), float32(7680)}, {172, le.Uint16(b[172:]), uint16(16)}, {176, f32(176), float32(1e-9)},
-		{180, math.Float64frombits(le.Uint64(b[180:])), -1e-6}, {196, string(b[196:197]), "V"}, {244, string(b[244:245]), "S"},
-		{324, le.Uint16(b[324:]), uint16(9)}, {328, f32(328), float32(10)}, {340, f32(340), float32(.25)}, {344, le.Uint16(b[344:]), uint16(2)},
+		{0, string(b[0:8]), "WAVEDESC"},
+		{16, string(b[16:23]), "WAVEACE"},
+		{32, le.Uint16(b[32:]), uint16(1)},
+		{36, le.Uint32(b[36:]), uint32(346)},
+		{60, le.Uint32(b[60:]), uint32(40)},
+		{92, le.Uint32(b[92:]), uint32(0xCDAB)},
+		{120, le.Uint32(b[120:]), uint32(18)},
+		{140, int32(le.Uint32(b[140:])), int32(-1)},
+		{144, le.Uint32(b[144:]), uint32(7)},
+		{164, f32(164), float32(7680)},
+		{172, le.Uint16(b[172:]), uint16(16)},
+		{176, f32(176), float32(1e-9)},
+		{180, math.Float64frombits(le.Uint64(b[180:])), -1e-6},
+		{196, string(b[196:197]), "V"},
+		{244, string(b[244:245]), "S"},
+		{324, le.Uint16(b[324:]), uint16(9)},
+		{328, f32(328), float32(10)},
+		{340, f32(340), float32(.25)},
+		{344, le.Uint16(b[344:]), uint16(2)},
 	}
 	for _, c := range checks {
 		if c.got != c.want {

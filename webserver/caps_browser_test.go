@@ -21,11 +21,13 @@ import (
 // pageStatus is a two-channel status of the fields the page reads.
 // TRLC-LINKS: REQ-DSO-164
 func pageStatus() map[string]any {
-	return map[string]any{"running": true, "seq": 1, "tdiv_s": 1e-6, "fps": 30.0, "band": "native", "version": "test",
+	return map[string]any{
+		"running": true, "seq": 1, "tdiv_s": 1e-6, "fps": 30.0, "band": "native", "version": "test",
 		"tdivs": []float64{1e-7, 2e-7, 5e-7, 1e-6, 2e-6}, "vdivs": []float64{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1},
 		"vdiv1": 0.1, "vdiv2": 0.2, "probe1": 1, "probe2": 1, "cpl1": 0, "cpl2": 0, "off1_v": 0.0, "off2_v": 0.0,
 		"trig_source": 0, "trig_code": 31437, "trig_volts": 0.0, "trig_rising": true, "zoom1": 1, "zoom2": 1,
-		"trig_pos_frac": 0.5, "mem_depth": 20480, "cal_source": "test", "mmap_drain": true, "win_cols": 1000}
+		"trig_pos_frac": 0.5, "mem_depth": 20480, "cal_source": "test", "mmap_drain": true, "win_cols": 1000,
+	}
 }
 
 // plainScope is the Fake with the page's status.

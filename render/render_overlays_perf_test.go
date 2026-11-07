@@ -54,11 +54,11 @@ func TestMathCodesMatchesRef(t *testing.T) {
 		c1[i], c2[i] = uint8(i), uint8(i>>8)
 	}
 	for _, h := range []HUD{
-		HUD{Ch: [MaxChans]Channel{{VdivV: 0.2}, {VdivV: 0.5}}},
-		HUD{Ch: [MaxChans]Channel{{VdivV: 0.002, Probe: 10, OffV: 0.013}, {VdivV: 5, Zoom: 4, OffV: -1.7}}},
-		HUD{Ch: [MaxChans]Channel{{VdivV: 0.1, OffV: 0.3, Cpl: 1}, {VdivV: 0.1, OffV: 0.3}}},
-		HUD{Ch: [MaxChans]Channel{{VdivV: 0}, {VdivV: -1, Probe: 100, OffV: 1e-3}}},
-		HUD{Ch: [MaxChans]Channel{{VdivV: 1, OffV: math.Inf(1)}, {VdivV: 1, OffV: math.Inf(1)}}}, // NaN sums
+		{Ch: [MaxChans]Channel{{VdivV: 0.2}, {VdivV: 0.5}}},
+		{Ch: [MaxChans]Channel{{VdivV: 0.002, Probe: 10, OffV: 0.013}, {VdivV: 5, Zoom: 4, OffV: -1.7}}},
+		{Ch: [MaxChans]Channel{{VdivV: 0.1, OffV: 0.3, Cpl: 1}, {VdivV: 0.1, OffV: 0.3}}},
+		{Ch: [MaxChans]Channel{{VdivV: 0}, {VdivV: -1, Probe: 100, OffV: 1e-3}}},
+		{Ch: [MaxChans]Channel{{VdivV: 1, OffV: math.Inf(1)}, {VdivV: 1, OffV: math.Inf(1)}}}, // NaN sums
 	} {
 		for mode := range 6 {
 			h.MathMode = mode

@@ -110,7 +110,8 @@ func TestRenderFuzzNoPanic(t *testing.T) {
 			MaskPass: int64(rng.Intn(1000)), MaskFail: int64(rng.Intn(10)), MaskSkip: int64(rng.Intn(10)),
 			MaskStopped: rng.Intn(4) == 0, MaskMsg: []string{"", "MASK: building 9/32"}[rng.Intn(2)],
 			RefShow:     [2]bool{rng.Intn(2) == 0, false},
-			AutosetBusy: rng.Intn(6) == 0, AutosetMsg: "sweep"}
+			AutosetBusy: rng.Intn(6) == 0, AutosetMsg: "sweep",
+		}
 		if rng.Intn(3) == 0 && f != nil && len(f.Codes8(0)) > 0 {
 			hud.RefC1[0] = f.Codes8(0) // ref same as live
 			hud.RefShow[0] = true

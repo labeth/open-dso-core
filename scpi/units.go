@@ -14,8 +14,18 @@ var prefixes = []struct {
 	p string
 	m float64
 }{
-	{"EX", 1e18}, {"PE", 1e15}, {"MA", 1e6}, {"T", 1e12}, {"G", 1e9}, {"K", 1e3},
-	{"M", 1e-3}, {"U", 1e-6}, {"N", 1e-9}, {"P", 1e-12}, {"F", 1e-15}, {"A", 1e-18},
+	{"EX", 1e18},
+	{"PE", 1e15},
+	{"MA", 1e6},
+	{"T", 1e12},
+	{"G", 1e9},
+	{"K", 1e3},
+	{"M", 1e-3},
+	{"U", 1e-6},
+	{"N", 1e-9},
+	{"P", 1e-12},
+	{"F", 1e-15},
+	{"A", 1e-18},
 }
 
 // specialUnits are complete suffixes with a fixed meaning (SCPI convention: MHZ and MOHM are mega).

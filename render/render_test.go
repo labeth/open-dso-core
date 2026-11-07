@@ -37,7 +37,8 @@ func testFrame(valid int) *sample.Frame {
 func defaultHUD() HUD {
 	return HUD{
 		Ch: [MaxChans]Channel{{VdivV: 1}, {VdivV: 1}}, TdivS: 500e-6, TrigRising: true,
-		Running: true, SampleS: 800e-9, NumChans: 2}
+		Running: true, SampleS: 800e-9, NumChans: 2,
+	}
 }
 
 // TRLC-LINKS: REQ-DSO-021

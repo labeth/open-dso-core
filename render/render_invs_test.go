@@ -57,7 +57,8 @@ func TestRenderINVSFlipsTrace(t *testing.T) {
 	f := flatFrame(168, 88) // C1 above centre, C2 below — asymmetric on purpose
 	hud := HUD{
 		Ch: [MaxChans]Channel{{VdivV: 1, Show: true}, {VdivV: 1, Show: true}}, TdivS: 500e-6, TrigPosFrac: 0.5,
-		NumChans: 2, Running: true}
+		NumChans: 2, Running: true,
+	}
 
 	render := func(h HUD) *Image565 {
 		sf := NewImage565(m800)
@@ -113,7 +114,8 @@ func TestRenderINVSFlipsEnvelope(t *testing.T) {
 	}
 	hud := HUD{
 		Ch: [MaxChans]Channel{{VdivV: 1, Show: true}, {VdivV: 1, Show: true}}, TdivS: 0.1, TrigPosFrac: 0.5,
-		NumChans: 2, Running: true}
+		NumChans: 2, Running: true,
+	}
 	sf := NewImage565(m800)
 	Render(sf, f, hud, true)
 	lo, hi, ok := traceRows(sf, colC1)

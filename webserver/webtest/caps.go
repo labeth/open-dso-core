@@ -56,16 +56,26 @@ func Caps2x8() wire.Caps {
 		Gen:      1,
 		Identity: wire.Identity{Model: "fake two-channel 8-bit"},
 		Channels: []wire.CapsChannel{{Ch: 0, Name: "C1", Color: "c1"}, {Ch: 1, Name: "C2", Color: "c2"}},
-		Codes: wire.CapsCodes{Bits: 8, Storage: "u8", Min: 0, Max: 255, Mid: 128, CodesPerDiv: 25,
-			FracBitsPrecision: 8},
-		Timebase: wire.CapsTimebase{Tdivs: tdivLadder(), FullRateTdivS: 2e-7, FullRateS: 2e-9,
-			Depths: []int{1024, 4096, 20480}, Positions: []float64{0, 1}},
-		Vertical: wire.CapsVertical{Vdivs: vdivLadder(0.002), Probes: []float64{1, 10, 100},
-			Couplings: []string{"DC", "AC", "GND"}, BWLimits: []string{"full", "20M"}, Impedances: []string{"1M"}},
-		Trigger: wire.CapsTrigger{Types: []string{"edge", "pulse", "slope", "video"}, Sources: []string{"C1", "C2"},
-			Modes: []string{"auto", "normal", "single"}, HoldoffS: [2]float64{0, 10}},
-		Acquisition: wire.CapsAcquisition{Modes: []string{"normal", "average", "eres", "peak", "precision"},
-			Content: []string{"raw-full-rate", "raw-decimated", "peak-pairs"}},
+		Codes: wire.CapsCodes{
+			Bits: 8, Storage: "u8", Min: 0, Max: 255, Mid: 128, CodesPerDiv: 25,
+			FracBitsPrecision: 8,
+		},
+		Timebase: wire.CapsTimebase{
+			Tdivs: tdivLadder(), FullRateTdivS: 2e-7, FullRateS: 2e-9,
+			Depths: []int{1024, 4096, 20480}, Positions: []float64{0, 1},
+		},
+		Vertical: wire.CapsVertical{
+			Vdivs: vdivLadder(0.002), Probes: []float64{1, 10, 100},
+			Couplings: []string{"DC", "AC", "GND"}, BWLimits: []string{"full", "20M"}, Impedances: []string{"1M"},
+		},
+		Trigger: wire.CapsTrigger{
+			Types: []string{"edge", "pulse", "slope", "video"}, Sources: []string{"C1", "C2"},
+			Modes: []string{"auto", "normal", "single"}, HoldoffS: [2]float64{0, 10},
+		},
+		Acquisition: wire.CapsAcquisition{
+			Modes:   []string{"normal", "average", "eres", "peak", "precision"},
+			Content: []string{"raw-full-rate", "raw-decimated", "peak-pairs"},
+		},
 		Features: map[string]wire.Feature{"decode": {OK: true}, "measure": {OK: true}},
 		Screen:   wire.CapsScreen{W: 800, H: 480, Format: "RGB565"},
 		UI:       wire.CapsUI{Remote: true, FKeys: 5},
@@ -81,14 +91,18 @@ func Caps4x12() wire.Caps {
 	c := Caps2x8()
 	c.Identity = wire.Identity{Model: "fake four-channel 12-bit"}
 	c.Channels = []wire.CapsChannel{
-		{Ch: 0, Name: "C1", Color: "c1"}, {Ch: 1, Name: "C2", Color: "c2"},
-		{Ch: 2, Name: "C3", Color: "c3"}, {Ch: 3, Name: "C4", Color: "c4"},
+		{Ch: 0, Name: "C1", Color: "c1"},
+		{Ch: 1, Name: "C2", Color: "c2"},
+		{Ch: 2, Name: "C3", Color: "c3"},
+		{Ch: 3, Name: "C4", Color: "c4"},
 	}
 	c.Codes = wide12
 	c.Vertical.Vdivs = vdivLadder(0.0005)
 	c.Vertical.Probes = []float64{0.1, 1, 10, 100, 1000}
-	c.Trigger = wire.CapsTrigger{Types: []string{"edge"}, Sources: []string{"C1", "C2", "C3", "C4"},
-		Modes: []string{"auto", "normal", "single"}, HoldoffS: [2]float64{0, 10}}
+	c.Trigger = wire.CapsTrigger{
+		Types: []string{"edge"}, Sources: []string{"C1", "C2", "C3", "C4"},
+		Modes: []string{"auto", "normal", "single"}, HoldoffS: [2]float64{0, 10},
+	}
 	c.Acquisition = wire.CapsAcquisition{Modes: []string{"normal"}, Content: []string{"raw-full-rate", "raw-decimated"}}
 	c.Features = map[string]wire.Feature{
 		"decode":  {OK: true},
@@ -149,8 +163,10 @@ func WideRecord(seq uint64, n int) *sample.Frame {
 	}
 	fmtw := sample.CodeFormat{Bits: 12, Storage: sample.U16, Shift: 4, Min: wide12.Min, Max: wide12.Max, Mid: wide12.Mid}
 	for ch := range 4 {
-		t := sample.Trace{Ch: ch, Format: fmtw, Codes16: make([]uint16, n), Valid: n,
-			Scale: sample.Scale{Zero: 0x8000, PerCode: 0.5 / 7680}, CodesPerDiv: 7680}
+		t := sample.Trace{
+			Ch: ch, Format: fmtw, Codes16: make([]uint16, n), Valid: n,
+			Scale: sample.Scale{Zero: 0x8000, PerCode: 0.5 / 7680}, CodesPerDiv: 7680,
+		}
 		for i := range n {
 			x := float64(i) / 200 // periods
 			var d float64         // divisions from the centre

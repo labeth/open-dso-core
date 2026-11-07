@@ -949,7 +949,8 @@ func Sine(n int, freqHz, sampleS float64) *sample.Frame {
 func DefaultHUD() render.HUD {
 	return render.HUD{
 		Ch: [render.MaxChans]render.Channel{{VdivV: 1}, {VdivV: 1}}, TdivS: 500e-6, TrigRising: true,
-		Running: true, SampleS: 800e-9, NumChans: 2}
+		Running: true, SampleS: 800e-9, NumChans: 2,
+	}
 }
 
 // Format12 is a 12-bit converter's codes left-aligned in 16-bit words (the

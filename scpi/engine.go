@@ -279,8 +279,10 @@ func (e *Engine) execIEEE(msg []byte) []byte {
 			e.pushError(ErrSyntax, "")
 			continue
 		}
-		c := &Call{e: e, Header: hdr, Suffix: suf, arg: u.params, params: toks, out: &out,
-			pendingSemi: lastOut && strings.HasSuffix(hdr, "?")}
+		c := &Call{
+			e: e, Header: hdr, Suffix: suf, arg: u.params, params: toks, out: &out,
+			pendingSemi: lastOut && strings.HasSuffix(hdr, "?"),
+		}
 		before := e.pushes
 		err := cmd.Handler(c)
 		pushed := e.pushes != before
