@@ -69,7 +69,7 @@ func TestFourChannelScopeControlsEveryChannel(t *testing.T) {
 	if r := c.SheetSet("trig.edge", "C4 Fall", ""); !r.OK {
 		t.Fatalf("trig.edge: %+v", r)
 	}
-	if src := m.State().Trigger.Source; src.Index != 3 || m.State().Trigger.Slope != hal.Falling {
+	if src := m.State().Trigger.Source(); src.Index != 3 || m.State().Trigger.Slope() != hal.Falling {
 		t.Fatalf("trigger %+v", m.State().Trigger)
 	}
 	if r := c.SheetSet("view.fft_source", "CH3", ""); !r.OK || c.snap().fftSrc != 2 {
