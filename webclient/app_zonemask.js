@@ -1,9 +1,9 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-ZONEMASK
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_zonemask.js — zone-trigger + mask editor UI (classic script; shares app.js globals).
 
 // --- coordinate transforms (display point <-> edge-anchored zone coords) ---
 "use strict";
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmPointToZone(p) { // p = ptToNorm point -> {dtS, code}
   if (!frame || !frame.cols || !(frame.col_span_s > 0)) return null;
   const cols = frame.cols;
@@ -13,14 +13,14 @@ function zmPointToZone(p) { // p = ptToNorm point -> {dtS, code}
   return { dtS: (c - edgeCol) * (frame.col_span_s / cols), code: codeAtY(p.y, 1) };
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmZoneToRect(z) { // zone -> on-screen rect {x0,x1,y0,y1} in px, or null
   if (!frame || !frame.cols || !(frame.col_span_s > 0)) return null;
   const cols = frame.cols;
   const edgeCol = frame.edge_frac >= 0 ? frame.edge_frac * cols : cols / 2;
   const spc = frame.col_span_s / cols;
   const span = view.win.b - view.win.a || 1;
-  // TRLC-LINKS: REQ-SDS-014
+  // TRLC-LINKS: REQ-DSO-014
   const xOf = dt => ((edgeCol + dt / spc) / (cols - 1) - view.win.a) / span * CW;
   return {
     x0: xOf(Math.min(z.dt_lo_s, z.dt_hi_s)), x1: xOf(Math.max(z.dt_lo_s, z.dt_hi_s)),
@@ -29,7 +29,7 @@ function zmZoneToRect(z) { // zone -> on-screen rect {x0,x1,y0,y1} in px, or nul
 }
 
 // --- overlay rendering (called from redraw) ---
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function drawZones(g) {
   if (view.mode !== "YT") return;
   for (const z of zm.zones) {
@@ -90,7 +90,7 @@ function drawZones(g) {
 // Zone/mask test RAW capture codes; AC/GND coupling is a display-only
 // transform here, so what the user sees would not be what is tested.
 // Refuse to create misaligned artifacts (review finding).
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmCplOK(ch) {
   const cpl = st && st["cpl" + (ch + 1)];
   if (cpl) {
@@ -100,14 +100,14 @@ function zmCplOK(ch) {
   return true;
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmPointerDown(p) { // true = consumed
   if (!zm.drawArmed || view.mode !== "YT") return false;
   zm.drawA = p; zm.drawB = p;
   return true;
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmPointerMove(p) {
   if (!zm.drawArmed || !zm.drawA) return false;
   zm.drawB = p;
@@ -115,7 +115,7 @@ function zmPointerMove(p) {
   return true;
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmPointerUp() {
   if (!zm.drawArmed || !zm.drawA || !zm.drawB) return false;
   const a = zmPointToZone(zm.drawA), b = zmPointToZone(zm.drawB);
@@ -141,13 +141,13 @@ function zmPointerUp() {
   return true;
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmPushZones() {
   fetch("/api/zones", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(zm.zones) }).catch(() => {});
   zmZoneList();
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmZoneList() {
   const rows = zm.zones.map((z, i) =>
     `<div>z${i + 1} <button class="btn-mini zmm" data-i="${i}">${z.avoid ? "avoid" : "hit"}</button> ` +
@@ -155,16 +155,16 @@ function zmZoneList() {
     `<button class="btn-mini zmx" data-i="${i}">✕</button></div>`).join("");
   $("zmZoneList").innerHTML = rows;
   for (const b of document.querySelectorAll("#zmZoneList .zmm")) {
-    // TRLC-LINKS: REQ-SDS-014
+    // TRLC-LINKS: REQ-DSO-014
     b.onclick = () => { zm.zones[+b.dataset.i].avoid = !zm.zones[+b.dataset.i].avoid; zmPushZones(); redraw(); };
   }
   for (const b of document.querySelectorAll("#zmZoneList .zmx")) {
-    // TRLC-LINKS: REQ-SDS-014
+    // TRLC-LINKS: REQ-DSO-014
     b.onclick = () => { zm.zones.splice(+b.dataset.i, 1); zmPushZones(); redraw(); };
   }
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmStatus(m) { if (m !== undefined) $("zmStats").textContent = m || "—"; }
 
 // --- vertical re-anchoring: masks and zones are physically VOLTS ---
@@ -173,22 +173,22 @@ function zmStatus(m) { if (m !== undefined) $("zmStats").textContent = m || "—
 // stale overlay LOOKS happy. The client owns the volts<->code mapping, so on
 // any V/div or offset change it re-maps the frozen volts-space source into
 // the new code space and re-installs (same precedent as the REF rescale).
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmVctx(ch) { // live vertical context; null while frozen/env (no authority)
   if (!frame || frozen || frame.is_env || !(frame.vpc1 > 0)) return null;
   return { vpc: frame["vpc" + (ch + 1)], off: frame["off" + (ch + 1) + "_v"] || 0 };
 }
 
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmRescale() {
-  // TRLC-LINKS: REQ-SDS-014
+  // TRLC-LINKS: REQ-DSO-014
   const near = (a, b) => Math.abs(a - b) <= Math.abs(b) * 1e-9 + 1e-12;
   let zchg = false;
   for (const z of zm.zones) {
     if (!(z._svpc > 0)) continue;
     const c = zmVctx(z.ch || 0);
     if (!c || (near(c.vpc, z._avpc) && near(c.off, z._aoff))) continue;
-    // TRLC-LINKS: REQ-SDS-014
+    // TRLC-LINKS: REQ-DSO-014
     const map = v => 128 + ((v - 128) * z._svpc - z._soff + c.off) / c.vpc;
     const a = Math.round(map(z._sclo)), b = Math.round(map(z._schi));
     z.code_lo = Math.max(0, Math.min(255, Math.min(a, b)));
@@ -202,7 +202,7 @@ function zmRescale() {
   if (m && m.srcLo && m.svpc > 0) {
     const c = zmVctx(m.ch || 0);
     if (c && !(near(c.vpc, m.avpc) && near(c.off, m.aoff))) {
-      // TRLC-LINKS: REQ-SDS-014
+      // TRLC-LINKS: REQ-DSO-014
       const map = v => 128 + ((v - 128) * m.svpc - m.soff + c.off) / c.vpc;
       for (let j = 0; j < m.win; j++) { // floor/ceil: never shrink the physical envelope
         m.lo[j] = Math.max(0, Math.min(255, Math.floor(map(m.srcLo[j]))));
@@ -221,7 +221,7 @@ function zmRescale() {
 // scope refuses it once its mask changed elsewhere (cleared or replaced on
 // the LCD, by a phone, COMPARE's master or another page), and the page then
 // lets its copy go rather than bring a cleared mask back.
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmReinstall(m) {
   m.inflight = true;
   const body = { lo_b64: zmPackMask(m.lo), hi_b64: zmPackMask(m.hi), win: m.win, ch: m.ch || 0, ...m.geometry };
@@ -240,7 +240,7 @@ function zmReinstall(m) {
 }
 
 // zmLetGo forgets the page's mask: the scope holds another one now, or none.
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmLetGo() {
   zm.mask = null;
   zmStatus("the scope's mask was cleared or replaced elsewhere: this page let its copy go");
@@ -268,7 +268,7 @@ window.zm = {
 
 
 // --- zone drawing (armed drag; wired into the scope pointer handlers) ---
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 $("zmDraw").onclick = () => {
   if (!zm.drawArmed && !zmCplOK(+$("zmCh").value || 0)) return;
   zm.drawArmed = !zm.drawArmed;
@@ -276,9 +276,9 @@ $("zmDraw").onclick = () => {
   $("zmDraw").classList.toggle("on", zm.drawArmed);
   zmStatus(zm.drawArmed ? "drag a rectangle on the scope to add a zone" : "");
 };
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 $("zmClearZones").onclick = () => { zm.zones = []; zmPushZones(); redraw(); };
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 $("zmTrig").onclick = () => {
   const on = !$("zmTrig").classList.contains("on");
   $("zmTrig").classList.toggle("on", on);
@@ -287,7 +287,7 @@ $("zmTrig").onclick = () => {
 };
 
 // Compact mask transport avoids large numeric JSON allocations on the ARM.
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 function zmPackMask(a) {
   let out = "";
   for (let i = 0; i < a.length; i += 8192) out += String.fromCharCode(...a.slice(i, i + 8192));
@@ -295,7 +295,7 @@ function zmPackMask(a) {
 }
 
 // --- mask build from N raw frames (dilated client-side, uploaded) ---
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 $("zmBuild").onclick = async () => {
   if (!st || !st.win_cols) { zmStatus("no window info yet"); return; }
   const N = Math.max(4, Math.min(200, +$("zmN").value || 32));
@@ -363,11 +363,11 @@ $("zmBuild").onclick = async () => {
   zmStatus("mask built from " + got + " frames (±" + tolT + " samp, ±" + tolV + " codes) — set test mode");
   redraw();
 };
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 $("zmMode").onchange = () => send("maskmode", +$("zmMode").value);
 // Clear mask: the scope drops the mask, its test and its counts (and a build
 // or master under way on the LCD); this page lets its copy go.
-// TRLC-LINKS: REQ-SDS-014, REQ-SDS-139
+// TRLC-LINKS: REQ-DSO-014, REQ-DSO-139
 $("zmClearMask").onclick = async () => {
   try {
     await fetch("/api/mask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lo: [], hi: [], win: 0 }) });
@@ -378,7 +378,7 @@ $("zmClearMask").onclick = async () => {
   zmStatus("mask cleared — build one from a clean signal");
   redraw();
 };
-// TRLC-LINKS: REQ-SDS-014
+// TRLC-LINKS: REQ-DSO-014
 $("zmClearStats").onclick = () => { send("maskclear", 0); zm.failMark = null; redraw(); };
 
 window.zmRescale = zmRescale; // exercised directly by the browser e2e
@@ -428,7 +428,7 @@ setInterval(() => {
     for (let i = 0; i < zm.lastRing; i++) html += `<button class="btn-mini zmf" data-i="${i}">fail ${i + 1}</button> `;
     $("zmGallery").innerHTML = html;
     for (const b of document.querySelectorAll("#zmGallery .zmf")) {
-      // TRLC-LINKS: REQ-SDS-014
+      // TRLC-LINKS: REQ-DSO-014
       b.onclick = async () => {
         try {
           const r = await (await fetch("/api/maskfail?i=" + b.dataset.i)).json();

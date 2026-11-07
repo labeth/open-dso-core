@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-REMOTE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // remote_ui.js — the phone remote's touch primitives (window.RU): a DOM
 // helper and icons; buttons that act on the click a tap makes (so a sheet
 // opening under the finger never takes a ghost tap), with a pressed look, a
@@ -15,7 +15,7 @@
   // ---- DOM --------------------------------------------------------------------------
 
   // h builds an element: h("button", {class, text, html, data:{k:v}, on:{click}, ...attrs}, ...children).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function h(tag, attrs) {
     const e = doc.createElement(tag);
     if (attrs) {
@@ -33,7 +33,7 @@
     for (let i = 2; i < arguments.length; i++) add(e, arguments[i]);
     return e;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function add(e, k) {
     if (k === null || k === undefined || k === false) return;
     if (Array.isArray(k)) { for (const x of k) add(e, x); return; }
@@ -70,7 +70,7 @@
   };
 
   // icon is an inline stroke icon (24x24, currentColor).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function icon(name, size) {
     const s = size || 22;
     return '<svg viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -80,7 +80,7 @@
   // iconNode is icon's element: parsed once per icon and size, then cloned
   // (screens rebuild their buttons whole).
   const ICON_NODES = new Map();
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function iconNode(name, size) {
     const k = name + "/" + (size || 22);
     let n = ICON_NODES.get(k);
@@ -100,7 +100,7 @@
 
   // haptic gives a vibration where the phone has one (after a real touch:
   // browsers block it before), and always a visible tick in the corner.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function haptic(kind) {
     kind = VIBRATE[kind] !== undefined ? kind : "tap";
     const nav = navigator, ua = nav.userActivation;
@@ -131,10 +131,10 @@
   // press makes a button act on the click its tap (or Enter / Space) makes:
   // a pressed look while the finger is down, a tap tick, and an optional long
   // press (that click is then swallowed). o: {onTap, onLong, haptic}.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function press(el, o) {
     let timer = 0, long = false, x0 = 0, y0 = 0;
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const stop = () => { if (timer) { clearTimeout(timer); timer = 0; } el.classList.remove("down"); };
     el.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -167,16 +167,16 @@
 
   // button builds <button class="btn">: {label, sub, icon, cls, aria, data, onTap, onLong}.
   // setLabel(t) and setSub(t) change its texts.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function button(o) {
     const b = h("button", { type: "button", class: "btn" + (o.cls ? " " + o.cls : "") + (o.sub !== undefined ? " col" : ""),
       "aria-label": o.aria || null, data: o.data || null });
     if (o.icon) b.appendChild(iconNode(o.icon, o.iconSize));
     if (o.label !== undefined) b.appendChild(h("span", { class: "lbl", text: o.label }));
     if (o.sub !== undefined) b.appendChild(h("span", { class: "sub", text: o.sub }));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     b.setLabel = (t) => { const s = b.querySelector(".lbl"); if (s && s.textContent !== t) s.textContent = t; };
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     b.setSub = (t) => { const s = b.querySelector(".sub"); if (s && s.textContent !== t) s.textContent = t; };
     return press(b, o);
   }
@@ -184,16 +184,16 @@
   // repeat makes a button step once on a tap and keep stepping while held:
   // the first repeat after 450 ms, then every 110 ms, each with a detent tick.
   // fn(held) runs per step.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function repeat(b, fn) {
     let timer = 0, reps = 0;
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const stop = () => { if (timer) { clearTimeout(timer); timer = 0; } b.classList.remove("down"); };
     b.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
       reps = 0;
       b.classList.add("down");
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const again = () => {
         if (!b.isConnected || b.disabled) { stop(); return; }
         reps++;
@@ -216,7 +216,7 @@
 
   // holdButton fires only after a press held for ms (a finger, or Space /
   // Enter held); a tap only says how. {label, sub, ms, icon, cls, onConfirm}.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function holdButton(o) {
     const ms = o.ms || 1000;
     const b = h("button", { type: "button", class: "btn hold " + (o.cls || "warn") + (o.sub !== undefined ? " col" : ""), style: "--hold-ms:" + ms + "ms",
@@ -225,7 +225,7 @@
     b.appendChild(h("span", { class: "lbl", text: o.label }));
     if (o.sub !== undefined) b.appendChild(h("span", { class: "sub", text: o.sub }));
     let timer = 0, done = false, active = false;
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const start = () => {
       if (b.disabled || active) return;
       active = true; done = false;
@@ -237,7 +237,7 @@
         o.onConfirm();
       }, ms);
     };
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const end = (explain) => {
       if (!active) return;
       active = false;
@@ -253,7 +253,7 @@
     b.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); end(true); } });
     b.addEventListener("click", (e) => e.preventDefault());
     b.addEventListener("contextmenu", (e) => e.preventDefault());
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     b.setLabel = (t) => { b.querySelector(".lbl").textContent = t; };
     return b;
   }
@@ -261,7 +261,7 @@
   // drag follows one finger on el (touch-action none): onStart, onMove({dx,
   // dy}), onEnd({dx, dy, moved}). A press on a button inside el is left to
   // the button; the pointer is captured only once a drag has started.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function drag(el, o) {
     let id = null, x0 = 0, y0 = 0, on = false;
     el.addEventListener("pointerdown", (e) => {
@@ -279,7 +279,7 @@
       }
       if (on && o.onMove) o.onMove({ dx, dy });
     });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const end = (e, cancel) => {
       if (e.pointerId !== id) return;
       const dx = e.clientX - x0, dy = e.clientY - y0, moved = on;
@@ -296,7 +296,7 @@
 
   // toast shows a short message (kind "ok" or "err") above the dock, or at
   // the top while a sheet is open.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function toast(text, kind, ms) {
     if (!toastEl) {
       toastEl = h("div", { class: "toast", role: "status", "aria-live": "polite", hidden: true });
@@ -317,7 +317,7 @@
   // isOpen(), setTitle(t)}. Focus goes into it and back to where it was;
   // o.inert (the page behind) is inert while it is open, so focus and a
   // screen reader stay in the sheet.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function sheet(o) {
     const scrim = h("div", { class: "scrim", hidden: true });
     const title = h("h2", { id: "sheet-title" });
@@ -330,7 +330,7 @@
     let open = false, back = null;
     const api = {
       el, head, body, tools,
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       open(t) {
         api.setTitle(t || "");
         if (open) return api;
@@ -344,7 +344,7 @@
         el.focus({ preventScroll: true });
         return api;
       },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       close() {
         if (!open) return api;
         open = false;
@@ -357,20 +357,20 @@
         if (back && back.isConnected && back.focus) back.focus({ preventScroll: true });
         return api;
       },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       isOpen: () => open,
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       setTitle(t) { title.textContent = t; },
     };
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(close, { onTap: () => api.close() });
     scrim.addEventListener("click", () => api.close());
     drag(head, {
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       onStart() { el.classList.add("dragging"); },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       onMove(d) { el.style.transform = "translateY(" + Math.max(0, d.dy) + "px)"; },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       onEnd(d) { el.classList.remove("dragging"); el.style.transform = ""; if (d.moved && !d.cancel && d.dy > 80) api.close(); },
     });
     el.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); api.close(); } });
@@ -396,35 +396,35 @@
   // first time a video with sound starts, a notice says so, once.
   const Wake = {
     want: false, how: "", note: "", sentinel: null, video: null, fns: [], pending: null,
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     on(fn) { this.fns.push(fn); },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     emit() { for (const f of this.fns) f(this.state()); },
     // state: {on, how ("wake lock" | "muted video" | "silent sound" | ""), text, note}
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     state() {
       const how = this.how;
       return { on: !!how, how, text: how ? "awake: " + how : "off: tap to keep awake", note: this.note };
     },
     // wanted: on unless the user turned it off (the owner's phone must not lock)
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     wanted() { return this.want || load("wake", true); },
     // strong: Stronger keep-awake, the silent sound track on any phone
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     strong() { return load("wake-strong", false) === true; },
     // sound: the video plays with its (silent) sound track
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     sound() { return isWebKit() || this.strong(); },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     lockAvailable() { return "wakeLock" in navigator && !!window.isSecureContext && navigator.wakeLock && typeof navigator.wakeLock.request === "function"; },
     // enable starts keeping awake; a start under way is the one answered.
     // The state it answers has told: true when it showed the notice.
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     enable() {
       if (!this.pending) this.pending = this.start().finally(() => { this.pending = null; });
       return this.pending;
     },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     async start() {
       this.want = true;
       store("wake", true);
@@ -465,7 +465,7 @@
       this.emit();
       return Object.assign(this.state(), { told });
     },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     disable() {
       this.want = false;
       store("wake", false);
@@ -477,7 +477,7 @@
     // setStrong turns Stronger keep-awake on or off; a video keeping the
     // phone awake the other way starts again the new way (also one the same
     // tap was starting)
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     async setStrong(on) {
       store("wake-strong", !!on);
       if (this.pending) await this.pending;
@@ -489,7 +489,7 @@
       this.emit();
       return this.state();
     },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     ensureVideo() {
       if (this.video) return this.video;
       const v = h("video", { playsinline: "", "webkit-playsinline": "", preload: "auto", title: "Keep awake", "aria-hidden": "true", tabindex: "-1", class: "awake-video" });
@@ -507,7 +507,7 @@
     },
     // resume after the page shows again (the lock is released and the
     // video paused while it is hidden); the video may need the next tap
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     async resume() {
       if (!this.want || this.how || this.pending) return;
       if (this.lockAvailable()) { await this.enable(); return; }
@@ -519,21 +519,21 @@
   doc.addEventListener("visibilitychange", () => { if (doc.visibilityState === "visible") Wake.resume(); });
   // the first tap (and any tap after the browser stopped it) starts keep-awake
   // unless the user turned it off: play() and the lock need a user gesture
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const kick = () => { if (Wake.wanted() && !Wake.how && !Wake.pending) Wake.enable(); };
   doc.addEventListener("touchend", kick, true);
   doc.addEventListener("click", kick, true);
 
   // ---- fullscreen --------------------------------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function isIOS() {
     const n = navigator;
     return /iPhone|iPad|iPod/.test(n.userAgent || "") || (n.platform === "MacIntel" && n.maxTouchPoints > 1);
   }
 
   // isWebKit: Safari, and every browser on an iPhone (they all use WebKit)
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function isWebKit() {
     const ua = navigator.userAgent || "";
     return isIOS() || (/Safari\//.test(ua) && !/Chrome|Chromium|Android|Edg\//.test(ua));
@@ -544,21 +544,21 @@
   // without browser bars (the page carries the manifest and the meta tags).
   const Full = {
     note: "", fns: [],
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     on(fn) { this.fns.push(fn); },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     emit() { for (const f of this.fns) f(this.state()); },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     supported() {
       const e = doc.documentElement;
       return !!(e.requestFullscreen || e.webkitRequestFullscreen) && (doc.fullscreenEnabled === true || doc.webkitFullscreenEnabled === true);
     },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     standalone() { return !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     active() { return !!(doc.fullscreenElement || doc.webkitFullscreenElement); },
     // state: {on, can, text}
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     state() {
       if (this.active()) return { on: true, can: true, text: "on" };
       if (this.standalone()) return { on: true, can: false, text: "on: opened from the home screen" };
@@ -567,7 +567,7 @@
       }
       return { on: false, can: true, text: this.note ? "refused: " + this.note : "off" };
     },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     async toggle() {
       this.note = "";
       if (!this.supported()) { this.emit(); return this.state(); }
@@ -591,11 +591,11 @@
 
   // ---- small storage (a private window may have none) -------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function load(k, def) {
     try { const v = localStorage.getItem("sds-remote:" + k); return v === null ? def : JSON.parse(v); } catch (e) { return def; }
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function store(k, v) {
     try { if (v === undefined) localStorage.removeItem("sds-remote:" + k); else localStorage.setItem("sds-remote:" + k, JSON.stringify(v)); } catch (e) { /* none */ }
   }

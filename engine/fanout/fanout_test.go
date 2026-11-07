@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-FRAMES
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 
 package fanout
 
@@ -13,14 +13,14 @@ import (
 
 // tickSource publishes a fresh frame with an advancing Seq each time `fresh`
 // is armed; otherwise it re-presents the last frame as stale.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 type tickSource struct {
 	seq   atomic.Uint64
 	fresh atomic.Bool
 	f     sample.Frame
 }
 
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func (s *tickSource) Consume() (*sample.Frame, bool) {
 	if !s.fresh.Swap(false) {
 		return &s.f, false
@@ -35,7 +35,7 @@ func (s *tickSource) Consume() (*sample.Frame, bool) {
 
 // A parked waiter wakes on the next publish. In a synctest bubble the
 // ticker's time is the bubble's and Wait returns once the waiter is parked.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func TestWaitNextWakesOnPublish(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		src := &tickSource{}
@@ -64,7 +64,7 @@ func TestWaitNextWakesOnPublish(t *testing.T) {
 }
 
 // With nothing new, WaitNext returns the current Seq after its timeout.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func TestWaitNextTimesOutIdle(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		src := &tickSource{}
@@ -88,7 +88,7 @@ func TestWaitNextTimesOutIdle(t *testing.T) {
 	})
 }
 
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func TestWaitNextConcurrentWithReaders(t *testing.T) {
 	src := &tickSource{}
 	fo := NewFrames()
@@ -119,7 +119,7 @@ func TestWaitNextConcurrentWithReaders(t *testing.T) {
 
 // The snapshot is a copy: the producer reusing its frame does not reach it,
 // and a reader sees nil before the first publish.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func TestSnapshotIsACopy(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		src := &tickSource{}
@@ -144,7 +144,7 @@ func TestSnapshotIsACopy(t *testing.T) {
 }
 
 // The fan-out runs over another frame type with the scope's copy function.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func TestOtherFrameType(t *testing.T) {
 	type frame struct {
 		Seq   uint64

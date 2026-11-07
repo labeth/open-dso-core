@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for BUS's Visual view (argv[2]=URL, argv[3]=midi|audio).
 // midi: a scope serving a MIDI bus (notes C4 and E4 on, C4 off): entering BUS
 // finds it, the Visual view shows the keyboard with E4 held, the messages, the
@@ -12,7 +12,7 @@ run(async (t) => {
   const mode = process.argv[3];
   const { page, po, browser, pageErrors } = await openScope(process.argv[2], { viewport: { width: 1500, height: 950 } });
   t.browser = browser;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const ev = (fn, arg) => page.evaluate(fn, arg);
   await page.click("#tab-bus");
   if (mode === "midi") {
@@ -27,7 +27,7 @@ run(async (t) => {
     t.ok(/this capture/.test(st.fig) && /\d+ pushed/.test(st.fig) && /\d+ released/.test(st.fig) && /messages/.test(st.fig), "from captures, the figures count the capture's pushes and releases and the messages: " + st.fig.slice(0, 120));
     // the canvas drew: E4's key lights in channel 1's colour as it plays, and
     // the notes rise away above the keys in it
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     const px = (rows) => ev((rows) => {
       visDraw(true); // read in the task that drew (the drawing buffer is not kept)
       const cv = document.getElementById("visCv"), gl = cv.getContext("webgl2") || cv.getContext("webgl");
@@ -65,7 +65,7 @@ run(async (t) => {
     await page.click("#visGapless");
     await t.until(async () => await ev(() => !busScopeStreaming() && !vis.stream.on), "Gap-free off goes back to the captures", 8000);
     await t.until(async () => (await px([0.05, 0.12])) > 0, "E4's key lights in channel 1's colour as it plays", 9000);
-    // TRLC-LINKS: REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-278
     const above = () => ev(() => {
       visDraw(true);
       const cv = document.getElementById("visCv"), gl = cv.getContext("webgl2") || cv.getContext("webgl");

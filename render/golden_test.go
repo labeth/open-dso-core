@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render_test
 
@@ -36,7 +36,7 @@ var (
 	goldenExact = flag.String("golden-exact", "", "compare each golden render exactly against this directory's")
 )
 
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
 func TestGolden(t *testing.T) {
 	for _, s := range rendertest.Scenes() {
 		t.Run(s.Name, func(t *testing.T) {
@@ -50,7 +50,7 @@ func TestGolden(t *testing.T) {
 // The same scenes on a 1024×600 XRGB8888 screen: the right column, the
 // strips and the readouts follow the screen, the font and the panes keep
 // their size.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
 func TestGolden1024x600(t *testing.T) {
 	for _, s := range rendertest.Scenes() {
 		t.Run(s.Name, func(t *testing.T) {
@@ -64,7 +64,7 @@ func TestGolden1024x600(t *testing.T) {
 // Four channels of 12-bit codes on a 1024×600 ARGB8888 screen: drawn by
 // the CPU, and as the UI over a hardware waveform renderer whose 1000×480
 // plane shows through a transparent area (ADR-HAL-UI-OVER-HW-RENDERER).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestGolden4Ch12Bit(t *testing.T) {
 	for _, s := range rendertest.FourChanScenes() {
 		t.Run(s.Name, func(t *testing.T) {

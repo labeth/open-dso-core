@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 
 // A plain square with only ~30 edges on screen is a clock, not constant-bit
 // Manchester (not "AUTO MANCH 3kb/s" for a 3 kHz square at 500 us/div).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectFewEdgeSquareIsNotManchester(t *testing.T) {
 	sq := make([]uint8, 2048)
 	for i := range sq {
@@ -28,7 +28,7 @@ func TestAutodetectFewEdgeSquareIsNotManchester(t *testing.T) {
 // A 115200 Bd UART on the 1 ms/div live envelope (under two samples a bit)
 // carries no decodable protocol, not SENT on one chance CRC-4 among 18 syncs
 // (a real capture).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectUndersampledUARTIsNotSENT(t *testing.T) {
 	b, err := os.ReadFile("testdata/uart115200_envelope_1ms.json")
 	if err != nil {
@@ -54,7 +54,7 @@ func TestAutodetectUndersampledUARTIsNotSENT(t *testing.T) {
 // with every other decoder rejected, a garbage Manchester or UART decode
 // (negative score) must not win. Real bench captures, both channels carrying
 // the line as on the fixtures.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectRealCapturesNoGarbageWinner(t *testing.T) {
 	for _, tc := range []struct{ file, want string }{
 		{"mil1553_envelope_50us", ""},   // too coarse for a 1553 sync on this frame: off, not Manchester
@@ -93,7 +93,7 @@ func TestAutodetectRealCapturesNoGarbageWinner(t *testing.T) {
 // Edge ringing on a bus at the full rate is no I2C clock: ARINC 429's two
 // lines at 10us/div read as I2C on a 20 ns clock (START 00 W ACK 00 ACK ...),
 // faster than any I2C runs (Ultra Fast-mode: 5 MHz).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectRingingIsNotI2C(t *testing.T) {
 	b, err := os.ReadFile("testdata/arinc429_raw_10us.json")
 	if err != nil {
@@ -123,7 +123,7 @@ func TestAutodetectRingingIsNotI2C(t *testing.T) {
 // is high" reads as I2C STARTs and STOPs, outscoring the SPI decode. An I2C
 // START or STOP sits well inside SCL's high level (0.26 us at the least):
 // SPI with a 200 kHz clock at 200us/div, decimated to 256 ns, is SPI.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectSPIDataOnClockEdgesIsNotI2C(t *testing.T) {
 	b, err := os.ReadFile("testdata/spi_decimated_200us.json")
 	if err != nil {
@@ -162,7 +162,7 @@ func TestAutodetectSPIDataOnClockEdgesIsNotI2C(t *testing.T) {
 // as UART at any rate (part of a CAN frame: 500000 Bd, 3 bytes, 1 misframed);
 // clean bytes at a standard rate weigh most. No UART runs at 100 MBd: that is
 // ringing on another bus's edges.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestUARTScoreNeedsEvidence(t *testing.T) {
 	uart := func(bytes, misframed, baud int) Result {
 		r := Result{OK: true, Proto: "uart", Baud: baud, SPB: 20}
@@ -201,7 +201,7 @@ func TestUARTScoreNeedsEvidence(t *testing.T) {
 // half-period, also cut short by the record's end); a screen of nothing but
 // clocking says nothing of it and reads low (SPI mode 0), not whichever level a
 // few samples more fell on.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestIdleLevelFromTheGap(t *testing.T) {
 	clock := func(lead int, lead0 uint8, halves, tail int, tail0 uint8) []uint8 {
 		var c []uint8
@@ -240,7 +240,7 @@ func TestIdleLevelFromTheGap(t *testing.T) {
 // a copy of the clock's figures into the stack slot of the channels' while
 // the data line's were still to be read, so the vote counted the clock
 // against itself and both phases were tried: mode 2 won the tie.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectSPIPhaseFromLaunchEdges(t *testing.T) {
 	raw, err := os.ReadFile("testdata/spi_mode3_noisy.json")
 	if err != nil {
@@ -262,7 +262,7 @@ func TestAutodetectSPIPhaseFromLaunchEdges(t *testing.T) {
 // ARINC 429 words read at a rate no ARINC 429 bus runs are another bus's
 // pulses: a MIL-1553 bus searched at 500us/div was filled in as "ARINC
 // 35.9kb/s". The same words at 100 kbit/s or 12.5 kbit/s are ARINC 429.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectARINCOnlyAtItsRates(t *testing.T) {
 	words := func(baud int) Result {
 		r := Result{OK: true, Proto: "arinc429", Baud: baud}
@@ -282,7 +282,7 @@ func TestAutodetectARINCOnlyAtItsRates(t *testing.T) {
 }
 
 // loadGzJSON reads a recorded two-channel capture (sample_s, c1, c2).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func loadGzJSON(tb testing.TB, path string) (c1, c2 []uint8, sampleS float64) {
 	tb.Helper()
 	f, err := os.Open(path)
@@ -314,7 +314,7 @@ func loadGzJSON(tb testing.TB, path string) (c1, c2 []uint8, sampleS float64) {
 // noise floor (the rails take its tails by their sum, rails). AutodetectFast
 // cuts the record to the burst and names the UART, its spans back at the
 // record's own samples.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectFastFindsASparseBurst(t *testing.T) {
 	c1, c2, sampleS := loadGzJSON(t, "testdata/uart_62mbd_sparse.json.gz")
 	r, st := AutodetectFast(c1, c2, sampleS, "hex")
@@ -336,7 +336,7 @@ func TestAutodetectFastFindsASparseBurst(t *testing.T) {
 // in whole samples spread over more than the quarter cycle the lock is
 // judged in, and the pair read as a clock beside a line it does not clock
 // (no bus on most records).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectFastSPIDataLocksToItsClock(t *testing.T) {
 	c1, c2, sampleS := loadGzJSON(t, "testdata/spi_flash104_10us.json.gz")
 	clk := clockScore(c2)

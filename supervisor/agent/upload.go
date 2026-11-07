@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -22,7 +22,7 @@ import (
 // arrive out of order (WriteAt); commit verifies size + sha256 then renames
 // into place. Sessions are capped and time out so a dropped transfer can't
 // leak a temp file forever.
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 type uploadSession struct {
 	mu      sync.Mutex
 	id      string
@@ -41,7 +41,7 @@ type uploadSession struct {
 	hashed int64
 }
 
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func (a *Agent) newUpload(dest string, size int64, sha string, mode uint32) (string, error) {
 	dest = filepath.Clean(dest)
 	if !filepath.IsAbs(dest) {
@@ -81,7 +81,7 @@ func (a *Agent) newUpload(dest string, size int64, sha string, mode uint32) (str
 // partial files. A session is aborted under its own lock, after upMu is
 // released: a chunk may be writing to it, and commit takes upMu while holding
 // a session's lock.
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func (a *Agent) evictStale() {
 	var stale []*uploadSession
 	a.upMu.Lock()
@@ -97,7 +97,7 @@ func (a *Agent) evictStale() {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func (a *Agent) getUpload(id string) (*uploadSession, error) {
 	a.upMu.Lock()
 	defer a.upMu.Unlock()
@@ -108,7 +108,7 @@ func (a *Agent) getUpload(id string) (*uploadSession, error) {
 	return s, nil
 }
 
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func (a *Agent) writeUpload(id string, offset int64, data []byte) (int, error) {
 	s, err := a.getUpload(id)
 	if err != nil {
@@ -138,7 +138,7 @@ func (a *Agent) writeUpload(id string, offset int64, data []byte) (int, error) {
 	return n, nil
 }
 
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func (a *Agent) commitUpload(id string) (string, string, error) {
 	s, err := a.getUpload(id)
 	if err != nil {
@@ -192,7 +192,7 @@ func (a *Agent) commitUpload(id string) (string, string, error) {
 }
 
 // abort closes the session and removes its partial file.
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func (s *uploadSession) abort() {
 	s.mu.Lock()
 	defer s.mu.Unlock()

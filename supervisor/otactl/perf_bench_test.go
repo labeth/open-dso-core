@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-OTACTL
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-OTACTL
 
 package otactl
 
@@ -16,7 +16,7 @@ import (
 	"github.com/labeth/open-dso-core/supervisor/rpcproto"
 )
 
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func BenchmarkTCPTransportCall(b *testing.B) {
 	ln, err := (&net.ListenConfig{}).Listen(b.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {
@@ -48,13 +48,13 @@ func BenchmarkTCPTransportCall(b *testing.B) {
 
 // memTransport answers the file RPCs from memory, marshalling each request
 // as the wire transports do.
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 type memTransport struct {
 	sha  string
 	file []byte
 }
 
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 func (m *memTransport) Call(cmd string, args any, _ time.Duration) (*rpcproto.Response, error) {
 	req, _ := json.Marshal(rpcproto.Request{Cmd: cmd, Args: args})
 	var r struct {
@@ -77,10 +77,10 @@ func (m *memTransport) Call(cmd string, args any, _ time.Duration) (*rpcproto.Re
 	return &rpcproto.Response{OK: true, Data: json.RawMessage(`{"written":1}`)}, nil
 }
 
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 func (m *memTransport) Close() {}
 
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 func BenchmarkPutFile(b *testing.B) {
 	p := filepath.Join(b.TempDir(), "f.bin")
 	data := make([]byte, 1<<20)
@@ -96,7 +96,7 @@ func BenchmarkPutFile(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-110
+// TRLC-LINKS: REQ-DSO-110
 func BenchmarkGetFile(b *testing.B) {
 	data := make([]byte, 256<<10)
 	rand.Read(data)

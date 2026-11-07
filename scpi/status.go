@@ -52,6 +52,7 @@ type status struct {
 }
 
 // esrBit maps an error code to the ESR bit of its class.
+// TRLC-LINKS: REQ-DSO-024
 func esrBit(code int) uint16 {
 	switch {
 	case code > 0:
@@ -76,6 +77,7 @@ func esrBit(code int) uint16 {
 	return 0
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func setBit(b *uint8, bit uint8, on bool) {
 	if on {
 		*b |= bit
@@ -85,6 +87,7 @@ func setBit(b *uint8, bit uint8, on bool) {
 }
 
 // setESR writes ESR; in the Edge rule ESB follows only a change of value.
+// TRLC-LINKS: REQ-DSO-024
 func (s *status) setESR(v uint16) {
 	if s.rule == NoStatus || v == s.esr {
 		return
@@ -95,6 +98,7 @@ func (s *status) setESR(v uint16) {
 }
 
 // setEvent writes an event register; its summary follows a change of value.
+// TRLC-LINKS: REQ-DSO-024
 func (s *status) setEvent(r *eventReg, bit uint8, v uint16) {
 	if s.rule == NoStatus || v == r.event {
 		return
@@ -105,6 +109,7 @@ func (s *status) setEvent(r *eventReg, bit uint8, v uint16) {
 }
 
 // setSRE writes the service-request enable mask.
+// TRLC-LINKS: REQ-DSO-024
 func (s *status) setSRE(v uint16) {
 	if s.rule == NoStatus {
 		return
@@ -114,11 +119,13 @@ func (s *status) setSRE(v uint16) {
 }
 
 // mss recomputes the master summary of the latched byte.
+// TRLC-LINKS: REQ-DSO-024
 func (s *status) mss() {
 	setBit(&s.stb, STBMSS, s.stb&uint8(s.sre)&^STBMSS != 0)
 }
 
 // byte is the status byte; errs reports a non-empty error queue.
+// TRLC-LINKS: REQ-DSO-024
 func (s *status) byte(errs bool) uint8 {
 	switch s.rule {
 	case NoStatus:

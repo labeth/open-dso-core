@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -19,7 +19,7 @@ import (
 // ---------------------------------------------------------------------------
 
 // bkTxn is one synthesized I2C transaction.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type bkTxn struct {
 	addr7 int
 	rw    int // 0=W, 1=R
@@ -33,7 +33,7 @@ type bkTxn struct {
 // rising; each bit is h low + h high samples). All SDA transitions happen while
 // SCL is low EXCEPT the intentional START (SDA falls, SCL high) and STOP (SDA
 // rises, SCL high), so a clean frame never emits a spurious START/STOP.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func bkI2CBuild(txns []bkTxn, h, leadIdle, interGap, trailIdle int) (scl, sda []uint8) {
 	lo, hi := uint8(40), uint8(210)
 	seg := func(c, d uint8, n int) {
@@ -84,7 +84,7 @@ func bkI2CBuild(txns []bkTxn, h, leadIdle, interGap, trailIdle int) (scl, sda []
 	return scl, sda
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cCountKind(r Result, kind string) int {
 	c := 0
 	for _, s := range r.Spans {
@@ -95,11 +95,11 @@ func i2cCountKind(r Result, kind string) int {
 	return c
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cHasKind(r Result, kind string) bool { return i2cCountKind(r, kind) > 0 }
 
 // i2cAddrVals returns the decoded 7-bit addresses in span order.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cAddrVals(r Result) []int {
 	var out []int
 	for _, s := range r.Spans {
@@ -111,13 +111,13 @@ func i2cAddrVals(r Result) []int {
 }
 
 // i2cConfident is the FRAMING integrity check: a genuine, intact transaction.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cConfident(r Result) bool {
 	return r.OK && i2cHasKind(r, "start") && i2cHasKind(r, "stop") &&
 		len(r.Bytes) > 0 && !i2cHasKind(r, "frame-error")
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func eqInts(a, b []int) bool {
 	if len(a) != len(b) {
 		return false
@@ -130,7 +130,7 @@ func eqInts(a, b []int) bool {
 	return true
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func randData(rng *rand.Rand, n int) []int {
 	d := make([]int, n)
 	for i := range d {
@@ -139,7 +139,7 @@ func randData(rng *rand.Rand, n int) []int {
 	return d
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakI2c(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x12C0FFEE))
 

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-WS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_ws.js — task workspaces (ADR-TASK-WORKSPACES): the five workspaces SCOPE,
 // BUS, SPECTRUM, MEASURE and COMPARE, each a split tree of panes over the fixed
 // instrument strip. One instrument: every setting is shared; only the screen
@@ -31,35 +31,35 @@ const WSBY = Object.fromEntries(WSDEF.map((w) => [w.id, w]));
 
 // Layout trees. In every split exactly one item grows (the main pane) and the
 // others keep their pixel size, like an IDE's side bars.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 const lp = (pane, size, o) => Object.assign({ kind: "pane", pane, size }, o || {});
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 const lr = (items, size, o) => Object.assign({ kind: "split", dir: "row", items, size }, o || {});
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 const lc = (items, size, o) => Object.assign({ kind: "split", dir: "col", items, size }, o || {});
 const SIDE = 372;
 const WS_LAYOUT = {
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   scope: () => lr([
     lc([lp("p-scope", 470, { grow: true, min: 200 }), lr([lp("p-horiz", 340, { minW: 270 }), lp("p-quick", 520, { grow: true, minW: 300 })], 168)], 900, { grow: true }),
     lc([lp("p-vert", 268), lp("p-trig", 300, { grow: true }), lp("p-acq", 196)], SIDE, { minW: 330 })]),
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   bus: () => lr([
     lc([lp("p-bus-scope", 420, { grow: true, min: 200 }), lp("p-packets", 290, { minW: 420, min: 120 })], 900, { grow: true }),
     lc([lp("p-decoder", 340), lp("p-match", 360, { grow: true })], SIDE, { minW: 330 })]),
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   spectrum: () => lr([
     lc([lp("p-analysis", 470, { grow: true, min: 200 }), lp("p-time", 190, { min: 110 })], 900, { grow: true }),
     lc([lp("p-peaks", 360, { grow: true }), lp("p-readout", 300)], SIDE, { minW: 330 })]),
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   measure: () => lr([
     lc([lp("p-meas-scope", 400, { grow: true, min: 200 }), lp("p-stats", 300, { minW: 440, min: 120 })], 900, { grow: true }),
     lc([lp("p-cursors", 218), lp("p-mask", 300, { grow: true }), lp("p-acq", 196), lp("p-sr", 330, { collapsed: true }), lp("p-prec", 230, { collapsed: true })], SIDE, { minW: 330 })]),
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   compare: () => lr([
     lc([lp("p-cmp-scope", 500, { grow: true, min: 200 }), lp("p-diff", 150, { minW: 380, min: 100 })], 900, { grow: true }),
     lc([lp("p-refs", 222), lp("p-math", 104), lp("p-mask", 300, { grow: true })], SIDE, { minW: 330 })]),
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   sound: () => lr([
     lc([lp("p-snd-listen", 168, { min: 120 }), lp("p-snd-view", 470, { grow: true, min: 200 }), lp("p-snd-ctx", 150, { min: 80 })], 900, { grow: true }),
     lc([lp("p-snd-tuner", 270), lp("p-snd-meters", 196), lp("p-snd-read", 300, { grow: true })], SIDE, { minW: 330 })]),
@@ -74,35 +74,35 @@ const ws = { cur: null, trees: {}, built: {}, maxed: {}, busView: "packets", mea
 // hooks here; setWs and setWsView call them in order. WS_TICKS run once per
 // rendered frame (scheduleRender) and must stay cheap.
 const WS_HOOKS = [], WS_TICKS = [];
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function wsTick(now) { for (const f of WS_TICKS) f(now); }
 
 // ---- pane engine ----------------------------------------------------------------
 const PHEAD = 30, PGAP = 6;
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 const isOpen = (n) => n.kind === "split" || !n.collapsed;
 // minOf: the smallest a node can be along dir — a split sums its children along
 // its own axis and takes the largest across it, so nothing inside is clipped.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function minOf(n, dir) {
   if (n.kind === "pane") return n.collapsed ? PHEAD : dir === "row" ? (n.minW || 200) : (n.min || 80);
   const v = n.items.map((it) => minOf(it, dir));
   const kids = n.dir === dir ? v.reduce((a, b) => a + b, 0) + PGAP * (v.length - 1) : Math.max(...v);
   return Math.max(kids, (dir === "row" ? n.minW : n.min) || 0); // a split's own minimum (the side column's)
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function growOf(node) {
   const g = node.items.find((x) => x.grow) || node.items[0];
   return isOpen(g) ? g : (node.items.find(isOpen) || g);
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function neighbours(node, gi) {
   let a = null, b = null;
   for (let j = gi - 1; j >= 0; j--) if (isOpen(node.items[j])) { a = node.items[j]; break; }
   for (let j = gi; j < node.items.length; j++) if (isOpen(node.items[j])) { b = node.items[j]; break; }
   return a && b ? [a, b] : null;
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function applySizes(node) {
   const grow = growOf(node);
   for (const it of node.items) {
@@ -117,7 +117,7 @@ function applySizes(node) {
     g.tabIndex = ok ? 0 : -1;
   });
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function syncCaret(n) {
   const pane = $(n.pane);
   if (!pane || pane.parentElement !== n.el) return;
@@ -129,7 +129,7 @@ function syncCaret(n) {
   c.setAttribute("aria-label", (n.collapsed ? "Expand " : "Collapse ") + t);
   c.title = n.collapsed ? "Expand this pane" : "Collapse this pane";
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function resizePair(node, gi, delta, base) {
   const pair = neighbours(node, gi);
   if (!pair) return;
@@ -141,20 +141,20 @@ function resizePair(node, gi, delta, base) {
   if (b !== grow) b.size = base.a0 + base.b0 - na;
   applySizes(node);
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function pairBase(node, gi) {
   const p = neighbours(node, gi);
   if (!p) return null;
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const m = (el) => el.getBoundingClientRect()[node.dir === "row" ? "width" : "height"];
   return { a0: m(p[0].el), b0: m(p[1].el) };
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function resetSplit(node) {
   for (const it of node.items) { it.size = it.def; if (it.kind === "pane") it.collapsed = it.defCollapsed; }
   applySizes(node);
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function makeGutter(node, gi) {
   const vert = node.dir === "row";
   const g = document.createElement("div");
@@ -171,9 +171,9 @@ function makeGutter(node, gi) {
     const p0 = vert ? ev.clientX : ev.clientY;
     g.classList.add("is-drag");
     try { g.setPointerCapture(ev.pointerId); } catch (e) { /* synthetic pointer */ }
-    // TRLC-LINKS: REQ-SDS-219
+    // TRLC-LINKS: REQ-DSO-219
     const move = (e2) => { if (e2.pointerId === ev.pointerId) resizePair(node, gi, (vert ? e2.clientX : e2.clientY) - p0, base); };
-    // TRLC-LINKS: REQ-SDS-219
+    // TRLC-LINKS: REQ-DSO-219
     const end = (e2) => {
       if (e2.pointerId !== ev.pointerId) return;
       g.removeEventListener("pointermove", move); g.removeEventListener("pointerup", end); g.removeEventListener("pointercancel", end);
@@ -194,7 +194,7 @@ function makeGutter(node, gi) {
   });
   return g;
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function buildNode(wsId, node, parent) {
   node.parent = parent; node.def = node.size; node.ws = wsId;
   if (node.kind === "pane") {
@@ -215,18 +215,18 @@ function buildNode(wsId, node, parent) {
   });
   return el;
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function leaves(node, out) {
   out = out || [];
   if (node.kind === "pane") out.push(node); else node.items.forEach((n) => leaves(n, out));
   return out;
 }
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function sizeTree(node) { if (node.kind !== "split") return; node.items.forEach(sizeTree); applySizes(node); }
 
 // placePanes moves each pane of a workspace into its slot. Panes shared by two
 // workspaces (Acquisition, Mask & zones) move to whichever is shown.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function placePanes(wsId) {
   for (const n of leaves(ws.trees[wsId])) {
     const pane = $(n.pane);
@@ -235,10 +235,10 @@ function placePanes(wsId) {
   sizeTree(ws.trees[wsId]);
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function paneNode(pane) { const s = pane && pane.parentElement; return s && s._node ? s._node : null; }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function toggleCollapse(n, force) {
   const want = force === undefined ? !n.collapsed : !!force;
   if (want === !!n.collapsed) return;
@@ -250,7 +250,7 @@ function toggleCollapse(n, force) {
 }
 // toggleMax lays a pane over its whole workspace (double-click its title); again,
 // or Esc, restores it.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function toggleMax(n) {
   const cur = ws.maxed[n.ws];
   if (cur) {
@@ -267,7 +267,7 @@ function toggleMax(n) {
 // maxInert makes the panes a maximized one lies over inert (no focus, no
 // clicks: Tab went on through controls nobody could see), and lets them be
 // again once it is restored.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function maxInert(id) {
   const m = ws.maxed[id], root = $("ws-" + id);
   if (!root) return;
@@ -276,7 +276,7 @@ function maxInert(id) {
 
 // Every pane header gets a caret (collapse), a double-click (maximize) and a
 // click-to-expand while collapsed.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function decoratePane(pane) {
   const ph = pane.querySelector(":scope > .ph");
   if (!ph || ph.querySelector(":scope > .pc")) return;
@@ -299,7 +299,7 @@ function decoratePane(pane) {
 }
 
 // ---- workspace switching ------------------------------------------------------------
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function wsBuild(id) {
   if (ws.built[id]) return;
   const tree = WS_LAYOUT[id]();
@@ -310,7 +310,7 @@ function wsBuild(id) {
 
 // setWs shows a workspace: its panes, the scope display in its scope pane, the
 // view it had, and its activity. Settings are untouched (one instrument).
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function setWs(id) {
   if (!WSBY[id] || id === ws.cur) return;
   const prev = ws.cur;
@@ -344,7 +344,7 @@ function setWs(id) {
 }
 
 // applyWsView puts the screen into this workspace's remembered view.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function applyWsView(id) {
   const v = WSV[id];
   if (id === "scope") $("viewScope").value = v;
@@ -356,7 +356,7 @@ function applyWsView(id) {
 
 // setWsView changes the current workspace's view (the view controls, Y/X/F keys
 // and "again" all come here) and remembers it for the workspace.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function setWsView(v) {
   const id = ws.cur;
   WSV[id] = v;
@@ -365,7 +365,7 @@ function setWsView(v) {
   wsDots(); // a view can start or stop a feature (the spectrogram runs while shown)
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function anaTools(v) {
   for (const t of document.querySelectorAll(".anatools")) t.hidden = t.dataset.ana !== v;
   const sub = { FFT: "FFT of the shown channels (Hann window, dB re each channel's peak)", SPG: "the spectrum over time, newest on top", BODE: "gain and phase against log frequency" }[v] || "";
@@ -374,7 +374,7 @@ function anaTools(v) {
 
 // "Again": pressing the shown workspace's key once more shows its next view,
 // as F1-F5 do on the scope.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function wsAgain(id) {
   if (id === "scope") setWsView(WSV.scope === "XY" ? "YT" : "XY");
   else if (id === "bus") busSetView({ packets: "eye", eye: "stream", stream: "visual", visual: "packets" }[ws.busView] || "eye");
@@ -384,7 +384,7 @@ function wsAgain(id) {
   else if (id === "sound") sndNextView();
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function wsKey(id) {
   if (ws.cur === id) wsAgain(id); else setWs(id);
 }
@@ -393,9 +393,9 @@ function wsKey(id) {
 const WS_DOT_SHOWN = {};
 // wsDots marks a workspace whose feature is active (decoding, a running mask
 // test, a shown reference…): a dot on its tab, red when the mask test fails.
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function wsDots() {
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const set = (id, on, bad, why) => {
     // a tab is written only when its state changes: this runs every second
     const key = (on ? "1" : "0") + (bad ? "1" : "0") + (on && why ? why : "");
@@ -428,7 +428,7 @@ setInterval(wsDots, 1000);
 
 // revealControl shows the workspace, view and pane where an element lives, so
 // it is visible and can take focus (All settings' "go" arrows use it).
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function revealControl(el) {
   if (!el) return false;
   if (el.closest("#strip, #top")) return true;
@@ -470,7 +470,7 @@ function revealControl(el) {
   return true;
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function flash(el) {
   if (!el) return;
   el.classList.remove("is-flash"); void el.offsetWidth; el.classList.add("is-flash");
@@ -483,7 +483,7 @@ function flash(el) {
 // macOS Option+digit (which types a symbol) works too; F1-F5 are deliberately
 // not bound (F5 is the browser's reload). Single letters are ignored while
 // typing, and Space/Enter keep their meaning on a focused control.
-// TRLC-LINKS: REQ-SDS-219, REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-219, REQ-DSO-204
 function wsKeydown(e) {
   const k = e.key;
   if (k === "Escape") {
@@ -531,15 +531,15 @@ for (const w of WSDEF) $("tab-" + w.id).addEventListener("click", () => setWs(w.
 
 // ---- help sheet ---------------------------------------------------------------------
 let helpBack = null;
-// TRLC-LINKS: REQ-SDS-219, REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-219, REQ-DSO-204
 function toggleHelp(force) {
   const el = $("help");
   const show = force === undefined ? !el.classList.contains("show") : !!force;
   if (show === el.classList.contains("show")) return;
   if (show) {
-    // TRLC-LINKS: REQ-SDS-219, REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-219, REQ-DSO-204
     const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
-    // TRLC-LINKS: REQ-SDS-219, REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-219, REQ-DSO-204
     const rows = (arr) => arr.map((x) => `<tr><td><kbd>${esc(x.label)}</kbd></td><td>${esc(x.desc)}</td></tr>`).join("");
     // three columns: the workspaces, the keys, the mouse
     $("helpBody").innerHTML =
@@ -561,21 +561,21 @@ function toggleHelp(force) {
   }
 }
 $("help").addEventListener("click", (e) => { if (e.target.id === "help") toggleHelp(false); }); // backdrop closes
-// TRLC-LINKS: REQ-SDS-219, REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-219, REQ-DSO-204
 $("helpClose").onclick = () => toggleHelp(false);
-// TRLC-LINKS: REQ-SDS-219, REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-219, REQ-DSO-204
 $("helpBtn").onclick = () => toggleHelp();
 // a modal: Tab stays on the sheet's control instead of wandering behind it
 $("help").addEventListener("keydown", (e) => { if (e.key === "Tab") { e.preventDefault(); $("helpClose").focus(); } });
 
 // ---- view controls ---------------------------------------------------------------------
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 $("viewScope").onchange = () => { if (ws.cur === "scope") setWsView($("viewScope").value); else { WSV.scope = $("viewScope").value; setWs("scope"); } };
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 $("viewSpec").onchange = () => { if (ws.cur === "spectrum") setWsView($("viewSpec").value); else { WSV.spectrum = $("viewSpec").value; setWs("spectrum"); } };
 
 // Y / X / F (and the old view buttons) reach the workspace that owns the view.
-// TRLC-LINKS: REQ-SDS-219, REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-219, REQ-DSO-204
 function keyView(v) {
   if (v === "FFT") { WSV.spectrum = "FFT"; if (ws.cur === "spectrum") setWsView("FFT"); else setWs("spectrum"); return; }
   if (v === "XY") { WSV.scope = "XY"; if (ws.cur === "scope") setWsView("XY"); else setWs("scope"); return; }
@@ -585,7 +585,7 @@ function keyView(v) {
   else if (ws.cur === "spectrum") { WSV.scope = "YT"; setWs("scope"); }
 }
 
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function wsInit() {
   for (const p of document.querySelectorAll("#panelib > .pane")) decoratePane(p);
   setWs("scope");

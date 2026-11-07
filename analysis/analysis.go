@@ -10,7 +10,7 @@
 // web app already computes the same figure, the Go code is a port of the
 // JavaScript and a node parity test holds the two together (eyejitter.js,
 // peaks.js).
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 package analysis
 
 import "math"
@@ -37,7 +37,7 @@ const (
 // (math.Round sends -2.5 to -3; Math.round sends it to -2). The ported code
 // uses it wherever the JavaScript rounds, so the two assign the same bins and
 // bit indices.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func jsRound(x float64) float64 {
 	f := math.Floor(x)
 	if x-f >= 0.5 {
@@ -47,11 +47,11 @@ func jsRound(x float64) float64 {
 }
 
 // finite reports whether x is neither NaN nor infinite.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func finite(x float64) bool { return x-x == 0 } // NaN and ±Inf give NaN: one subtraction
 
 // clampInt limits v to [lo, hi].
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func clampInt(v, lo, hi int) int {
 	if v < lo {
 		return lo

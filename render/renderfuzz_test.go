@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -13,7 +13,7 @@ import (
 // ANY frame/HUD combination kills the whole app. Storm it with degenerate
 // frames (nil, empty, short C2, envelope lies, zero valid) and hostile HUD
 // state (huge zoom, out-of-range cursors/menus, mismatched mask geometry).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestRenderFuzzNoPanic(t *testing.T) {
 	rng := rand.New(rand.NewSource(31337))
 	sf := NewImage565(m800)

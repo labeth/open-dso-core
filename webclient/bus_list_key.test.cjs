@@ -1,5 +1,5 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
-// TRLC-LINKS: REQ-SDS-214
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
+// TRLC-LINKS: REQ-DSO-214
 // The BUS packet list belongs to the decoder settings, as the scope's does
 // (busListKey): settings that change (another protocol, rate or line) start
 // it over, so packets the old settings decoded are never listed as the new
@@ -10,8 +10,8 @@ const pk = require('./packets.js');
 const src = fs.readFileSync('app_bus.js', 'utf8');
 const code = src.slice(src.indexOf('// busListKey is the decoder settings'), src.indexOf('// busTokens:'));
 const dec = fs.readFileSync('app_decode.js', 'utf8');
-const key = dec.slice(dec.indexOf('// decKey names the bus'), dec.indexOf('// TRLC-LINKS: REQ-SDS-207\nfunction computeDecode'));
-// TRLC-LINKS: REQ-SDS-214
+const key = dec.slice(dec.indexOf('// decKey names the bus'), dec.indexOf('// TRLC-LINKS: REQ-DSO-207\nfunction computeDecode'));
+// TRLC-LINKS: REQ-DSO-214
 const uart = (bytes) => {
   const spans = [];
   let t = 0;
@@ -21,7 +21,7 @@ const uart = (bytes) => {
 };
 const c = { dcfg: { proto: 'uart', line: 1, baud: 115200, result: null }, frame: { c1: new Array(2000) }, frozen: false, busSel: null,
   PacketList: pk.PacketList, decodePackets: pk.decodePackets,
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   busRenderTable() {} };
 vm.createContext(c);
 vm.runInContext(key + code + '\nvar busPk = new PacketList(200); var busLive = [];', c);

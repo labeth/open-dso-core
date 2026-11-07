@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -12,7 +12,7 @@ import (
 // its fields and appends a correct ODD parity bit (bit 32). bits[0] is the first
 // bit on the wire (ARINC #1). label8 is packed LSB-first into bits[0..7] (so the
 // decoder's bit-reversal reproduces the 3-digit octal label).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func arincMakeWord(label8, sdi2, data19, ssm2 int) []int {
 	bits := make([]int, 32)
 	for i := range 8 {
@@ -37,7 +37,7 @@ func arincMakeWord(label8, sdi2, data19, ssm2 int) []int {
 
 // arincExpect mirrors the decoder's field extraction so the test asserts against
 // values derived from the SAME bit stream (round-trip by construction).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func arincExpect(bits []int) (labelOct, dataHex, ssmTxt string, bytesLE []int) {
 	labelRev := 0
 	for i := range 8 {
@@ -62,7 +62,7 @@ func arincExpect(bits []int) (labelOct, dataHex, ssmTxt string, bytesLE []int) {
 // arincAppendWord renders 32 (or fewer, for a partial) bits as a bipolar RZ pulse
 // train: each bit is a HI(1)/LO(0) pulse for the first half of the cell then a
 // return to NULL. NULL=128, HI=210, LO=40.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func arincAppendWord(w *[]uint8, bits []int, spb int) {
 	const nul, hi, lo = uint8(128), uint8(210), uint8(40)
 	half := spb / 2
@@ -80,14 +80,14 @@ func arincAppendWord(w *[]uint8, bits []int, spb int) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func arincIdle(w *[]uint8, k int) {
 	for range k {
 		*w = append(*w, 128)
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeARINC429RoundTrip(t *testing.T) {
 	spb := 40
 	colTimeS := 2.5e-7                              // -> 100 kbit/s at spb=40
@@ -169,7 +169,7 @@ func TestDecodeARINC429RoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeARINC429ParityError(t *testing.T) {
 	spb := 40
 	colTimeS := 2.5e-7
@@ -199,7 +199,7 @@ func TestDecodeARINC429ParityError(t *testing.T) {
 
 // TestDecodeARINC429NoPanic feeds degenerate/hostile inputs — the decoder must
 // return an error, never panic or hang.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeARINC429NoPanic(t *testing.T) {
 	rng := rand.New(rand.NewSource(429))
 	mk := func(n, kind int) []uint8 {
@@ -256,7 +256,7 @@ func TestDecodeARINC429NoPanic(t *testing.T) {
 // filtered toggle, rippled over 164-178 while the LO rail sat on one code,
 // and the commonest single code made LO the NULL and every threshold wrong
 // (the FPGA's ARINC matcher never fires then).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestARINC429LevelsRippledNull(t *testing.T) {
 	var codes []uint8
 	for i := range 20000 {

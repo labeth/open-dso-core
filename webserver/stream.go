@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -17,7 +17,7 @@ import (
 // hStreamLines serves the decoded stream's transcript as data from an
 // absolute line index (?from=N&max=M, at most 8192 lines), so a client can
 // follow a stream and check it for gaps (ADR-PANEL-DECODED-STREAM).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (s *Server) hStreamLines(w http.ResponseWriter, r *http.Request) {
 	src, ok := s.sc.Stream()
 	if !ok {
@@ -39,7 +39,7 @@ func (s *Server) hStreamLines(w http.ResponseWriter, r *http.Request) {
 
 // hStreamWindow serves the stream's newest ?rows=N (1..40) transcript lines
 // as the display's list writes them: the web's BUS shows the scope's stream.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (s *Server) hStreamWindow(w http.ResponseWriter, r *http.Request) {
 	src, ok := s.sc.Stream()
 	if !ok {
@@ -61,7 +61,7 @@ func (s *Server) hStreamWindow(w http.ResponseWriter, r *http.Request) {
 // hStreamLinesBin serves the transcript from ?from=N in the compact binary
 // line format, up to 1 MiB: JSON at 1.5 MBd cost a scope's one CPU more
 // than the stream itself.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (s *Server) hStreamLinesBin(w http.ResponseWriter, r *http.Request) {
 	src, ok := s.sc.Stream()
 	if !ok {
@@ -105,7 +105,7 @@ var framesBufs = sync.Pool{New: func() any { b := make([]byte, 0, 64<<10); retur
 // chunks' heads (wire.AppendWordChunkHeads), then their words as the scope
 // codes them, written straight from its ring (pinned until written): no
 // copy of the words on the scope but the socket's.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (s *Server) hStreamWords(w http.ResponseWriter, r *http.Request) {
 	src, ok := s.sc.ClientDecode()
 	if !ok {
@@ -172,7 +172,7 @@ const framesBinMax = 4 << 20
 
 // hStreamFrames takes a page's decoded frames, read into a reused buffer:
 // the scope queues them without keeping it.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (s *Server) hStreamFrames(w http.ResponseWriter, r *http.Request) {
 	src, ok := s.sc.ClientDecode()
 	if !ok {

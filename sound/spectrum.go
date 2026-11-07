@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -22,7 +22,7 @@ type Spectrum struct {
 
 // AudioSpectrum transforms the last power-of-two stretch of x (volts, fs),
 // at most n samples, mean removed and Hann windowed.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func AudioSpectrum(x []float64, fs float64, n int) Spectrum {
 	n = floorPow2(min(n, len(x)))
 	if n < 64 || !(fs > 0) {
@@ -87,7 +87,7 @@ type Hum struct {
 
 // lineAt finds the strongest bin within tol bins of bin f/binHz and returns
 // its refined frequency and Hann-corrected level.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func lineAt(sp Spectrum, f, tol float64) (hz, dbv float64, k int) {
 	c := f / sp.BinHz
 	lo := max(1, int(math.Floor(c-tol)))
@@ -113,7 +113,7 @@ func lineAt(sp Spectrum, f, tol float64) (hz, dbv float64, k int) {
 
 // localFloor is the median level of the bins from 0.8 to 1.25 times bin k,
 // those within 3 bins of k left out.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func localFloor(sp Spectrum, k int) float64 {
 	lo, hi := max(1, int(float64(k)*0.8)), min(len(sp.DBV)-1, int(float64(k)*1.25)+1)
 	v := make([]float64, 0, max(0, hi-lo+1))
@@ -138,7 +138,7 @@ func localFloor(sp Spectrum, k int) float64 {
 // line above 15 Hz). A harmonic counts when it stands 6 dB above its
 // neighbourhood's median and within 90 dB of H1 (deeper is past any 8-bit
 // converter's linearity: window leakage, not the signal).
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func Harmonics(sp Spectrum, f0 float64) HarmonicReport {
 	r := HarmonicReport{THDPct: math.NaN(), THDDB: math.NaN(), EvenDB: math.Inf(-1), OddDB: math.Inf(-1), EvenOdd: math.NaN()}
 	if len(sp.DBV) < 16 {
@@ -226,7 +226,7 @@ func Harmonics(sp Spectrum, f0 float64) HarmonicReport {
 // FindHum reads the 50 and 60 Hz families (the line and its second and third
 // harmonics, each standing 6 dB above its neighbourhood) and keeps the
 // stronger.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func FindHum(sp Spectrum) Hum {
 	best := Hum{SumDBV: math.Inf(-1), DBV: math.Inf(-1)}
 	if len(sp.DBV) < 16 || sp.BinHz > 10 {
@@ -261,9 +261,9 @@ func FindHum(sp Spectrum) Hum {
 const FloorCodesPerRtHz = 6e-5
 
 // itoa is strconv.Itoa.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func itoa(i int) string { return strconv.Itoa(i) }
 
 // ftoa3 writes v with three significant digits.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func ftoa3(v float64) string { return strconv.FormatFloat(v, 'g', 3, 64) }

@@ -37,6 +37,7 @@ type node struct {
 	line   int
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func (n *node) describe() string {
 	switch n.kind {
 	case scalarNode:
@@ -50,6 +51,7 @@ func (n *node) describe() string {
 }
 
 // equal reports whether two nodes hold the same value.
+// TRLC-LINKS: REQ-DSO-1002
 func (n *node) equal(o *node) bool {
 	if n.kind != o.kind {
 		return false
@@ -89,6 +91,7 @@ type line struct {
 }
 
 // flowDepth counts the [ and { left open in s, outside quotes.
+// TRLC-LINKS: REQ-DSO-1002
 func flowDepth(s string) int {
 	depth := 0
 	var q byte
@@ -116,6 +119,7 @@ type parser struct {
 }
 
 // parseYAML parses one document of the subset.
+// TRLC-LINKS: REQ-DSO-1002
 func parseYAML(src []byte) (*node, error) {
 	p := &parser{}
 	for i, raw := range strings.Split(string(src), "\n") {
@@ -164,6 +168,7 @@ func parseYAML(src []byte) (*node, error) {
 }
 
 // stripComment removes a trailing comment outside quotes.
+// TRLC-LINKS: REQ-DSO-1002
 func stripComment(s string) (string, error) {
 	var q byte
 	for i := 0; i < len(s); i++ {
@@ -185,6 +190,7 @@ func stripComment(s string) (string, error) {
 }
 
 // block parses the mapping or sequence whose lines start at indent.
+// TRLC-LINKS: REQ-DSO-1002
 func (p *parser) block(indent int) (*node, error) {
 	l := p.lines[p.pos]
 	if l.indent != indent {
@@ -196,6 +202,7 @@ func (p *parser) block(indent int) (*node, error) {
 	return p.mapping(indent)
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func (p *parser) sequence(indent int) (*node, error) {
 	n := &node{kind: seqNode, line: p.lines[p.pos].no}
 	for p.pos < len(p.lines) {
@@ -241,6 +248,7 @@ func (p *parser) sequence(indent int) (*node, error) {
 	return n, nil
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func (p *parser) mapping(indent int) (*node, error) {
 	n := &node{kind: mapNode, m: map[string]*node{}, line: p.lines[p.pos].no}
 	for p.pos < len(p.lines) {
@@ -278,6 +286,7 @@ func (p *parser) mapping(indent int) (*node, error) {
 // nested parses the block under a "key:" or "-" line, or null when the next
 // line is not indented further. Under a key (sameIndentList) a list may sit
 // at the key's own indentation.
+// TRLC-LINKS: REQ-DSO-1002
 func (p *parser) nested(indent, no int, sameIndentList bool) (*node, error) {
 	if p.pos >= len(p.lines) {
 		return &node{kind: nullNode, line: no}, nil
@@ -293,6 +302,7 @@ func (p *parser) nested(indent, no int, sameIndentList bool) (*node, error) {
 }
 
 // splitKey splits "key: rest" or "key:" outside quotes and brackets.
+// TRLC-LINKS: REQ-DSO-1002
 func splitKey(s string) (key, rest string, ok bool) {
 	if s == "" || strings.ContainsRune("[{", rune(s[0])) {
 		return "", "", false
@@ -321,6 +331,7 @@ func splitKey(s string) (key, rest string, ok bool) {
 }
 
 // quotedEnd is the index of the quote closing the scalar s starts with.
+// TRLC-LINKS: REQ-DSO-1002
 func quotedEnd(s string) int {
 	q := s[0]
 	for i := 1; i < len(s); i++ {
@@ -336,6 +347,7 @@ func quotedEnd(s string) int {
 	return -1
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func unquote(s string) (string, error) {
 	if s[0] == '\'' {
 		return strings.ReplaceAll(s[1:len(s)-1], "''", "'"), nil
@@ -344,6 +356,7 @@ func unquote(s string) (string, error) {
 }
 
 // inlineValue parses a value written on its key's or item's line.
+// TRLC-LINKS: REQ-DSO-1002
 func inlineValue(s string, no int) (*node, error) {
 	f := &flow{s: s, no: no}
 	n, err := f.value()
@@ -365,16 +378,19 @@ type flow struct {
 	no int
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func (f *flow) space() {
 	for f.i < len(f.s) && f.s[f.i] == ' ' {
 		f.i++
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func (f *flow) errf(format string, a ...any) error {
 	return fmt.Errorf("line %d: %s", f.no, fmt.Sprintf(format, a...))
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func (f *flow) value() (*node, error) {
 	f.space()
 	if f.i >= len(f.s) {
@@ -403,6 +419,7 @@ func (f *flow) value() (*node, error) {
 }
 
 // plain reads a plain scalar up to a flow delimiter.
+// TRLC-LINKS: REQ-DSO-1002
 func (f *flow) plain() *node {
 	start := f.i
 	for f.i < len(f.s) && !strings.ContainsRune(",]}", rune(f.s[f.i])) {
@@ -418,6 +435,7 @@ func (f *flow) plain() *node {
 	return &node{kind: scalarNode, value: v, line: f.no}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func (f *flow) collection(closer byte) (*node, error) {
 	f.i++ // the opener
 	n := &node{kind: seqNode, line: f.no}

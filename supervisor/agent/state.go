@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -13,13 +13,13 @@ import (
 // BEFORE the factory kill: if the agent dies mid-takeover, its respawned
 // successor must immediately re-acquire the watchdog (an unserviced watchdog
 // warm-resets the SoC and drops the USB/OTA path — spec 01 §4.1).
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 type State struct {
 	TakenOver    bool `json:"taken_over"`
 	AutoTakeover bool `json:"auto_takeover"`
 }
 
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 type stateFile struct {
 	mu   sync.Mutex
 	path string
@@ -30,7 +30,7 @@ type stateFile struct {
 	disk State
 }
 
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 func loadState(path string) *stateFile {
 	sf := &stateFile{path: path}
 	if b, err := os.ReadFile(path); err == nil { //nolint:gosec // path is the configured state file
@@ -40,7 +40,7 @@ func loadState(path string) *stateFile {
 	return sf
 }
 
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 func (sf *stateFile) get() State {
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
@@ -52,7 +52,7 @@ func (sf *stateFile) get() State {
 // reclaims the bus once taken over), so a taken_over the stick does not hold
 // must not be acted on - the watchdog would go unpetted after a takeover
 // that reported failure.
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 func (sf *stateFile) update(fn func(*State)) error {
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
@@ -70,7 +70,7 @@ func (sf *stateFile) update(fn func(*State)) error {
 }
 
 // write persists s durably: temp file, fsync, rename, directory fsync.
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 func (sf *stateFile) write(s State) error {
 	b, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {

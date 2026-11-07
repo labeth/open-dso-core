@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -16,7 +16,7 @@ import (
 )
 
 // assetGet serves one GET of an embedded file by its bare name.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func assetGet(t *testing.T, path string, hdr ...string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
@@ -33,7 +33,7 @@ func assetGet(t *testing.T, path string, hdr ...string) *httptest.ResponseRecord
 
 // Every embedded file carries an ETag hashed once at start-up and answers
 // If-None-Match with 304 and no body.
-// TRLC-LINKS: REQ-SDS-161, REQ-SDS-220
+// TRLC-LINKS: REQ-DSO-161, REQ-DSO-220
 func TestAssetsRevalidate(t *testing.T) {
 	files, _ := Assets.ReadDir(".")
 	var paths []string
@@ -68,7 +68,7 @@ func TestAssetsRevalidate(t *testing.T) {
 // A page names each script and stylesheet with its current tag, a request
 // carrying that tag is cached for good, and text goes gzip-encoded to a
 // browser that takes it.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func TestAssetsVersionedAndCompressed(t *testing.T) {
 	page := assetGet(t, "/ui.html").Body.String()
 	want := `src="app_core.js?v=` + strings.Trim(AssetTag("app_core.js"), `"`) + `"`
@@ -101,7 +101,7 @@ func TestAssetsVersionedAndCompressed(t *testing.T) {
 // Until a page claims, no epoch is refused (a page from before a restart
 // keeps running); once one claims, an older epoch and one this run never
 // issued are refused, the claimed one and unclaimed clients are not.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func TestClaimSupersedesEarlierRun(t *testing.T) {
 	e := NewEpoch()
 	req := func(n uint64) *http.Request {
@@ -128,7 +128,7 @@ func TestClaimSupersedesEarlierRun(t *testing.T) {
 
 // DecodeSmall reads a body's first value, also with more after it, and
 // refuses what is not JSON.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func TestDecodeSmall(t *testing.T) {
 	var v struct{ A int }
 	if err := DecodeSmall(strings.NewReader(`{"A":3} {"A":4}`), &v); err != nil || v.A != 3 {

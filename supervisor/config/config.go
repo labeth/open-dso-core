@@ -3,7 +3,7 @@
 // Every value is overridable so the off-device test harness can run the
 // agent against stubs. What only one board has (its bus and watchdog
 // device nodes, its vendor process names) the board reads itself.
-// ENGMODEL-OWNER-UNIT: FU-OTA-CONFIG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-CONFIG
 package config
 
 import (
@@ -18,7 +18,7 @@ import (
 )
 
 // Config is the agent's settings, each named after the variable that sets it.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 type Config struct {
 	// Identity + transport.
 	NATSURL    string        // OTA_NATS — empty disables the NATS link
@@ -52,7 +52,7 @@ type Config struct {
 	AutoTakeover  bool          // OTA_AUTO_TAKEOVER — arm auto-takeover after boot (default: coexist)
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func env(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -63,7 +63,7 @@ func env(key, def string) string {
 // envOr is env with a default that is only worked out when the variable is
 // unset: the device id default walks the network interfaces, the OTA dir
 // default resolves the executable.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func envOr(key string, def func() string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
@@ -74,7 +74,7 @@ func envOr(key string, def func() string) string {
 // envDurSecs reads a positive number of seconds. A value that is not one,
 // or that rounds to no time or past a Duration's range, gives def: the
 // intervals feed tickers, which panic on zero or negative.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func envDurSecs(key string, def time.Duration) time.Duration {
 	v := os.Getenv(key)
 	if v == "" {
@@ -90,7 +90,7 @@ func envDurSecs(key string, def time.Duration) time.Duration {
 	return def
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func envInt(key string, def int) int {
 	if n, err := strconv.Atoi(os.Getenv(key)); err == nil && n > 0 {
 		return n
@@ -98,7 +98,7 @@ func envInt(key string, def int) int {
 	return def
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func envBool(key string) bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
 	case "1", "true", "yes", "on":
@@ -109,7 +109,7 @@ func envBool(key string) bool {
 
 // exeDir returns the directory of the running binary; used to derive the
 // OTA dir when startup.sh predates the OTA_DIR export.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func exeDir() string {
 	exe, err := os.Executable()
 	if err != nil {
@@ -118,7 +118,7 @@ func exeDir() string {
 	return filepath.Dir(exe)
 }
 
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func defaultDeviceID() string {
 	ifs, err := net.Interfaces()
 	if err == nil {
@@ -138,7 +138,7 @@ func defaultDeviceID() string {
 
 // Load reads the configuration from the environment, with the device
 // defaults for anything unset or invalid.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func Load() *Config {
 	otaDir := envOr("OTA_DIR", exeDir)
 	usbRoot := filepath.Dir(otaDir) // OTA_DIR is <usb>/ota by convention
@@ -174,12 +174,12 @@ func Load() *Config {
 
 // Env is the variable key's value, or def when it is unset: for a board's
 // own settings beside these.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func Env(key, def string) string { return env(key, def) }
 
 // List is the comma-separated variable key's non-empty items, nil when it
 // is unset.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func List(key string) []string {
 	var out []string
 	if v := os.Getenv(key); v != "" {
@@ -194,19 +194,19 @@ func List(key string) []string {
 
 // HealthPath is the agent<->app health-file contract value exported to the
 // app as OTA_HEALTH_PATH (spec 01 §2.3/§4.2).
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func (c *Config) HealthPath() string {
 	return filepath.Join(c.HealthDir, "app.health")
 }
 
 // StatePath is the persisted agent state (taken_over etc.) on the stick.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func (c *Config) StatePath() string {
 	return filepath.Join(c.OTADir, "state.json")
 }
 
 // LogDir is where startup.sh points boot.log/agent.log.
-// TRLC-LINKS: REQ-SDS-088
+// TRLC-LINKS: REQ-DSO-088
 func (c *Config) LogDir() string {
 	return filepath.Join(c.OTADir, "logs")
 }

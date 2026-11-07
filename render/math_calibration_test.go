@@ -1,10 +1,10 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
 import "testing"
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestMathUsesCalibratedVoltages(t *testing.T) {
 	// Same 0 V / 2 V signal, encoded at different ranges and offsets.
 	h := HUD{Ch: [MaxChans]Channel{{VdivV: 1, OffV: -1}, {VdivV: 2, OffV: -2}}}

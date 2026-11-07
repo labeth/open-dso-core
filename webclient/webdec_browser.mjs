@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // webdec_browser.mjs — the browser's stream decode (webdec_worker.js) in
 // headless Chromium against a Go test server that plays recorded digital
 // streams as /api/stream/words.bin (internal/decode/webdec_browser_test.go).

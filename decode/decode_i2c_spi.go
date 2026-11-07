@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -10,7 +10,7 @@ import (
 )
 
 // I2CCfg configures the I2C decode.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type I2CCfg struct {
 	Inverted  bool
 	Format    string
@@ -25,7 +25,7 @@ type I2CCfg struct {
 
 // SPICfg configures the SPI decode: the clock's polarity and phase, the bit
 // order and where the data line is taken against the clock.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type SPICfg struct {
 	Inverted   bool
 	CPOL, CPHA bool
@@ -50,7 +50,7 @@ type SPICfg struct {
 // SDA a whole clock and SCL near half of one; the bus's devices filter out
 // spikes (50 ns in Fast-mode) that a noisy line otherwise reads as a START
 // and a STOP while SCL is high.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cGlitch(edges []edge) int {
 	var gaps []int
 	last := -1
@@ -71,7 +71,7 @@ func i2cGlitch(edges []edge) int {
 
 // i2cDeglitch gives a line's runs shorter than g samples, between two runs
 // of the other level, the level before them.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cDeglitch(level []int8, g int) {
 	if g < 2 {
 		return
@@ -92,7 +92,7 @@ func i2cDeglitch(level []int8, g int) {
 
 // I2C decodes I2C given SCL + SDA codes (decode.js decodeI2C). SCL
 // clocks the bits: the sample time takes no part.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func I2C(scl, sda []uint8, _ float64, cfg I2CCfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	if cfg.Inverted {
 		scl, sda = invertLogic(scl), invertLogic(sda)
@@ -240,7 +240,7 @@ func I2C(scl, sda []uint8, _ float64, cfg I2CCfg) Result { //nolint:gocyclo // a
 }
 
 // SPI decodes SPI given CLK + DATA codes, no chip-select (decode.js decodeSPI).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func SPI(clk, data []uint8, colTimeS float64, cfg SPICfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	if cfg.Inverted {
 		clk, data = invertLogic(clk), invertLogic(data)
@@ -414,7 +414,7 @@ func SPI(clk, data []uint8, colTimeS float64, cfg SPICfg) Result { //nolint:gocy
 // the first sample below it after one at or above the high edge. Each
 // direction is armed on its own, so a half-period whose samples miss the far
 // edge of the band still gives the next crossing.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 func armedCrossings(s sliced, n int) (rise, fall []bool) {
 	rise, fall = make([]bool, n), make([]bool, n)
 	// The levels as codes, compared in integers (a float compare a sample
@@ -448,7 +448,7 @@ func armedCrossings(s sliced, n int) (rise, fall []bool) {
 // crossingAt is where a sliced line crossed its threshold before the sample
 // i its level changed on, in samples: linear between the two samples around
 // the threshold.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 func crossingAt(s sliced, i int, rising bool) float64 {
 	past := func(j int) bool { return (float64(s.codes[j]) >= s.threshold) == rising }
 	j := i

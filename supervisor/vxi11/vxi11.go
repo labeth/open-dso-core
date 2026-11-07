@@ -5,7 +5,7 @@
 //
 // The instrument serves a SINGLE link: always destroy_link, and tolerate an
 // initial create_link failure from a stale link by retrying (spec 11 §2.3).
-// ENGMODEL-OWNER-UNIT: FU-OTA-VXI11
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-VXI11
 package vxi11
 
 import (
@@ -45,10 +45,10 @@ const (
 	maxAuthBody = 400
 )
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 type xdrBuf struct{ b []byte }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (x *xdrBuf) u32(v uint32) *xdrBuf {
 	var t [4]byte
 	binary.BigEndian.PutUint32(t[:], v)
@@ -56,7 +56,7 @@ func (x *xdrBuf) u32(v uint32) *xdrBuf {
 	return x
 }
 
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (x *xdrBuf) opaque(p []byte) *xdrBuf {
 	x.u32(uint32(len(p))) //nolint:gosec // an opaque here is a SCPI line or "inst0", far below 4 GiB
 	x.b = append(x.b, p...)
@@ -70,7 +70,7 @@ func (x *xdrBuf) opaque(p []byte) *xdrBuf {
 const maxStale = 8
 
 // readRPCRecord reads one record-marked RPC message, concatenating its fragments.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func readRPCRecord(conn net.Conn) ([]byte, error) {
 	var rm [4]byte
 	var reply []byte
@@ -96,7 +96,7 @@ func readRPCRecord(conn net.Conn) ([]byte, error) {
 
 // rpcCall sends one record-marked AUTH_NULL call and returns the result bytes
 // (after the accepted-reply header) or an error.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func rpcCall(conn net.Conn, timeout time.Duration, prog, vers, proc uint32, args []byte) ([]byte, error) {
 	xid := uint32(time.Now().UnixNano()) //nolint:gosec // any 32 bits that differ per call make an xid; the clock's low bits do
 	// The record mark is reserved at the front and filled in last: the call
@@ -155,7 +155,7 @@ func rpcCall(conn net.Conn, timeout time.Duration, prog, vers, proc uint32, args
 }
 
 // Client is one open DEVICE_CORE link.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 type Client struct {
 	conn    net.Conn
 	lid     uint32
@@ -165,7 +165,7 @@ type Client struct {
 // Dial resolves DEVICE_CORE through the portmapper on host:111 and creates the
 // "inst0" link. create_link is retried a few times because a dropped previous
 // connection can leave the single link stuck until it times out.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func Dial(host string, timeout time.Duration) (*Client, error) {
 	return DialAt(net.JoinHostPort(host, "111"), host, timeout)
 }
@@ -173,7 +173,7 @@ func Dial(host string, timeout time.Duration) (*Client, error) {
 // DialAt is Dial with an explicit portmapper address instead of the fixed
 // host:111 — a seam for test harnesses, which cannot bind the privileged
 // portmapper port. Dial(host, t) is exactly DialAt(host+":111", host, t).
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func DialAt(pmAddr, host string, timeout time.Duration) (*Client, error) {
 	d := net.Dialer{Timeout: timeout}
 	pm, err := d.DialContext(context.Background(), "tcp", pmAddr)
@@ -224,7 +224,7 @@ func DialAt(pmAddr, host string, timeout time.Duration) (*Client, error) {
 }
 
 // Send writes one SCPI line (newline appended if missing).
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (c *Client) Send(cmd string) error {
 	if len(cmd) == 0 || cmd[len(cmd)-1] != '\n' {
 		cmd += "\n"
@@ -245,7 +245,7 @@ func (c *Client) Send(cmd string) error {
 }
 
 // Query sends a SCPI query and reads the response until END/termination.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (c *Client) Query(cmd string) (string, error) {
 	if err := c.Send(cmd); err != nil {
 		return "", err
@@ -282,7 +282,7 @@ func (c *Client) Query(cmd string) (string, error) {
 
 // Close destroys the link and closes the connection. Always call it: the
 // instrument serves a single link.
-// TRLC-LINKS: REQ-SDS-100
+// TRLC-LINKS: REQ-DSO-100
 func (c *Client) Close() {
 	var args xdrBuf
 	args.u32(c.lid)

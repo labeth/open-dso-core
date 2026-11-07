@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the superres stacker (argv[2]=URL of a server whose
 // fakeScope generates a jittered noisy sine): arm → frames accumulate and
 // stats populate → view shows the stacked waveform as a frozen synthetic
@@ -22,7 +22,7 @@ try { browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] }
 catch (e) { console.log("SKIP: cannot launch chromium:", e.message); process.exit(0); }
 
 let fails = 0;
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 const ok = (c, m) => { console.log((c ? "ok  - " : "FAIL- ") + m); if (!c) fails++; };
 
 try {
@@ -32,11 +32,11 @@ try {
   await page.waitForFunction(() => typeof frame !== "undefined" && frame && frame.c1 && frame.c1.length > 0, null, { timeout: 15000 });
 
   // Controls are reached like All settings' arrows do: workspace, pane, view.
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   const reveal = (id) => page.evaluate((i) => revealControl(document.getElementById(i)), id);
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   const click = async (id) => { await reveal(id); await page.click("#" + id); };
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   const yt = () => page.evaluate(() => { setWs("scope"); setWsView("YT"); });
   await reveal("srArm");
   ok(await page.evaluate(() => ws.cur === "measure" && !document.getElementById("p-sr").parentElement.classList.contains("is-collapsed")),

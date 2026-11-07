@@ -81,7 +81,7 @@ type Settings struct {
 // Frame is one published acquisition: its traces and everything a consumer
 // needs to show or measure them. Frames are reused in place, so a producer
 // sets or clears every field each time.
-// TRLC-LINKS: REQ-SDS-007, REQ-SDS-009
+// TRLC-LINKS: REQ-DSO-007, REQ-DSO-009
 type Frame struct {
 	Traces    []Trace
 	Content   Content
@@ -112,6 +112,7 @@ type Frame struct {
 
 // TriggerName names how the frame's trigger was found, as the web page and
 // the logs show it: "hardware-edge", "forced", "untriggered", "roll".
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) TriggerName() string {
 	switch {
 	case f.Flags.Has(Roll):
@@ -131,6 +132,7 @@ func (f *Frame) TriggerName() string {
 }
 
 // Len is the delivered sample count: the valid prefix the traces share.
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) Len() int {
 	if len(f.Traces) == 0 {
 		return 0
@@ -139,6 +141,7 @@ func (f *Frame) Len() int {
 }
 
 // SetLen sets every trace's valid prefix to n.
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) SetLen(n int) {
 	for i := range f.Traces {
 		f.Traces[i].Valid = n
@@ -148,6 +151,7 @@ func (f *Frame) SetLen(n int) {
 // Codes8 is trace ch's 8-bit codes, nil when the frame has no such trace.
 // The slices returned by these accessors are the trace's own, with its full
 // length; the samples are their first Len().
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) Codes8(ch int) []uint8 {
 	if ch >= len(f.Traces) {
 		return nil
@@ -156,6 +160,7 @@ func (f *Frame) Codes8(ch int) []uint8 {
 }
 
 // Precision is trace ch's precision words, nil when absent.
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) Precision(ch int) []uint16 {
 	if ch >= len(f.Traces) {
 		return nil
@@ -164,6 +169,7 @@ func (f *Frame) Precision(ch int) []uint16 {
 }
 
 // Min8 is trace ch's 8-bit display envelope minima, nil when absent.
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) Min8(ch int) []uint8 {
 	if ch >= len(f.Traces) {
 		return nil
@@ -172,6 +178,7 @@ func (f *Frame) Min8(ch int) []uint8 {
 }
 
 // Max8 is trace ch's 8-bit display envelope maxima, nil when absent.
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) Max8(ch int) []uint8 {
 	if ch >= len(f.Traces) {
 		return nil
@@ -180,6 +187,7 @@ func (f *Frame) Max8(ch int) []uint8 {
 }
 
 // Held is trace ch's held-sample marks (Trace.Held), nil when absent.
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) Held(ch int) []bool {
 	if ch >= len(f.Traces) {
 		return nil
@@ -188,6 +196,7 @@ func (f *Frame) Held(ch int) []bool {
 }
 
 // Detail returns the frame's detail window of role r, or nil.
+// TRLC-LINKS: REQ-DSO-1003
 func (f *Frame) Detail(r Role) *Detail {
 	for i := range f.Details {
 		if f.Details[i].Role == r {
@@ -219,6 +228,7 @@ type Trace struct {
 }
 
 // Word returns sample i as a stored word, from Codes8 or Codes16.
+// TRLC-LINKS: REQ-DSO-1003
 func (t *Trace) Word(i int) uint32 {
 	if t.Format.Storage == U16 {
 		return uint32(t.Codes16[i])
@@ -228,6 +238,7 @@ func (t *Trace) Word(i int) uint32 {
 
 // View8 is samples [0, Valid) on the 8-bit view (CodeFormat.Code8): 8-bit
 // codes as they are, no copy; wider words mapped into a new slice.
+// TRLC-LINKS: REQ-DSO-1003
 func (t *Trace) View8() []uint8 {
 	if t.Format.Storage != U16 {
 		return t.Codes8[:min(t.Valid, len(t.Codes8))]
@@ -241,16 +252,18 @@ func (t *Trace) View8() []uint8 {
 }
 
 // CodesPerDiv8 is the trace's codes per division on the 8-bit view.
+// TRLC-LINKS: REQ-DSO-1003
 func (t *Trace) CodesPerDiv8() float64 { return t.CodesPerDiv / t.Format.Unit8() }
 
 // Volts returns sample i in volts at the probe tip.
+// TRLC-LINKS: REQ-DSO-1003
 func (t *Trace) Volts(i int) float64 { return t.Scale.Volts(float64(t.Word(i))) }
 
 // CopyFrom deep-copies src into f, reusing f's buffers: a consumer's copy for
 // long work outside the publisher's lock. Pointer fields are copied as new
 // values, so the copy shares nothing with src but the detail windows' frames,
 // which are read-only.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func (f *Frame) CopyFrom(src *Frame) {
 	traces, details := f.Traces, f.Details
 	match := f.Match
@@ -269,6 +282,7 @@ func (f *Frame) CopyFrom(src *Frame) {
 }
 
 // copyFrom copies src's valid prefix into t's storage.
+// TRLC-LINKS: REQ-DSO-1003
 func (t *Trace) copyFrom(src *Trace) {
 	c8, c16 := t.Codes8, t.Codes16
 	n8, x8, n16, x16 := t.Min8, t.Max8, t.Min16, t.Max16
@@ -285,13 +299,16 @@ func (t *Trace) copyFrom(src *Trace) {
 }
 
 // prefix is s[:n], or all of s when it is shorter.
+// TRLC-LINKS: REQ-DSO-1003
 func prefix[T any](s []T, n int) []T { return s[:min(n, len(s))] }
 
 // reuse copies src into buf's storage, growing it only when it is short.
 // An absent src leaves an empty slice that keeps its storage for the next copy.
+// TRLC-LINKS: REQ-DSO-1003
 func reuse[T any](buf, src []T) []T { return append(buf[:0], src...) }
 
 // copyPtr copies *src into dst's storage, or returns nil for a nil src.
+// TRLC-LINKS: REQ-DSO-1003
 func copyPtr[T any](dst, src *T) *T {
 	if src == nil {
 		return nil

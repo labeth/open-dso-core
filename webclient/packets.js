@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-PACKETS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // packets.js — groups a decoder Result (decode.js / decode_*.js) into packets
 // (messages) for BUS's packet table, and keeps the list still while the same
 // messages repeat. Pure: no DOM, no globals; loaded by ui.html and require()d
@@ -21,7 +21,7 @@ const PK_OPEN = new Set(["start", "sof", "sync"]);
 const PK_ERR = new Set(["frame-error", "parity-error", "crc-error", "nak", "error"]);
 
 // pkUnit: a typical unit (byte/word) length in samples — the median data span.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkUnit(spans) {
   const d = [];
   for (const s of spans) if (s.kind === "data" && s.i1 > s.i0) d.push(s.i1 - s.i0);
@@ -33,7 +33,7 @@ function pkUnit(spans) {
 
 // pkMiddle is the element sorting a would put at a.length >> 1, by
 // selection (Hoare) in place: no filtered copies and full sort a call.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkMiddle(a) {
   const k = a.length >> 1;
   let lo = 0, hi = a.length - 1;
@@ -50,7 +50,7 @@ function pkMiddle(a) {
   return a[k];
 }
 
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkNew(i0) {
   return { i0, i1: i0, bytes: [], byteErr: [], addr: -1, hasAddr: false, read: false, complete: false, err: "", opened: false, closed: false };
 }
@@ -58,10 +58,10 @@ function pkNew(i0) {
 // pkAddrText is a packet's address as the BUS lists write it in each bus's
 // own terms (Go analysis.AddrText): I2C "24 W", CAN "123" ("123 R" remote),
 // an ARINC 429 label in octal, a MIL-1553 "RT5 T", else hex.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkAddrText(proto, p) {
   if (!p.hasAddr) return "";
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   const hx = (v, n) => v.toString(16).toUpperCase().padStart(n, "0");
   if (proto === "i2c") return hx(p.addr, 2) + " " + (p.read ? "R" : "W");
   if (proto === "canfd" || proto === "can") return hx(p.addr, 3) + (p.read ? " R" : "");
@@ -72,7 +72,7 @@ function pkAddrText(proto, p) {
 
 // decodePackets groups r.spans into packets. recordLen is the sample count of
 // the decoded record (the margins the completeness test checks against).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function decodePackets(r, recordLen) {
   if (!r || !r.ok || !r.spans || !r.spans.length) return [];
   const spans = r.spans.slice().sort((a, b) => a.i0 - b.i0);
@@ -81,7 +81,7 @@ function decodePackets(r, recordLen) {
   const gapThr = 1.5 * unit;
   const out = [];
   let cur = null, lastEnd = -Infinity, lastWasGap = false;
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   const close = (closedByDelim) => {
     if (!cur) return;
     cur.closed = cur.closed || closedByDelim;
@@ -166,12 +166,12 @@ function decodePackets(r, recordLen) {
   return out;
 }
 
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkHex(p) { return p.bytes.map((b, i) => (p.byteErr[i] ? "!" : "") + (b > 0xff ? b.toString(16).toUpperCase() : b.toString(16).toUpperCase().padStart(2, "0"))).join(" "); }
 // pkString renders the bytes as text: printable ASCII as is, anything else as ".".
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkString(p) { return p.bytes.map((b) => (b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : ".")).join(""); }
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkKey(p) { return (p.hasAddr ? p.addr + (p.read ? "R" : "W") + ":" : "") + pkHex(p) + (p.err ? "|" + p.err : ""); }
 
 // pkMatch reports whether a packet holds the pattern (serial-trigger tokens:
@@ -179,7 +179,7 @@ function pkKey(p) { return (p.hasAddr ? p.addr + (p.read ? "R" : "W") + ":" : ""
 // "SOF" the packet's start, the units after it opening the packet; "CMD" a
 // MIL-1553 message's command word, its first two bytes) - as the scope's
 // tokMatch.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkMatch(p, tokens) {
   if (tokens && tokens.length && /^(sof|cmd)$/i.test(tokens[0])) {
     const skip = /^cmd$/i.test(tokens[0]) ? 2 : 0;
@@ -194,9 +194,9 @@ function pkMatch(p, tokens) {
 }
 
 // pkMatchAt reports whether the tokens hold at byte i of a packet.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function pkMatchAt(p, tokens, i) {
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   const one = (tok, k) => {
     if (/^err(or)?$/i.test(tok)) return !!p.byteErr[k];
     if (p.byteErr[k]) return false;
@@ -215,13 +215,13 @@ function pkMatchAt(p, tokens, i) {
 // the table holds still while traffic repeats; their positions follow the new
 // capture. New content replaces the rows. Rows keep an id while their content
 // stays listed, and the selection follows a packet by content.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 class PacketList {
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   constructor(max) { this.rows = []; this.selKey = null; this.nextId = 1; this.max = max || 200; this.version = 0; }
 
   // update returns true when the rows were replaced.
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   update(ps) {
     const done = (ps || []).filter((p) => p.complete);
     const have = new Map();
@@ -251,16 +251,16 @@ class PacketList {
     return true;
   }
 
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   clear() { this.rows = []; this.selKey = null; this.version++; }
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   select(i) { const r = this.rows[i]; this.selKey = r ? r.key : null; return r || null; }
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   selected() { return this.selKey === null ? null : this.rows.find((r) => r.key === this.selKey) || null; }
 
   // findMatch returns the index of the next row (from `from`, stepping dir) that
   // holds the pattern, wrapping around; -1 when none does.
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   findMatch(tokens, from, dir) {
     const n = this.rows.length;
     if (!n) return -1;

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DSP
+// ENGMODEL-OWNER-UNIT: FU-DSO-DSP
 
 package dsp
 
@@ -19,7 +19,7 @@ const (
 // ground reference). The input is never mutated (it is shared with
 // trigger/decode). Callers zero the channel's offset for AC/GND so the ground
 // marker sits at the centred baseline.
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func CoupleDisplay(sig []uint8, mode int) []uint8 {
 	switch mode {
 	case CoupleAC:
@@ -38,7 +38,7 @@ func CoupleDisplay(sig []uint8, mode int) []uint8 {
 // CoupleDisplayBy is CoupleDisplay for part, a stretch of sig drawn on its own
 // (a zoom's detail): AC moves it by what takes sig's DC away, so it sits where
 // the whole trace does. part is never mutated.
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func CoupleDisplayBy(part, sig []uint8, mode int) []uint8 {
 	switch mode {
 	case CoupleAC:
@@ -56,7 +56,7 @@ func CoupleDisplayBy(part, sig []uint8, mode int) []uint8 {
 // RemoveDC returns a copy of sig with its DC component removed: the record mean
 // is shifted to mid-scale (code 128), clamped to [0,255]. The input is never
 // mutated.
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func RemoveDC(sig []uint8) []uint8 {
 	if len(sig) == 0 {
 		return sig
@@ -65,7 +65,7 @@ func RemoveDC(sig []uint8) []uint8 {
 }
 
 // dcShift is what moves sig's mean to mid-scale (code 128).
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func dcShift(sig []uint8) int {
 	var sum int
 	for _, v := range sig {
@@ -76,7 +76,7 @@ func dcShift(sig []uint8) int {
 
 // shifted is a copy of sig moved by shift codes, clamped to [0,255]: through
 // a table of the 256 codes, a lookup a sample in place of a clamp.
-// TRLC-LINKS: REQ-SDS-096
+// TRLC-LINKS: REQ-DSO-096
 func shifted(sig []uint8, shift int) []uint8 {
 	var lut [256]uint8
 	for v := range lut {

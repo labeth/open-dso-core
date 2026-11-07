@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ import (
 
 // pair builds a clock and a data line, the data changing `at` samples after
 // each falling clock edge (hp samples per half-period).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func pair(hp, at, bits int) (clk, dat []uint8) {
 	v := 1
 	for range bits {
@@ -35,7 +35,7 @@ func pair(hp, at, bits int) (clk, dat []uint8) {
 // A window of I2C without its START (SDA moving mid-SCL-low) is not SPI; a
 // mode-0 SPI pair (data launched on the falling edge) still is (not "SPI mode
 // 3, 3 bytes" for the bench I2C at 20 us/div).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectMidPhaseDataIsNotSPI(t *testing.T) {
 	clk, dat := pair(20, 10, 60) // I2C-like: SDA changes a quarter period into SCL low
 	if r := Autodetect(clk, dat, 1e-7, "hex"); r.Proto == "spi" {
@@ -48,7 +48,7 @@ func TestAutodetectMidPhaseDataIsNotSPI(t *testing.T) {
 }
 
 // freeClock is a free-running square wave of n samples, hp samples a half-period.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func freeClock(n, hp int) []uint8 {
 	ck := make([]uint8, n)
 	for i := range ck {
@@ -64,7 +64,7 @@ func freeClock(n, hp int) []uint8 {
 // a UART on C1 with a clock on C2 must not read as SPI, I2C or nothing, as it
 // does when a clocked pair suppresses UART. Its edges keep no place in the
 // clock's cycle; a clocked data line keeps one.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectUARTBesideFreeClock(t *testing.T) {
 	want := []int{0x48, 0x69, 0x55, 0xAA, 0x41, 0x42, 0x43, 0x44}
 	u := uartWave(want, 40)

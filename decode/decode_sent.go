@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -13,7 +13,7 @@ import (
 // with a 56-tick SYNC/calibration pulse (used to derive the tick), followed by a
 // run of nibble pulses (12..27 ticks => value 0..15), optionally closed by a
 // variable-length pause pulse.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type SENTCfg struct {
 	Inverted   bool    // reverse electrical polarity before finding falling edges
 	TickNs     float64 // tick period override in ns (0 => derive tick from the 56-tick SYNC)
@@ -31,7 +31,7 @@ const (
 )
 
 // sentHex1 is v's low nibble as one hex digit.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func sentHex1(v int) string { i := v & 0xf; return "0123456789ABCDEF"[i : i+1] }
 
 // sentCRC4Table is the SAE J2716 CRC-4 nibble table (polynomial x^4+x^3+x^2+1).
@@ -42,7 +42,7 @@ var sentCRC4Table = [16]int{0, 13, 7, 10, 14, 3, 9, 4, 1, 12, 6, 11, 15, 2, 8, 5
 // nibble and not the CRC nibble itself. A frame whose trailing CRC nibble does
 // not equal this is flagged, so a corrupted CRC (and random noise, whose CRC is
 // essentially never self-consistent) is no longer accepted as a valid frame.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func sentCRC4(data []int) int {
 	crc := 5
 	for _, d := range data {
@@ -53,7 +53,7 @@ func sentCRC4(data []int) int {
 }
 
 // sentClampNib clamps v to a nibble's range 0..15.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func sentClampNib(v int) int {
 	if v < 0 {
 		return 0
@@ -70,7 +70,7 @@ func sentClampNib(v int) int {
 // nibble value = round(width/tick) - 12. Emits a "sync" span, one "data" span per
 // nibble, a "crc" span for the last nibble of the frame, and (when cfg.PausePulse)
 // a "pause" span for the trailing pause pulse. Robust to jitter and hostile input.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func SENT(codes []uint8, colTimeS float64, cfg SENTCfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	nib := cfg.Nibbles
 	if nib <= 0 {

@@ -8,6 +8,7 @@ type Edges struct{ Rise, Fall []float64 }
 // FindEdges slices codes at mid-swing with 10 % hysteresis, so converter
 // noise on a flat level is no edge; nil when the codes have no swing (fewer
 // than 8 codes of the 8-bit view).
+// TRLC-LINKS: REQ-DSO-024
 func FindEdges(c []uint8) *Edges {
 	if len(c) < 4 {
 		return nil
@@ -46,6 +47,7 @@ func FindEdges(c []uint8) *Edges {
 
 // crossing walks back from i to the sample pair straddling level and
 // interpolates the crossing position.
+// TRLC-LINKS: REQ-DSO-024
 func crossing(c []uint8, i int, level float64) float64 {
 	for j := i; j > 0; j-- {
 		a, b := float64(c[j-1]), float64(c[j])
@@ -65,6 +67,7 @@ var delayParams = map[string]struct{ aRise, bRise, last bool }{
 
 // IsDelay reports whether name is a delay parameter: the eight edge delays,
 // PHA and SKEW.
+// TRLC-LINKS: REQ-DSO-024
 func IsDelay(name string) bool {
 	_, ok := delayParams[name]
 	return ok || name == "PHA" || name == "SKEW"
@@ -75,6 +78,7 @@ func IsDelay(name string) bool {
 // PHA is in degrees over A's period; SKEW is between the rising edges
 // nearest the trigger (the centre without one); the others are seconds.
 // ok is false when the record cannot support it.
+// TRLC-LINKS: REQ-DSO-024
 func Delay(name string, a, b []uint8, n int, sampleS, trig float64) (value float64, ok bool) {
 	if n < 4 || len(a) < n || len(b) < n || !(sampleS > 0) {
 		return 0, false

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -10,7 +10,7 @@ import "testing"
 // idle was cut from the record (AUTO's search named PWM at 500 ns/div on the
 // bench's MIDI source, one search in ten). A PWM output runs on: AUTO names
 // MIDI.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestAutodetectMIDIBurstIsNoPWM(t *testing.T) {
 	const sr, bit = 5e8, 32e-6
 	w := newTimeline(sr)

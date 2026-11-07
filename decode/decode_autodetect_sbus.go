@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -22,7 +22,7 @@ const sbusBitUs = 1e6 / sbusBaud
 
 // considerSBUS tries the S.BUS framing on a line whose timing t allows it
 // and passes the decode on when its frames prove it.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-244, REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-244, REQ-DSO-247
 func considerSBUS(codes []uint8, colTimeS float64, t lineTiming, format string, consider func(Result)) {
 	// the shortest run one bit, the idle (the longest run, low) at least a
 	// millisecond between frames of 3 ms: an idle-high line is no S.BUS
@@ -39,7 +39,7 @@ func considerSBUS(codes []uint8, colTimeS float64, t lineTiming, format string, 
 
 // sbusEnd reports an S.BUS frame's end byte: 0x00, or S.BUS2's telemetry
 // slot markers 0x04, 0x14, 0x24 and 0x34.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func sbusEnd(b int) bool { return b == 0x00 || (b&0x0f == 0x04 && b>>4 <= 3) }
 
 // sbusFrames counts the S.BUS frames of a decode on S.BUS's framing: the
@@ -47,7 +47,7 @@ func sbusEnd(b int) bool { return b == 0x00 || (b&0x0f == 0x04 && b>>4 <= 3) }
 // byte and no parity or stop error, their starts 7 or 14 ms apart. A burst
 // the record cuts (the first or the last) is not counted; any other that is
 // no frame, or a spacing S.BUS does not keep, makes the line no S.BUS (0).
-// TRLC-LINKS: REQ-SDS-244, REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-244, REQ-DSO-247
 func sbusFrames(r Result, colTimeS float64) int {
 	if !(colTimeS > 0) {
 		return 0

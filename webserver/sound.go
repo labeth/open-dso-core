@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -25,7 +25,7 @@ import (
 
 // leaseSound is a page's SOUND request holding the stream; "" when held,
 // else the paused page's state. who=phone names the phone.
-// TRLC-LINKS: REQ-SDS-277, REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-277, REQ-DSO-265
 func leaseSound(src Sound, r *http.Request) string {
 	who := ""
 	if r.URL.Query().Get("who") == "phone" {
@@ -38,7 +38,7 @@ func leaseSound(src Sound, r *http.Request) string {
 // parking up to wait ms for samples not yet there (or for min of them): a
 // binary header (magic, flags, the JSON length) and JSON, then N
 // little-endian Q8.8 codes of C1 and N of C2.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 func (s *Server) hSoundBin(w http.ResponseWriter, r *http.Request) {
 	src, ok := s.sc.Sound()
 	if !ok {
@@ -102,7 +102,7 @@ func (s *Server) hSoundBin(w http.ResponseWriter, r *http.Request) {
 
 // writeSoundBin writes a header and block b as /api/sound.bin's format
 // (wire.EncodeSoundBin), within deadline.
-// TRLC-LINKS: REQ-SDS-265, REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-265, REQ-DSO-275
 func writeSoundBin(w http.ResponseWriter, h any, b wire.SoundBlock, deadline time.Duration) {
 	buf := wire.EncodeSoundBin(h, b.Q1, b.Q2, b.N)
 	w.Header().Set("Content-Type", "application/octet-stream")
@@ -114,7 +114,7 @@ func writeSoundBin(w http.ResponseWriter, h any, b wire.SoundBlock, deadline tim
 // hSoundTakeBin serves the take shown (STOP, or a NORMAL or SINGLE
 // trigger's) in /api/sound.bin's format with the take's header; 404 with
 // none. A page fetches it once per take (its id in /api/sound's info).
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func (s *Server) hSoundTakeBin(w http.ResponseWriter, r *http.Request) {
 	src, ok := s.sc.Sound()
 	var tk SoundTakes
@@ -150,7 +150,7 @@ type soundPost struct {
 // hSound reads (GET) or changes (POST) SOUND: the settings, the shared
 // readouts and the stream's state. GET with marks=1 keeps the FPGA
 // marking the tuned channel's edges for a page's cycle view.
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 func (s *Server) hSound(w http.ResponseWriter, r *http.Request) {
 	sp, ok := s.sc.SoundControls()
 	if !ok {

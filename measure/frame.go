@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-MEASURE
+// ENGMODEL-OWNER-UNIT: FU-DSO-MEASURE
 
 package measure
 
@@ -9,7 +9,7 @@ import "github.com/labeth/open-dso-core/sample"
 // calibrated ones rounded: the Q8.8 values would cost each measurement a
 // 65536-bin histogram (512 KB), on every display repaint - half the frame
 // rate.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func EdgeWindows(f *sample.Frame, ch int) []EdgeWindow {
 	var out []EdgeWindow // nil without windows
 	for _, r := range [2]sample.Role{sample.Edge, sample.EdgeOpp} {
@@ -29,7 +29,7 @@ func EdgeWindows(f *sample.Frame, ch int) []EdgeWindow {
 // Range is the stretch of frame f's record measurements read: a roll view's
 // longest run of captured samples - its held stretches are no signal (a 1 kHz
 // square measured across them read 769 Hz) - else the whole record.
-// TRLC-LINKS: REQ-SDS-010, REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-010, REQ-DSO-021
 func Range(f *sample.Frame) (int, int) {
 	held, n := f.Held(0), f.Len()
 	if len(held) != n {

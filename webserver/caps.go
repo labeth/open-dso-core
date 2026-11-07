@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -46,7 +46,7 @@ type FrameQueryV2 struct {
 var frames2 = sync.Pool{New: func() any { return new(wire.Frame) }}
 
 // encodeV2 builds and encodes one v2 frame.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func encodeV2(fr FramesV2, q FrameQueryV2) []byte {
 	f, _ := frames2.Get().(*wire.Frame)
 	defer frames2.Put(f)
@@ -62,7 +62,7 @@ func encodeV2(fr FramesV2, q FrameQueryV2) []byte {
 }
 
 // wantV2 reports a request for frame wire v2 that the scope can serve.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func wantV2(fr Frames, r *http.Request) (FramesV2, bool) {
 	if r.URL.Query().Get("v") != "2" {
 		return nil, false
@@ -72,7 +72,7 @@ func wantV2(fr Frames, r *http.Request) (FramesV2, bool) {
 }
 
 // hCaps serves the capabilities document.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (s *Server) hCaps(w http.ResponseWriter, r *http.Request) {
 	cs, ok := s.sc.(CapsSource)
 	if !ok {
@@ -105,7 +105,7 @@ func (s *Server) hCaps(w http.ResponseWriter, r *http.Request) {
 // when the scope serves caps (its own document must not carry those keys):
 // the page re-reads /api/caps when caps_gen moves. A scope without caps gets
 // its document encoded exactly as it is.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (s *Server) writeStatus(w http.ResponseWriter, st any) {
 	cs, ok := s.sc.(CapsSource)
 	if !ok {

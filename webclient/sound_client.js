@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // sound_client.js — the browser's end of the audio stream (ADR-SOUND), shared
 // by the web page's SOUND tab and the phone remote: /api/sound.bin long-polled
 // into a ring of volts (the newest 2^20 samples a channel), the FPGA's edge
@@ -12,7 +12,7 @@ const SND_MASK = SND_RING - 1;
 
 // sndClient makes a stream client; wantMarks says when a page shows the
 // cycle (the scope then keeps marking the tuned channel's edges).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndClient(wantMarks, who) {
   return {
     who: who || "", // "phone": the scope's notice names the phone
@@ -50,7 +50,7 @@ function sndClient(wantMarks, who) {
   };
 }
 
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndParse(buf) {
   const u8 = new Uint8Array(buf);
   if (u8.length < 8 || u8[0] !== 83 || u8[1] !== 66) return null;
@@ -64,7 +64,7 @@ function sndParse(buf) {
 
 // sndVoltsOf converts one channel's codes over the block's scales (volts at
 // the probe tip).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndVoltsOf(c, h, q, ch) {
   const out = new Float32Array(q.length), sc = h.scales || [];
   let k = -1, vpc = 1, off = 0;
@@ -79,7 +79,7 @@ function sndVoltsOf(c, h, q, ch) {
 
 // sndLanesOf takes the channel each lane carries from a reply's newest
 // scale, when the scope names them (a reply of no samples names them too).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndLanesOf(c, h) {
   const sc = h.scales || [], lanes = sc.length ? sc[sc.length - 1].chans : null;
   if (Array.isArray(lanes) && lanes.length === 2) c.lanes = lanes.slice();
@@ -87,7 +87,7 @@ function sndLanesOf(c, h) {
 
 // sndIngest puts a reply's samples into the ring, its marks into the list,
 // and the listen source into the player.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndIngest(c, buf) {
   const p = sndParse(buf);
   if (!p) return;
@@ -116,7 +116,7 @@ function sndIngest(c, buf) {
 // ---- takes ------------------------------------------------------------------------
 // sndClientSync follows the scope's stream state (a report's info): its
 // mode, and the take it shows, fetched once per take.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndClientSync(c, info) {
   if (!info) return;
   c.mode = info.mode || "live";
@@ -132,7 +132,7 @@ function sndClientSync(c, info) {
 
 // sndTakeFetch reads the take (/api/sound/take.bin) into volts: shown whole,
 // Listen from its start.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 async function sndTakeFetch(c, id) {
   c.takeBusy = id;
   try {
@@ -159,7 +159,7 @@ async function sndTakeFetch(c, id) {
 
 // sndTakeAround is n samples of channel ch around the focus (the cursor, or
 // the window's centre), clipped to the take.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeAround(c, ch, n) {
   const t = c.take, src = ch === 1 ? t.c2 : t.c1;
   n = Math.max(0, Math.min(n, t.n));
@@ -169,7 +169,7 @@ function sndTakeAround(c, ch, n) {
 }
 
 // sndTakeWindow is the window's samples of channel ch.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeWindow(c, ch) {
   const t = c.take, src = ch === 1 ? t.c2 : t.c1, a = Math.max(0, Math.floor(c.tview.from)), b = Math.min(t.n, Math.ceil(c.tview.from + c.tview.span));
   return src.subarray(a, b);
@@ -177,7 +177,7 @@ function sndTakeWindow(c, ch) {
 
 // sndTakeZoom scales the window by k about sample at (k < 1 narrows), from
 // 64 samples to the whole take.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeZoom(c, k, at) {
   const t = c.take, v = c.tview;
   if (!t) return;
@@ -188,7 +188,7 @@ function sndTakeZoom(c, k, at) {
 }
 
 // sndTakeScroll moves the window by d samples.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeScroll(c, d) {
   const t = c.take, v = c.tview;
   if (t) v.from = Math.max(0, Math.min(t.n - v.span, v.from + d));
@@ -197,7 +197,7 @@ function sndTakeScroll(c, d) {
 // sndTakeFeed keeps Listen playing the take: the window looped (or once),
 // at the speed chosen (the player told the slower rate), the buffer a
 // quarter of a second ahead.
-// TRLC-LINKS: REQ-SDS-275, REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-275, REQ-DSO-265
 function sndTakeFeed(c) {
   const a = c.audio, t = c.take, p = c.play;
   if (!a.on || !a.node || !c.takeOn || !t) return;
@@ -227,7 +227,7 @@ function sndTakeFeed(c) {
 }
 
 // sndPump long-polls the stream while the client is started.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 async function sndPump(c, gen) {
   while (c.shown && gen === c.gen) {
     let url = "/api/sound.bin?max=16384&min=1024&wait=600";
@@ -248,7 +248,7 @@ async function sndPump(c, gen) {
 
 // sndTakeScope takes the scope back from its own keys: the page's stream
 // runs again (the scope's captures wait until a key there takes it back).
-// TRLC-LINKS: REQ-SDS-277
+// TRLC-LINKS: REQ-DSO-277
 async function sndTakeScope(c) {
   const r = await fetch("/api/sound" + (c.who ? "?who=" + c.who : ""), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "take_scope" }) });
   const j = await r.json();
@@ -257,7 +257,7 @@ async function sndTakeScope(c) {
 }
 
 // sndClientStart starts streaming (a fresh signal from now).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndClientStart(c) {
   c.shown = true;
   c.gen++;
@@ -267,7 +267,7 @@ function sndClientStart(c) {
 }
 
 // sndClientStop stops streaming and Listen.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndClientStop(c) {
   c.shown = false;
   c.gen++;
@@ -276,7 +276,7 @@ function sndClientStop(c) {
 
 // sndClientLatest is the newest n samples of channel ch that are one signal
 // (a take shown: n of its samples around the cursor or the window's centre).
-// TRLC-LINKS: REQ-SDS-265, REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-265, REQ-DSO-275
 function sndClientLatest(c, ch, n) {
   if (c.takeOn) return sndTakeAround(c, ch, n);
   const have = Math.max(0, c.next - c.validFrom);
@@ -288,7 +288,7 @@ function sndClientLatest(c, ch, n) {
 
 // sndClientRange is samples [from, from+n) of channel ch (clipped to what is
 // held).
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 function sndClientRange(c, ch, from, n) {
   if (c.takeOn) {
     const t = c.take, a = Math.max(from, t.first), b = Math.min(from + n, t.first + t.n), src = ch === 1 ? t.c2 : t.c1;
@@ -302,10 +302,10 @@ function sndClientRange(c, ch, from, n) {
 
 // ---- Listen -----------------------------------------------------------------------
 // sndBq is a streaming biquad (RBJ coefficients, direct form I).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndBq(b) { return { b, x1: 0, x2: 0, y1: 0, y2: 0 }; }
 
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndBqRun(f, x) {
   // Coefficients and state in locals for the block, the state written back after.
   const b = f.b, b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4];
@@ -321,7 +321,7 @@ function sndBqRun(f, x) {
 // sndButter4 is a 4th-order Butterworth high- or low-pass at f as two
 // biquads' coefficients (Q 0.5412 and 1.3066): 24 dB an octave, a filter
 // that shapes what is heard.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndButter4(kind, f, fs) { return [0.5412, 1.3066].map((q) => sndRbj(kind, Math.min(f, 0.45 * fs), q, fs)); }
 
 // sndFilters builds the listen chain's filters for both outputs: an
@@ -329,7 +329,7 @@ function sndButter4(kind, f, fs) { return [0.5412, 1.3066].map((q) => sndRbj(kin
 // low-pass at their cutoffs. A change later
 // swaps a filter's coefficients and keeps its state (sndFilterTune): a
 // filter rebuilt from rest clicks.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndFilters(c) {
   c.audio.filt = [0, 1].map(() => ({ dc: { x1: 0, y1: 0, primed: false }, hp: null, lp: null, hpHz: 0, lpHz: 0 }));
   sndFilterTune(c, 0);
@@ -339,7 +339,7 @@ function sndFilters(c) {
 // samples: a cutoff glides toward the one set (12 % a call, 128 samples: three
 // octaves in about 40 ms), swapping the biquads' coefficients and keeping
 // their state, so a slider moved does not click.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndFilterTune(c, n) {
   const a = c.audio, fs = c.rate;
   for (const f of a.filt) {
@@ -357,7 +357,7 @@ function sndFilterTune(c, n) {
 }
 
 // sndDC is the DC blocker, primed on the first sample (no step from 0 V).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndDC(d, x, fs) {
   const r = 1 - 2 * Math.PI * 5 / fs;
   for (let i = 0; i < x.length; i++) {
@@ -373,7 +373,7 @@ function sndDC(d, x, fs) {
 // DC blocker, high-pass and low-pass, the gain (auto: the measured peak to a
 // quarter of full scale, held through quiet so noise is not raised), volume
 // and mute.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndAudioFeed(c, v1, v2, gap) {
   const a = c.audio, n = v1.length;
   if (!a.node) return;
@@ -423,7 +423,7 @@ function sndAudioFeed(c, v1, v2, gap) {
 // sndWorkletMsg takes the player's reports and its bursts (latency probe:
 // when a burst after quiet leaves the player, on the performance clock, plus
 // the output's own latency).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndWorkletMsg(c, e) {
   const m = e.data, a = c.audio;
   if (m.burst !== undefined && a.ctx) {
@@ -439,7 +439,7 @@ function sndWorkletMsg(c, e) {
 
 // sndClientListen starts or stops playing the stream (a user's tap or click
 // must start audio). It resolves to whether it plays; err says why not.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 async function sndClientListen(c, on) {
   const a = c.audio;
   if (!on) {
@@ -455,7 +455,7 @@ async function sndClientListen(c, on) {
       await a.ctx.audioWorklet.addModule("sound_worklet.js");
       a.node = new AudioWorkletNode(a.ctx, "sound-player", { numberOfInputs: 0, outputChannelCount: [2],
         processorOptions: opts });
-      // TRLC-LINKS: REQ-SDS-265
+      // TRLC-LINKS: REQ-DSO-265
       a.node.port.onmessage = (e) => sndWorkletMsg(c, e);
     } else {
       // Plain http (the scope's pages): no AudioWorklet outside a secure
@@ -481,7 +481,7 @@ async function sndClientListen(c, on) {
 // to 8192 (a longer block makes the player's own buffer, and the latency,
 // grow past a second); the first 3 s, the page and the audio starting, do
 // not count.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndMainPlayer(c, ctx, opts, frames, core) {
   const a = c.audio;
   frames = frames || 4096;
@@ -492,7 +492,7 @@ function sndMainPlayer(c, ctx, opts, frames, core) {
   // empty the buffer each callback and the rate follow would chase it
   core.onMsg({ targetMs: Math.max(opts.targetMs || 160, 1000 * blockS + 80) });
   let last = 0;
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   node.onaudioprocess = (e) => {
     const out = e.outputBuffer, t = e.playbackTime || ctx.currentTime;
     if (last && t - last > 1.5 * blockS && t - t0 > 3) {
@@ -502,14 +502,14 @@ function sndMainPlayer(c, ctx, opts, frames, core) {
     last = t;
     core.render(out.getChannelData(0), out.getChannelData(1), t);
   };
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   node.port = { postMessage: (m) => core.onMsg(m) };
   return node;
 }
 
 // sndRegrowPlayer swaps the page-thread player's node for one with a longer
 // block, the same player (its buffer) behind it.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndRegrowPlayer(c, ctx, opts, frames, core) {
   const a = c.audio;
   a.regrow = 0;
@@ -522,7 +522,7 @@ function sndRegrowPlayer(c, ctx, opts, frames, core) {
 }
 
 // sndLatencyText is the latency the listener hears now, part by part.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndLatencyText(c) {
   const a = c.audio;
   if (!a.on || !a.ctx) return "";

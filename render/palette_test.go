@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -7,7 +7,7 @@ import "testing"
 // TestPaletteMatchesTokens holds the LCD colours to the values they had when
 // they were generated into this package, so the move to the shared palette
 // changed no pixel.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestPaletteMatchesTokens(t *testing.T) {
 	for name, c := range map[string]struct {
 		got     Color

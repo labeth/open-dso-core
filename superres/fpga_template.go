@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -36,7 +36,7 @@ type FPGATemplate struct {
 // offset plus a quarter of the local template slope, which bounds the error
 // of placing the window to within half a template point. FPGATemplateLoose
 // allows an eighth of the window's swing per point (at least 4 codes).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func BuildFPGATemplate(sig []float64, sampleS, edgeX, level float64, falling bool, count int, tolerance float64) (FPGATemplate, error) {
 	var t FPGATemplate
 	if count < 2 || count > 1024 {

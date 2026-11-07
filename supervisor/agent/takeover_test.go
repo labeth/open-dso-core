@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func TestTakeoverResultSteps(t *testing.T) {
 	r := &TakeoverResult{}
 	r.Step("gate: inherited gpmc fd=%d", 7)
@@ -21,7 +21,7 @@ func TestTakeoverResultSteps(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func TestTakeoverIdempotentWhenAlreadyTakenOver(t *testing.T) {
 	a := testAgent(t)
 	if err := a.st.update(func(s *State) { s.TakenOver = true }); err != nil {
@@ -46,7 +46,7 @@ func TestTakeoverIdempotentWhenAlreadyTakenOver(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-104
 func TestUntakeoverReleasesControl(t *testing.T) {
 	a := testAgent(t)
 	if err := a.st.update(func(s *State) { s.TakenOver = true; s.AutoTakeover = true }); err != nil {

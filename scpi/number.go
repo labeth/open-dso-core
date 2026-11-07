@@ -16,6 +16,7 @@ var legacySuffixes = []struct {
 
 // ParseLegacyNumber parses a legacy short-form number with an optional unit
 // suffix (NS, US, MS, MV, UV, V, S; case-insensitive).
+// TRLC-LINKS: REQ-DSO-024
 func ParseLegacyNumber(s string) (float64, error) {
 	up := strings.ToUpper(strings.TrimSpace(s))
 	mult := 1.0
@@ -30,6 +31,7 @@ func ParseLegacyNumber(s string) (float64, error) {
 }
 
 // ParseOnOff reads a legacy ON/OFF argument.
+// TRLC-LINKS: REQ-DSO-024
 func ParseOnOff(s string) (on, ok bool) {
 	switch strings.ToUpper(strings.TrimSpace(s)) {
 	case "ON":

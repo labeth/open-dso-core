@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -7,13 +7,13 @@ import (
 	"strings"
 )
 
-// The SPI layers (REQ-SDS-242): each packet is one transaction (Layer's
+// The SPI layers (REQ-DSO-242): each packet is one transaction (Layer's
 // comment), read off the one data line the scope holds. A read's data comes
 // back on MISO, which a layer reading MOSI does not see: it counts the bytes
 // the host clocked for it ("READ 0x001000, 64 bytes").
 
 // eachNote writes every packet's note with one transaction reader.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func eachNote(ps []Packet, f func(b []byte) (string, bool)) {
 	for i := range ps {
 		ps[i].Note, ps[i].NoteErr = f(ps[i].Bytes)
@@ -26,7 +26,7 @@ const maxParts = 8
 
 // joinNotes joins the notes of the commands one transaction holds, at most
 // maxParts of them.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func joinNotes(parts []string) string {
 	if len(parts) > maxParts {
 		return strings.Join(parts[:maxParts], "; ") + fmt.Sprintf("; .. (+%d)", len(parts)-maxParts)
@@ -35,7 +35,7 @@ func joinNotes(parts []string) string {
 }
 
 // joinItems joins a trace burst's items, at most 2*maxParts of them.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func joinItems(items []string) string {
 	if len(items) > 2*maxParts {
 		return strings.Join(items[:2*maxParts], " ") + fmt.Sprintf(" .. (+%d)", len(items)-2*maxParts)
@@ -85,7 +85,7 @@ var flashCmds = map[int]flashCmd{
 }
 
 // flashNote reads one flash transaction (the host's side, MOSI).
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func flashNote(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -138,7 +138,7 @@ func flashNote(b []byte) (string, bool) {
 // flashFits reports whether a transaction is a flash command of a length it
 // takes: an erase of an aligned block, a page program within its page, a
 // command without operands alone.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func flashFits(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -181,7 +181,7 @@ func flashFits(b []byte) (string, bool) {
 
 // flashDetect: three or more whole transactions, every one a flash command
 // of the length it takes, two kinds of command among them at least.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func flashDetect(ps []Packet) string {
 	var names []string
 	seen := map[string]bool{}
@@ -210,7 +210,7 @@ func flashDetect(ps []Packet) string {
 }
 
 // flashMatch selects a transaction by its command and address.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func flashMatch(p Packet) ([]string, int) {
 	if len(p.Bytes) == 0 {
 		return nil, -1
@@ -242,7 +242,7 @@ var sdACmdNames = map[int]string{
 
 // sdCRC7 is the CRC-7 (polynomial x^7 + x^3 + 1) of a command token's first
 // five bytes, in the token's last byte with its end bit: (crc << 1) | 1.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func sdCRC7(b []byte) int {
 	crc := 0
 	for _, v := range b {
@@ -267,7 +267,7 @@ type sdState struct{ app bool }
 // the 0xFF the host clocks while it waits, and a write's data block after its
 // start token. A CRC7 that does not check is flagged; SPI mode lets a host
 // leave the CRC off after CMD8, sending 0xFF or 0x01 in its place.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func (st *sdState) note(b []byte) (string, bool) {
 	var parts []string
 	bad := false
@@ -319,7 +319,7 @@ func (st *sdState) note(b []byte) (string, bool) {
 }
 
 // sdNotes reads a record's SD transactions in order.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func sdNotes(ps []Packet) {
 	st := &sdState{}
 	eachNote(ps, st.note)
@@ -328,7 +328,7 @@ func sdNotes(ps []Packet) {
 // sdDetect: two or more transactions that open (after the host's 0xFF
 // fill) with a command token whose CRC7 checks: a token of six random bytes
 // checks once in 128 times.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func sdDetect(ps []Packet) string {
 	n := 0
 	for _, p := range ps {
@@ -348,7 +348,7 @@ func sdDetect(ps []Packet) string {
 }
 
 // sdMatch selects a command by its token's index and argument.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func sdMatch(p Packet) ([]string, int) {
 	for i := 0; i+5 <= len(p.Bytes); i++ {
 		if p.Bytes[i]&0xc0 == 0x40 {
@@ -362,7 +362,7 @@ func sdMatch(p Packet) ([]string, int) {
 
 // regData writes the data of a register access the host writes, or counts
 // the bytes it clocks for a read.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func regData(write bool, d []byte) string {
 	switch {
 	case len(d) == 0:
@@ -374,7 +374,7 @@ func regData(write bool, d []byte) string {
 }
 
 // reversed is bytes last first (a register sent least significant byte first).
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func reversed(b []byte) []byte {
 	out := make([]byte, len(b))
 	for i, v := range b {
@@ -386,7 +386,7 @@ func reversed(b []byte) []byte {
 // nrf24Note reads an nRF24L01(+) command: R_REGISTER 000aaaaa and
 // W_REGISTER 001aaaaa (multi-byte registers least significant byte first),
 // the payload commands and the single-byte ones.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func nrf24Note(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -429,7 +429,7 @@ func nrf24Note(b []byte) (string, bool) {
 }
 
 // nrf905Note reads an nRF905 command.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func nrf905Note(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -465,7 +465,7 @@ func nrf905Note(b []byte) (string, bool) {
 // cc1101Note reads a CC1101 header byte: R/W, burst, a 6-bit address; the
 // addresses 0x30..0x3D are command strobes, or status registers when read
 // in burst.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func cc1101Note(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -491,7 +491,7 @@ func cc1101Note(b []byte) (string, bool) {
 
 // rfm12Note reads an RFM12 transaction: 16-bit commands, the top bits of
 // the first byte naming each.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func rfm12Note(b []byte) (string, bool) {
 	var parts []string
 	bad := false
@@ -553,7 +553,7 @@ func rfm12Note(b []byte) (string, bool) {
 // mrf24Note reads MRF24J40 accesses: a short address (0aaaaaaw, one data
 // byte) or a long one (1aaaaaaa aaaw0000, one data byte); a transaction may
 // hold several.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func mrf24Note(b []byte) (string, bool) {
 	var parts []string
 	for i := 0; i < len(b); {
@@ -609,7 +609,7 @@ var enc28j60Banks = [4]map[int]string{enc28j60Bank0, enc28j60Bank1, enc28j60Bank
 type encState struct{ bank int }
 
 // encReg names control register a in the bank selected.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func (st *encState) reg(a int) string {
 	if a >= 0x1b {
 		return enc28j60Bank0[a]
@@ -623,7 +623,7 @@ func (st *encState) reg(a int) string {
 // note reads an ENC28J60 opcode (3 bits) and argument (5 bits): read and
 // write control register, read and write buffer memory, bit field set and
 // clear, system reset; a write or bit operation on ECON1 moves the bank.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func (st *encState) note(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -668,7 +668,7 @@ func (st *encState) note(b []byte) (string, bool) {
 }
 
 // encNotes reads a record's ENC28J60 transactions in order.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func encNotes(ps []Packet) {
 	st := &encState{bank: -1}
 	eachNote(ps, st.note)
@@ -681,7 +681,7 @@ type st25State struct{ space int }
 // note reads an ST25R39xx transaction: register write 00aaaaaa and read
 // 01aaaaaa (space A, or B or test after their prefix), FIFO load and read,
 // the passive target memory loads and read, direct commands 11xxxxxx.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func (st *st25State) note(b []byte) (string, bool) {
 	var parts []string
 	bad := false
@@ -733,7 +733,7 @@ func (st *st25State) note(b []byte) (string, bool) {
 }
 
 // st25Notes reads a record's ST25R39xx transactions in order.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func st25Notes(ps []Packet) {
 	st := &st25State{}
 	eachNote(ps, st.note)
@@ -741,7 +741,7 @@ func st25Notes(ps []Packet) {
 
 // adxl345Note reads an ADXL345 access: R/W (1 read), MB (multiple bytes),
 // a 6-bit register address, the data of consecutive registers after it.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func adxl345Note(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -760,7 +760,7 @@ func adxl345Note(b []byte) (string, bool) {
 
 // adxl345Value interprets a register written: the output data rate, the
 // range, the power control's measure bit.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func adxl345Value(a, v int) string {
 	switch a {
 	case 0x2c:
@@ -782,7 +782,7 @@ func adxl345Value(a, v int) string {
 
 // adnsNote reads ADNS-5020 accesses: pairs of a register byte (bit 7 set
 // for a write) and its data.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func adnsNote(b []byte) (string, bool) {
 	var parts []string
 	for i := 0; i < len(b); i += 2 {
@@ -807,7 +807,7 @@ func adnsNote(b []byte) (string, bool) {
 
 // ade7758Note reads an ADE7758 access: bit 7 set for a write, the register,
 // then its data, 1 to 3 bytes as wide as the register.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func ade7758Note(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -832,7 +832,7 @@ func ade7758Note(b []byte) (string, bool) {
 
 // adf435xNote reads ADF4350/1 register writes: 32-bit words most
 // significant bit first, the register number in the low three bits.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func adf435xNote(b []byte) (string, bool) {
 	if len(b)%4 != 0 || len(b) == 0 {
 		return fmt.Sprintf("? %s (32-bit words)", plural(len(b), "byte")), true
@@ -866,7 +866,7 @@ func adf435xNote(b []byte) (string, bool) {
 
 // ad5626Note reads an AD5626 load: the 12-bit code of a 16-bit transfer
 // (four leading bits ignored), at 1 mV a step of its 4.095 V range.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func ad5626Note(b []byte) (string, bool) {
 	if len(b) != 2 {
 		return fmt.Sprintf("? %s (16-bit loads)", plural(len(b), "byte")), true
@@ -878,7 +878,7 @@ func ad5626Note(b []byte) (string, bool) {
 // ad79x0Note reads an AD7910/AD7920 conversion on MISO: four leading zeros
 // and 12 bits; fewer than 10 clocks power the converter down, and an all-ones
 // code is the conversion after power-up, invalid.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func ad79x0Note(b []byte) (string, bool) {
 	switch {
 	case len(b) == 1:
@@ -896,7 +896,7 @@ func ad79x0Note(b []byte) (string, bool) {
 // ltc242xNote reads an LTC2421/2 conversion on MISO: 24 bits, end of
 // conversion (0 ready), the channel, the sign and 20 bits; the reading is a
 // share of the reference, -2 to +2 (sign bit included as the offset).
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func ltc242xNote(b []byte) (string, bool) {
 	if len(b) != 3 {
 		return fmt.Sprintf("? %s (24-bit conversions)", plural(len(b), "byte")), true
@@ -911,7 +911,7 @@ var max72xxRegs = map[int]string{0: "No-op", 9: "Decode", 10: "Intensity", 11: "
 
 // max72xxNote reads MAX7219/7221 writes: (register, data) pairs, one per
 // chip of a daisy chain, the first pair for the last chip.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func max72xxNote(b []byte) (string, bool) {
 	if len(b) == 0 || len(b)%2 != 0 {
 		return fmt.Sprintf("? %s (pairs)", plural(len(b), "byte")), len(b) > 0
@@ -949,7 +949,7 @@ func max72xxNote(b []byte) (string, bool) {
 }
 
 // avrNote reads AVR serial programming instructions, four bytes each.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func avrNote(b []byte) (string, bool) {
 	var parts []string
 	bad := false
@@ -994,7 +994,7 @@ func avrNote(b []byte) (string, bool) {
 
 // avrDetect: a Programming Enable instruction (AC 53) and every whole
 // transaction made of four-byte instructions the programmer sends.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func avrDetect(ps []Packet) string {
 	enable := false
 	n := 0
@@ -1018,7 +1018,7 @@ func avrDetect(ps []Packet) string {
 
 // x2444Note reads an X2444 instruction: 1AAAAccc (the address in bits 6..3,
 // bit 0 a READ's don't-care), a READ's or WRITE's 16-bit word after it.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func x2444Note(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false
@@ -1043,7 +1043,7 @@ func x2444Note(b []byte) (string, bool) {
 }
 
 // rgbNote reads RGB LED data: three bytes a LED, red green blue.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func rgbNote(b []byte) (string, bool) {
 	if len(b) < 3 {
 		return fmt.Sprintf("? %s (3 a LED)", plural(len(b), "byte")), len(b) > 0
@@ -1062,7 +1062,7 @@ func rgbNote(b []byte) (string, bool) {
 
 // nesNote reads NES gamepad states on MISO: a button pressed reads 0, in the
 // order A B Select Start Up Down Left Right from the first bit clocked.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func nesNote(b []byte) (string, bool) {
 	parts := make([]string, len(b))
 	for i, v := range b {
@@ -1097,7 +1097,7 @@ var nesButtons = func() (t [256]string) {
 // ssi32Note reads SSI32 messages (host side): an acknowledge of four bytes
 // (bit 7 of the first set), or a control message: control, LUN, size, CRC,
 // then size bytes of data.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func ssi32Note(b []byte) (string, bool) {
 	if len(b) == 0 {
 		return "", false

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver_test
 
@@ -15,7 +15,7 @@ import (
 
 // The server passes its own conformance suite over the fake scope, with
 // every optional part and with none.
-// TRLC-LINKS: REQ-SDS-161, REQ-SDS-162, REQ-SDS-163, REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
 func TestConformanceFake(t *testing.T) {
 	t.Run("full", func(t *testing.T) {
 		webtest.Run(t, func() webserver.Scope { return webtest.NewFake(false) }, webserver.WithPprof())
@@ -26,7 +26,7 @@ func TestConformanceFake(t *testing.T) {
 }
 
 // serve runs one request against h.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func serve(t *testing.T, h http.Handler, method, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	rec := httptest.NewRecorder()
@@ -36,7 +36,7 @@ func serve(t *testing.T, h http.Handler, method, path, body string) *httptest.Re
 
 // A control's reply carries ok, the value applied and why it was refused;
 // one that cannot be refused carries no err.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func TestSetReply(t *testing.T) {
 	h := webserver.New(webtest.NewFake(false)).Handler()
 	for body, want := range map[string]string{
@@ -53,7 +53,7 @@ func TestSetReply(t *testing.T) {
 // A page's lease is renewed by its polls and given back with end=1 (204),
 // the view window by view=a,b,cols and ended by view=off; a page asking
 // for frames is a frame client for a while.
-// TRLC-LINKS: REQ-SDS-163, REQ-SDS-168
+// TRLC-LINKS: REQ-DSO-163, REQ-DSO-168
 func TestFrameLeases(t *testing.T) {
 	f := webtest.NewFake(false)
 	s := webserver.New(f)
@@ -79,7 +79,7 @@ func TestFrameLeases(t *testing.T) {
 }
 
 // A scope's own routes are served beside the API.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func TestExtensionsServed(t *testing.T) {
 	h := webserver.New(webtest.NewFake(false)).Handler()
 	if rec := serve(t, h, http.MethodGet, "/api/fake/hello", ""); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"hello":"fake"`) {
@@ -92,7 +92,7 @@ func TestExtensionsServed(t *testing.T) {
 
 // A record comes back as its header and both channels' codes; one refused
 // is a 409 naming why.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 func TestRecord(t *testing.T) {
 	f := webtest.NewFake(false)
 	h := webserver.New(f).Handler()

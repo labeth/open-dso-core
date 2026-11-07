@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -20,7 +20,7 @@ const screenCols = 800
 // held) until the scope publishes a newer frame, so delivery latency is one
 // response write and the client needs no poll timer: request-when-ready IS
 // the backpressure, and a slow client simply skips to the newest frame.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (s *Server) hFrameBin(w http.ResponseWriter, r *http.Request) {
 	if s.claims.Superseded(r) {
 		w.WriteHeader(http.StatusConflict) // 409 — a newer browser claimed the device

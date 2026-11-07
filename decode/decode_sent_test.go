@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -15,7 +15,7 @@ import (
 // edge to close the last pulse. `jit` adds ±jit samples of deterministic period
 // jitter to nibble pulses (0 = clean). The SYNC is never jittered so the derived
 // tick stays exact.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func sentWave(frames [][]int, tick, pauseTicks, jit int) []uint8 {
 	lo, hi := uint8(40), uint8(210)
 	var w []uint8
@@ -53,7 +53,7 @@ func sentWave(frames [][]int, tick, pauseTicks, jit int) []uint8 {
 	return w
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeSENTRoundTrip(t *testing.T) {
 	// status + 6 data + CRC. The CRC nibble is emitted, not verified.
 	nibs := []int{0x1, 0xA, 0x5, 0xF, 0x0, 0xC, 0x3, 0}
@@ -74,7 +74,7 @@ func TestDecodeSENTRoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeSENTTickOverride(t *testing.T) {
 	nibs := []int{0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0}
 	nibs[7] = sentCRC4(nibs[1:7])
@@ -92,7 +92,7 @@ func TestDecodeSENTTickOverride(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeSENTJitter(t *testing.T) {
 	// ±(tick/4)-sample jitter on each nibble must still round to the right value.
 	nibs := []int{0xF, 0x0, 0x8, 0x1, 0x7, 0xE, 0x2, 0}
@@ -108,7 +108,7 @@ func TestDecodeSENTJitter(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeSENTMultiFramePause(t *testing.T) {
 	fa := []int{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0}
 	fb := []int{0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0}
@@ -138,7 +138,7 @@ func TestDecodeSENTMultiFramePause(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeSENTNoPanic(_ *testing.T) {
 	// Empty, flat, and pseudo-random inputs (with degenerate configs) must never
 	// panic and must never loop unbounded.
@@ -162,7 +162,7 @@ func TestDecodeSENTNoPanic(_ *testing.T) {
 	_ = SENT(garbage, 1e-6, SENTCfg{Nibbles: 1 << 20}) // clamps to 64
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestDecodeSENTInvertedCRCFixture(t *testing.T) {
 	good := []int{0, 1, 2, 5, 10, 3, 4, 1}
 	bad := []int{0, 1, 2, 5, 10, 3, 4, 2}
@@ -185,7 +185,7 @@ func TestDecodeSENTInvertedCRCFixture(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestSENTGeneratorFixtureCRC(t *testing.T) {
 	if got := sentCRC4([]int{1, 2, 5, 10, 3, 4}); got != 1 {
 		t.Fatalf("generator CRC %d", got)

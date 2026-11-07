@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -35,7 +35,7 @@ const (
 // CollectFirmware inventories the vendor firmware under roots: every file's
 // size, mode and SHA-256, the small ones stored whole and the large ones by
 // their head. Paths under a skip prefix are left out.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func CollectFirmware(a *Archive, roots, skip []string) {
 	var inv []FileInfo
 	for _, root := range roots {
@@ -67,7 +67,7 @@ func CollectFirmware(a *Archive, roots, skip []string) {
 
 // storeFile hashes path and stores it whole or by its head; it returns the
 // hash and how it was stored.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func storeFile(a *Archive, path string, size int64) (sum, stored string) {
 	f, err := os.Open(path) //nolint:gosec // G304: a file of the inventory walk
 	if err != nil {
@@ -102,7 +102,7 @@ type limitWriter struct {
 }
 
 // Write keeps what still fits.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func (l *limitWriter) Write(p []byte) (int, error) {
 	if room := l.n - int64(l.w.Len()); room > 0 {
 		l.w.Write(p[:min(int64(len(p)), room)])

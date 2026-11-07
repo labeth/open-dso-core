@@ -59,6 +59,7 @@ func run(t *testing.T, e *Engine, cases [][2]string) {
 
 // The libscpi message algorithm: paths, suffixes, the ';' and LF rules and
 // the error queue's information.
+// TRLC-LINKS: REQ-DSO-024
 func TestIEEEMessages(t *testing.T) {
 	run(t, ieee(EdgeSummaries), [][2]string{
 		{"*IDN?", "Maker,Model,SN1,1.0\n"},
@@ -95,6 +96,7 @@ func TestIEEEMessages(t *testing.T) {
 }
 
 // The error queue keeps 16 errors and the overflow marker.
+// TRLC-LINKS: REQ-DSO-024
 func TestIEEEQueueOverflow(t *testing.T) {
 	e := ieee(EdgeSummaries)
 	for i := range 20 {
@@ -113,6 +115,7 @@ func TestIEEEQueueOverflow(t *testing.T) {
 
 // The edge rule: ESB follows only a change of ESR, MSS every change of STB
 // or SRE; *ESR? and *CLS clear.
+// TRLC-LINKS: REQ-DSO-024
 func TestStatusEdgeRule(t *testing.T) {
 	run(t, ieee(EdgeSummaries), [][2]string{
 		{"*ESE 32;FOO;*STB?", "36\n"},
@@ -152,6 +155,7 @@ func line() *Engine {
 }
 
 // The legacy grammar: prefixes, separators, errors in place, CHDR.
+// TRLC-LINKS: REQ-DSO-024
 func TestLineMessages(t *testing.T) {
 	run(t, line(), [][2]string{
 		{"*IDN?", "M,X,S,1\n"},
@@ -174,6 +178,7 @@ func TestLineMessages(t *testing.T) {
 }
 
 // A dialect registered later replaces a shared command.
+// TRLC-LINKS: REQ-DSO-024
 func TestRegisterReplaces(t *testing.T) {
 	e := line()
 	e.Register(Command{"*IDN?", func(c *Call) error { c.Text("other"); return nil }})
@@ -181,6 +186,7 @@ func TestRegisterReplaces(t *testing.T) {
 }
 
 // Extensions answer their command and query forms; a refusal is -200.
+// TRLC-LINKS: REQ-DSO-024
 func TestExtensions(t *testing.T) {
 	e := ieee(EdgeSummaries)
 	state := "DONE"
@@ -201,6 +207,7 @@ func TestExtensions(t *testing.T) {
 }
 
 // Legacy numbers take their unit suffixes.
+// TRLC-LINKS: REQ-DSO-024
 func TestParseLegacyNumber(t *testing.T) {
 	for in, want := range map[string]float64{"1US": 1e-6, "500mv": .5, "2E-3": 2e-3, " 5 V": 5, "10NS": 1e-8, "3ms": 3e-3} {
 		if v, err := ParseLegacyNumber(in); err != nil || v != want {
@@ -213,6 +220,7 @@ func TestParseLegacyNumber(t *testing.T) {
 }
 
 // Patterns: optional nodes, suffixes, choices.
+// TRLC-LINKS: REQ-DSO-024
 func TestPatterns(t *testing.T) {
 	p := CompilePattern("SYSTem:ERRor[:NEXT]?")
 	for _, h := range []string{"SYST:ERR?", ":SYSTEM:ERROR:NEXT?", "syst:err:next?"} {
@@ -238,6 +246,7 @@ func TestPatterns(t *testing.T) {
 }
 
 // Fuzzed messages never panic in either grammar.
+// TRLC-LINKS: REQ-DSO-024
 func FuzzExec(f *testing.F) {
 	for _, s := range []string{"*IDN?", ":CHAN1:SCAL 1;OFFS?", "C1-C2:MEAD? FRR", "#9", "'a;b", "C1:VDIV 1V;C", ":FORM:DATA CUST,0"} {
 		f.Add(s)

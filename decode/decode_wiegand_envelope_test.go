@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -6,7 +6,7 @@ import "testing"
 
 // peakEnvelope is a peak-detect envelope of src: each bucket's extremes, in
 // time order, as the live readout holds them.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func peakEnvelope(src []uint8, bucket int) []uint8 {
 	n := len(src) / bucket
 	out := make([]uint8, 0, 2*n)
@@ -30,7 +30,7 @@ func peakEnvelope(src []uint8, bucket int) []uint8 {
 // A Wiegand pulse, a twentieth of its interval, survives an envelope bucket
 // wider than itself: a frame decodes from five points an interval, so the
 // envelope's feature is the interval (AUTO then shows a whole frame).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestWiegandFromEnvelope(t *testing.T) {
 	for _, interval := range []float64{1e-3, 2e-3} {
 		l := newTwoLine(1e6)

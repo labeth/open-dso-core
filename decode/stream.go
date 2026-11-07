@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -67,7 +67,7 @@ type StreamDecoder struct {
 }
 
 // spansSorted reports spans in order of their starts.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func spansSorted(sp []Span) bool {
 	for k := 1; k < len(sp); k++ {
 		if sp[k].I0 < sp[k-1].I0 {
@@ -83,7 +83,7 @@ type streamGroup struct{ from, to, i0, i1 int }
 
 // SetLead keeps n samples of line before a frame's start in the window
 // (StreamLead).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-260
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-260
 func (d *StreamDecoder) SetLead(n int) { d.leadN = max(n, 0) }
 
 // CutStart has the decoder drop its first frame from stream index at on
@@ -93,7 +93,7 @@ func (d *StreamDecoder) SetLead(n int) { d.leadN = max(n, 0) }
 // as not - and the rest of a cut frame decodes as a frame of its own: a
 // Modbus request's tail read as an errored frame, a 1-Wire transaction's
 // last bits without their reset (StreamRecord drops a record's alike).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) CutStart(at uint64) {
 	d.atStart, d.startAt = true, at
 }
@@ -101,7 +101,7 @@ func (d *StreamDecoder) CutStart(at uint64) {
 // keepFirst judges the first frame after CutStart's index: it is kept when
 // it opens with a start of frame (sp its first span) Close samples or more
 // after the index; either way the next frames are kept.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) keepFirst(i0 int, sp Span) bool {
 	if !d.atStart || d.base+uint64(i0) < d.startAt { //nolint:gosec // sample indices are never negative
 		return true
@@ -115,7 +115,7 @@ func (d *StreamDecoder) keepFirst(i0 int, sp Span) bool {
 // cuts (none Close samples after it) is dropped, and so is one starting in
 // its first head samples, which its start can cut and the decoder read from
 // the middle.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func StreamRecord(a, b []uint8, decode func(a, b []uint8) Result, closeN, head, cutN int, subframes bool) []StreamFrame {
 	from := 0
 	if cutN > 0 {
@@ -164,7 +164,7 @@ func StreamRecord(a, b []uint8, decode func(a, b []uint8) Result, closeN, head, 
 // with none. A device's reply after its
 // guard time follows an idle line too; a record whose first idle is that
 // one reads the reply as an instruction.
-// TRLC-LINKS: REQ-SDS-260
+// TRLC-LINKS: REQ-DSO-260
 func StreamRecordFromIdle(a, b []uint8, decode func(a, b []uint8) Result, closeN, head, cutN int, subframes bool) []StreamFrame {
 	r := decode(a, b)
 	from, last := -1, -1
@@ -201,7 +201,7 @@ func StreamRecordFromIdle(a, b []uint8, decode func(a, b []uint8) Result, closeN
 
 // quietAt is the first sample after n samples in which neither line swings
 // a quarter of its range, -1 none.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-260
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-260
 func quietAt(a, b []uint8, n int) int {
 	last := -1 // the last sample where a line moved
 	moved := func(codes []uint8) func(i int) bool {
@@ -229,11 +229,11 @@ func quietAt(a, b []uint8, n int) int {
 
 // SetSubframes makes the "rw" spans open frames as well (S/PDIF's M and W
 // subframes): a bus that never pauses then still has frames to hand out.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) SetSubframes(on bool) { d.subframes = on }
 
 // isFrameStart reports a span that opens a frame.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) isFrameStart(s Span) bool {
 	return s.Kind == kindSOF || s.Kind == kindBreak || (d.subframes && s.Kind == kindRW)
 }
@@ -241,7 +241,7 @@ func (d *StreamDecoder) isFrameStart(s Span) bool {
 // NewStreamDecoder makes a stream decoder over decode (a, b: the lines'
 // samples, b nil for a one-line bus); closeN and maxN are Close and Max in
 // samples.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func NewStreamDecoder(decode func(a, b []uint8) Result, closeN, maxN int) *StreamDecoder {
 	closeN = max(closeN, 2)
 	return &StreamDecoder{decode: decode, closeN: closeN, maxN: max(maxN, 4*closeN)}
@@ -251,7 +251,7 @@ func NewStreamDecoder(decode func(a, b []uint8) Result, closeN, maxN int) *Strea
 // (EdgeLine): decode takes the window's lines (b nil for a one-line bus)
 // and the stream is pushed with PushEdges. Its frames are the ones the
 // samples' decoder hands out from the same lines.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func NewEdgeStreamDecoder(decode func(a, b *EdgeLine) Result, closeN, maxN int) *StreamDecoder {
 	d := NewStreamDecoder(nil, closeN, maxN)
 	d.edges, d.edec = true, decode
@@ -261,7 +261,7 @@ func NewEdgeStreamDecoder(decode func(a, b *EdgeLine) Result, closeN, maxN int) 
 
 // Held is the samples the window holds, and Next the stream index of the
 // sample the next Push starts at.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) Held() int {
 	if d.edges {
 		return d.ea.N
@@ -270,12 +270,12 @@ func (d *StreamDecoder) Held() int {
 }
 
 // Next is the stream index of the next sample pushed.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) Next() uint64 { return d.base + uint64(d.Held()) } //nolint:gosec // sample indices are never negative
 
 // PushEdges appends samples from..to-1 of an edge stream's lines (b nil,
 // or as long as a) and returns the frames they complete, oldest first.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) PushEdges(a, b *EdgeLine, from, to int) []StreamFrame {
 	d.ea.AppendRange(a, from, to)
 	if b != nil {
@@ -286,7 +286,7 @@ func (d *StreamDecoder) PushEdges(a, b *EdgeLine, from, to int) []StreamFrame {
 
 // Push appends the next samples (b nil, or as long as a) and returns the
 // frames they complete, oldest first.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) Push(a, b []uint8) []StreamFrame {
 	d.a = append(d.a, a...)
 	if b != nil {
@@ -298,7 +298,7 @@ func (d *StreamDecoder) Push(a, b []uint8) []StreamFrame {
 // Flush ends the stream (a capture's last sample): the frames its end
 // completes are handed out, a frame still open at the end is dropped, and
 // the decoder starts empty at the next index.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) Flush() []StreamFrame {
 	out := d.run()
 	d.Skip(0)
@@ -308,7 +308,7 @@ func (d *StreamDecoder) Flush() []StreamFrame {
 // Skip drops the window and moves the stream on by n samples that will not
 // arrive (lost words, a gap between captures): decoding starts afresh after
 // them.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) Skip(n int) {
 	d.base += uint64(d.Held() + n) //nolint:gosec // sample indices are never negative; n counts samples skipped
 	d.done = max(d.done, d.base)
@@ -318,7 +318,7 @@ func (d *StreamDecoder) Skip(n int) {
 }
 
 // run decodes the window and hands out its whole frames.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) run() []StreamFrame {
 	n := d.Held()
 	if n == 0 {
@@ -457,7 +457,7 @@ func (d *StreamDecoder) run() []StreamFrame {
 
 // drop lets go of the first cut of the n samples held (both lines' when
 // the second holds as many), the window starting cut samples later.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (d *StreamDecoder) drop(cut, n int) {
 	if d.edges {
 		d.ea.Drop(cut)

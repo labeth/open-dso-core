@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -34,7 +34,7 @@ var visChColours = [16]Color{
 }
 
 // drawVisualPane draws the frame's bus as what it carries in the plot.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func drawVisualPane(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	// under the status line (channels, timebase, trigger): it stays
 	if top := visTop - p.y0; top > 0 {
@@ -70,7 +70,7 @@ type visArea struct {
 }
 
 // visDrawBus draws the decode's picture; it gives the title and a line beside it.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visDrawBus(sf Canvas, a visArea, res decode.Result) (string, string) {
 	p := res.Proto
 	switch {
@@ -115,7 +115,7 @@ type visMIDIEvent struct {
 
 // visMIDIEvents reads the capture's note messages from its bytes (running
 // status kept; realtime bytes between them skipped).
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visMIDIEvents(spans []decode.Span) []visMIDIEvent {
 	var out []visMIDIEvent
 	run, need := 0, 0
@@ -154,7 +154,7 @@ func visMIDIEvents(spans []decode.Span) []visMIDIEvent {
 // visDrawMIDI draws an 88-key piano, the capture's pushes (filled, pointing
 // at the key) and releases (hollow) above their keys, each as high as it is
 // long before the capture's end, the keys pushed and not released in it lit.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visDrawMIDI(sf Canvas, a visArea, spans []decode.Span) string {
 	ev := visMIDIEvents(spans)
 	const lo, hi = 21, 108
@@ -266,7 +266,7 @@ func visDrawMIDI(sf Canvas, a visArea, spans []decode.Span) string {
 
 // visDrawDMX draws the levels of the capture's longest packet (one the
 // record's end cuts short holds fewer slots) as 512 bars, 32 a row.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visDrawDMX(sf Canvas, a visArea, spans []decode.Span) string {
 	var pkt, cur []int
 	in := false
@@ -312,7 +312,7 @@ func visDrawDMX(sf Canvas, a visArea, spans []decode.Span) string {
 }
 
 // visDrawLEDs draws the capture's last latched frame's LEDs (GRB) in their colours.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visDrawLEDs(sf Canvas, a visArea, spans []decode.Span) string {
 	var frame, cur []int
 	for _, sp := range spans {
@@ -348,7 +348,7 @@ func visDrawLEDs(sf Canvas, a visArea, spans []decode.Span) string {
 
 // visDrawPS2 lists the capture's key presses and releases (the scan codes,
 // an extended key E0-prefixed), the newest last.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visDrawPS2(sf Canvas, a visArea, spans []decode.Span) string {
 	var lines []string
 	ext, brk := false, false
@@ -387,7 +387,7 @@ func visDrawPS2(sf Canvas, a visArea, spans []decode.Span) string {
 }
 
 // visDrawText writes the capture's text (a byte not printable as a dot).
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visDrawText(sf Canvas, a visArea, spans []decode.Span) string {
 	var b strings.Builder
 	for _, sp := range spans {
@@ -425,7 +425,7 @@ func visDrawText(sf Canvas, a visArea, spans []decode.Span) string {
 // visDrawFrames lists the capture's frames by identifier (LIN's protected
 // identifier's six bits, CAN's identifier): each one's newest bytes and how
 // many came.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visDrawFrames(sf Canvas, a visArea, spans []decode.Span, lin bool) string {
 	type fr struct {
 		bytes []int
@@ -506,7 +506,7 @@ func visDrawFrames(sf Canvas, a visArea, spans []decode.Span, lin bool) string {
 
 // visBigLast writes the capture's newest reading large (read from its spans
 // by reading: its text and the line under it; ok false none).
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visBigLast(sf Canvas, a visArea, spans []decode.Span, reading func([]decode.Span) (string, string, bool)) string {
 	big, small, ok := reading(spans)
 	if !ok {
@@ -520,7 +520,7 @@ func visBigLast(sf Canvas, a visArea, spans []decode.Span, reading func([]decode
 }
 
 // visIRReading is the newest button: its address and command (A.. and C..).
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visIRReading(spans []decode.Span) (string, string, bool) {
 	addr, cmd, ok := "-", "", false
 	name := ""
@@ -538,7 +538,7 @@ func visIRReading(spans []decode.Span) (string, string, bool) {
 }
 
 // visCaliperReading is the newest reading ("12.34mm").
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visCaliperReading(spans []decode.Span) (string, string, bool) {
 	for _, span := range slices.Backward(spans) {
 		if span.Kind == "rw" && (strings.HasSuffix(span.Text, "mm") || strings.HasSuffix(span.Text, "in")) {
@@ -549,7 +549,7 @@ func visCaliperReading(spans []decode.Span) (string, string, bool) {
 }
 
 // visWiegandReading is the newest card: its number, facility and length.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visWiegandReading(spans []decode.Span) (string, string, bool) {
 	bits, fac, card, ok := "", "", "", false
 	for _, sp := range spans {
@@ -566,7 +566,7 @@ func visWiegandReading(spans []decode.Span) (string, string, bool) {
 }
 
 // visPWMReading is the capture's mean duty and the periods it holds.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visPWMReading(spans []decode.Span) (string, string, bool) {
 	sum, n := 0.0, 0
 	for _, sp := range spans {
@@ -585,7 +585,7 @@ func visPWMReading(spans []decode.Span) (string, string, bool) {
 }
 
 // visDCFReading is the minute's time and date (BCD fields).
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visDCFReading(spans []decode.Span) (string, string, bool) {
 	f := map[string]int{}
 	for _, sp := range spans {
@@ -611,7 +611,7 @@ func visDCFReading(spans []decode.Span) (string, string, bool) {
 }
 
 // visStepReading is the capture's steps: the newest count from its start and its direction.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func visStepReading(spans []decode.Span) (string, string, bool) {
 	for _, span := range slices.Backward(spans) {
 		t := span.Text

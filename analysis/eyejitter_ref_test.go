@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -10,7 +10,7 @@ import (
 
 // EstimateUI is the unit interval in samples from consecutive-edge intervals
 // (ejEstimateUI), or 0 when they do not cluster on a common grid.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func EstimateUI(t []float64) float64 {
 	if len(t) < 2 {
 		return 0
@@ -24,7 +24,7 @@ func EstimateUI(t []float64) float64 {
 
 // fftInPlace is the compact radix-2 FFT of eyejitter.js and peaks.js (ejFFT,
 // fftInPlace); len(re) must be a power of two.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-216
 func fftInPlace(re, im []float64) {
 	n := len(re)
 	for i, j := 1, 0; i < n; i++ { // bit-reverse permute
@@ -57,7 +57,7 @@ func fftInPlace(re, im []float64) {
 }
 
 // median is the upper median of a (ejMedian); 0 for an empty slice.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func median(a []float64) float64 {
 	if len(a) == 0 {
 		return 0
@@ -69,7 +69,7 @@ func median(a []float64) float64 {
 
 // NewEyeJitter allocates the analysis state (ejNew). Sizes below 2 (eye) or
 // not a power of two (spectrum) are raised to the next valid one.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func NewEyeJitter(o EyeJitterOptions) *EyeJitter {
 	w, h := o.EyeW, o.EyeH
 	if w == 0 {
@@ -99,7 +99,7 @@ func NewEyeJitter(o EyeJitterOptions) *EyeJitter {
 
 // Feed analyses one raw record of codes taken sampleS seconds apart (ejFeed)
 // and returns "locked:<edges>" or "rejected:<why>".
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func (s *EyeJitter) Feed(sig []float64, sampleS float64) string {
 	e := FindEdges(sig)
 	if e == nil {
@@ -224,7 +224,7 @@ func (s *EyeJitter) Feed(sig []float64, sampleS float64) string {
 
 // feedSpectrum adds one record's TIE spectrum on the UI grid (Hann, magnitude
 // averaged across records: the trigger phase is incoherent between records).
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func (s *EyeJitter) feedSpectrum(fit *GridFit, nUI, sampleS float64) {
 	nf := s.fftN
 	grid := make([]float64, nf)
@@ -290,7 +290,7 @@ func (s *EyeJitter) feedSpectrum(fit *GridFit, nUI, sampleS float64) {
 }
 
 // reject counts a record that did not lock.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func (s *EyeJitter) reject(why string) string {
 	s.rejected++
 	s.lastErr = why
@@ -300,7 +300,7 @@ func (s *EyeJitter) reject(why string) string {
 // Result reduces the state to displayable figures (ejResult). The TIE
 // statistics come from the exact running aggregates, RJ/DJ from the decimated
 // buffer.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func (s *EyeJitter) Result() JitterResult {
 	out := JitterResult{
 		Records: s.records, Rejected: s.rejected, Edges: s.edges, UIs: s.uis,
@@ -356,7 +356,7 @@ func (s *EyeJitter) Result() JitterResult {
 // the inner gap, 0.1 % trimmed), the width is the longest crossing-free run
 // of the mid row that holds the centre. It returns nil below 500 counts in
 // the centre columns.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 func (s *EyeJitter) Metrics() *EyeMetrics {
 	w, h := s.eyeW, s.eyeH
 	colAt := func(f float64) int { return min(w-1, int(math.Floor(f*float64(w)))) }
@@ -431,7 +431,7 @@ func (s *EyeJitter) Metrics() *EyeMetrics {
 
 // EyeDigest summarises the density map for parity checks: the total count,
 // the index-weighted total and the number of occupied cells.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func (s *EyeJitter) EyeDigest() (sum, weighted float64, cells int) {
 	for i, v := range s.eye {
 		if v != 0 {
@@ -446,7 +446,7 @@ func (s *EyeJitter) EyeDigest() (sum, weighted float64, cells int) {
 // EyeJitterOptions sizes an EyeJitter (ejNew opts); zero fields take the web
 // defaults: a 256x128 eye map, a 512-point TIE spectrum and a 60000-sample
 // TIE buffer.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 type EyeJitterOptions struct {
 	EyeW, EyeH int
 	FFTN       int
@@ -456,7 +456,7 @@ type EyeJitterOptions struct {
 // EyeJitter is the web engine's accumulating state (ejNew): the eye density
 // map, the running UI, the TIE statistics and spectrum, and the cross-record
 // interval pool that lets edge-starved records lock.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 type EyeJitter struct {
 	eyeW, eyeH   int
 	eye          []float64 // density counts, row 0 = the lowest code
@@ -489,7 +489,7 @@ type EyeJitter struct {
 // (ejEyeMetrics): the inner opening between the rails at the eye centre in
 // codes, the crossing-free width at the mid level in UI, and the density in
 // the centre columns they were measured on.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 type EyeMetrics struct {
 	EyeHeightCodes float64
 	EyeWidthUI     float64
@@ -500,7 +500,7 @@ type EyeMetrics struct {
 // The Has flags mark the figures the JavaScript leaves undefined: the TIE
 // statistics need 8 edges, RJ/DJ 200, the spectrum one record with enough
 // grid coverage, and the eye metrics enough density.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 type JitterResult struct {
 	Records, Rejected, Edges int
 	UIs                      float64 // unit intervals folded
@@ -522,7 +522,7 @@ type JitterResult struct {
 }
 
 // truthy is JavaScript's truth test on a number: neither 0 nor NaN.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func truthy(x float64) bool { return x != 0 && !math.IsNaN(x) }
 
 // SpectrumDB is the web's spectrum (peaks.js spectrum and dbAt): the largest
@@ -530,7 +530,7 @@ func truthy(x float64) bool { return x != 0 && !math.IsNaN(x) }
 // windowed and transformed, as dB relative to its strongest bin. Bin k lies at
 // k/(N*sampleS) Hz, N being 2*len(result). It returns nil for fewer than 16
 // samples.
-// TRLC-LINKS: REQ-SDS-216, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-216, REQ-DSO-070
 func SpectrumDB(samples []float64) []float64 {
 	n := 1
 	for n*2 <= len(samples) {

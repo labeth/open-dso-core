@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestFPGAMomentsWire(t *testing.T) {
 	rng := rand.New(rand.NewSource(1415))
 	for i := range 1024 {
@@ -63,7 +63,7 @@ func TestFPGAMomentsWire(t *testing.T) {
 }
 
 // Moments add exactly, carrying across the 64-bit limb.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func TestAddFPGAMomentsCarries(t *testing.T) {
 	a := FPGAStackMoments{Sum: [2]uint64{^uint64(0), 1}, SumSquares: [2]uint64{5, 0}, SumOdd: [2]uint64{1 << 63, 0}, Count: 3, CountOdd: 1}
 	AddFPGAMoments(&a, FPGAStackMoments{Sum: [2]uint64{2, 0}, SumSquares: [2]uint64{^uint64(0), 2}, SumOdd: [2]uint64{1 << 63, 0}, Count: 4, CountOdd: 2})

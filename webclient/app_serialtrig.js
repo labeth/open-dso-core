@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-SERIALTRIG
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_serialtrig.js — serial-trigger sub-panel, nested INSIDE the decode card.
 // It reuses the live decode config (dcfg): protocol, channel roles, baud, bits,
 // parity, CPOL/CPHA/MSB and threshold all come from decode, so the operator only
@@ -13,7 +13,7 @@
 // strict hex-token parse: "FF 3C" / "0x24" → [255,60] / 0x24; a token that is
 // not 1-2 hex digits returns null so the caller can REJECT (never silently drop
 // or truncate — "AA GG BB" must not become [AA,BB]).
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stParseBytes(s, maxValue = 255) {
   const toks = (s || "").trim().split(/[\s,]+/).filter(x => x !== "");
   const out = [];
@@ -30,7 +30,7 @@ function stParseBytes(s, maxValue = 255) {
 // ERR for a decoder-reported error, SOF for the start of a frame, CMD for a
 // MIL-1553 command word and STS for a MIDI status byte (top bit set). Plain hex stays a byte list; any wildcard or token
 // makes a token pattern. At most 32 units.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stParsePattern(s, maxValue = 255) {
   const toks = (s || "").trim().split(/[\s,]+/).filter(x => x !== "");
   if (toks.length > 32) return null;
@@ -54,7 +54,7 @@ function stParsePattern(s, maxValue = 255) {
   }
   return plain ? { bytes: pattern.map(p => p.value), pattern: [] } : { bytes: [], pattern };
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stParseAddr(s) {
   s = (s || "").trim();
   if (s === "") return -1; // any
@@ -63,7 +63,7 @@ function stParseAddr(s) {
   return v <= 127 ? v : null;
 }
 
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stProtoNum() {
   return { uart: 1, i2c: 2, spi: 3, manchester: 4, sent: 5, can: 6, mil1553: 7, arinc429: 8, usb: 9, flexray: 10,
     lin: 11, dmx512: 12, midi: 13, modbus: 14, onewire: 15, ws281x: 16, dht: 17, cec: 18, j1850: 19, irnec: 20,
@@ -72,7 +72,7 @@ function stProtoNum() {
     t55xx: 41, swim: 42, sdq: 43, pjdl: 44, dsi: 45, qi: 46, sdcard: 47, pdi: 48, cjtag: 49, maple: 50, caliper: 51,
     irmp: 52 }[dcfg.proto] || 0;
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stArmed() { return $("stArm") && $("stArm").classList.contains("on"); }
 
 // stScope is the scope's serial trigger as /api/serial last gave it: what the
@@ -86,10 +86,10 @@ let stParsed = null;
 
 // build the SerialParams: the scope's (base), with the live decode config and
 // the match inputs; returns null if the match pattern has invalid hex.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stParams(base = stScope) {
   const P = stProtoNum();
-  // TRLC-LINKS: REQ-SDS-206
+  // TRLC-LINKS: REQ-DSO-206
   const rc = r => (r === 2 ? 1 : 0);             // dcfg role 1/2 → engine chan 0/1
   const addr = stParseAddr($("stAddr").value);
   const bits = Math.max(1, Math.min(16, dcfg.bits || 8));
@@ -138,13 +138,13 @@ let stOwn = false, stAdopting = false;
 let stSendGen = 0;
 
 // stMatchSig is a trigger's match: units, I2C address and direction.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stMatchSig(p) { return JSON.stringify([p.bytes || [], p.pattern || [], p.addr == null ? -1 : p.addr, p.rw == null ? 2 : p.rw]); }
 
 // stShowClock shows the scope's SPI Clock rate row in the page's field (MHz;
 // empty is Auto, its placeholder the rate Auto measured), not while it is
 // being typed.
-// TRLC-LINKS: REQ-SDS-206, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-206, REQ-DSO-229
 function stShowClock(hz, text) {
   const el = $("dsClock");
   if (!el || document.activeElement === el) return;
@@ -154,7 +154,7 @@ function stShowClock(hz, text) {
 }
 // stSetClock writes the field's clock rate to the scope's Clock rate row, the
 // row the LCD and the phone set (empty: Auto).
-// TRLC-LINKS: REQ-SDS-206, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-206, REQ-DSO-229
 function stSetClock() {
   const t = String($("dsClock").value).trim();
   const hz = t === "" ? 0 : Math.round(+t * 1e6);
@@ -165,9 +165,9 @@ function stSetClock() {
 // stMatchText writes the scope's match as this page types it: hex units, "??"
 // any unit, "A?" a nibble wildcard, ERR a decoder error, SOF a frame's start,
 // CMD a MIL-1553 command word.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stMatchText(p) {
-  // TRLC-LINKS: REQ-SDS-206
+  // TRLC-LINKS: REQ-DSO-206
   const hex = (v, n) => v.toString(16).toUpperCase().padStart(n, "0");
   if (p.pattern && p.pattern.length) {
     return p.pattern.map((u) => {
@@ -193,7 +193,7 @@ let stScopeProto = 0;
 // match, I2C address and direction (not while one of them is being typed). A
 // match changed on the scope since this page read or sent it ends the
 // page's ownership: the scope's is shown from then on.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stAdopt() {
   if (stAdopting) return Promise.resolve();
   stAdopting = true;
@@ -218,13 +218,13 @@ function stAdopt() {
 }
 // stFollowScope drops this page's own edits and shows the scope's match
 // (Default setup cleared it).
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stFollowScope() { stOwn = false; stLastSig = ""; return stAdopt(); }
 let stModePending = null, stModeGeneration = 0, stArmGeneration = 0;
 // stPush sends this page's match and decoder settings, on an edit made here,
 // over the scope's serial trigger as it is now (read first), so the scope's
 // own settings stay.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stPush() {
   if (!stParams()) return Promise.reject(new Error("bad pattern")); // stStatus() surfaces the invalid hex
   const gen = ++stSendGen;
@@ -243,7 +243,7 @@ function stPush() {
     });
 }
 
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stSetArmed(on) {
   const generation = ++stModeGeneration;
   stModePending = on ? 1 : 0;
@@ -261,7 +261,7 @@ function stSetArmed(on) {
 
 // serial is only tested on the real-time bands that flow through the trigger
 // gate — envelope/roll/stream/ETS bypass it, so warn when armed on those.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stBandInactive() {
   return !!(st && (st.band === "envelope" || st.band === "roll" || st.stream || st.ets));
 }
@@ -271,7 +271,7 @@ function stBandInactive() {
 // this page's own arm or edit replaces it (stStatusHeld = 0).
 let stStatusHeld = 0;
 
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stStatus(msg) {
   if (!$("stStats")) return;
   if (msg !== undefined) { stStatusHeld = Date.now() + 3000; $("stStats").textContent = msg; return; }
@@ -295,7 +295,7 @@ function stStatus(msg) {
 // called by the decode panel (updateDecodePanel) when the decode config changes,
 // here or on the scope: disarm if decode was turned off. The bus itself (its
 // protocol, lines, mode) the scope gives its armed trigger.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stOnDecodeChange() {
   if (!$("stArm")) return;
   if (stProtoNum() === 0) { ++stArmGeneration; if (stOwn && (stArmed() || stModePending === 1)) stSetArmed(false); stStatus(""); }
@@ -303,18 +303,18 @@ function stOnDecodeChange() {
 // stOnPageEdit sends a decoder setting edited on this page that the scope has
 // no row for (UART word and parity, inverted inputs, the threshold, SENT's
 // tick and nibbles) to a trigger this page armed.
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function stOnPageEdit() {
   if ($("stArm") && stProtoNum() && stArmed() && stOwn) stPush().catch(() => {});
 }
 
 // ==== wiring ====
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 (function initSerialTrig() {
   if (!$("stArm")) return;
   stAdopt(); // the scope's stored match, armed or not
   let arming = 0, cancel = false; // the arm under way (its generation): a bus search and the config push take seconds
-  // TRLC-LINKS: REQ-SDS-206
+  // TRLC-LINKS: REQ-DSO-206
   $("stArm").onclick = async () => {
     // A click while an arm is under way cancels it, not starts an arm of its
     // own (two quick clicks would arm).
@@ -353,7 +353,7 @@ function stOnPageEdit() {
     }
   };
   for (const id of ["stAddr", "stRW", "stBytes"])
-    // TRLC-LINKS: REQ-SDS-206
+    // TRLC-LINKS: REQ-DSO-206
     $(id).onchange = () => { stOwn = true; if (stArmed()) stPush().catch(() => {}); stStatusHeld = 0; stStatus(); };
   $("dsClock").onchange = stSetClock;
 })();

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Regression (from the 200-iteration operator fuzz): frames that lack a
 // per-sample channel array — channel toggled OFF, or an envelope/roll band —
 // must never throw in the FFT/spectrogram/decode draw paths. Root cause was
@@ -12,15 +12,15 @@ if (!op) { console.log("SKIP"); process.exit(0); }
 const stacks = [];
 op.page.on("pageerror", (e) => stacks.push(e.stack || e.message));
 
-// TRLC-LINKS: REQ-SDS-208
+// TRLC-LINKS: REQ-DSO-208
 const clk = async (id) => { const el = await op.page.$("#" + id); if (el && await el.isVisible()) await el.click(); };
-// TRLC-LINKS: REQ-SDS-208
+// TRLC-LINKS: REQ-DSO-208
 const sel = async (id, v) => op.page.evaluate((a) => { const e = document.getElementById(a.id); if (e) { e.value = a.v; e.dispatchEvent(new Event("change")); } }, { id, v });
 // the screen view, through the workspace that owns it (Y-T/X-Y: SCOPE; FFT and
 // the spectrogram: SPECTRUM) — as the view controls and the Y/X/F keys do
-// TRLC-LINKS: REQ-SDS-208
+// TRLC-LINKS: REQ-DSO-208
 const view = async (v) => op.page.evaluate((m) => { const spec = ["FFT", "SPG", "BODE"].includes(m); setWs(spec ? "spectrum" : "scope"); setWsView(m); }, v);
-// TRLC-LINKS: REQ-SDS-208
+// TRLC-LINKS: REQ-DSO-208
 const report = async (tag) => {
   await op.page.waitForTimeout(1800);
   if (stacks.length) {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -66,7 +66,7 @@ type SoundTakeHeader struct {
 
 // LevelVolts is an 8-bit code on channel ch as volts at the tip, at the
 // newest scale (0 with none).
-// TRLC-LINKS: REQ-SDS-272, REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-272, REQ-DSO-275
 func LevelVolts(sc []SoundScale, ch int, code uint8) float64 {
 	k := len(sc)
 	if k == 0 {
@@ -79,7 +79,7 @@ func LevelVolts(sc []SoundScale, ch int, code uint8) float64 {
 // EncodeSoundBin lays out a header and the samples in /api/sound.bin's
 // format: magic, the JSON's length, the JSON, then the little-endian Q8.8
 // codes of C1 and of C2.
-// TRLC-LINKS: REQ-SDS-265, REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-265, REQ-DSO-275
 func EncodeSoundBin(h any, q1, q2 []uint16, n int) []byte {
 	hj, err := json.Marshal(h)
 	if err != nil {

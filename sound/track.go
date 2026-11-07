@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -18,7 +18,7 @@ type Tuner struct {
 }
 
 // Add takes a reading and returns the smoothed pitch (0 unvoiced).
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func (t *Tuner) Add(p Pitch) float64 {
 	if !p.OK {
 		t.recent = t.recent[:0]
@@ -77,7 +77,7 @@ type VOctFit struct {
 }
 
 // FitVOct reads the points (any order; A4 = a4 names them).
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func FitVOct(pts []VOctPoint, a4 float64) VOctFit {
 	f := VOctFit{}
 	var ps []VOctPoint
@@ -119,7 +119,7 @@ func FitVOct(pts []VOctPoint, a4 float64) VOctFit {
 }
 
 // lineFit fits log2(Hz) = icpt + slope*V by least squares.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func lineFit(ps []VOctPoint) (slope, icpt float64) {
 	var n, sx, sy, sxx, sxy float64
 	for _, p := range ps {
@@ -151,7 +151,7 @@ type VOctAuto struct {
 type vsample struct{ t, v, hz float64 }
 
 // Add feeds a reading at t seconds; it returns a point when one is taken.
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func (a *VOctAuto) Add(t, cv, hz float64) (VOctPoint, bool) {
 	hold, step := a.HoldS, a.StepV
 	if !(hold > 0) {
@@ -211,7 +211,7 @@ type DriftPoint struct {
 const driftMax = 7200
 
 // Add feeds a reading at t seconds (hz 0: none).
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func (d *Drift) Add(t, hz float64) {
 	if len(d.Points) == 0 && len(d.cur) == 0 {
 		d.T0, d.curSec = t, 0

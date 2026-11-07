@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// The I2C layers (REQ-SDS-243): a packet is one transfer, START (or a
+// The I2C layers (REQ-DSO-243): a packet is one transfer, START (or a
 // repeated START) to STOP, with its address and direction. A register device
 // takes a write's first byte as its register pointer and writes the bytes
 // after it from there; a read reads from the pointer; both move the pointer
@@ -34,7 +34,7 @@ type access struct {
 
 // take reads a packet as a register access with an n-byte pointer (most
 // significant byte first) and moves the pointer past its data.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func (r *regPtr) take(p Packet, n int) access {
 	if !p.Read {
 		if len(p.Bytes) < n {
@@ -53,18 +53,18 @@ func (r *regPtr) take(p Packet, n int) access {
 }
 
 // bcd reads a BCD byte (masked) as a number; ok false for a nibble over 9.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func bcd(v byte) (int, bool) {
 	hi, lo := int(v>>4), int(v&0x0f)
 	return hi*10 + lo, hi < 10 && lo < 10
 }
 
 // i2cDevs reports whether a packet goes to one of the addresses.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func i2cDevs(p Packet, lo, hi int) bool { return p.HasAddr && p.Addr >= lo && p.Addr <= hi }
 
 // rw names a transfer's direction.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func rw(p Packet) string {
 	if p.Read {
 		return "read"
@@ -79,7 +79,7 @@ func rw(p Packet) string {
 // address. One byte so set proves a one-byte part (a 24C32 and up never
 // takes one); two prove two only without it (a small part's byte write
 // before a current address read looks alike); 1 when none says.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func eepromWidths(ps []Packet) map[int]int {
 	w := map[int]int{}
 	for i := 0; i+1 < len(ps); i++ {
@@ -104,7 +104,7 @@ func eepromWidths(ps []Packet) map[int]int {
 // (the read that follows reads from it), a read (from the address the device
 // counts on to), and a transfer the device does not acknowledge (busy with a
 // write cycle: an acknowledge poll).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func eepromNotes(ps []Packet) {
 	widths := eepromWidths(ps)
 	ptrs := map[int]*regPtr{}
@@ -145,7 +145,7 @@ func eepromNotes(ps []Packet) {
 
 // eepromDetect: every transfer to one device at 0x50..0x57, and one or more
 // random reads among them (the word address written, then read from).
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func eepromDetect(ps []Packet) string {
 	dev, reads := -1, 0
 	for i, p := range ps {
@@ -164,7 +164,7 @@ func eepromDetect(ps []Packet) string {
 }
 
 // eepromMatch: the device and its word address.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func eepromMatch(p Packet) ([]string, int) {
 	if p.Read || len(p.Bytes) == 0 {
 		return nil, p.Addr
@@ -189,7 +189,7 @@ type edidState struct {
 // placed at it; the read that completes the 128-byte base block names the
 // display (manufacturer, product, its name, the preferred mode, the version
 // and the checksum).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func edidNotes(ps []Packet) {
 	st := &edidState{}
 	for i := range ps {
@@ -227,7 +227,7 @@ func edidNotes(ps []Packet) {
 }
 
 // complete reports the base block read whole.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func (st *edidState) complete() bool {
 	for i := range 128 {
 		if !st.have[i] {
@@ -238,7 +238,7 @@ func (st *edidState) complete() bool {
 }
 
 // summary names the display a base block describes.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func (st *edidState) summary() (string, bool) {
 	m := st.mem[:128]
 	if string(m[:8]) != string(edidHeader) {
@@ -276,7 +276,7 @@ func (st *edidState) summary() (string, bool) {
 }
 
 // edidDetect: a read at 0x50 that holds the EDID header.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func edidDetect(ps []Packet) string {
 	for _, p := range ps {
 		if !i2cDevs(p, 0x50, 0x50) || !p.Read {
@@ -321,7 +321,7 @@ var weekdays = []string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
 
 // clock reads the date and time out of a register image (r[k] the k-th
 // register); ok false when a field is not BCD or out of its range.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func (c rtcSpec) clock(r map[int]byte) (string, bool) {
 	s, ok1 := bcd(r[c.sec] & 0x7f)
 	m, ok2 := bcd(r[c.min] & 0x7f)
@@ -355,7 +355,7 @@ func (c rtcSpec) clock(r map[int]byte) (string, bool) {
 // rtcNotes reads a clock's register accesses at its address: the date and
 // time when an access covers all its registers, else the registers with
 // their values.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func rtcNotes(ps []Packet, c rtcSpec, addr int) {
 	var r regPtr
 	img := map[int]byte{}
@@ -404,7 +404,7 @@ func rtcNotes(ps []Packet, c rtcSpec, addr int) {
 
 // rtcDetect: a read at the clock's address covering its date and time with
 // every field BCD and in its range.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func rtcDetect(ps []Packet, c rtcSpec, addr int) string {
 	var r regPtr
 	for _, p := range ps {
@@ -432,16 +432,16 @@ func rtcDetect(ps []Packet, c rtcSpec, addr int) string {
 var lm75Regs = map[int]string{0: "Temperature", 1: "Config", 2: "T_HYST", 3: "T_OS"}
 
 // signed8 reads a byte as two's complement.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func signed8(b byte) int { return int(b) - int(b>>7)<<8 }
 
 // signed16 reads a 16-bit word as two's complement.
-// TRLC-LINKS: REQ-SDS-243, REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-243, REQ-DSO-245
 func signed16(u uint16) int { return int(u) - int(u>>15)<<16 }
 
 // lm75Temp reads a temperature register: two's complement, the first byte
 // whole degrees, bit 7 of the second a half degree (the LM75's nine bits).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func lm75Temp(b []byte) string {
 	v := signed8(b[0])*2 + int(b[1]>>7)
 	return fixed(int64(v), 2, 1) + " C"
@@ -450,7 +450,7 @@ func lm75Temp(b []byte) string {
 // lm75Notes reads LM75 accesses: the pointer (it stays where it is set, at
 // the temperature after power-up), the configuration byte, and the
 // temperature, hysteresis and overtemperature registers in degrees.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func lm75Notes(ps []Packet) {
 	ptrs := map[int]int{}
 	for i := range ps {
@@ -486,7 +486,7 @@ func lm75Notes(ps []Packet) {
 // ---- MLX90614 IR thermometer (SMBus, 0x5A) ----
 
 // smbusPEC is SMBus's packet error code: CRC-8, polynomial x^8+x^2+x+1.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func smbusPEC(b []byte) int {
 	crc := 0
 	for _, v := range b {
@@ -512,7 +512,7 @@ var mlxRegs = map[int]string{
 // mlxNotes reads MLX90614 word reads (the command, then a read of the low
 // byte, the high byte and the PEC): a temperature in kelvin times 50, shown
 // in degrees Celsius; the PEC is checked.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func mlxNotes(ps []Packet) {
 	cmd := -1
 	for i := range ps {
@@ -557,7 +557,7 @@ func mlxNotes(ps []Packet) {
 }
 
 // mlxDetect: a word read at 0x5A whose PEC checks.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func mlxDetect(ps []Packet) string {
 	for i := 0; i+1 < len(ps); i++ {
 		p, q := ps[i], ps[i+1]
@@ -575,7 +575,7 @@ func mlxDetect(ps []Packet) string {
 
 // atshaCRC is the ATSHA204A's CRC-16: polynomial 0x8005, each byte's bits
 // least significant first, the result's low byte first on the bus.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func atshaCRC(b []byte) int {
 	crc := 0
 	for _, v := range b {
@@ -607,7 +607,7 @@ var atshaStatus = map[int]string{
 
 // atshaCRCok checks a block's count, data and CRC (the count covers itself
 // and the CRC).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func atshaCRCok(b []byte) bool {
 	if len(b) < 3 || int(b[0]) != len(b) {
 		return false
@@ -619,7 +619,7 @@ func atshaCRCok(b []byte) bool {
 // atshaNotes reads ATSHA204A transfers: a write's word address (reset,
 // sleep, idle, command) and a command block (count, opcode, param1, param2,
 // data, CRC); a read's response block (count, status or data, CRC).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func atshaNotes(ps []Packet) {
 	for i := range ps {
 		p := &ps[i]
@@ -682,7 +682,7 @@ func atshaNotes(ps []Packet) {
 }
 
 // atshaDetect: a command block at 0x64 whose CRC checks.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func atshaDetect(ps []Packet) string {
 	for _, p := range ps {
 		if i2cDevs(p, 0x64, 0x64) && !p.Read && len(p.Bytes) >= 8 && p.Bytes[0] == 3 && atshaCRCok(p.Bytes[1:]) {
@@ -712,7 +712,7 @@ var hdcpMsgs = map[int]string{
 // hdcpNotes reads HDCP transfers at 0x3A: the register written and read,
 // Bstatus's device count, RxStatus's message length, and the HDCP 2
 // messages written and read.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func hdcpNotes(ps []Packet) {
 	var r regPtr
 	for i := range ps {
@@ -770,7 +770,7 @@ var hdcpReads = map[int]int{0x00: 5, 0x40: 1, 0x41: 2, 0x50: 1}
 // hdcpDetect: at 0x3A, one of the receiver's identity or capability
 // registers set as the offset and read at its length, and no write to an
 // offset HDCP does not have.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func hdcpDetect(ps []Packet) string {
 	found := ""
 	for i, p := range ps {
@@ -805,7 +805,7 @@ var (
 
 // ltcNotes reads LTC26x7 writes: a command and address byte, then the
 // 16-bit code (the LTC2607's; the 2617 and 2627 left-justify 14 and 12).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func ltcNotes(ps []Packet) {
 	for i := range ps {
 		p := &ps[i]
@@ -834,14 +834,14 @@ func ltcNotes(ps []Packet) {
 var tcaRegs = map[int]string{0: "Input", 1: "Output", 2: "Polarity", 3: "Config"}
 
 // tcaNotes reads TCA6408A accesses at 0x20/0x21.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func tcaNotes(ps []Packet) {
 	regNotes(ps, 0x20, 0x21, "TCA6408A", func(int) map[int]string { return tcaRegs })
 }
 
 // pcaNotes reads PCA9571 transfers at 0x25: the output byte written, the
 // port read back.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func pcaNotes(ps []Packet) {
 	for i := range ps {
 		p := &ps[i]
@@ -858,7 +858,7 @@ func pcaNotes(ps []Packet) {
 
 // mcpNames name an MCP230xx's registers: the MCP23008's eleven, or the
 // MCP23017's A and B pairs in bank 0 (IOCON.BANK 0, the reset state).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func mcpNames(wide bool) map[int]string {
 	base := []string{"IODIR", "IPOL", "GPINTEN", "DEFVAL", "INTCON", "IOCON", "GPPU", "INTF", "INTCAP", "GPIO", "OLAT"}
 	m := map[int]string{}
@@ -882,7 +882,7 @@ var (
 
 // regNotes reads a simple register device's accesses at lo..hi: the pointer
 // written, then registers written or read from it, named by names(address).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func regNotes(ps []Packet, lo, hi int, chip string, names func(int) map[int]string) {
 	ptrs := map[int]*regPtr{}
 	for i := range ps {
@@ -924,7 +924,7 @@ var mxcRegs = map[int]string{0: "XOUT", 1: "YOUT", 2: "STATUS", 3: "DETECTION"}
 
 // mxcNotes reads MXC6225XU accesses: the axes in counts (two's complement),
 // the status and detection registers in hex.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func mxcNotes(ps []Packet) {
 	var r regPtr
 	for i := range ps {
@@ -963,7 +963,7 @@ func mxcNotes(ps []Packet) {
 // original, F0 55 and FB 00 on the unencrypted protocol), the register
 // pointer, and six-byte reports (stick X/Y, 10-bit accelerometer X/Y/Z, the
 // Z and C buttons, pressed low).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func nunchukNotes(ps []Packet) {
 	for i := range ps {
 		p := &ps[i]
@@ -1003,7 +1003,7 @@ func nunchukNotes(ps []Packet) {
 }
 
 // nunchukDetect: an init write at 0x52 and a six-byte report.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func nunchukDetect(ps []Packet) string {
 	init, report := false, false
 	for _, p := range ps {
@@ -1035,7 +1035,7 @@ type xfpState struct {
 }
 
 // xfpText reads a space-padded text field.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func xfpText(b []byte) string {
 	return printable(strings.TrimRight(strings.TrimRight(string(b), "\x00"), " "))
 }
@@ -1043,7 +1043,7 @@ func xfpText(b []byte) string {
 // xfpNotes reads XFP memory reads at 0x50: the A/D readouts (temperature,
 // TX bias, TX and RX power) when a read covers them, the identifier, vendor,
 // part and serial numbers and the wavelength from table 1.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func xfpNotes(ps []Packet) {
 	st := &xfpState{}
 	for i := range ps {
@@ -1107,7 +1107,7 @@ func xfpNotes(ps []Packet) {
 }
 
 // xfpModule names a module identifier (SFF-8024).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func xfpModule(id int) string {
 	names := map[int]string{1: "GBIC", 3: "SFP", 5: "XENPAK", 6: "XFP", 7: "XFF", 8: "XFP-E", 9: "XPAK", 10: "X2"}
 	if n, ok := names[id]; ok {
@@ -1118,7 +1118,7 @@ func xfpModule(id int) string {
 
 // xfpDetect: a read at 0x50 from offset 0 or 128 whose identifier byte is
 // XFP's (06).
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func xfpDetect(ps []Packet) string {
 	var r regPtr
 	for _, p := range ps {
@@ -1137,7 +1137,7 @@ func xfpDetect(ps []Packet) string {
 
 // demuxNotes numbers the devices of a bus in the order they first appear
 // and each device's transfers: "dev 2 (0x50) #3".
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func demuxNotes(ps []Packet) {
 	devs := map[int]int{}
 	count := map[int]int{}
@@ -1156,7 +1156,7 @@ func demuxNotes(ps []Packet) {
 
 // FilterI2C keeps the transfers to one address (-1 any) in one direction
 // (0 both, 1 read, 2 write): the I2C filter layer's packet list.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 func FilterI2C(ps []Packet, addr, dir int) []Packet {
 	var out []Packet
 	for _, p := range ps {

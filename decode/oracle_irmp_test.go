@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-255
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-255
 func TestOracleIRMP(t *testing.T) {
 	needSigrokPD(t, "ir_irmp")
 	const sr = 200000

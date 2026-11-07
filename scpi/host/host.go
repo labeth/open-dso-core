@@ -36,6 +36,7 @@ type Servers struct {
 }
 
 // Close stops every transport.
+// TRLC-LINKS: REQ-DSO-024
 func (s *Servers) Close() {
 	for _, ln := range s.lns {
 		_ = ln.Close()
@@ -48,6 +49,7 @@ func (s *Servers) Close() {
 // Serve starts the transports cfg names; they run until ctx ends. A
 // transport that cannot start is logged and the others still run; the
 // error joins every failure.
+// TRLC-LINKS: REQ-DSO-024
 func Serve(ctx context.Context, exec Exec, cfg Config, logf func(string, ...any)) (*Servers, error) {
 	s := &Servers{}
 	var errs []error
@@ -88,6 +90,7 @@ func Serve(ctx context.Context, exec Exec, cfg Config, logf func(string, ...any)
 }
 
 // acceptRaw serves raw-socket sessions, several at once.
+// TRLC-LINKS: REQ-DSO-024
 func acceptRaw(ln net.Listener, exec Exec, logf func(string, ...any)) {
 	for {
 		conn, err := ln.Accept()
@@ -104,6 +107,7 @@ func acceptRaw(ln net.Listener, exec Exec, logf func(string, ...any)) {
 // serveLines runs one session: every LF ends a program message, whose
 // reply is sent as the engine wrote it (no extra framing, binary blocks
 // raw). It returns when the peer closes.
+// TRLC-LINKS: REQ-DSO-024
 func serveLines(conn net.Conn, exec Exec) {
 	defer conn.Close()
 	r := bufio.NewReaderSize(conn, 64<<10)
@@ -137,6 +141,7 @@ type telnet struct {
 	cur    net.Conn
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func (t *telnet) accept(ln net.Listener, logf func(string, ...any)) {
 	for {
 		conn, err := ln.Accept()

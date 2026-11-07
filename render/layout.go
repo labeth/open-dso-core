@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -10,7 +10,7 @@ import (
 	"github.com/labeth/open-dso-core/uimodel/wsview"
 )
 
-// plotArea is the rectangle the waveform views draw in (REQ-SDS-211): the
+// plotArea is the rectangle the waveform views draw in (REQ-DSO-211): the
 // full screen when no UI is laid out, else left of the right column (the
 // 30 px pictogram rail or a menu's F-key column) and below a workspace's
 // pane. top and bot are the rows ±4 divisions map to.
@@ -26,7 +26,7 @@ type plotArea struct {
 // full-screen mapping (TraceTop..TraceBot, clear of the status bar); under
 // a pane the eight divisions span the plot exactly, aligned with its
 // graticule.
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func plotOf(m *Metrics, l wsview.Layout) plotArea {
 	p := plotArea{w: m.W - max(0, min(l.MenuW, m.W-m.MinPlotW)), y0: max(0, min(l.PlotTop, m.MaxPlotTop)), m: m}
 	p.setCodesPerDiv(defaultCodesPerDiv)
@@ -41,19 +41,19 @@ func plotOf(m *Metrics, l wsview.Layout) plotArea {
 
 // PlotColumns is how many columns wide the waveform views draw on screen m
 // under layout l.
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func PlotColumns(m *Metrics, l wsview.Layout) int { return plotOf(m, l).w }
 
 // decodeStripTop is the first row of the decode strip (drawDecode): the
 // label, byte and span rows, above the bottom readout row.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func (m *Metrics) decodeStripTop() int { return m.H - m.DecodeStripH }
 
 // decodeStrip reports whether the Y-T plot shows the decode strip under the
 // trace: a protocol is decoded, in every workspace, while the plot draws the
 // Y-T traces (not X-Y, a spectrum, the stream's transcript or a super-res
 // review).
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func decodeStrip(hud HUD) bool {
 	return hud.DecProto != 0 && hud.ViewMode == 0 && !streamFullScreen(hud) && (hud.SRFocus != 3 || len(hud.SRMean) == 0)
 }
@@ -61,7 +61,7 @@ func decodeStrip(hud HUD) bool {
 // aboveStrip is plot p ending above the decode strip: the -4 division row
 // just over it, the eight divisions shorter, so no trace, marker or cursor
 // lies under the decoded bytes.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func (p plotArea) aboveStrip() plotArea {
 	cut := p.y0 + p.h - p.m.decodeStripTop()
 	if cut <= 0 || p.h-cut < 80 {
@@ -73,11 +73,11 @@ func (p plotArea) aboveStrip() plotArea {
 }
 
 // last is the plot's bottom row.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (p plotArea) last() int { return p.y0 + p.h - 1 }
 
 // fullPlotOf is screen m's whole area (thumbnails and tests).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fullPlotOf(m *Metrics) plotArea {
 	p := plotArea{w: m.W, y0: 0, h: m.H, top: m.TraceTop, bot: m.TraceBot, m: m}
 	p.setCodesPerDiv(defaultCodesPerDiv)
@@ -85,7 +85,7 @@ func fullPlotOf(m *Metrics) plotArea {
 }
 
 // setCodesPerDiv sets the codes a division the plot maps.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (p *plotArea) setCodesPerDiv(cpd float64) {
 	p.cpd, p.span = cpd, float64(p.m.DivsV)*cpd
 }
@@ -93,7 +93,7 @@ func (p *plotArea) setCodesPerDiv(cpd float64) {
 // sy maps a code of the 8-bit view to a row: higher code = higher on
 // screen, the view's centre (sample.Mid8) on the centre line, p.cpd codes a
 // division (spec 07 §3.4, spec 10 §7.1).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (p plotArea) sy(v float64) int {
 	y := p.bot - int(((v-sample.Mid8)/p.span+0.5)*float64(p.bot-p.top)+0.5)
 	return min(max(y, p.y0), p.last())
@@ -102,7 +102,7 @@ func (p plotArea) sy(v float64) int {
 // codeRows is the row of each of the 256 display codes at vertical zoom z,
 // as sy maps 128+(code-128)*z: a trace looks its rows up instead of three
 // floating-point steps a point, which are slow on this ARM.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 //
 // The last few tables are kept: every trace of every frame asks for one, and
 // the plot and zoom rarely change.
@@ -136,9 +136,9 @@ var codeRowCache struct {
 }
 
 // gridY is the row of graticule line r (0..DivsV, top to bottom).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (p plotArea) gridY(r int) int { return p.y0 + r*(p.h-1)/p.m.DivsV }
 
 // gridX is the column of graticule line c (0..DivsH, left to right).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (p plotArea) gridX(c int) int { return c * (p.w - 1) / p.m.DivsH }

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -8,7 +8,7 @@ import (
 	"github.com/labeth/open-dso-core/dsp"
 )
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func g3(x float64) string { return strconv.FormatFloat(x, 'g', 3, 64) }
 
 // siScale formats v at 3 significant figures with an SI prefix, NEVER emitting
@@ -17,7 +17,7 @@ func g3(x float64) string { return strconv.FormatFloat(x, 'g', 3, 64) }
 // boundary is rounding-aware — 0.9995·scale is where g3 rounds up to 1000 — so
 // such a value PROMOTES to the next-larger prefix ("1.00 µs"). `units` is
 // ordered high→low; the sign is preserved.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func siScale(v float64, units []siUnit) string {
 	var buf [24]byte
 	return string(appendSI(buf[:0], v, units))
@@ -25,7 +25,7 @@ func siScale(v float64, units []siUnit) string {
 
 // appendSI appends siScale's text to b: one allocation for the label, none
 // for the pieces.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func appendSI(b []byte, v float64, units []siUnit) []byte {
 	a := v
 	if a < 0 {
@@ -42,12 +42,12 @@ func appendSI(b []byte, v float64, units []siUnit) []byte {
 	return append(b, u.suffix...)
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fmtVolt(v float64) string { return siScale(v, voltUnits) }
 
 // cplTag returns the coupling suffix for the HUD, shown only when it is not the
 // default DC (so the common case stays uncluttered): " AC" or " GND".
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func cplTag(mode int) string {
 	switch mode {
 	case dsp.CoupleAC:
@@ -61,7 +61,7 @@ func cplTag(mode int) string {
 // vdivLabel formats a channel's volts/div at the probe tip. A probe factor
 // >1 scales the electrical V/div and appends a "10x"/"100x" tag so the label
 // matches what the operator actually measures.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func vdivLabel(vdivV, probe float64) string {
 	if probe < 1 {
 		probe = 1
@@ -76,8 +76,8 @@ func vdivLabel(vdivV, probe float64) string {
 	return string(b)
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fmtTdiv(s float64) string { return siScale(s, timeUnits) }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fmtFreq(f float64) string { return siScale(f, freqUnits) }

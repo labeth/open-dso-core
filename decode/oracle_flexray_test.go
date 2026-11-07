@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -38,7 +38,7 @@ import (
 // channel A) over the 5 header bytes + payload, MSB-first — the trailer a real
 // channel-A node transmits. The repo decoder does not compute this; it exists
 // here so the generator can seal frames that sigrok's frame-CRC check accepts.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexCRC24(bytes []int) int {
 	crc := 0xFEDCBA
 	for _, b := range bytes {
@@ -61,7 +61,7 @@ func orFlexCRC24(bytes []int) int {
 // values. Reuses the package's header packers (brFlexHeaderBytes/
 // brFlexHeaderCRC11); payload length must be even because the header LEN
 // field counts 2-byte words and sigrok consumes exactly 2*LEN data bytes.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexFrameFlags(sync, startup, frameID, cycle int, payload []int) []int {
 	plen := len(payload) / 2
 	hdr := brFlexHeaderBytes(sync, startup, frameID, plen, brFlexHeaderCRC11(sync, startup, frameID, plen), cycle)
@@ -73,7 +73,7 @@ func orFlexFrameFlags(sync, startup, frameID, cycle int, payload []int) []int {
 
 // orFlexFrame is orFlexFrameFlags with sync=0/startup=0 — a plain
 // static-segment data frame, the shape most subtests use.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexFrame(frameID, cycle int, payload []int) []int {
 	return orFlexFrameFlags(0, 0, frameID, cycle, payload)
 }
@@ -82,7 +82,7 @@ func orFlexFrame(frameID, cycle int, payload []int) []int {
 // (bit 8 of the 40-bit header = CRC bit 2) and re-seals the frame CRC-24 over
 // the corrupted header, so the header CRC is the ONLY defect in the frame —
 // sigrok's frame-crc verdict must stay OK while header-crc goes bad.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexCorruptHeaderCRC(fb []int) []int {
 	out := append([]int(nil), fb...)
 	out[3] ^= 0x01
@@ -95,7 +95,7 @@ func orFlexCorruptHeaderCRC(fb []int) []int {
 // run) -> FSS (1 HIGH) -> per byte BSS (HIGH,LOW) + 8 data bits MSB-first ->
 // FES (LOW,HIGH) -> idle. Same shape as flexrayWave, but on the timeline so it
 // yields the logic bits sigrok consumes.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexBits(sr, bitrate float64, frames [][]int, tssBits, idleBits float64) []byte {
 	w := newTimeline(sr)
 	bt := 1 / bitrate
@@ -124,7 +124,7 @@ func orFlexBits(sr, bitrate float64, frames [][]int, tssBits, idleBits float64) 
 // the next action point — then releases with one HIGH bit before true idle.
 // That LOW run is deliberately longer than a minimum TSS (>= 4 bit-times):
 // the very shape a naive scanner could mistake for the start of a new frame.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexBitsDTS(sr, bitrate float64, fb []int, tssBits, dtsLowBits, idleBits float64) []byte {
 	w := newTimeline(sr)
 	bt := 1 / bitrate
@@ -154,7 +154,7 @@ var (
 )
 
 // orFlexAnnInts pulls the trailing decimal out of prose annotations.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexAnnInts(t *testing.T, anns []ann) []int {
 	t.Helper()
 	out := make([]int, 0, len(anns))
@@ -170,7 +170,7 @@ func orFlexAnnInts(t *testing.T, anns []ann) []int {
 }
 
 // orFlexAnnHex pulls the trailing 0x… value out of data-byte annotations.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexAnnHex(t *testing.T, anns []ann) []int {
 	t.Helper()
 	out := make([]int, 0, len(anns))
@@ -187,7 +187,7 @@ func orFlexAnnHex(t *testing.T, anns []ann) []int {
 
 // orFlexAnnCRCs parses "… CRC: 0x<val> (OK|bad)" annotations into transmitted
 // values and pass/fail verdicts.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexAnnCRCs(t *testing.T, anns []ann) (vals []int, oks []bool) {
 	t.Helper()
 	for _, a := range anns {
@@ -205,7 +205,7 @@ func orFlexAnnCRCs(t *testing.T, anns []ann) (vals []int, oks []bool) {
 // orFlexNotes parses the repo header notes ("ID=%d LEN=%d CYC=%d", with a
 // "!CRC " prefix when the header CRC failed) of the given span kind into
 // (id, len, cycle) triples, in frame order.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexNotes(t *testing.T, r Result, kind string) (ids, lens, cycs []int) {
 	t.Helper()
 	for _, s := range r.Spans {
@@ -224,7 +224,7 @@ func orFlexNotes(t *testing.T, r Result, kind string) (ids, lens, cycs []int) {
 
 // orFlexDataSpans returns the repo's per-byte data spans in stream order (the
 // repo emits one for EVERY on-wire byte: 5 header, payload, 3 frame-CRC).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func orFlexDataSpans(r Result) []Span {
 	var out []Span
 	for _, s := range r.Spans {
@@ -235,7 +235,7 @@ func orFlexDataSpans(r Result) []Span {
 	return out
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestOracleFlexRay(t *testing.T) {
 	needSigrok(t)
 	const sr = 200_000_000 // 200 MSa/s

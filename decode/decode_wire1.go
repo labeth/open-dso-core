@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -27,7 +27,7 @@ type wireOut struct {
 
 // newWireOut is a wireOut for a decode of n samples, its arrays from sc
 // (nil: none).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func newWireOut(n int, sc *scratch) *wireOut {
 	o := &wireOut{n: n, sc: sc}
 	if sc != nil {
@@ -41,7 +41,7 @@ func newWireOut(n int, sc *scratch) *wireOut {
 
 // newWireOutSized is newWireOut with room for spans, toks and units of
 // each, made at once where there is no scratch.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func newWireOutSized(n int, sc *scratch, spans, toks, units int) *wireOut {
 	if sc != nil {
 		o := &wireOut{n: n, sc: sc, slot: sc.next}
@@ -55,7 +55,7 @@ func newWireOutSized(n int, sc *scratch, spans, toks, units int) *wireOut {
 
 // add appends a span over x0..x1, its text a token when not empty and val a
 // unit when unit.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func (o *wireOut) add(x0, x1 float64, text, kind string, val int, unit bool) {
 	// pspan's span, set field by field in place: no struct copied in
 	if len(o.spans) == cap(o.spans) {
@@ -74,7 +74,7 @@ func (o *wireOut) add(x0, x1 float64, text, kind string, val int, unit bool) {
 
 // fallsAndRises lists a line's falling edges with the rise after each (-1
 // when the record ends low).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func fallsAndRises(sl sliced) (falls, rises []float64) {
 	E := sl.edges
 	falls, rises = scratchSlice[float64](sl.sc, len(E)/2+1), scratchSlice[float64](sl.sc, len(E)/2+1)
@@ -125,19 +125,19 @@ var swimText = func() (t [2][5][256]string) {
 // a byte of a transaction begun before the record (a trigger amid one). A low of 7.3 to 35.6 us (128 SWIM clocks) is
 // a synchronization frame ("SYNC"). Baud is the bit rate. OK needs an
 // acknowledged frame whose parity checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func SWIM(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeSWIM(samplesIn(codes), colTimeS, cfg)
 }
 
 // SWIMEdges is SWIM over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func SWIMEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeSWIM(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeSWIM is SWIM over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func decodeSWIM(codes lineIn, colTimeS float64, cfg LineCfg) Result { //nolint:gocyclo,funlen // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -373,19 +373,19 @@ func decodeSWIM(codes lineIn, colTimeS float64, cfg LineCfg) Result { //nolint:g
 // longer a 0, over 1.2 bits a break ("sof"); eight bits a byte, least
 // significant first. A bit closer than 0.7 bits to the last is flagged and
 // drops the byte. OK needs two bytes after a break.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func SDQ(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeSDQ(samplesIn(codes), colTimeS, cfg)
 }
 
 // SDQEdges is SDQ over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func SDQEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeSDQ(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeSDQ is SDQ over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func decodeSDQ(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -455,7 +455,7 @@ var pjdlModes = [5][2]float64{{}, {44, 116}, {40, 92}, {28, 88}, {26, 60}}
 
 // pjdlIn reports a time (us) within PJDL's tolerance of want: ten percent
 // or 1.5 us, whichever is wider.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func pjdlIn(us, want float64) bool {
 	lo := math.Min(want*0.9, want-1.5)
 	hi := math.Max(want*1.1, want+1.5)
@@ -463,7 +463,7 @@ func pjdlIn(us, want float64) bool {
 }
 
 // crc8PJON is PJON's CRC-8 (reflected polynomial 0x97, from 0).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func crc8PJON(b []int) int {
 	c := 0
 	for _, v := range b {
@@ -487,19 +487,19 @@ func crc8PJON(b []int) int {
 // those, and at its end the CRC-8 (or CRC-32) of all bytes before it; a
 // failed CRC flags its byte. Variant picks the mode (1..4), else the one
 // whose pads the line holds. OK needs a frame whose header CRC checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func PJDL(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodePJDL(samplesIn(codes), colTimeS, cfg)
 }
 
 // PJDLEdges is PJDL over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func PJDLEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodePJDL(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodePJDL is PJDL over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func decodePJDL(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -620,7 +620,7 @@ func decodePJDL(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 
 // pjonFields adds a PJON frame's bytes (starting at fx, each nine data
 // times): true when its header CRC checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func pjonFields(o *wireOut, b []int, fx []float64, dt float64) bool {
 	put := func(i int, txt string, bad bool) {
 		kind := kindData
@@ -693,19 +693,19 @@ func pjonFields(o *wireOut, b []int, fx []float64, dt float64) bool {
 // with its first half at the marks' level (the level the idle is not): a
 // start bit 0, whose first half is the idle's, and eight data bits, most
 // significant first, the dimming level (a unit). OK needs a whole frame.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func DSI(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeDSI(samplesIn(codes), colTimeS, cfg)
 }
 
 // DSIEdges is DSI over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func DSIEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeDSI(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeDSI is DSI over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func decodeDSI(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -771,7 +771,7 @@ func decodeDSI(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 }
 
 // qiLen is a Qi packet's message bytes from its header.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func qiLen(h int) int {
 	switch {
 	case h <= 0x1f:
@@ -792,19 +792,19 @@ func qiLen(h int) int {
 // rest ("sof" at each header). A byte whose parity or stop fails, and a
 // checksum that does not check, are flagged. OK needs a packet whose
 // checksum checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func Qi(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeQi(samplesIn(codes), colTimeS, cfg)
 }
 
 // QiEdges is Qi over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func QiEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeQi(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeQi is Qi over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func decodeQi(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {

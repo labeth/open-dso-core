@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -16,7 +16,7 @@ import (
 
 // Compare qualified FPGA frames with the repository's public decoder. This
 // includes whole-frame rejection after matching bytes and 32-bit timestamp wrap.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018, REQ-SDS-039
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018, REQ-DSO-039
 func TestManchesterTriggerRTL(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -191,7 +191,7 @@ func TestManchesterTriggerRTL(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018, REQ-SDS-039
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018, REQ-DSO-039
 func TestManchesterTriggerRTLBoundaries(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -212,7 +212,7 @@ func TestManchesterTriggerRTLBoundaries(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018, REQ-SDS-039
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018, REQ-DSO-039
 func TestProtocolScratchOwnershipRTL(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {

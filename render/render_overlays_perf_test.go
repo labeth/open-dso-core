@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -9,7 +9,7 @@ import (
 )
 
 // mathCodesRef is the per-sample math the tabled mathCodes must match.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func mathCodesRef(c1, c2 []uint8, hud HUD) []uint8 {
 	scale := mathScale(hud) / 25
 	v1 := hud.Ch[0].VdivV * float64(max(hud.Ch[0].Zoom, 1)) / 25 * math.Max(hud.Ch[0].Probe, 1)
@@ -47,7 +47,7 @@ func mathCodesRef(c1, c2 []uint8, hud HUD) []uint8 {
 }
 
 // Every code pair, every mode, odd scales, offsets, probes and coupling.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestMathCodesMatchesRef(t *testing.T) {
 	c1, c2 := make([]uint8, 65536+7), make([]uint8, 65536)
 	for i := range c2 {
@@ -71,7 +71,7 @@ func TestMathCodesMatchesRef(t *testing.T) {
 }
 
 // The tuner's cents text reads as fmt's "%+.1f c"; si3 as "%.3g".
-// TRLC-LINKS: REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-273
 func TestSoundTextMatchesFmt(t *testing.T) {
 	for _, c := range []float64{0, math.Copysign(0, -1), 3.14, -3.14, -0.04, 0.04, 49.96, -50, 1e-7, 123456, math.NaN(), math.Inf(1), math.Inf(-1)} {
 		if got, want := centsText(c), fmt.Sprintf("%+.1f c", c); got != want {

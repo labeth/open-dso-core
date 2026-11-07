@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -18,7 +18,7 @@ import (
 
 // orcSPIRun decodes txns with the layer (reading MOSI, or MISO with miso)
 // and with sigrok's stack, logging both under -v.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func orcSPIRun(t *testing.T, layer, pd, ann string, txns []orcSPITxn, miso bool) ([]Packet, []orcAnn) {
 	t.Helper()
 	const sr, rate = 2_000_000, 100_000
@@ -36,7 +36,7 @@ func orcSPIRun(t *testing.T, layer, pd, ann string, txns []orcSPITxn, miso bool)
 }
 
 // orcMatch keeps the texts matching re, as their submatches joined by |.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func orcMatch(texts []string, re string) []string {
 	r := regexp.MustCompile(re)
 	var out []string
@@ -50,7 +50,7 @@ func orcMatch(texts []string, re string) []string {
 
 // orcHex rewrites a hex number ("0x1", "1") as upper case without leading
 // zeros, as both sides' values compare.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func orcHex(s string) string {
 	v, err := strconv.ParseUint(strings.TrimPrefix(strings.ToLower(s), "0x"), 16, 64)
 	if err != nil {
@@ -59,7 +59,7 @@ func orcHex(s string) string {
 	return fmt.Sprintf("%X", v)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerSPIFlash(t *testing.T) {
 	orcNeed(t, "spi", "spiflash")
 	ps, anns := orcSPIRun(t, "spiflash", "spiflash", "spiflash=commands", []orcSPITxn{
@@ -97,7 +97,7 @@ func TestOracleLayerSPIFlash(t *testing.T) {
 	orcEq(t, "SPI flash commands", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerSDCard(t *testing.T) {
 	orcNeed(t, "spi", "sdcard_spi")
 	tok := func(cmd int, arg uint32) []byte {
@@ -130,7 +130,7 @@ func TestOracleLayerSDCard(t *testing.T) {
 	orcEq(t, "SD commands", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerNRF24L01(t *testing.T) {
 	orcNeed(t, "spi", "nrf24l01")
 	ps, anns := orcSPIRun(t, "nrf24l01", "nrf24l01", "nrf24l01", []orcSPITxn{
@@ -169,7 +169,7 @@ func TestOracleLayerNRF24L01(t *testing.T) {
 	orcEq(t, "nRF24L01 commands", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerNRF905(t *testing.T) {
 	orcNeed(t, "spi", "nrf905")
 	// sigrok's CHANNEL_CONFIG handler fails on a tuple, so the commands
@@ -187,7 +187,7 @@ func TestOracleLayerNRF905(t *testing.T) {
 	orcEq(t, "nRF905 commands", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerCC1101(t *testing.T) {
 	orcNeed(t, "spi", "cc1101")
 	ps, anns := orcSPIRun(t, "cc1101", "cc1101", "cc1101", []orcSPITxn{
@@ -213,7 +213,7 @@ func TestOracleLayerCC1101(t *testing.T) {
 	orcEq(t, "CC1101 accesses", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerRFM12(t *testing.T) {
 	orcNeed(t, "spi", "rfm12")
 	// sigrok's frequency setting handler reads a third byte the command
@@ -255,7 +255,7 @@ func TestOracleLayerRFM12(t *testing.T) {
 	orcEq(t, "RFM12 data rate", rate, orate)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerMRF24J40(t *testing.T) {
 	orcNeed(t, "spi", "mrf24j40")
 	ps, anns := orcSPIRun(t, "mrf24j40", "mrf24j40", "mrf24j40", []orcSPITxn{
@@ -295,7 +295,7 @@ func TestOracleLayerMRF24J40(t *testing.T) {
 	orcEq(t, "MRF24J40 accesses", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerENC28J60(t *testing.T) {
 	orcNeed(t, "spi", "enc28j60")
 	ps, anns := orcSPIRun(t, "enc28j60", "enc28j60", "enc28j60", []orcSPITxn{
@@ -338,7 +338,7 @@ func TestOracleLayerENC28J60(t *testing.T) {
 	orcEq(t, "ENC28J60 opcodes", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerST25R39xx(t *testing.T) {
 	orcNeed(t, "spi", "st25r39xx_spi")
 	ps, anns := orcSPIRun(t, "st25r39xx", "st25r39xx_spi", "st25r39xx_spi", []orcSPITxn{
@@ -380,7 +380,7 @@ func TestOracleLayerST25R39xx(t *testing.T) {
 	orcEq(t, "ST25R39xx accesses", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerADXL345(t *testing.T) {
 	orcNeed(t, "spi", "adxl345")
 	ps, anns := orcSPIRun(t, "adxl345", "adxl345", "adxl345", []orcSPITxn{
@@ -407,7 +407,7 @@ func TestOracleLayerADXL345(t *testing.T) {
 	orcEq(t, "ADXL345 values", orcMatch(orcNotes(ps), `\((100) Hz\)|\(\+-(16)g\)`), orcMatch(ts, `^(100)\.000000$|^\+/-(16) g$`))
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerADNS5020(t *testing.T) {
 	orcNeed(t, "spi", "adns5020")
 	ps, anns := orcSPIRun(t, "adns5020", "adns5020", "adns5020", []orcSPITxn{
@@ -437,7 +437,7 @@ func TestOracleLayerADNS5020(t *testing.T) {
 	orcEq(t, "ADNS-5020 accesses", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerADE7758(t *testing.T) {
 	orcNeed(t, "spi", "ade77xx")
 	ps, anns := orcSPIRun(t, "ade77xx", "ade77xx", "ade77xx", []orcSPITxn{
@@ -466,7 +466,7 @@ func TestOracleLayerADE7758(t *testing.T) {
 	orcEq(t, "ADE7758 accesses", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerADF435x(t *testing.T) {
 	orcNeed(t, "spi", "adf435x")
 	ps, anns := orcSPIRun(t, "adf435x", "adf435x", "adf435x", []orcSPITxn{
@@ -523,7 +523,7 @@ func TestOracleLayerADF435x(t *testing.T) {
 }
 
 // orcSortFields sorts a note's fields after its first.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func orcSortFields(s string) string {
 	f := strings.Fields(s)
 	if len(f) < 2 {
@@ -538,7 +538,7 @@ func orcSortFields(s string) string {
 	return f[0] + " " + strings.Join(rest, " ")
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerAD5626(t *testing.T) {
 	orcNeed(t, "spi", "ad5626")
 	ps, anns := orcSPIRun(t, "ad5626", "ad5626", "ad5626", []orcSPITxn{
@@ -547,7 +547,7 @@ func TestOracleLayerAD5626(t *testing.T) {
 	orcEq(t, "AD5626 output", orcMatch(orcNotes(ps), `^DAC (\d\.\d{3}) V`), orcMatch(orcTexts(anns), `^(\d\.\d{3})V$`))
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerAD79x0(t *testing.T) {
 	orcNeed(t, "spi", "ad79x0")
 	ps, anns := orcSPIRun(t, "ad79x0", "ad79x0", "ad79x0", []orcSPITxn{
@@ -564,7 +564,7 @@ func TestOracleLayerAD79x0(t *testing.T) {
 	orcEq(t, "AD79x0 conversions", repo, orcMatch(orcTexts(anns), `^(\d\.\d{6})V$`))
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerLTC242x(t *testing.T) {
 	orcNeed(t, "spi", "ltc242x")
 	// readings a whole share of the reference, which both write exactly
@@ -584,7 +584,7 @@ func TestOracleLayerLTC242x(t *testing.T) {
 	orcEq(t, "LTC242x channels", orcMatch(orcNotes(ps), `^CH(\d)`), []string{"0", "0", "1", "1"})
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerMAX72xx(t *testing.T) {
 	orcNeed(t, "spi", "max72xx")
 	ps, anns := orcSPIRun(t, "max72xx", "max72xx", "max72xx", []orcSPITxn{
@@ -609,7 +609,7 @@ func TestOracleLayerMAX72xx(t *testing.T) {
 	orcEq(t, "MAX72xx writes", repo, orcTexts(anns))
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerAVRISP(t *testing.T) {
 	orcNeed(t, "spi", "avr_isp")
 	txns := []orcSPITxn{
@@ -665,7 +665,7 @@ func TestOracleLayerAVRISP(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerX2444M(t *testing.T) {
 	orcNeed(t, "spi", "x2444m")
 	// the X2444's chip enable is active high
@@ -702,7 +702,7 @@ func TestOracleLayerX2444M(t *testing.T) {
 	orcEq(t, "X2444 instructions", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerRGBLED(t *testing.T) {
 	orcNeed(t, "spi", "rgb_led_spi")
 	ps, anns := orcSPIRun(t, "rgbled", "rgb_led_spi", "rgb_led_spi", []orcSPITxn{
@@ -717,7 +717,7 @@ func TestOracleLayerRGBLED(t *testing.T) {
 	orcEq(t, "RGB values", repo, orcMatch(orcTexts(anns), `^#([0-9a-f]{6})$`))
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerNESGamepad(t *testing.T) {
 	orcNeed(t, "spi", "nes_gamepad")
 	ps, anns := orcSPIRun(t, "nesgamepad", "nes_gamepad", "nes_gamepad", []orcSPITxn{
@@ -735,7 +735,7 @@ func TestOracleLayerNESGamepad(t *testing.T) {
 	orcEq(t, "NES buttons", repo, orcTexts(anns))
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 func TestOracleLayerSSI32(t *testing.T) {
 	orcNeed(t, "spi", "ssi32")
 	ctrl := make([]byte, 64)

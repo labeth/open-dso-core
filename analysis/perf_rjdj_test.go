@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -9,7 +9,7 @@ import (
 )
 
 // medianInPlace is the sorted copy's middle for every length, with ties.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func TestMedianInPlaceIsTheSortedMiddle(t *testing.T) {
 	r := rand.New(rand.NewSource(8))
 	for n := 1; n < 300; n++ {
@@ -25,7 +25,7 @@ func TestMedianInPlaceIsTheSortedMiddle(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func BenchmarkRJDJ(b *testing.B) {
 	r := rand.New(rand.NewSource(3))
 	tie := make([]float64, 20000)
@@ -38,7 +38,7 @@ func BenchmarkRJDJ(b *testing.B) {
 }
 
 // rjdjRef is RJDJ as first written: the oracle and the baseline.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func rjdjRef(tie []float64) (rj, dj float64, ok bool) {
 	if len(tie) < 200 {
 		return 0, 0, false
@@ -74,7 +74,7 @@ func rjdjRef(tie []float64) (rj, dj float64, ok bool) {
 	return 1.4826 * ((madL + madR) / 2), sep, true
 }
 
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func BenchmarkRJDJRef(b *testing.B) {
 	r := rand.New(rand.NewSource(3))
 	tie := make([]float64, 20000)
@@ -87,7 +87,7 @@ func BenchmarkRJDJRef(b *testing.B) {
 }
 
 // RJDJ reads as the first version did, uni- and bimodal, with ties.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 func TestRJDJIsTheReference(t *testing.T) {
 	r := rand.New(rand.NewSource(5))
 	for _, sep := range []float64{0, 0.5, 3, 8} {

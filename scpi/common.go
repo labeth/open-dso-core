@@ -20,6 +20,7 @@ type Commons struct {
 // Commands are the common commands named (all when none is named): *IDN?,
 // *RST, *CLS, *ESE, *ESE?, *SRE, *SRE?, *ESR?, *STB?, *OPC, *OPC?, *WAI,
 // *TST?, *OPT?, *SAV, *RCL.
+// TRLC-LINKS: REQ-DSO-024
 func (h Commons) Commands(names ...string) []Command {
 	all := []Command{
 		{"*IDN?", func(c *Call) error { c.Text(h.IDN()); return nil }},
@@ -96,6 +97,7 @@ func (h Commons) Commands(names ...string) []Command {
 
 // setMask reads *ESE/*SRE's value: 16 bits, no range check; missing is
 // -109. A Line-grammar mask is accepted without a value check.
+// TRLC-LINKS: REQ-DSO-024
 func setMask(c *Call, set func(uint16)) error {
 	if c.e.d.Grammar == Line {
 		if v, err := strconv.Atoi(c.Arg()); err == nil {
@@ -112,6 +114,7 @@ func setMask(c *Call, set func(uint16)) error {
 }
 
 // slot reads *SAV/*RCL's slot number and runs the hook.
+// TRLC-LINKS: REQ-DSO-024
 func slot(c *Call, run func(*Call, int) error) error {
 	if c.e.d.Grammar == Line {
 		n, err := strconv.Atoi(c.Arg())
@@ -130,6 +133,7 @@ func slot(c *Call, run func(*Call, int) error) error {
 // System is the SCPI-99 SYSTem/STATus subset: SYSTem:ERRor[:NEXT]?,
 // SYSTem:COUNt? (the queued entries, the overflow marker counted),
 // SYSTem:VERSion? and the OPERation/QUEStionable registers.
+// TRLC-LINKS: REQ-DSO-024
 func System() []Command {
 	cmds := []Command{
 		{"SYSTem:ERRor[:NEXT]?", func(c *Call) error {
@@ -171,6 +175,7 @@ func System() []Command {
 // LegacyStatus are the legacy status queries named, each answering 0 under
 // its header (no legacy register has a bit source): INR?, CMR?, DDR?, EXR?,
 // URR?, and ALST? with the status byte and ESR.
+// TRLC-LINKS: REQ-DSO-024
 func LegacyStatus(names ...string) []Command {
 	zero := func(h string) Command {
 		return Command{h + "?", func(c *Call) error { c.Reply(h, "0"); return nil }}
@@ -198,6 +203,7 @@ func LegacyStatus(names ...string) []Command {
 // headers); anything else is bad, which the Line grammar answers as a
 // header error and the IEEE grammar as an illegal value. CHDR? answers
 // under CHDR in SHORT, COMM_HEADER in LONG, and the bare mode in OFF.
+// TRLC-LINKS: REQ-DSO-024
 func CommHeader() []Command {
 	return []Command{
 		{"CHDR", func(c *Call) error {

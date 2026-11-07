@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 // Package decode reads serial buses and line codes off the scope's records:
 // each protocol's decoder over sampled 8-bit codes or a digital line's edges
@@ -99,7 +99,7 @@ const (
 )
 
 // Span is one decoded token spanning sample indices [I0,I1].
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type Span struct {
 	I0, I1 int
 	Text   string
@@ -108,7 +108,7 @@ type Span struct {
 }
 
 // Result is a decode outcome.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type Result struct {
 	OK     bool
 	Error  string
@@ -155,7 +155,7 @@ type Result struct {
 // clocked buses and half a field clock of a reader's line, DCF77's 100 ms
 // pulse, a SWIM 1's low (a bit's 2 of 22 clocks), an SDQ 1's quarter bit.
 // 0 when the result names none (decode.js decodeFeatureSamples).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func FeatureSamples(r Result) float64 {
 	if !r.OK || !(r.SPB > 0) {
 		return 0
@@ -206,7 +206,7 @@ func FeatureSamples(r Result) float64 {
 // envelope of two buckets a data time failed its CRCs on most frames; the
 // samples of a record read it at the data time's own)
 // (decode.js decodeEnvelopeFeatureSamples).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func EnvelopeFeatureSamples(r Result) float64 {
 	switch {
 	case r.Proto == protoWiegand && r.OK:
@@ -219,7 +219,7 @@ func EnvelopeFeatureSamples(r Result) float64 {
 
 // ShortestRun is the fewest samples between two edges of a two-level
 // signal (sliced as the decoders slice it), 0 when it holds under three.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func ShortestRun(codes []uint8) int {
 	s := sliceChannel(codes, 0, false)
 	if !s.ok || len(s.edges) < 3 {
@@ -247,7 +247,7 @@ func ShortestRun(codes []uint8) int {
 // a line quiet or slow (an ARINC 429 word's 5 us half bits swing in single
 // 1 us buckets). busy is
 // the share of the buckets that swing across the line.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func EnvelopeRun(codes []uint8, sampleS float64) (run, busy float64) {
 	const (
 		swingFrac  = 0.2  // a full swing reaches within this share of the swing of both extremes
@@ -331,14 +331,14 @@ var Names = map[string]string{
 
 // Roles is the channel assignment and SPI framing Autodetect chose: ChA is the
 // line (or I2C SCL / SPI CLK), ChB the I2C SDA / SPI DATA, 0 = C1.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type Roles struct {
 	ChA, ChB        int
 	CPOL, CPHA, MSB bool
 }
 
 // invertLogic is codes with high and low swapped (255-v).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func invertLogic(codes []uint8) []uint8 {
 	out := make([]uint8, len(codes))
 	for i, v := range codes {
@@ -357,12 +357,12 @@ var hexBytes = func() (t [256]string) {
 }()
 
 // hex2 is b's low byte as two hex digits.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func hex2(b int) string { return hexBytes[b&0xff] }
 
 // prefixedHex are the 256 two-digit hex texts after p ("!" + hex2(b)),
 // made once for the texts a decoder names many bytes with.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func prefixedHex(p string) (t [256]string) {
 	for b := range t {
 		t[b] = p + hex2(b)
@@ -376,7 +376,7 @@ var hexSC, hexBangSC = prefixedHex("SC"), prefixedHex("!SC")
 // hexText is pre followed by fmt.Sprintf("%0*X", digits, v): v's upper-case
 // hex digits, at least digits of them (and one), made in one allocation without fmt's
 // work, which costs a stream decode on the device more than its decoding.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func hexText(pre string, v uint64, digits int) string {
 	var buf [40]byte
 	i := len(buf)
@@ -393,7 +393,7 @@ func hexText(pre string, v uint64, digits int) string {
 // shortGapCluster is the mean of the gaps within window (a share) of their
 // tenth percentile: the shortest gaps' cluster, robust to a stray shorter
 // one. It sorts gaps in place.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func shortGapCluster(gaps []float64, window float64) float64 {
 	sort.Float64s(gaps)
 	p := gaps[int(float64(len(gaps))*0.1)]
@@ -413,7 +413,7 @@ func shortGapCluster(gaps []float64, window float64) float64 {
 // gapClusters sorts gaps and groups them greedily, deterministically: each
 // cluster starts at the smallest gap not yet taken and takes every gap up to
 // 1.5 times it. It is the clusters' means, shortest first.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func gapClusters(gaps []float64) []float64 {
 	sort.Float64s(gaps)
 	var cands []float64
@@ -431,7 +431,7 @@ func gapClusters(gaps []float64) []float64 {
 }
 
 // popcount counts the set bits of v's two's-complement word.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func popcount(v int) int {
 	// UNSIGNED shift: an arithmetic >> on a negative int shifts in sign bits
 	// and never reaches 0 — an infinite loop. A hostile UART bit count can set
@@ -446,7 +446,7 @@ func popcount(v int) int {
 }
 
 // FmtByte renders a byte in the requested format (hex/dec/bin/ascii).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func FmtByte(v int, format string) string {
 	switch format {
 	case "dec":
@@ -482,13 +482,13 @@ var byteTexts = func() (t [4][256]string) {
 	return t
 }()
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type edge struct {
 	i, dir int
 	x      float64
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type sliced struct {
 	ok         bool
 	reason     string
@@ -506,7 +506,7 @@ type sliced struct {
 
 // levels is the level of every sample (the edges set it): built only for
 // the decoders that read it, not on every slicing.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (s *sliced) levels() []int8 {
 	level := make([]int8, s.n)
 	cur, at := s.first, 0
@@ -526,7 +526,7 @@ func (s *sliced) levels() []int8 {
 // midpoint of the channel's low and high rails. The serial trigger gives it to
 // the hardware matcher, so the FPGA slices the line where the decode does.
 // ok is false for a channel without two clear levels.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-013
 func AutoThreshold(codes []uint8) (float64, bool) {
 	lo, hi, reason := rails(codes)
 	return (lo + hi) / 2, reason == ""
@@ -536,7 +536,7 @@ func AutoThreshold(codes []uint8) (float64, bool) {
 // under one in a thousand samples at either end): the levels trigger
 // qualifiers place their thresholds between. ok is false when the channel
 // is flat or holds too few samples.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func Extent(codes []uint8) (lo, hi int, ok bool) {
 	var counts [4][256]int32
 	histogram4(&counts, codes)
@@ -546,7 +546,7 @@ func Extent(codes []uint8) (lo, hi int, ok bool) {
 // AutoThresholdExtent is AutoThreshold and Extent of the same codes from one
 // histogram: the engine learns both of every channel of every capture, and a
 // histogram is a pass over the whole record.
-// TRLC-LINKS: REQ-SDS-011, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-018
 func AutoThresholdExtent(codes []uint8) (thr float64, thrOK bool, lo, hi int, extOK bool) {
 	var counts [4][256]int32
 	histogram4(&counts, codes)
@@ -556,7 +556,7 @@ func AutoThresholdExtent(codes []uint8) (thr float64, thrOK bool, lo, hi int, ex
 }
 
 // extentCounts is Extent from the four-table histogram of n codes.
-// TRLC-LINKS: REQ-SDS-011
+// TRLC-LINKS: REQ-DSO-011
 func extentCounts(counts *[4][256]int32, n int) (lo, hi int, ok bool) {
 	var h [256]int
 	for c := range h {
@@ -586,7 +586,7 @@ func extentCounts(counts *[4][256]int32, n int) (lo, hi int, ok bool) {
 // to the floor instead, if the line holds its other level as a level does
 // (heldBeyond): a quiet line's noise spikes are single samples
 // (decode.js sliceChannel).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func rails(codes []uint8) (lowRail, highRail float64, reason string) {
 	// Counted in integers: on the device's VFP a float add per sample costs
 	// more than the rest of a decode.
@@ -598,7 +598,7 @@ func rails(codes []uint8) (lowRail, highRail float64, reason string) {
 }
 
 // railsCounts is rails from the codes' four-table histogram.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func railsCounts(counts *[4][256]int32, codes []uint8) (lowRail, highRail float64, reason string) {
 	valid := len(codes)
 	var h [256]float64
@@ -636,7 +636,7 @@ func railsCounts(counts *[4][256]int32, codes []uint8) (lowRail, highRail float6
 
 // heldBeyond counts the samples of a line's rarer side of thr that lie in
 // runs of three or more: a pulse holds its level, a noise spike does not.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func heldBeyond(codes []uint8, thr float64) float64 {
 	// Run by run, each found a word at a time (a quiet line is one long run,
 	// and a float compare a sample is what a decode of it cost the device).
@@ -665,7 +665,7 @@ func heldBeyond(codes []uint8, thr float64) float64 {
 // samples than rails' floor, and the frame read without them is garbled.
 // Each rail is the mean of the codes on its side; the swing must reach
 // rails' minimum still (decode.js decRailsAround).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func railsAround(codes []uint8, thr float64, reason string) (lowRail, highRail float64, why string) {
 	if heldBeyond(codes, thr) < 3 {
 		return 0, 0, reason
@@ -692,7 +692,7 @@ func railsAround(codes []uint8, thr float64, reason string) (lowRail, highRail f
 // do not wait on the previous increment's store. Out of line on purpose: in
 // a caller's large frame each table address is reloaded from a literal pool
 // per sample, here the tables sit behind one register.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 //
 //go:noinline
 func histogram4(h *[4][256]int32, codes []uint8) {
@@ -711,7 +711,7 @@ func histogram4(h *[4][256]int32, codes []uint8) {
 }
 
 // railsWithin is rails over the histogram's codes gmin..gmax.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func railsWithin(h *[256]float64, gmin, gmax int) (lowRail, highRail float64, reason string) {
 	const minAmp = 20.0
 	if gmax <= gmin {
@@ -745,7 +745,7 @@ func railsWithin(h *[256]float64, gmin, gmax int) (lowRail, highRail float64, re
 
 // sliceChannel builds the threshold/hysteresis + level/edge model for one
 // channel (decode.js sliceChannel). thr overrides the auto midpoint when set.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func sliceChannel(codes []uint8, thr float64, haveThr bool) sliced {
 	const hystFrac = 0.20
 	n := len(codes)
@@ -809,7 +809,7 @@ func sliceChannel(codes []uint8, thr float64, haveThr bool) sliced {
 }
 
 // codeCeil is the least code at or above t (256: none, as for NaN).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func codeCeil(t float64) int {
 	if !(t <= 255) {
 		return 256
@@ -818,7 +818,7 @@ func codeCeil(t float64) int {
 }
 
 // codeFloor is the greatest code at or below t (-1: none, as for NaN).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func codeFloor(t float64) int {
 	if !(t >= 0) {
 		return -1
@@ -828,7 +828,7 @@ func codeFloor(t float64) int {
 
 // logicAt is the line's level (0 or 1) at the sample nearest x, -1 past
 // the record's ends.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func logicAt(s *sliced, x float64) int {
 	i := int(math.Round(x))
 	if i < 0 || i >= s.n {
@@ -848,7 +848,7 @@ func logicAt(s *sliced, x float64) int {
 
 // minEdgeGap is the fewest samples between successive edges whose direction
 // dirOk takes, +Inf for fewer than two.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func minEdgeGap(edges []edge, dirOk func(int) bool) float64 {
 	prev := -1
 	best := math.Inf(1)
@@ -867,7 +867,7 @@ func minEdgeGap(edges []edge, dirOk func(int) bool) float64 {
 // ---- autodetect (ports decode.js scoreResult/clockScore/idleLevel/autodetect) --
 
 // FmtWord preserves wide UART/Manchester words instead of truncating to a byte.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func FmtWord(v, bits int, format string) string {
 	if bits <= 8 {
 		return FmtByte(v, format)
@@ -897,7 +897,7 @@ func FmtWord(v, bits int, format string) string {
 // snapRate is a bit rate read from a record's edges moved onto the nearest of
 // a bus's standard rates within 1.5 % (a 1 Mbit/s MIL-1553 bus read 999 kb/s,
 // a 10 Mbit/s FlexRay 9.88 or 10.1 Mb/s); otherwise it stands.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func snapRate(baud int, rates ...float64) int {
 	for _, r := range rates {
 		if math.Abs(float64(baud)-r) <= 0.015*r {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -19,7 +19,7 @@ import (
 const lvLo, lvHi = uint8(40), uint8(210)
 
 // level is the code of a logic level.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func level(b int) uint8 {
 	if b != 0 {
 		return lvHi
@@ -28,7 +28,7 @@ func level(b int) uint8 {
 }
 
 // line appends n samples of a level.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func line(w []uint8, v uint8, n int) []uint8 {
 	for range n {
 		w = append(w, v)
@@ -39,7 +39,7 @@ func line(w []uint8, v uint8, n int) []uint8 {
 // uartFrame appends one 8N1 frame (LSB first); stop is the stop bit's level
 // and parity, when not "", adds an even or odd parity bit (a wrong one when
 // badParity).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func uartFrame(w []uint8, b byte, spb, stop int, parity string, badParity bool) []uint8 {
 	w = line(w, lvLo, spb)
 	ones := 0
@@ -63,7 +63,7 @@ func uartFrame(w []uint8, b byte, spb, stop int, parity string, badParity bool) 
 
 // uartMsgs renders messages of back-to-back frames, idle bits before, between
 // and after them.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func uartMsgs(msgs [][]byte, spb, lead, gap, trail int) []uint8 {
 	w := line(nil, lvHi, lead*spb)
 	for m, msg := range msgs {
@@ -79,7 +79,7 @@ func uartMsgs(msgs [][]byte, spb, lead, gap, trail int) []uint8 {
 
 // packetBytes is the hex of each packet's bytes, "*" marking a flagged byte,
 // "~" an incomplete packet, and the address and fault when set.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func packetBytes(ps []Packet) []string {
 	var out []string
 	for _, p := range ps {
@@ -112,7 +112,7 @@ func packetBytes(ps []Packet) []string {
 }
 
 // checkPackets compares packetBytes with want and checks the invariants.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func checkPackets(t *testing.T, name string, r decode.Result, n int, want ...string) []Packet {
 	t.Helper()
 	if !r.OK && len(r.Spans) == 0 {
@@ -137,7 +137,7 @@ func checkPackets(t *testing.T, name string, r decode.Result, n int, want ...str
 
 // TestPacketsUART: messages split by idle gaps, cut at the record's edges, a
 // break, framing and parity errors.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketsUART(t *testing.T) {
 	const spb = 16
 	ct := 1.0 / (float64(spb) * 115200)
@@ -194,27 +194,27 @@ func TestPacketsUART(t *testing.T) {
 }
 
 // i2cBus builds SCL and SDA together (h samples per half clock).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 type i2cBus struct {
 	scl, sda []uint8
 	h        int
 }
 
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (b *i2cBus) seg(c, d uint8, n int) {
 	b.scl = line(b.scl, c, n)
 	b.sda = line(b.sda, d, n)
 }
 
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (b *i2cBus) idle(n int) { b.seg(lvHi, lvHi, n) }
 
 // start: SDA falls while SCL is high.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (b *i2cBus) start() { b.seg(lvHi, lvLo, b.h) }
 
 // restart: a repeated START after an acknowledge.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (b *i2cBus) restart() {
 	b.seg(lvLo, lvHi, b.h)
 	b.seg(lvHi, lvHi, b.h/2)
@@ -222,7 +222,7 @@ func (b *i2cBus) restart() {
 }
 
 // byte sends v MSB first and the 9th clock with ack (SDA low) or not.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (b *i2cBus) byte(v int, ack bool) {
 	for k := 7; k >= 0; k-- {
 		d := level((v >> k) & 1)
@@ -238,7 +238,7 @@ func (b *i2cBus) byte(v int, ack bool) {
 }
 
 // stop: SDA rises while SCL is high.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (b *i2cBus) stop() {
 	b.seg(lvLo, lvLo, b.h)
 	b.seg(lvHi, lvLo, b.h/2)
@@ -248,7 +248,7 @@ func (b *i2cBus) stop() {
 // TestPacketsI2C: START to STOP with the address and direction, a repeated
 // START, an address nobody acknowledges, a refused write byte, and a record
 // that ends inside a transaction.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketsI2C(t *testing.T) {
 	b := &i2cBus{h: 20}
 	b.idle(80)
@@ -288,7 +288,7 @@ func TestPacketsI2C(t *testing.T) {
 
 // spiBus renders SPI mode 0, MSB first: bursts of bytes back to back with
 // gap idle half clocks between them (h samples per half clock).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func spiBus(bursts [][]byte, h, lead, gap int) (clk, data []uint8) {
 	seg := func(c, d uint8, n int) {
 		clk = line(clk, c, n)
@@ -313,7 +313,7 @@ func spiBus(bursts [][]byte, h, lead, gap int) (clk, data []uint8) {
 
 // TestPacketsSPI: clock bursts are packets; the bursts cut by the record's
 // edges are not complete.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketsSPI(t *testing.T) {
 	const h = 10
 	clk, data := spiBus([][]byte{{0x9F}, {0x01, 0x02, 0x03, 0x04}, {0xDE, 0xAD, 0xBE, 0xEF}}, h, 60, 60)
@@ -325,7 +325,7 @@ func TestPacketsSPI(t *testing.T) {
 }
 
 // canCRC15 is the CAN CRC-15 (polynomial 0x4599).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func canCRC15(bits []int) int {
 	crc := 0
 	for _, b := range bits {
@@ -341,7 +341,7 @@ func canCRC15(bits []int) int {
 // canFrameBits is a classic standard data or remote frame on the wire,
 // stuffed, through the ACK delimiter, EOF and intermission; ack sets the ACK
 // slot dominant.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func canFrameBits(id int, rtr bool, data []byte, ack bool) []int {
 	msb := func(v, n int) []int {
 		out := make([]int, n)
@@ -393,7 +393,7 @@ func canFrameBits(id int, rtr bool, data []byte, ack bool) []int {
 
 // TestPacketsCAN: the bench capture of the FPGA CAN source, then synthetic
 // frames: a remote frame, an unacknowledged one, and one cut by the record.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketsCAN(t *testing.T) {
 	blob, err := os.ReadFile("../decode/testdata/can_envelope_100us.json")
 	if err != nil {
@@ -441,7 +441,7 @@ func TestPacketsCAN(t *testing.T) {
 
 // manchesterFrames renders IEEE Manchester frames (MSB first), idle high for
 // gap bits between them.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func manchesterFrames(frames [][]byte, spb, gap int) []uint8 {
 	w := line(nil, lvHi, 6*spb)
 	for f, fr := range frames {
@@ -461,7 +461,7 @@ func manchesterFrames(frames [][]byte, spb, gap int) []uint8 {
 
 // TestPacketsManchester: frames from their preamble; a frame cut by the
 // record's end is not complete.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketsManchester(t *testing.T) {
 	const spb = 20
 	w := manchesterFrames([][]byte{{0xAA, 0x12, 0x34}, {0xAA, 0xC3, 0x5A, 0x01}, {0xAA, 0x77}}, spb, 12)
@@ -477,7 +477,7 @@ func TestPacketsManchester(t *testing.T) {
 var sentTable = [16]int{0, 13, 7, 10, 14, 3, 9, 4, 1, 12, 6, 11, 15, 2, 8, 5}
 
 // sentCRC is the J2716 CRC-4 over the data nibbles (seed 5, augmented).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func sentCRC(data []int) int {
 	crc := 5
 	for _, d := range data {
@@ -488,7 +488,7 @@ func sentCRC(data []int) int {
 
 // sentLine renders SENT frames (a SYNC and the nibble pulses, each 5 ticks
 // low then high to fill its period) at tick samples per tick.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func sentLine(frames [][]int, tick int) []uint8 {
 	w := line(nil, lvHi, 8*tick)
 	pulse := func(ticks int) {
@@ -507,7 +507,7 @@ func sentLine(frames [][]int, tick int) []uint8 {
 
 // TestPacketsSENT: a frame per SYNC with its nibbles; a bad CRC flags the
 // CRC nibble.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketsSENT(t *testing.T) {
 	f1 := []int{0x1, 0xA, 0x5, 0xF, 0x0, 0xC, 0x3, 0}
 	f1[7] = sentCRC(f1[1:7])
@@ -525,7 +525,7 @@ func TestPacketsSENT(t *testing.T) {
 
 // TestPacketsDegenerate: nothing decoded, spans out of order or out of the
 // record, an unknown protocol, wide words.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestPacketsDegenerate(t *testing.T) {
 	if ps := Packets(decode.Result{}, 100); ps != nil {
 		t.Errorf("empty result: %v", ps)
@@ -569,7 +569,7 @@ func TestPacketsDegenerate(t *testing.T) {
 }
 
 // BenchmarkPackets: a long UART capture of many messages.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func BenchmarkPackets(b *testing.B) {
 	var msgs [][]byte
 	for i := range 200 {

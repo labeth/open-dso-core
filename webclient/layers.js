@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-PACKETS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // layers.js — the application layers a decoded bus carries (the BUS sheet's
 // Layer row): each reads the bus's packets (packets.js) as a chip's or a
 // stacked protocol's transactions and writes a note per packet ("READ
@@ -36,7 +36,7 @@ const LAYERS = [
 
 // ---- formatting (as the scope's layers format) ----
 
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyHx(v, n) {
   if (n === 2 && v >= 0 && v < 256 && v === (v | 0)) return LY_HEX2[v]; // the notes' common case, from a table
   return v.toString(16).toUpperCase().padStart(n, "0");
@@ -46,7 +46,7 @@ function lyHx(v, n) {
 const LY_HEX2 = Array.from({ length: 256 }, (_, v) => v.toString(16).toUpperCase().padStart(2, "0"));
 
 // lyHexList writes bytes "12 34 56", at most max and " .." after.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyHexList(b, max) {
   let s = "";
   for (let i = 0; i < b.length; i++) {
@@ -58,7 +58,7 @@ function lyHexList(b, max) {
 }
 
 // lyQuoted writes bytes as text in single quotes, '.' for a byte that does not print.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyQuoted(b, max) {
   let s = "'";
   for (let i = 0; i < b.length; i++) {
@@ -69,7 +69,7 @@ function lyQuoted(b, max) {
 }
 
 // lyFixed writes num/den with places decimals, half away from zero, in integers.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyFixed(num, den, places) {
   if (den < 0) { num = -num; den = -den; }
   if (den === 0) return "?";
@@ -85,45 +85,45 @@ function lyFixed(num, den, places) {
 }
 
 // lyPrintable writes device text with '.' for a character that does not print (ASCII notes).
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyPrintable(s) { return s.replace(/[^\x20-\x7e]/g, "."); }
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyPlural(n, w) { return n + " " + w + (n === 1 ? "" : "s"); }
 // lyBE is bytes most significant first as a number (arithmetic: past 31 bits).
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyBE(b) { let v = 0; for (const x of b) v = v * 256 + x; return v; }
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyLE(b) { let v = 0; for (let i = b.length - 1; i >= 0; i--) v = v * 256 + b[i]; return v; }
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyReg(t, r) { const n = t && t[r]; return n && n !== "-" ? n : "0x" + lyHx(r, 2); }
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyAnyBad(p) { return (p.byteErr || []).some(Boolean) || !!p.err; }
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyInt8(v) { return (v << 24) >> 24; }
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function lyInt16(v) { return (v << 16) >> 16; }
 // lyJoin joins a transaction's commands, at most eight (the scope's maxParts).
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyJoin(parts) { return parts.length > 8 ? parts.slice(0, 8).join("; ") + "; .. (+" + (parts.length - 8) + ")" : parts.join("; "); }
 // lyItems joins a trace burst's items, at most sixteen.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyItems(items) { return items.length > 16 ? items.slice(0, 16).join(" ") + " .. (+" + (items.length - 16) + ")" : items.join(" "); }
 // lyEach writes every packet's note with one transaction reader.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyEach(ps, f) { for (const p of ps) { const r = f(p.bytes); p.note = r[0]; p.noteErr = r[1]; } }
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyRegData(write, d) {
   if (!d.length) return "";
   if (write) return " = " + lyHexList(d, 8);
   return ", " + lyPlural(d.length, "byte");
 }
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyRev(b) { return b.slice().reverse(); }
 
 // ---- SPI ----
 
 // lyFlashNote reads one flash transaction (the host's side, MOSI).
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyFlashNote(b) {
   if (!b.length) return ["", false];
   const c = LAYER_TABLES.flashCmds[b[0]];
@@ -147,7 +147,7 @@ function lyFlashNote(b) {
   return [note, false];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lySdCRC7(b) {
   let crc = 0;
   for (const v of b) for (let k = 7; k >= 0; k--) {
@@ -159,7 +159,7 @@ function lySdCRC7(b) {
 }
 
 // lySdNotes reads a record's SD transactions (command tokens, waits, data blocks).
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lySdNotes(ps) {
   let app = false;
   lyEach(ps, (b) => {
@@ -195,7 +195,7 @@ function lySdNotes(ps) {
   });
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyNrf24Note(b) {
   if (!b.length) return ["", false];
   const c = b[0], d = b.slice(1), T = LAYER_TABLES;
@@ -217,7 +217,7 @@ function lyNrf24Note(b) {
   return ["? 0x" + lyHx(c, 2), true];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyNrf905Note(b) {
   if (!b.length) return ["", false];
   const c = b[0], d = b.slice(1);
@@ -233,7 +233,7 @@ function lyNrf905Note(b) {
   return ["? 0x" + lyHx(c, 2), true];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyCc1101Note(b) {
   if (!b.length) return ["", false];
   const c = b[0], d = b.slice(1), a = c & 0x3f, T = LAYER_TABLES;
@@ -248,7 +248,7 @@ function lyCc1101Note(b) {
   return [["WRITE ", "BURST WRITE ", "READ ", "BURST READ "][c >> 6] + lyReg(T.cc1101Regs, a) + lyRegData((c & 0x80) === 0, d), false];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyRfm12Note(b) {
   const parts = [];
   let bad = false;
@@ -280,7 +280,7 @@ function lyRfm12Note(b) {
   return [lyJoin(parts), bad];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyMrf24Note(b) {
   const parts = [], T = LAYER_TABLES;
   for (let i = 0; i < b.length;) {
@@ -309,11 +309,11 @@ function lyMrf24Note(b) {
 }
 
 // lyEncNotes reads a record's ENC28J60 opcodes, the bank ECON1 selects carried on.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyEncNotes(ps) {
   const T = LAYER_TABLES, banks = [T.enc28j60Bank0, T.enc28j60Bank1, T.enc28j60Bank2, T.enc28j60Bank3];
   let bank = -1;
-  // TRLC-LINKS: REQ-SDS-242
+  // TRLC-LINKS: REQ-DSO-242
   const reg = (a) => (a >= 0x1b ? T.enc28j60Bank0[a] : bank < 0 ? "bank? 0x" + lyHx(a, 2) : lyReg(banks[bank], a));
   lyEach(ps, (b) => {
     if (!b.length) return ["", false];
@@ -344,7 +344,7 @@ function lyEncNotes(ps) {
 }
 
 // lySt25Notes reads a record's ST25R39xx transactions, a Space-B or test prefix carried on.
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lySt25Notes(ps) {
   const T = LAYER_TABLES;
   let space = 0;
@@ -376,7 +376,7 @@ function lySt25Notes(ps) {
   });
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyAdxl345Note(b) {
   if (!b.length) return ["", false];
   const c = b[0], d = b.slice(1), w = (c & 0x80) === 0, a = c & 0x3f;
@@ -385,7 +385,7 @@ function lyAdxl345Note(b) {
   return [s + lyRegData(w, d), (c & 0x40) === 0 && d.length > 1];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyAdxl345Value(a, v) {
   if (a === 0x2c) return " (" + ["0.10", "0.20", "0.39", "0.78", "1.56", "3.13", "6.25", "12.5", "25", "50", "100", "200", "400", "800", "1600", "3200"][v & 0xf] + " Hz)";
   if (a === 0x31) return " (+-" + (2 << (v & 3)) + "g)";
@@ -393,7 +393,7 @@ function lyAdxl345Value(a, v) {
   return "";
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyAdnsNote(b) {
   const parts = [];
   for (let i = 0; i < b.length; i += 2) {
@@ -406,7 +406,7 @@ function lyAdnsNote(b) {
   return [lyJoin(parts), false];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyAde7758Note(b) {
   if (!b.length) return ["", false];
   const c = b[0], d = b.slice(1), r = c & 0x7f, T = LAYER_TABLES;
@@ -418,13 +418,13 @@ function lyAde7758Note(b) {
   return [op + name + ", " + lyPlural(want, "byte"), d.length !== want];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyAdf435xNote(b) {
   if (b.length % 4 !== 0 || !b.length) return ["? " + lyPlural(b.length, "byte") + " (32-bit words)", true];
   const parts = [];
   for (let i = 0; i < b.length; i += 4) {
     const w = lyBE(b.slice(i, i + 4));
-    // TRLC-LINKS: REQ-SDS-242
+    // TRLC-LINKS: REQ-DSO-242
     const f = (off, n) => (w >>> off) & ((1 << n) - 1);
     let s;
     switch (w & 7) {
@@ -441,14 +441,14 @@ function lyAdf435xNote(b) {
   return [lyJoin(parts), false];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyAd5626Note(b) {
   if (b.length !== 2) return ["? " + lyPlural(b.length, "byte") + " (16-bit loads)", true];
   const v = lyBE(b) & 0xfff;
   return ["DAC " + lyFixed(v, 1000, 3) + " V (0x" + lyHx(v, 3) + ")", false];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyAd79x0Note(b) {
   if (b.length === 1) return ["ADC power-down", false];
   if (b.length !== 2) return ["? " + lyPlural(b.length, "byte"), true];
@@ -457,14 +457,14 @@ function lyAd79x0Note(b) {
   return ["ADC " + (v & 0xfff) + "/4095 (" + lyFixed(v & 0xfff, 4095, 4) + " Vref)", v > 0xfff];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyLtc242xNote(b) {
   if (b.length !== 3) return ["? " + lyPlural(b.length, "byte") + " (24-bit conversions)", true];
   const v = lyBE(b), x = (v & 0x3fffff) - (1 << 21);
   return ["CH" + ((v >> 22) & 1) + " " + lyFixed(x, 0xfffff, 6) + " Vref", (v & 0x800000) !== 0];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyMax72xxNote(b) {
   if (!b.length || b.length % 2 !== 0) return ["? " + lyPlural(b.length, "byte") + " (pairs)", b.length > 0];
   const parts = [];
@@ -486,7 +486,7 @@ function lyMax72xxNote(b) {
   return [lyJoin(parts), bad];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyAvrNote(b) {
   const parts = [];
   let bad = false;
@@ -511,7 +511,7 @@ function lyAvrNote(b) {
   return [lyJoin(parts), bad];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyX2444Note(b) {
   if (!b.length) return ["", false];
   const c = b[0];
@@ -524,7 +524,7 @@ function lyX2444Note(b) {
   return [name, true];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyRgbNote(b) {
   if (b.length < 3) return ["? " + lyPlural(b.length, "byte") + " (3 a LED)", b.length > 0];
   const parts = [];
@@ -535,7 +535,7 @@ function lyRgbNote(b) {
   return [lyPlural(Math.floor(b.length / 3), "LED") + ": " + parts.join(" "), b.length % 3 !== 0];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lyNesNote(b) {
   const names = ["A", "B", "Select", "Start", "Up", "Down", "Left", "Right"];
   return [lyJoin(b.map((v) => {
@@ -545,7 +545,7 @@ function lyNesNote(b) {
   })), false];
 }
 
-// TRLC-LINKS: REQ-SDS-242
+// TRLC-LINKS: REQ-DSO-242
 function lySsi32Note(b) {
   if (!b.length) return ["", false];
   if (b[0] & 0x80) return ["ACK 0x" + lyHx(b[0], 2), b.length !== 4];
@@ -561,10 +561,10 @@ function lySsi32Note(b) {
 
 // lyPtr is a register device's pointer: take reads a transfer with an
 // n-byte pointer, moving it past the data.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyPtr() {
   const r = { ptr: 0, known: false };
-  // TRLC-LINKS: REQ-SDS-243
+  // TRLC-LINKS: REQ-DSO-243
   r.take = (p, n) => {
     if (!p.read) {
       if (p.bytes.length < n) return { reg: 0, data: p.bytes, write: true, ptrOnly: false, known: false };
@@ -580,15 +580,15 @@ function lyPtr() {
   return r;
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyBCD(v) { const hi = v >> 4, lo = v & 0x0f; return [hi * 10 + lo, hi < 10 && lo < 10]; }
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyDev(p, lo, hi) { return p.hasAddr && p.addr >= lo && p.addr <= hi; }
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyRW(p) { return p.read ? "read" : "write"; }
 
 // lyEepromNotes reads 24xx EEPROM transfers at 0x50..0x57.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyEepromNotes(ps) {
   const widths = {}, ptrs = {};
   for (let i = 0; i + 1 < ps.length; i++) {
@@ -616,15 +616,15 @@ function lyEepromNotes(ps) {
 
 const LY_EDID_HEADER = [0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00];
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyEdidHas(b, k) { for (let i = 0; i < 8; i++) if (b[k + i] !== LY_EDID_HEADER[i]) return false; return true; }
 
 // lyEdidNotes reads EDID reads at 0x50; the read completing the base block names the display.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyEdidNotes(ps) {
   const mem = new Array(256).fill(0), have = new Array(256).fill(false);
   let ptr = lyPtr();
-  // TRLC-LINKS: REQ-SDS-243
+  // TRLC-LINKS: REQ-DSO-243
   const complete = () => { for (let i = 0; i < 128; i++) if (!have[i]) return false; return true; };
   for (const p of ps) {
     if (!lyDev(p, 0x50, 0x50)) continue;
@@ -643,7 +643,7 @@ function lyEdidNotes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyEdidSummary(mem) {
   const m = mem.slice(0, 128);
   if (!lyEdidHas(m, 0)) return ["EDID (no header)", true];
@@ -674,9 +674,9 @@ const LY_DS1307 = { sec: 0, min: 1, hour: 2, wday: 3, day: 4, month: 5, year: 6,
 const LY_RTC8564 = { sec: 2, min: 3, hour: 4, wday: 6, day: 5, month: 7, year: 8, from: 0, regs: { 0: "Control1", 1: "Control2", 2: "Seconds", 3: "Minutes", 4: "Hours", 5: "Days", 6: "Weekdays", 7: "Months", 8: "Years", 9: "Minute alarm", 10: "Hour alarm", 11: "Day alarm", 12: "Weekday alarm", 13: "CLKOUT", 14: "Timer control", 15: "Timer" } };
 
 // lyClock reads the date and time out of a register image; null when not BCD in range.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyClock(c, r) {
-  // TRLC-LINKS: REQ-SDS-243
+  // TRLC-LINKS: REQ-DSO-243
   const g = (k) => r[k] || 0;
   const [s, ok1] = lyBCD(g(c.sec) & 0x7f), [m, ok2] = lyBCD(g(c.min) & 0x7f);
   const hb = g(c.hour);
@@ -693,13 +693,13 @@ function lyClock(c, r) {
   const wd = (g(c.wday) & 7) - c.from;
   const century = c.from === 0 && (g(c.month) & 0x80) ? 1900 : 2000;
   if (!(ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && s < 60 && m < 60 && d >= 1 && d <= 31 && mo >= 1 && mo <= 12 && wd >= 0 && wd < 7)) return null;
-  // TRLC-LINKS: REQ-SDS-243
+  // TRLC-LINKS: REQ-DSO-243
   const p2 = (v) => String(v).padStart(2, "0");
   return String(century + y).padStart(4, "0") + "-" + p2(mo) + "-" + p2(d) + " " + p2(h) + ":" + p2(m) + ":" + p2(s) + ampm + " " + LY_WEEKDAYS[wd];
 }
 
 // lyRtcNotes reads a clock's register accesses at its address.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyRtcNotes(ps, c, addr) {
   const r = lyPtr(), img = {};
   for (const p of ps) {
@@ -725,7 +725,7 @@ function lyRtcNotes(ps, c, addr) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyLm75Notes(ps) {
   const ptrs = {}, T = LAYER_TABLES.lm75Regs;
   for (const p of ps) {
@@ -747,7 +747,7 @@ function lyLm75Notes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lySmbusPEC(b) {
   let crc = 0;
   for (const v of b) {
@@ -757,7 +757,7 @@ function lySmbusPEC(b) {
   return crc;
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyMlxNotes(ps) {
   const T = LAYER_TABLES.mlxRegs;
   let cmd = -1;
@@ -782,7 +782,7 @@ function lyMlxNotes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyAtshaCRC(b) {
   let crc = 0;
   for (const v of b) for (let k = 0; k < 8; k++) {
@@ -793,14 +793,14 @@ function lyAtshaCRC(b) {
   return crc;
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyAtshaOK(b) {
   if (b.length < 3 || b[0] !== b.length) return false;
   const c = lyAtshaCRC(b.slice(0, b.length - 2));
   return b[b.length - 2] === (c & 0xff) && b[b.length - 1] === c >> 8;
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyAtshaNotes(ps) {
   const T = LAYER_TABLES;
   for (const p of ps) {
@@ -825,7 +825,7 @@ function lyAtshaNotes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyHdcpNotes(ps) {
   const T = LAYER_TABLES, r = lyPtr();
   for (const p of ps) {
@@ -852,7 +852,7 @@ function lyHdcpNotes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyLtcNotes(ps) {
   const T = LAYER_TABLES;
   for (const p of ps) {
@@ -865,7 +865,7 @@ function lyLtcNotes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyPcaNotes(ps) {
   for (const p of ps) {
     if (!lyDev(p, 0x25, 0x25) || !p.bytes.length) continue;
@@ -874,7 +874,7 @@ function lyPcaNotes(ps) {
 }
 
 // lyRegNotes reads a simple register device's accesses at lo..hi.
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyRegNotes(ps, lo, hi, chip, t) {
   const ptrs = {};
   for (const p of ps) {
@@ -894,7 +894,7 @@ function lyRegNotes(ps, lo, hi, chip, t) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyMxcNotes(ps) {
   const T = LAYER_TABLES.mxcRegs, r = lyPtr();
   for (const p of ps) {
@@ -910,7 +910,7 @@ function lyMxcNotes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyNunchukNotes(ps) {
   for (const p of ps) {
     if (!lyDev(p, 0x52, 0x52)) continue;
@@ -931,16 +931,16 @@ function lyNunchukNotes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyXfpModule(id) {
   const n = { 1: "GBIC", 3: "SFP", 5: "XENPAK", 6: "XFP", 7: "XFF", 8: "XFP-E", 9: "XPAK", 10: "X2" }[id];
   return n || "module 0x" + lyHx(id, 2);
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyXfpText(b) { return lyPrintable(String.fromCharCode(...b).replace(/\x00+$/, "").replace(/ +$/, "")); }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyXfpNotes(ps) {
   const mem = new Array(256).fill(0), r = lyPtr();
   for (const p of ps) {
@@ -949,7 +949,7 @@ function lyXfpNotes(ps) {
     if (a.write) { p.note = a.ptrOnly ? "XFP offset " + a.reg : "XFP write @" + a.reg + ": " + lyHexList(a.data, 8); continue; }
     if (!a.known) { p.note = "XFP read (no offset), " + lyPlural(a.data.length, "byte"); continue; }
     a.data.forEach((v, k) => { if (a.reg + k < 256) mem[a.reg + k] = v; });
-    // TRLC-LINKS: REQ-SDS-243
+    // TRLC-LINKS: REQ-DSO-243
     const covers = (lo, hi) => a.reg <= lo && a.reg + a.data.length > hi;
     const parts = [];
     if (covers(0, 0)) parts.push(lyXfpModule(mem[0]));
@@ -966,7 +966,7 @@ function lyXfpNotes(ps) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyDemuxNotes(ps) {
   const devs = {}, count = {};
   let n = 0;
@@ -979,7 +979,7 @@ function lyDemuxNotes(ps) {
 }
 
 // lyFilterI2C keeps the transfers to one address (-1 any) in one direction (0 both, 1 read, 2 write).
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyFilterI2C(ps, addr, dir) {
   return ps.filter((p) => p.hasAddr && !(addr >= 0 && p.addr !== addr) && !(dir === 1 && !p.read) && !(dir === 2 && p.read)).map((p) => {
     p.note = "0x" + lyHx(p.addr, 2) + " " + lyRW(p) + ", " + lyPlural(p.bytes.length, "byte");
@@ -989,7 +989,7 @@ function lyFilterI2C(ps, addr, dir) {
 
 // ---- UART ----
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lySbusNote(p) {
   const b = p.bytes;
   if (b.length !== 25 || b[0] !== 0x0f) return ["S.BUS? " + lyPlural(b.length, "byte") + " (25 from 0x0F)", true];
@@ -1010,15 +1010,15 @@ function lySbusNote(p) {
   return [s, !ok];
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyItmText(v) { return (v >= 0x20 && v < 0x7f) || (v >= 9 && v <= 13); }
 
 // lyItmParse reads ITM packets; returns [items, bad].
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyItmParse(b) {
   const items = [], T = LAYER_TABLES;
   let bad = false, textCh = -1, text = [];
-  // TRLC-LINKS: REQ-SDS-244
+  // TRLC-LINKS: REQ-DSO-244
   const flush = () => { if (textCh >= 0) { items.push("ch" + textCh + " " + lyQuoted(text, 24)); textCh = -1; text = []; } };
   for (let i = 0; i < b.length;) {
     const h = b[i];
@@ -1077,13 +1077,13 @@ function lyItmParse(b) {
 }
 
 // lyTpiuDemux reads TPIU frames into the bytes of each stream: [ids, data, cut].
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyTpiuDemux(b) {
   let start = 0;
   for (let k = 0; k + 4 <= b.length; k++) if (b[k] === 0xff && b[k + 1] === 0xff && b[k + 2] === 0xff && b[k + 3] === 0x7f) start = k + 4;
   const ids = [], data = [];
   let cur = -1;
-  // TRLC-LINKS: REQ-SDS-244
+  // TRLC-LINKS: REQ-DSO-244
   const emit = (v) => {
     if (cur < 0) return;
     if (!ids.length || ids[ids.length - 1] !== cur) { ids.push(cur); data.push([]); }
@@ -1107,10 +1107,10 @@ function lyTpiuDemux(b) {
 }
 
 // lyEtmParse reads ETMv3 packets with the branch state st ({addr, thumb}); BigInt for the 35-bit addresses.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyEtmParse(st, b) {
   const items = [];
-  // TRLC-LINKS: REQ-SDS-244
+  // TRLC-LINKS: REQ-DSO-244
   const varint = (from, max) => {
     let v = 0n, n = 0;
     while (from + n < b.length && n < max) {
@@ -1177,7 +1177,7 @@ function lyEtmParse(st, b) {
   return [items, false];
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyAmuletHex(b) {
   let v = 0;
   for (const c of b) {
@@ -1191,7 +1191,7 @@ function lyAmuletHex(b) {
   return [v, true];
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyAmuletNote(b) {
   const parts = [], T = LAYER_TABLES.amuletCmds;
   for (let i = 0; i < b.length;) {
@@ -1234,7 +1234,7 @@ function lyAmuletNote(b) {
 }
 
 // lyPanNotes reads a record's PAN1321 lines (CR LF ended, spanning bursts).
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyPanNotes(ps) {
   let line = [];
   lyEach(ps, (b) => {
@@ -1267,7 +1267,7 @@ function lyPanNotes(ps) {
 // ---- 1-Wire ----
 
 // lyOwRead reads a reset-opened packet as {cmd, rom, romBad, fn, ok}.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyOwRead(p) {
   const b = p.bytes;
   if (!b.length) return { cmd: "", rom: null, romBad: false, fn: [], ok: false };
@@ -1282,14 +1282,14 @@ function lyOwRead(p) {
   return t;
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyOwROM(r) {
   if (r.length < 8) return "(cut ROM)";
   return lyHx(r[0], 2) + "-" + [6, 5, 4, 3, 2, 1].map((k) => lyHx(r[k], 2)).join("");
 }
 
 // lyOwNotes writes each 1-Wire transaction, dev reading its function bytes.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyOwNotes(ps, dev) {
   for (const p of ps) {
     if (!p.bytes.length) { if (!p.err) p.note = "RESET"; continue; }
@@ -1308,21 +1308,21 @@ function lyOwNotes(ps, dev) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyCrc8Maxim(b) {
   let crc = 0;
   for (const v of b) { crc ^= v; for (let k = 0; k < 8; k++) crc = (crc & 1) ? (crc >> 1) ^ 0x8c : crc >> 1; }
   return crc;
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyCrc16Maxim(b) {
   let crc = 0;
   for (let x of b) for (let k = 0; k < 8; k++) { crc = ((x ^ crc) & 1) ? (crc >> 1) ^ 0xa001 : crc >> 1; x >>= 1; }
   return crc ^ 0xffff;
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyDs28ea00Fn(fn) {
   const names = { 0x4e: "Write scratchpad", 0xbe: "Read scratchpad", 0x48: "Copy scratchpad", 0x44: "Convert T", 0xb4: "Read power mode", 0xb8: "Recall EEPROM", 0xf5: "PIO read", 0xa5: "PIO write", 0x99: "Chain" };
   const name = names[fn[0]];
@@ -1342,7 +1342,7 @@ function lyDs28ea00Fn(fn) {
   return d.length ? [name + " " + lyHexList(d, 8), false] : [name, false];
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyDs2408Fn(fn) {
   const d = fn.slice(1);
   if (fn[0] === 0xf0 || fn[0] === 0xcc) {
@@ -1366,11 +1366,11 @@ function lyDs2408Fn(fn) {
   return ["? function 0x" + lyHx(fn[0], 2), true];
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyDs243xFn(fn) {
   const d = fn.slice(1);
   const ta = d.length < 2 ? "" : " @0x" + lyHx((d[1] << 8) | d[0], 4);
-  // TRLC-LINKS: REQ-SDS-245
+  // TRLC-LINKS: REQ-DSO-245
   const crc = (upto) => {
     if (fn.length < upto + 2) return ["", false];
     return lyCrc16Maxim(fn.slice(0, upto)) !== (fn[upto] | (fn[upto + 1] << 8)) ? [" CRC bad", true] : [" CRC ok", false];
@@ -1398,17 +1398,17 @@ function lyDs243xFn(fn) {
 
 // ---- MDIO: CFP ----
 
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 function lyCfpRegion(a) {
   const R = [[0x8000, 0x807f, "NVR1"], [0x8080, 0x80ff, "NVR2"], [0x8100, 0x817f, "NVR3"], [0x8180, 0x81ff, "NVR4"], [0x8400, 0x847f, "Vendor NVR1"], [0x8480, 0x84ff, "Vendor NVR2"], [0x8800, 0x887f, "User NVR1"], [0x8880, 0x88ff, "User NVR2"], [0xa000, 0xa07f, "Module VR1"], [0xa080, 0xa0ff, "MLG VR1"]];
   for (const [lo, hi, n] of R) if (a >= lo && a <= hi) return n;
   return "";
 }
 
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 function lyCfpNotes(ps) {
   const addr = {}, T = LAYER_TABLES.cfpModules;
-  // TRLC-LINKS: REQ-SDS-246
+  // TRLC-LINKS: REQ-DSO-246
   const reg = (a) => { const r = lyCfpRegion(a); return (r ? r + " " : "") + "0x" + lyHx(a, 4); };
   for (const p of ps) {
     if (p.bytes.length < 4) continue;
@@ -1429,7 +1429,7 @@ function lyCfpNotes(ps) {
 
 // ---- USB requests ----
 
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 function lyUsbSetup(d) {
   const T = LAYER_TABLES, rt = d[0], req = d[1], val = lyLE(d.slice(2, 4)), idx = lyLE(d.slice(4, 6)), n = lyLE(d.slice(6, 8));
   const dir = (rt & 0x80) ? "IN" : "OUT";
@@ -1446,7 +1446,7 @@ function lyUsbSetup(d) {
 }
 
 // lyUsbNotes reads a record's USB packets in their transactions.
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 function lyUsbNotes(ps) {
   let tok = 0, addr = 0, ep = 0;
   const setup = {};
@@ -1484,23 +1484,23 @@ function lyUsbNotes(ps) {
 
 // ---- dispatch ----
 
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyDs1307Notes(ps) { lyRtcNotes(ps, LY_DS1307, 0x68); }
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyRtc8564Notes(ps) { lyRtcNotes(ps, LY_RTC8564, 0x51); }
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyTcaNotes(ps) { lyRegNotes(ps, 0x20, 0x21, "TCA6408A", LAYER_TABLES.tcaRegs); }
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyMcp23008Notes(ps) { lyRegNotes(ps, 0x20, 0x27, "MCP23008", LAYER_TABLES.mcp23008Regs); }
-// TRLC-LINKS: REQ-SDS-243
+// TRLC-LINKS: REQ-DSO-243
 function lyMcp23017Notes(ps) { lyRegNotes(ps, 0x20, 0x27, "MCP23017", LAYER_TABLES.mcp23017Regs); }
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lySbusNotes(ps) { for (const p of ps) { const r = lySbusNote(p); p.note = r[0]; p.noteErr = r[1]; } }
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyItmNote(b) { const r = lyItmParse(b); return ["ITM " + lyItems(r[0]), r[1]]; }
 
 // lyTpiuNote reads a burst's TPIU streams: stream 1 as ITM, the others as bytes.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyTpiuNote(b) {
   const [ids, data, cut] = lyTpiuDemux(b), parts = [];
   let bad = cut;
@@ -1513,19 +1513,19 @@ function lyTpiuNote(b) {
   return ["TPIU " + lyJoin(parts) + (cut ? " (frame cut)" : ""), bad];
 }
 
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 function lyEtmNotes(ps) {
   const st = { addr: 0n, thumb: false };
   for (const p of ps) { const r = lyEtmParse(st, p.bytes); p.note = "ETM " + lyItems(r[0]); p.noteErr = r[1]; }
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyDs28ea00Notes(ps) { lyOwNotes(ps, lyDs28ea00Fn); }
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyDs2408Notes(ps) { lyOwNotes(ps, lyDs2408Fn); }
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyDs243xNotes(ps) { lyOwNotes(ps, lyDs243xFn); }
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 function lyOwNetNotes(ps) { lyOwNotes(ps, null); }
 
 // LY_EACH are the layers that read each packet alone (a transaction reader).
@@ -1549,16 +1549,16 @@ const LY_NOTES = {
 };
 
 // layerBus names the bus a decoder's packets come from as the layers name it.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function layerBus(proto) { return proto === "usb" ? "usbls" : proto; }
 
 // layersOn lists the layers a decode can carry, none first: [[id, name], ...].
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function layersOn(proto) { return LAYERS.filter((l) => l[0] === "" || l[2] === layerBus(proto)).map((l) => [l[0], l[1]]); }
 
 // layerApply writes each packet's note (and noteErr) with layer id's reading
 // and returns the packets the table lists (the I2C filter keeps its address's).
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 function layerApply(id, proto, ps, args) {
   for (const p of ps) { p.note = ""; p.noteErr = false; }
   const l = LAYERS.find((x) => x[0] === id);

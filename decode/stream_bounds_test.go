@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -13,7 +13,7 @@ import (
 // a slow one, a line stuck low - in pushes as the engine makes them: the
 // window the decoder re-reads on every push stays within Max and a push,
 // so neither memory nor the decode's cost grows with the session.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestStreamDecoderWindowBounded(t *testing.T) {
 	for _, c := range append(append([]streamCase(nil), streamCases...), moreStreamCases...) {
 		name := strings.TrimSuffix(c.name, "-carrier")

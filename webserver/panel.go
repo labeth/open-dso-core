@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -13,7 +13,7 @@ import (
 	"github.com/labeth/open-dso-core/uimodel"
 )
 
-// The phone remote's surface (REQ-SDS-211, REQ-SDS-212): the panel snapshot
+// The phone remote's surface (REQ-DSO-211, REQ-DSO-212): the panel snapshot
 // with a long-poll, the whole settings-sheet model, and setting a row or
 // running an action by id. A remote change never opens, moves or closes
 // anything on the display; the scope shows a short REMOTE note instead.
@@ -30,7 +30,7 @@ import (
 // changed and the notice it raised; it waits while Autoset sweeps, and with
 // "nomenu":true while a menu is open on the display. {"button":"auto","for":"bus"}
 // runs the AUTO of the workspace the page shows, whichever the display shows.
-// TRLC-LINKS: REQ-SDS-162, REQ-SDS-220, REQ-SDS-226
+// TRLC-LINKS: REQ-DSO-162, REQ-DSO-220, REQ-DSO-226
 func (s *Server) hPanel(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Button    string `json:"button"`
@@ -104,10 +104,10 @@ func (s *Server) hPanel(w http.ResponseWriter, r *http.Request) {
 // active one's "again" ({"again":true}; with "workspace" it is refused
 // unless that one is active) for the phone remote. Unlike F1..F5
 // it works while the display has a sheet open and leaves that sheet as it is
-// (REQ-SDS-220). The answer carries the workspace, its view, what again
+// (REQ-DSO-220). The answer carries the workspace, its view, what again
 // shows next, the notice the switch itself raised on the display (not one
 // showing from before), the rows it changed and the sheet values' count.
-// TRLC-LINKS: REQ-SDS-162, REQ-SDS-220
+// TRLC-LINKS: REQ-DSO-162, REQ-DSO-220
 func (s *Server) hPanelWorkspace(w http.ResponseWriter, ui UIModel, name string, again bool) {
 	pw, ok := ui.(UIWorkspaces)
 	if !ok {
@@ -132,7 +132,7 @@ func (s *Server) hPanelWorkspace(w http.ResponseWriter, ui UIModel, name string,
 // app shows the scope's references, not its own. POST {"slot":"A",
 // "op":"store"} (store, show, hide, clear) changes one on the scope, as the
 // phone's COMPARE rows do, and answers with both slots after it.
-// TRLC-LINKS: REQ-SDS-138, REQ-SDS-218, REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-138, REQ-DSO-218, REQ-DSO-227
 func (s *Server) hRefs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
 		http.Error(w, "GET or POST only", http.StatusMethodNotAllowed)
@@ -165,7 +165,7 @@ func (s *Server) hRefs(w http.ResponseWriter, r *http.Request) {
 }
 
 // remote returns the UI's remote surface or answers 404.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) remote(w http.ResponseWriter) (UIRemote, bool) {
 	var pr UIRemote
 	ui, ok := s.sc.UI()
@@ -181,7 +181,7 @@ func (s *Server) remote(w http.ResponseWriter) (UIRemote, bool) {
 // hPanelWait parks until the panel snapshot changes: ?seq=N&timeout_ms=T
 // (at most 10 s) returns it as soon as its Seq differs from N, else at the
 // timeout.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hPanelWait(w http.ResponseWriter, r *http.Request) {
 	pr, ok := s.remote(w)
 	if !ok {
@@ -201,7 +201,7 @@ func (s *Server) hPanelWait(w http.ResponseWriter, r *http.Request) {
 
 // hSheets returns the whole sheet model: every tab and row with its id,
 // kind, options or range, value and whether it is in use, and the Seq.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hSheets(w http.ResponseWriter, _ *http.Request) {
 	pr, ok := s.remote(w)
 	if !ok {
@@ -212,7 +212,7 @@ func (s *Server) hSheets(w http.ResponseWriter, _ *http.Request) {
 
 // hSheetsSet sets one row: {"row":"trig.level","value":1.25} or
 // {"row":"trig.level","text":"1.25V"}.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hSheetsSet(w http.ResponseWriter, r *http.Request) {
 	pr, ok := s.remote(w)
 	if !ok {
@@ -233,7 +233,7 @@ func (s *Server) hSheetsSet(w http.ResponseWriter, r *http.Request) {
 // hStreamPage starts ({"on":true}) or ends the scope's stream for this page,
 // which then reads it: the scope ends a stream its page stopped reading.
 // {"leave":true} is the page going: only a stream it still holds ends.
-// TRLC-LINKS: REQ-SDS-228, REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-228, REQ-DSO-278
 func (s *Server) hStreamPage(w http.ResponseWriter, r *http.Request) {
 	pr, ok := s.remote(w)
 	if !ok {
@@ -264,7 +264,7 @@ func (s *Server) hStreamPage(w http.ResponseWriter, r *http.Request) {
 
 // hSheetsAction runs an action row: {"row":"file.setup3","action":"save"}
 // (the action may be left out on a row with one).
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hSheetsAction(w http.ResponseWriter, r *http.Request) {
 	pr, ok := s.remote(w)
 	if !ok {

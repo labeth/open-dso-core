@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -25,7 +25,7 @@ type gap struct{ x0, x1 float64 }
 // shorter than three quarters of a field clock) every run of three field
 // clocks or more, on an envelope every low run. fc is the field clock in
 // samples.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func rfidGaps(sl sliced, fc float64) ([]gap, bool) {
 	runs := levelRuns(sl)
 	lens := make([]float64, 0, len(runs))
@@ -57,7 +57,7 @@ type rfidOut struct {
 
 // add appends a span over x0..x1, its text a token when not empty and val a
 // unit when unit.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func (o *rfidOut) add(x0, x1 float64, text, kind string, val int, unit bool) {
 	o.spans = append(o.spans, pspan(x0, x1, o.n, text, kind, val))
 	if text != "" {
@@ -75,7 +75,7 @@ type rbit struct {
 }
 
 // bitsMSB is n bits from b[at] on, most significant first.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func bitsMSB(b []rbit, at, n int) int {
 	v := 0
 	for i := range n {
@@ -85,7 +85,7 @@ func bitsMSB(b []rbit, at, n int) int {
 }
 
 // evenOK reports bits b[at..at+n-1] and the parity bit after them even.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func evenOK(b []rbit, at, n int) bool {
 	p := 0
 	for i := 0; i <= n; i++ {
@@ -109,7 +109,7 @@ var em4305Cmds = []string{"CMD0", "LOGIN", "WRITE", "CMD3", "READ", "DISABLE", "
 // ("A"), the bytes; a failed parity or stop bit flags its unit. Baud is the
 // field's frequency (125 kHz unless given). OK needs a command whose checks
 // hold.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func EM4305(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return rfidWrites(protoEM4305, codes, colTimeS, cfg)
 }
@@ -123,13 +123,13 @@ func EM4305(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 // as units: the opcode ("OP"), the password's and the word's bytes ("P",
 // hex), the lock bit ("LK") and the block ("BL"). FrameBits is the bits. Baud
 // is the field's frequency. OK needs a whole command.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func T55xx(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return rfidWrites(protoT55xx, codes, colTimeS, cfg)
 }
 
 // rfidWrites is EM4305 and T55xx.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func rfidWrites(proto string, codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	S := sliceChannel(codes, cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -245,7 +245,7 @@ func rfidWrites(proto string, codes []uint8, colTimeS float64, cfg LineCfg) Resu
 
 // em4305Fields adds an EM4305 command's units: false unless it is a Login
 // or a Write whose parities, column parity and stop bit check.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func em4305Fields(o *rfidOut, b []rbit) bool {
 	if len(b) != 50 && len(b) != 57 {
 		for _, x := range b {
@@ -288,7 +288,7 @@ func em4305Fields(o *rfidOut, b []rbit) bool {
 
 // t55xxFields adds a T55xx command's units: false unless it has 70, 38 or 2
 // bits.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func t55xxFields(o *rfidOut, b []rbit) bool {
 	n := len(b)
 	if n != 70 && n != 38 && n != 2 {
@@ -329,7 +329,7 @@ func t55xxFields(o *rfidOut, b []rbit) bool {
 // length is unknown, only its last half): a run of other than one or two halves, or two
 // halves of one level where a middle should be, breaks the stream, which
 // marks it with a bit of -1 and takes up again a half later.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func manchesterStream(runs []lrun, hp float64) []rbit {
 	var lv []int
 	var xs []float64
@@ -378,7 +378,7 @@ func manchesterStream(runs []lrun, hp float64) []rbit {
 // each flagged when a row's parity fails; a failed column parity or stop
 // bit is flagged after them. Baud is the bit rate. OK needs a frame whose
 // checks hold.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func EM4100(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	S := sliceChannel(codes, cfg.Threshold, cfg.HaveThr)
 	if !S.ok {

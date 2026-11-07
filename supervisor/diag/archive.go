@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -40,21 +40,21 @@ type Archive struct {
 }
 
 // NewArchive writes a new archive to w; maxTotal caps the stored bytes.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func NewArchive(w io.Writer, maxTotal int64) *Archive {
 	gz := gzip.NewWriter(w)
 	return &Archive{gz: gz, tw: tar.NewWriter(gz), maxTotal: maxTotal}
 }
 
 // Add stores data as name; from and note go into the manifest.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (a *Archive) Add(name string, data []byte, from, note string) {
 	a.add(name, data, from, note, false)
 }
 
 // add stores a member; always stores it past the cap (the manifest and the
 // error list are always in the archive).
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (a *Archive) add(name string, data []byte, from, note string, always bool) {
 	sum := sha256.Sum256(data)
 	a.mu.Lock()
@@ -79,11 +79,11 @@ func (a *Archive) add(name string, data []byte, from, note string, always bool) 
 }
 
 // AddText stores s as name.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (a *Archive) AddText(name, s string) { a.Add(name, []byte(s), "", "") }
 
 // AddJSON stores v, indented, as name.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (a *Archive) AddJSON(name string, v any) {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -95,7 +95,7 @@ func (a *Archive) AddJSON(name string, v any) {
 
 // AddFile stores the device file path as name, reading at most limit bytes
 // (a longer file is cut there, and the manifest says so).
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (a *Archive) AddFile(name, path string, limit int64) {
 	f, err := os.Open(path) //nolint:gosec // G304: the collectors name the device files they read
 	if err != nil {
@@ -116,7 +116,7 @@ func (a *Archive) AddFile(name, path string, limit int64) {
 }
 
 // Errorf notes a collector's failure; the collection goes on.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (a *Archive) Errorf(format string, args ...any) {
 	a.mu.Lock()
 	a.errs = append(a.errs, fmt.Sprintf(format, args...))
@@ -124,7 +124,7 @@ func (a *Archive) Errorf(format string, args ...any) {
 }
 
 // Errors returns the failures noted so far.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (a *Archive) Errors() []string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -132,7 +132,7 @@ func (a *Archive) Errors() []string {
 }
 
 // Close writes the manifest and the error list and finishes the archive.
-// TRLC-LINKS: REQ-SDS-286
+// TRLC-LINKS: REQ-DSO-286
 func (a *Archive) Close() error {
 	a.mu.Lock()
 	entries := append([]Entry(nil), a.entries...)

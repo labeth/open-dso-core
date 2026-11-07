@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func checkSplitRequest(t *testing.T, raw []byte) {
 	t.Helper()
 	got, ok := splitRequest(raw)
@@ -24,7 +24,7 @@ func checkSplitRequest(t *testing.T, raw []byte) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func TestSplitRequestMatchesJSON(t *testing.T) {
 	for _, s := range []string{
 		`{"cmd":"ping"}`, `{"cmd":"ping"}` + "\n", `{"cmd":"ping","args":null}`,
@@ -41,7 +41,7 @@ func TestSplitRequestMatchesJSON(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func FuzzSplitRequest(f *testing.F) {
 	f.Add([]byte(`{"cmd":"ping","args":{"a":1}}`))
 	f.Fuzz(func(t *testing.T, raw []byte) { checkSplitRequest(t, raw) })

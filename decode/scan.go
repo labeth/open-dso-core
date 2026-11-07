@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -22,7 +22,7 @@ const (
 
 // scanAtLeast is the first index at or after from whose code is k or more,
 // len(codes) when none is.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func scanAtLeast(codes []uint8, from, k int) int {
 	n := len(codes)
 	if k <= 0 {
@@ -68,7 +68,7 @@ func scanAtLeast(codes []uint8, from, k int) int {
 
 // scanAtMost is the first index at or after from whose code is k or less,
 // len(codes) when none is: scanAtLeast on the codes' complements.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func scanAtMost(codes []uint8, from, k int) int {
 	n := len(codes)
 	if k >= 255 {

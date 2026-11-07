@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver_test
 
@@ -19,7 +19,7 @@ import (
 )
 
 // pageStatus is a two-channel status of the fields the page reads.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func pageStatus() map[string]any {
 	return map[string]any{"running": true, "seq": 1, "tdiv_s": 1e-6, "fps": 30.0, "band": "native", "version": "test",
 		"tdivs": []float64{1e-7, 2e-7, 5e-7, 1e-6, 2e-6}, "vdivs": []float64{0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1},
@@ -31,13 +31,13 @@ func pageStatus() map[string]any {
 // plainScope is the Fake with the page's status.
 type plainScope struct{ *webtest.Fake }
 
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (plainScope) Status() any { return pageStatus() }
 
 // twinScope is the Twin with the page's status.
 type twinScope struct{ *webtest.Twin }
 
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (twinScope) Status() any { return pageStatus() }
 
 // pageRun is what caps_browser.mjs reports of the page.
@@ -111,7 +111,7 @@ type pageFewer struct {
 
 // drivePage runs caps_browser.mjs against a server over sc, publishing a
 // frame every 50 ms.
-// TRLC-LINKS: REQ-SDS-163, REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-163, REQ-DSO-164
 func drivePage(t *testing.T, sc webserver.Scope, publish func()) pageRun {
 	t.Helper()
 	srv := httptest.NewServer(webserver.New(sc).Handler())
@@ -154,7 +154,7 @@ func drivePage(t *testing.T, sc webserver.Scope, publish func()) pageRun {
 // the first two build the same page and draw the same frame (the second
 // only reads caps and asks for v2 besides), and the third lists, draws,
 // measures and sets four channels.
-// TRLC-LINKS: REQ-SDS-163, REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-163, REQ-DSO-164
 func TestCapsBrowser(t *testing.T) {
 	testenv.NeedNode(t)
 	fake := webtest.NewFake(false)
@@ -242,14 +242,14 @@ func TestCapsBrowser(t *testing.T) {
 }
 
 // hasRequest reports a request with prefix p.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func hasRequest(rs []string, p string) bool {
 	return slices.ContainsFunc(rs, func(r string) bool { return strings.HasPrefix(r, p) })
 }
 
 // checkTwoChannelAreas: on the two-channel scope without caps every part
 // keeps its two-channel shape and v1 requests.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func checkTwoChannelAreas(t *testing.T, p pageRun) {
 	t.Helper()
 	a := p.Areas
@@ -292,7 +292,7 @@ func checkTwoChannelAreas(t *testing.T, p pageRun) {
 
 // checkFourChannelAreas: on the four-channel 12-bit scope every part offers
 // and reads C3 and C4, sets them by channel and the level in volts.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func checkFourChannelAreas(t *testing.T, w pageRun) {
 	t.Helper()
 	a := w.Areas

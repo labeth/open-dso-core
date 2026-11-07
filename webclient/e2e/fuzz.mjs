@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Operator fuzzer: drives the LIVE scope web UI the way a wandering human
 // operator does — random-but-realistic control actions through the real DOM
 // (never /api/set) — and checks a battery of invariants after EVERY action:
@@ -28,7 +28,7 @@ const OUT = process.env.OUT || "/tmp/fuzz-findings";
 fs.mkdirSync(OUT, { recursive: true });
 const findingsPath = path.join(OUT, "findings.jsonl");
 
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 function mulberry32(a) {
   return function () {
     a |= 0; a = (a + 0x6D2B79F5) | 0;
@@ -38,23 +38,23 @@ function mulberry32(a) {
   };
 }
 const rng = mulberry32(SEED);
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 const pick = (arr) => arr[Math.floor(rng() * arr.length)];
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 const rint = (lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 const rfloat = (lo, hi) => lo + rng() * (hi - lo);
 
 // ---------- generic DOM drivers (operator hands) ----------
 // A control lives in a workspace pane (or the strip): an operator first brings it
 // on screen — its workspace tab, its pane, its view — as All settings' arrows do.
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 async function reveal(op, id) {
   return await op.page.evaluate((i) => { const e = document.getElementById(i); return !!e && typeof revealControl === "function" && revealControl(e); }, id);
 }
 // selRandom picks a random option of a <select> or of a segmented choice
 // (clicking its button when it is on screen).
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 async function selRandom(op, id) {
   await reveal(op, id);
   const c = await op.page.evaluate((i) => {
@@ -75,7 +75,7 @@ async function selRandom(op, id) {
   }
   return v;
 }
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 async function slider(op, id, v) {
   await op.page.evaluate((a) => {
     const e = document.getElementById(a.id);
@@ -85,7 +85,7 @@ async function slider(op, id, v) {
     e.dispatchEvent(new Event("change"));
   }, { id, v });
 }
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 async function clickId(op, id) {
   const el = await op.page.$("#" + id);
   if (!el) throw new Error(`button #${id} missing`);
@@ -98,7 +98,7 @@ async function clickId(op, id) {
   return null;
 }
 // press a single-letter shortcut the way a user does: nothing editable focused
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 async function key(op, k) {
   await op.page.evaluate(() => { const a = document.activeElement; if (a && a !== document.body) a.blur(); });
   await op.page.keyboard.press(k);
@@ -106,7 +106,7 @@ async function key(op, k) {
 }
 // a random visible element matching `sel` a person can reach (none under a
 // maximized pane, whose slots are inert), or null
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 async function anyVisible(op, sel) {
   const all = await op.page.$$(sel);
   const vis = [];
@@ -114,7 +114,7 @@ async function anyVisible(op, sel) {
   return vis.length ? vis[Math.floor(rng() * vis.length)] : null;
 }
 // reachable: not inside an inert subtree (a maximized pane lies over it)
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 async function reachable(el) {
   return el.evaluate((e) => !e.closest("[inert]"));
 }
@@ -124,57 +124,57 @@ const WS_IDS = ["scope", "bus", "spectrum", "measure", "compare"];
 // Each action: { name, w: weight, hold: frames may legitimately stop after it,
 // run(op) -> optional detail string }.
 const ACTIONS = [
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "tdiv-random", w: 8, run: async (op) => "tdiv=" + (await selRandom(op, "tdiv")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "vdiv1-random", w: 4, run: async (op) => "vdiv1=" + (await selRandom(op, "vdiv1")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "vdiv2-random", w: 3, run: async (op) => "vdiv2=" + (await selRandom(op, "vdiv2")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "cpl1-random", w: 2, run: async (op) => "cpl1=" + (await selRandom(op, "cpl1")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "cpl2-random", w: 2, run: async (op) => "cpl2=" + (await selRandom(op, "cpl2")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "probe1-random", w: 1, run: async (op) => "probe1=" + (await selRandom(op, "probe1")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "probe2-random", w: 1, run: async (op) => "probe2=" + (await selRandom(op, "probe2")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "trig-level", w: 6, run: async (op) => { const v = rfloat(-3.5, 4.5).toFixed(2); await slider(op, "lvl", v); return "lvl=" + v; } },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "trig-slope", w: 3, run: async (op) => "slope=" + (await selRandom(op, "slope")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "trig-source", w: 3, run: async (op) => "source=" + (await selRandom(op, "source")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "trig-mode", w: 3, hold: true, run: async (op) => "mode=" + (await selRandom(op, "mode")) }, // NORM with no matching trigger may hold
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "trig-type", w: 3, run: async (op) => "ttype=" + (await selRandom(op, "ttype")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "trig-pos", w: 3, run: async (op) => { const v = rfloat(0, 1).toFixed(2); await slider(op, "tpos", v); return "tpos=" + v; } },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "holdoff", w: 1, run: async (op) => { const v = pick(["0", "0.0005", "0.01", "0.1"]); await op.page.evaluate((x) => { const e = document.getElementById("holdoff"); e.value = x; e.dispatchEvent(new Event("change")); }, v); return "holdoff=" + v; } },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "ch1-toggle", w: 3, run: async (op) => clickId(op, "tC1") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "ch2-toggle", w: 3, run: async (op) => clickId(op, "tC2") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "offset1", w: 3, run: async (op) => { const v = rfloat(-3.5, 3.5).toFixed(2); await slider(op, "off1", v); return "off1=" + v; } },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "offset2", w: 2, run: async (op) => { const v = rfloat(-3.5, 3.5).toFixed(2); await slider(op, "off2", v); return "off2=" + v; } },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "run-stop", w: 4, hold: true, run: async (op) => clickId(op, "run") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "single", w: 2, hold: true, run: async (op) => clickId(op, "single") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "freeze", w: 2, hold: true, run: async (op) => clickId(op, "freeze") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "autoset", w: 1, run: async (op) => { await clickId(op, "autoset"); await op.page.waitForTimeout(4000); return "autoset"; } },
   // the workspaces: a tab, the same workspace's key again (its other view), and
   // the view letters (Y-T / X-Y / FFT). COMPARE again stacks a master, which
   // takes many captures — it has its own browser test.
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "ws-switch", w: 5, run: async (op) => { const w = pick(WS_IDS); await clickId(op, "tab-" + w); return "ws=" + w; } },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "ws-again", w: 3, run: async (op) => {
       const cur = await op.page.evaluate(() => ws.cur);
       if (cur === "compare") return "compare — skipped";
@@ -182,23 +182,23 @@ const ACTIONS = [
       return "again " + cur;
     },
   },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "view-yt", w: 2, run: async (op) => key(op, "y") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "view-xy", w: 1, run: async (op) => key(op, "x") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "view-fft", w: 2, run: async (op) => key(op, "f") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "spectrum-view", w: 2, run: async (op) => "viewSpec=" + (await selRandom(op, "viewSpec")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "bus-view", w: 2, run: async (op) => "busView=" + (await selRandom(op, "busView")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "meas-view", w: 1, run: async (op) => "measView=" + (await selRandom(op, "measView")) },
   // BUS's Visual view: one of its side panel's controls (Sound, notes, Gap-free,
   // Digital audio, Capture, Back to the bus, ...) or Full screen. Gap-free and a
   // capture legitimately hold the frames (the scope streams, or steps its timebase).
   {
-    // TRLC-LINKS: REQ-SDS-180, REQ-SDS-278
+    // TRLC-LINKS: REQ-DSO-180, REQ-DSO-278
     name: "visual-control", w: 2, hold: true, run: async (op) => {
       await op.page.click("#tab-bus", { timeout: 6000 });
       const vb = await op.page.$('#busView > button[data-value="visual"]');
@@ -223,7 +223,7 @@ const ACTIONS = [
   // panes: collapse/expand a pane, maximize one and restore (the trace canvas
   // follows every size change)
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "pane-collapse", w: 2, run: async (op) => {
       const c = await anyVisible(op, ".ws:not([hidden]) .pane > .ph > .pc");
       if (!c) return "no pane caret";
@@ -232,7 +232,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "pane-maximize", w: 2, run: async (op) => {
       // a title a user can reach: not one under a maximized pane
       const t = await anyVisible(op, ".ws:not([hidden]) .pane:not([inert] .pane):not([inert]) > .ph > .pt");
@@ -243,33 +243,33 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "all-settings", w: 1, run: async (op) => { await clickId(op, "allBtn"); return "all settings toggled"; },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "help-open-close", w: 1, run: async (op) => { await key(op, "?"); await op.page.waitForTimeout(250); await key(op, "Escape"); return "help"; },
   },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "math-fn", w: 2, run: async (op) => "mathFn=" + (await selRandom(op, "mathFn")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "acq-mode", w: 2, run: async (op) => "acq=" + (await selRandom(op, "acq")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "ets-toggle", w: 1, run: async (op) => clickId(op, "ets") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "persist", w: 1, run: async (op) => clickId(op, "tPersist") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "cursors", w: 2, run: async (op) => clickId(op, "tCursors") },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "memdepth", w: 2, run: async (op) => "memdepth=" + (await selRandom(op, "memdepth")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "decode-proto", w: 4, run: async (op) => "decProto=" + (await selRandom(op, "decProto")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "decode-fmt", w: 1, run: async (op) => "decFmt=" + (await selRandom(op, "decFmt")) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "decode-auto", w: 1, run: async (op) => clickId(op, "decDetect") },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "packet-click", w: 1, run: async (op) => {
       const r = await anyVisible(op, "#pkBody tr[data-i]");
       if (!r) return "no packet row";
@@ -277,10 +277,10 @@ const ACTIONS = [
       return "packet zoom";
     },
   },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "stats-reset", w: 1, run: async (op) => clickId(op, "statsReset") },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "zone-cycle", w: 1, hold: true, run: async (op) => {
       // draw-free zone flow: pick a mode, then straight back off (drawing needs
       // canvas drags; mode churn alone must never error)
@@ -291,7 +291,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "eye-arm-disarm", w: 2, run: async (op) => {
       const r = await clickId(op, "ejArm");
       if (r) return r;
@@ -302,7 +302,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "superres-arm-disarm", w: 2, run: async (op) => {
       await selRandom(op, "srPreset").catch(() => {});
       const r = await clickId(op, "srArm");
@@ -314,7 +314,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "spectrogram-arm-disarm", w: 2, run: async (op) => {
       const r = await clickId(op, "spgArm");
       if (r) return r;
@@ -325,7 +325,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "bode-arm-disarm", w: 1, hold: true, run: async (op) => {
       const r = await clickId(op, "bodeArm");
       if (r) return r;
@@ -336,7 +336,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "serialtrig-arm-disarm", w: 2, hold: true, run: async (op) => {
       // random byte pattern; frames may legitimately hold while armed
       await op.page.evaluate((b) => { const e = document.getElementById("stBytes"); if (e) { e.value = b; e.dispatchEvent(new Event("change")); } }, rint(0, 255).toString(16).padStart(2, "0"));
@@ -349,7 +349,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "zoom-wheel", w: 4, run: async (op) => {
       const box = await op.page.evaluate(() => { const c = document.getElementById("scope") || document.querySelector("canvas"); const r = c.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
       await op.page.mouse.move(box.x, box.y);
@@ -359,7 +359,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "pan-drag", w: 3, run: async (op) => {
       const box = await op.page.evaluate(() => { const c = document.getElementById("scope") || document.querySelector("canvas"); const r = c.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width }; });
       const dx = rint(-Math.floor(box.w / 3), Math.floor(box.w / 3));
@@ -371,7 +371,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "dblclick-home", w: 2, run: async (op) => {
       const box = await op.page.evaluate(() => { const c = document.getElementById("scope") || document.querySelector("canvas"); const r = c.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
       await op.page.mouse.dblclick(box.x, box.y);
@@ -379,7 +379,7 @@ const ACTIONS = [
     },
   },
   {
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     name: "ctrl-wheel-tdiv", w: 2, run: async (op) => {
       const box = await op.page.evaluate(() => { const c = document.getElementById("scope") || document.querySelector("canvas"); const r = c.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
       await op.page.mouse.move(box.x, box.y);
@@ -389,18 +389,18 @@ const ACTIONS = [
       return "ctrl-wheel";
     },
   },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "fft-peaks-n", w: 1, run: async (op) => { const v = rint(1, 64); await op.page.evaluate((x) => { const e = document.getElementById("fftN"); if (e) { e.value = x; e.dispatchEvent(new Event("change")); } }, v); return "fftN=" + v; } },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "ref-save", w: 1, run: async (op) => clickId(op, pick(["refSaveA", "refSaveB"])) },
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   { name: "ref-show", w: 1, run: async (op) => clickId(op, pick(["refShowA", "refShowB"])) },
 ];
 const weighted = [];
 for (const a of ACTIONS) for (let k = 0; k < a.w; k++) weighted.push(a);
 
 // ---------- invariants ----------
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 async function checkInvariants(op, act, iter) {
   const errs = [];
   // I1 page errors

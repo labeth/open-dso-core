@@ -1,0 +1,62 @@
+schemaVersion: 2
+views:
+- id: VIEW-SYSTEM
+  kind: architecture-intent
+  roots:
+  - FG-DSO-ACQUISITION
+  - FG-DSO-ANALYSIS
+  - FG-DSO-UI
+  - FG-DSO-REMOTE
+  - FG-DSO-OPERATIONS
+  - FG-DSO-VERIFICATION
+- id: VIEW-COMMUNICATION
+  kind: communication
+  roots:
+  - IF-HAL
+  - IF-HTTP
+  - IF-SCPI
+  - IF-OTA
+  excludeKinds:
+  - referenced_element
+- id: VIEW-TRACEABILITY
+  kind: traceability
+  roots:
+  - FU-DSO-ENGINE
+  - FU-DSO-DECODE
+  - FU-DSO-WEBSERVER
+  maxDepth: 1
+design:
+  id: DESIGN-DSO-CORE
+  title: open-dso-core Software Architecture
+  functionalGroups:
+  - id: FG-DSO-ACQUISITION
+    views:
+      architecture_intent:
+        title: Acquisition and frames
+        narrative: The board interface, the engine's hardware-free acquisition policy and the published frame.
+  - id: FG-DSO-ANALYSIS
+    views:
+      architecture_intent:
+        title: Signal processing and analysis
+        narrative: Protocol decode, sample kernels, measurements, analysis, super-resolution and sound.
+  - id: FG-DSO-UI
+    views:
+      architecture_intent:
+        title: User interface
+        narrative: The UI model, display rendering, the shared look, the web server and the browser client.
+  - id: FG-DSO-REMOTE
+    views:
+      architecture_intent:
+        title: Remote programming
+        narrative: The SCPI engine and the VXI-11 server.
+  - id: FG-DSO-OPERATIONS
+    views:
+      architecture_intent:
+        title: Supervision and update
+        narrative: The on-device update supervisor, its watchdog keeper, the host controller and the diagnostics
+          framework.
+  - id: FG-DSO-VERIFICATION
+    views:
+      architecture_intent:
+        title: Test environment
+        narrative: Test helpers shared by the core and every scope.

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -34,7 +34,7 @@ type wordsTail struct {
 
 // MarshalJSON writes Info's fields and then the read's, as one object: the
 // encoding of a struct that embeds Info.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (h WordsHeader) MarshalJSON() ([]byte, error) {
 	tail, err := json.Marshal(wordsTail{Next: h.Next, Dropped: h.Dropped, Chunks: h.Chunks, Lag: h.Lag, ServerMS: h.ServerMS})
 	if err != nil {
@@ -61,7 +61,7 @@ func (h WordsHeader) MarshalJSON() ([]byte, error) {
 // carries them before their words: each the index (low and high words),
 // the word count, the flags (bit0 a break, bit1 a check) and the coding's
 // length, little-endian uint32s.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func AppendWordChunkHeads(dst []byte, chunks []WordChunk) []byte {
 	for _, c := range chunks {
 		flags := uint32(0)

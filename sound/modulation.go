@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -25,7 +25,7 @@ type Demod struct {
 }
 
 // Demodulate demodulates x (fs) against the carrier fc to about outRate.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func Demodulate(x []float64, fs, fc, outRate float64) Demod {
 	d := Demod{Fc: fc}
 	n := len(x)
@@ -90,7 +90,7 @@ func Demodulate(x []float64, fs, fc, outRate float64) Demod {
 }
 
 // smooth is a centred moving average of 2h+1 samples (shorter at the ends).
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func smooth(x []float64, h int) []float64 {
 	out := make([]float64, len(x))
 	cum := make([]float64, len(x)+1)
@@ -107,7 +107,7 @@ func smooth(x []float64, h int) []float64 {
 // ModRate is the rate of a slow periodic signal by its mean crossings
 // (hysteresis a tenth of its 5-95 % swing): rate in Hz and whole cycles
 // seen (0 when fewer than one).
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func ModRate(x []float64, fs float64) (float64, int) {
 	if len(x) < 4 || !(fs > 0) {
 		return 0, 0
@@ -153,7 +153,7 @@ func ModRate(x []float64, fs float64) (float64, int) {
 // ShapeOf names a periodic signal's shape from its second and third
 // harmonics against the fundamental at rate: "sine", "triangle", "square"
 // or "saw".
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func ShapeOf(x []float64, fs, rate float64) string {
 	if !(rate > 0) || len(x) < 8 {
 		return ""
@@ -213,7 +213,7 @@ const (
 )
 
 // AnalyzeModulation reads tremolo and vibrato from a demodulated tone.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func AnalyzeModulation(d Demod) Modulation {
 	m := Modulation{}
 	n := len(d.Amp)
@@ -264,7 +264,7 @@ func AnalyzeModulation(d Demod) Modulation {
 }
 
 // rms is the root mean square of x about zero.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func rms(x []float64) float64 {
 	if len(x) == 0 {
 		return 0
@@ -281,7 +281,7 @@ type biquad struct{ b0, b1, b2, a1, a2 float64 }
 
 // rbj builds a high-pass ("hp"), low-pass ("lp") or band-pass ("bp",
 // 0 dB peak) section at f0 Hz, quality q, rate fs.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func rbj(kind string, f0, q, fs float64) biquad {
 	w := 2 * math.Pi * f0 / fs
 	cw, sw := math.Cos(w), math.Sin(w)
@@ -300,7 +300,7 @@ func rbj(kind string, f0, q, fs float64) biquad {
 }
 
 // run filters x through the section.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func (b biquad) run(x []float64) []float64 {
 	out := make([]float64, len(x))
 	var x1, x2, y1, y2 float64
@@ -314,7 +314,7 @@ func (b biquad) run(x []float64) []float64 {
 
 // bandPass keeps lo..hi Hz of x: a Butterworth high-pass then low-pass,
 // the first second's settling dropped when the record allows.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func bandPass(x []float64, fs, lo, hi float64) []float64 {
 	if !(hi > lo) || hi >= fs/2 {
 		return nil
@@ -325,7 +325,7 @@ func bandPass(x []float64, fs, lo, hi float64) []float64 {
 
 // weightWF is the wow-and-flutter weighting: a broad band-pass peaking at
 // 4 Hz (0 dB there), as the IEC 386 curve is, its settling dropped.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func weightWF(x []float64, fs float64) []float64 {
 	if fs < 20 {
 		return nil
@@ -354,7 +354,7 @@ type specPeak struct {
 
 // findLines are the local maxima of db (two bins either side) within 50 dB
 // of the top, parabola-refined, in bin order.
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-270
 func findLines(db []float64, below float64) []specPeak {
 	top := math.Inf(-1)
 	for k := 1; k < len(db); k++ {
@@ -382,7 +382,7 @@ func findLines(db []float64, below float64) []specPeak {
 const sbMaxLines = 64
 
 // strongestLines keeps the n strongest lines, in bin order.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func strongestLines(l []specPeak, n int) []specPeak {
 	if len(l) <= n {
 		return l
@@ -398,7 +398,7 @@ func strongestLines(l []specPeak, n int) []specPeak {
 // reference) with bins binHz apart. The carrier is the line the others sit
 // most symmetrically about, the modulator their common spacing; the index
 // is the one whose Bessel amplitudes |J_k| best match the lines.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func AnalyzeSidebands(db []float64, binHz float64) Sidebands {
 	sb := Sidebands{}
 	lines := strongestLines(findLines(db, 40), sbMaxLines)
@@ -535,7 +535,7 @@ func AnalyzeSidebands(db []float64, binHz float64) Sidebands {
 }
 
 // absInt is |k|.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func absInt(k int) int {
 	if k < 0 {
 		return -k
@@ -545,7 +545,7 @@ func absInt(k int) int {
 
 // BesselJ returns J_0..J_nmax at x (x >= 0) by Miller's backward recurrence,
 // normalised by J_0 + 2(J_2 + J_4 + ...) = 1.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func BesselJ(nmax int, x float64) []float64 {
 	out := make([]float64, nmax+1)
 	if !(x > 0) {
@@ -584,7 +584,7 @@ func BesselJ(nmax int, x float64) []float64 {
 
 // RatioText writes r as a small fraction p:q when one within 0.1 % has q <= 12,
 // else to three digits.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func RatioText(r float64) string {
 	if !(r > 0) || !finite(r) {
 		return ""
@@ -613,7 +613,7 @@ type LFO struct {
 }
 
 // AnalyzeLFO reads an LFO (volts, fs): rate, levels, rise share and shape.
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func AnalyzeLFO(x []float64, fs float64) LFO {
 	l := LFO{}
 	if len(x) < 16 || !(fs > 0) {

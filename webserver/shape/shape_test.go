@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package shape
 
@@ -12,14 +12,14 @@ import (
 )
 
 // nodeRun runs a node harness of the web client in its directory.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 func nodeRun(t *testing.T, harness string) ([]byte, error) {
 	cmd := exec.CommandContext(t.Context(), "node", harness)
 	cmd.Dir = webclient.Dir()
 	return cmd.CombinedOutput()
 }
 
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestWindowMapping(t *testing.T) {
 	sig := make([]uint8, 100)
 	for i := range sig {
@@ -54,7 +54,7 @@ func TestWindowMapping(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestWindowNoEndGaps(t *testing.T) {
 	// The record IS the window (WinCols == Valid) with the edge off-centre:
 	// the window must clamp into the record and fill every column with real
@@ -77,7 +77,7 @@ func TestWindowNoEndGaps(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestWindowRailExtendCentres(t *testing.T) {
 	// Repeat-rail: an edge near a record END (no crossing near the middle, the
 	// sub-period case) must still land at posFrac. With WinCols==Valid the old
@@ -113,7 +113,7 @@ func TestWindowRailExtendCentres(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func BenchmarkWindowFrame(b *testing.B) {
 	sig := make([]uint8, 5000)
 	for i := range sig {
@@ -125,7 +125,7 @@ func BenchmarkWindowFrame(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestResampleEnv(t *testing.T) {
 	v := make([]uint8, 800)
 	for i := range v {
@@ -140,7 +140,7 @@ func TestResampleEnv(t *testing.T) {
 // A frame with no crossing shows the screen centred on the record (lcd
 // traceWindow): at 10 % no column past the record's end repeats its last
 // sample.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestWindowWithoutAnEdge(t *testing.T) {
 	sig := make([]uint8, 1000)
 	for i := range sig {
@@ -153,7 +153,7 @@ func TestWindowWithoutAnEdge(t *testing.T) {
 }
 
 // A roll view's held samples reach the page as ranges, which it draws dimmed.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 func TestHeldRanges(t *testing.T) {
 	held := []bool{false, true, true, false, false, true, true, true}
 	if got := HeldRanges(held, 8); !reflect.DeepEqual(got, [][2]int{{1, 3}, {5, 8}}) {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-SLOTS
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-SLOTS
 
 package slots
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-087
+// TRLC-LINKS: REQ-DSO-087
 func mkbin(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -19,7 +19,7 @@ func mkbin(t *testing.T, path, content string) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-087
+// TRLC-LINKS: REQ-DSO-087
 func TestPointerDefaultsAndValidation(t *testing.T) {
 	s := New(t.TempDir())
 	if err := s.Init(); err != nil {
@@ -49,14 +49,14 @@ func TestPointerDefaultsAndValidation(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-087
+// TRLC-LINKS: REQ-DSO-087
 func TestOther(t *testing.T) {
 	if Other(SlotA) != SlotB || Other(SlotB) != SlotA {
 		t.Fatal("Other() wrong")
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-087
+// TRLC-LINKS: REQ-DSO-087
 func TestInstallAndStatus(t *testing.T) {
 	s := New(t.TempDir())
 	if err := s.Init(); err != nil {
@@ -89,7 +89,7 @@ func TestInstallAndStatus(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-087
+// TRLC-LINKS: REQ-DSO-087
 func TestHasBinaryRejectsEmpty(t *testing.T) {
 	s := New(t.TempDir())
 	_ = s.Init()
@@ -102,7 +102,7 @@ func TestHasBinaryRejectsEmpty(t *testing.T) {
 
 // A file that cannot be read through has no hash: the error is returned, not
 // the hash of what was read before it (a directory opens but fails to read).
-// TRLC-LINKS: REQ-SDS-087, REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-087, REQ-DSO-106
 func TestFileSHA256ReportsAReadError(t *testing.T) {
 	if sum, err := FileSHA256(t.TempDir()); err == nil {
 		t.Fatalf("hashing a directory gave %s and no error", sum)

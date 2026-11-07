@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -18,7 +18,7 @@ import (
 var twiddles sync.Map // n -> *[2][]float64 (cos, sin of -2*pi*k/n, k < n/2)
 
 // twiddle returns the cos and sin tables of an n-point transform.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-270
 func twiddle(n int) ([]float64, []float64) {
 	if t, ok := twiddles.Load(n); ok {
 		if p, ok := t.(*[2][]float64); ok {
@@ -43,7 +43,7 @@ var lastHann atomic.Pointer[[]float64]
 // last other n: the tuner and the spectra window the same few sizes several
 // times a second, and a cosine a sample cost the instrument as much as
 // their transforms.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-270
 func hannTable(n int) []float64 {
 	if n < 2 || n > 1<<20 {
 		return nil
@@ -81,7 +81,7 @@ func hannTable(n int) []float64 {
 var scratchPools [32]sync.Pool
 
 // getScratch is a buffer of n (contents undefined) from the pool.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-269, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-269, REQ-DSO-270
 func getScratch(n int) []float64 {
 	k := bits.Len(uint(max(n, 1) - 1))
 	if p, ok := scratchPools[k].Get().(*[]float64); ok {
@@ -92,7 +92,7 @@ func getScratch(n int) []float64 {
 
 // putScratch gives b (from getScratch) back to its pool; the caller keeps
 // no reference.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-269, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-269, REQ-DSO-270
 func putScratch(b []float64) {
 	if c := cap(b); c > 0 && c&(c-1) == 0 {
 		scratchPools[bits.Len(uint(c-1))].Put(&b)
@@ -101,7 +101,7 @@ func putScratch(b []float64) {
 
 // fft transforms re, im in place (len a power of two); inverse runs the
 // inverse transform without the 1/n scale.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-270
 func fft(re, im []float64, inverse bool) { //nolint:dupl // perf_bench_test.go keeps the first version as the oracle it must equal
 	n := len(re)
 	if n < 2 {
@@ -138,7 +138,7 @@ func fft(re, im []float64, inverse bool) { //nolint:dupl // perf_bench_test.go k
 }
 
 // pow2 is the smallest power of two at least n.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-270
 func pow2(n int) int {
 	p := 1
 	for p < n && p < 1<<30 { // doubling on would wrap a 32-bit int and never end
@@ -148,7 +148,7 @@ func pow2(n int) int {
 }
 
 // floorPow2 is the largest power of two at most n (0 for n < 1).
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-270
 func floorPow2(n int) int {
 	if n < 1 {
 		return 0
@@ -162,14 +162,14 @@ func floorPow2(n int) int {
 
 // hann is the periodic-free (symmetric) Hann window's value at i of n, as the
 // web's spectrum uses.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-270
 func hann(i, n int) float64 {
 	return 0.5 - 0.5*math.Cos(2*math.Pi*float64(i)/float64(n-1))
 }
 
 // hannGain is a Hann window's response to a tone d bins (|d| <= 0.5) from a
 // bin, relative to a tone on the bin.
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-270
 func hannGain(d float64) float64 {
 	if d == 0 {
 		return 1
@@ -178,7 +178,7 @@ func hannGain(d float64) float64 {
 }
 
 // mean is the average of x (0 for none).
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func mean(x []float64) float64 {
 	if len(x) == 0 {
 		return 0
@@ -193,7 +193,7 @@ func mean(x []float64) float64 {
 // toneAt is the Hann-windowed DFT of x at f (Hz) for sample rate fs: the
 // complex amplitude a tone of amplitude A on f reads as A/2 times the window's
 // sum (the Bode measurement's single-bin DFT, windowed).
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-271
 func toneAt(x []float64, f, fs float64) (re, im float64) {
 	n := len(x)
 	if n < 2 {
@@ -222,7 +222,7 @@ func toneAt(x []float64, f, fs float64) (re, im float64) {
 }
 
 // wrapPi wraps an angle into (-pi, pi].
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func wrapPi(a float64) float64 {
 	a = math.Mod(a+math.Pi, 2*math.Pi)
 	if a <= 0 {
@@ -232,5 +232,5 @@ func wrapPi(a float64) float64 {
 }
 
 // finite reports a finite float.
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func finite(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }

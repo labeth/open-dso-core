@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -9,7 +9,7 @@ import (
 )
 
 // benchTone is a 220 Hz tone with harmonics and noise at fs.
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func benchTone(n int, fs float64) []float64 {
 	r := rand.New(rand.NewSource(4))
 	x := make([]float64, n)
@@ -20,7 +20,7 @@ func benchTone(n int, fs float64) []float64 {
 	return x
 }
 
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 func BenchmarkMinMaxColumns(b *testing.B) {
 	x := benchTone(65536, 48828)
 	for b.Loop() {
@@ -28,7 +28,7 @@ func BenchmarkMinMaxColumns(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func BenchmarkTunerAdd(b *testing.B) {
 	t := &Tuner{Slow: true}
 	hz := 440.0
@@ -38,7 +38,7 @@ func BenchmarkTunerAdd(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 func BenchmarkExtractCycles(b *testing.B) {
 	x := benchTone(8192, 48828)
 	for b.Loop() {
@@ -46,7 +46,7 @@ func BenchmarkExtractCycles(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func BenchmarkFFT8192(b *testing.B) {
 	x := benchTone(8192, 48828)
 	re, im := make([]float64, 8192), make([]float64, 8192)
@@ -57,7 +57,7 @@ func BenchmarkFFT8192(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func BenchmarkDetectPitch(b *testing.B) {
 	x := benchTone(32768, 48828)
 	for b.Loop() {
@@ -65,7 +65,7 @@ func BenchmarkDetectPitch(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 func BenchmarkEnvelope(b *testing.B) {
 	x := benchTone(65536, 48828)
 	for b.Loop() {
@@ -73,7 +73,7 @@ func BenchmarkEnvelope(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-271
 func BenchmarkDelay(b *testing.B) {
 	a := benchTone(16384, 48828)
 	c := append(make([]float64, 7), a[:len(a)-7]...)
@@ -82,7 +82,7 @@ func BenchmarkDelay(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func BenchmarkHarmonics(b *testing.B) {
 	sp := AudioSpectrum(benchTone(16384, 48828), 48828, 16384)
 	for b.Loop() {
@@ -90,7 +90,7 @@ func BenchmarkHarmonics(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 func BenchmarkModRate(b *testing.B) {
 	x := make([]float64, 4000)
 	for i := range x {
@@ -102,7 +102,7 @@ func BenchmarkModRate(b *testing.B) {
 }
 
 // fftRef is fft as first written: the oracle and the baseline.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func fftRef(re, im []float64, inverse bool) {
 	n := len(re)
 	if n < 2 {
@@ -139,7 +139,7 @@ func fftRef(re, im []float64, inverse bool) {
 }
 
 // fft gives exactly the first version's results, both ways.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func TestFFTIsTheReference(t *testing.T) {
 	r := rand.New(rand.NewSource(2))
 	for _, n := range []int{2, 8, 1024, 8192} {
@@ -160,7 +160,7 @@ func TestFFTIsTheReference(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 func BenchmarkFFT8192Ref(b *testing.B) {
 	x := benchTone(8192, 48828)
 	re, im := make([]float64, 8192), make([]float64, 8192)
@@ -171,7 +171,7 @@ func BenchmarkFFT8192Ref(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 func BenchmarkToneAt(b *testing.B) {
 	x := benchTone(16384, 48828)
 	for b.Loop() {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -64,7 +64,7 @@ var physDecoders = []struct {
 // bursty walk, a two-level random line), degenerate sample times and a
 // missing second line, and truncated and spliced copies of their own frames:
 // none may panic or take over two seconds.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestDecodeFuzzPhys(t *testing.T) {
 	rng := rand.New(rand.NewSource(int64(2718 + fuzzKnob("DECODE_FUZZ_SEED", 0))))
 	frames := physDetectCases()
@@ -130,7 +130,7 @@ func TestDecodeFuzzPhys(t *testing.T) {
 // TestBreakPhysNoFalseFrames: the checked protocols name no frame on lines
 // that carry none (a random two-level line at many rates): a frame is OK
 // only on its CRC, checksum, parities or inverse.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestBreakPhysNoFalseFrames(t *testing.T) {
 	rng := rand.New(rand.NewSource(101))
 	checked := map[string]bool{
@@ -197,7 +197,7 @@ func TestBreakPhysNoFalseFrames(t *testing.T) {
 
 // TestBreakPhysChecksFlagged: each check flags its broken frame, and the
 // decode is not OK on that frame alone.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestBreakPhysChecksFlagged(t *testing.T) {
 	type tc struct {
 		name string
@@ -313,7 +313,7 @@ func TestBreakPhysChecksFlagged(t *testing.T) {
 
 // TestBreakPhysRecordEnds: a capture cut by the record's end at every point
 // never decodes to more units than the whole capture holds.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestBreakPhysRecordEnds(t *testing.T) {
 	dec := map[string]func(a, b []uint8, ct float64) Result{}
 	for _, d := range physDecoders {

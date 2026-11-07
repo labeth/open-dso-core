@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -32,7 +32,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestTruthSENT(t *testing.T) {
 	const tick = 20 // samples per SENT tick
 	// Allegro AN296177 Table 18: six-data-nibble sequences with the published
@@ -123,7 +123,7 @@ func TestTruthSENT(t *testing.T) {
 	})
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestTruthMIL1553(t *testing.T) {
 	const spb = 40
 	colTimeS := 1.0 / (float64(spb) * 1e6)
@@ -172,7 +172,7 @@ func TestTruthMIL1553(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestTruthARINC429(t *testing.T) {
 	const spb = 40
 	colTimeS := 2.5e-7 // 100 kbit/s at spb=40
@@ -261,7 +261,7 @@ func TestTruthARINC429(t *testing.T) {
 	})
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestTruthManchester(t *testing.T) {
 	const spb = 24
 	colTimeS := 1e-6

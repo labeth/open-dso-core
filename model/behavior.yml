@@ -1,0 +1,93 @@
+schemaVersion: 2
+behavior:
+  relationships:
+  - type: contains
+    from: FG-DSO-ACQUISITION
+    to: FU-DSO-HAL
+  - type: contains
+    from: FG-DSO-ACQUISITION
+    to: FU-DSO-SAMPLE
+  - type: contains
+    from: FG-DSO-ACQUISITION
+    to: FU-DSO-PROFILE
+  - type: contains
+    from: FG-DSO-ACQUISITION
+    to: FU-DSO-ENGINE
+  - type: contains
+    from: FG-DSO-ACQUISITION
+    to: FU-DSO-FRAMECALC
+  - type: contains
+    from: FG-DSO-ACQUISITION
+    to: FU-DSO-STREAMWIRE
+  - type: contains
+    from: FG-DSO-ANALYSIS
+    to: FU-DSO-DECODE
+  - type: contains
+    from: FG-DSO-ANALYSIS
+    to: FU-DSO-DSP
+  - type: contains
+    from: FG-DSO-ANALYSIS
+    to: FU-DSO-MEASURE
+  - type: contains
+    from: FG-DSO-ANALYSIS
+    to: FU-DSO-ANALYSIS
+  - type: contains
+    from: FG-DSO-ANALYSIS
+    to: FU-DSO-SUPERRES
+  - type: contains
+    from: FG-DSO-ANALYSIS
+    to: FU-DSO-SOUND
+  - type: contains
+    from: FG-DSO-UI
+    to: FU-DSO-UIMODEL
+  - type: contains
+    from: FG-DSO-UI
+    to: FU-DSO-RENDER
+  - type: contains
+    from: FG-DSO-UI
+    to: FU-DSO-DESIGN
+  - type: contains
+    from: FG-DSO-UI
+    to: FU-DSO-WEBSERVER
+  - type: contains
+    from: FG-DSO-UI
+    to: FU-DSO-WEBCLIENT
+  - type: contains
+    from: FG-DSO-REMOTE
+    to: FU-DSO-SCPI
+  - type: contains
+    from: FG-DSO-REMOTE
+    to: FU-DSO-VXI11SRV
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-AGENT
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-WATCHDOG
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-OTACTL
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-DIAG
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-CONFIG
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-SLOTS
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-RPCPROTO
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-FDINHERIT
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-SYSINFO
+  - type: contains
+    from: FG-DSO-OPERATIONS
+    to: FU-DSO-SUPERVISOR-VXI11
+  - type: contains
+    from: FG-DSO-VERIFICATION
+    to: FU-DSO-TESTENV

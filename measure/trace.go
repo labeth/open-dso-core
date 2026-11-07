@@ -12,7 +12,7 @@ const minAmplDiv = minAmplCodes / 25.0
 // words when it has them, take exactly ComputeAcquisition's path; wider
 // words are measured as Q8.8 on the 8-bit view, with the flat-record
 // threshold kept at the same fraction of a division.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func ComputeTrace(t *sample.Trace, lo, hi int, voltsPerCode, offV, sampleS float64, coupling, guard int) *Result {
 	words := len(t.Codes8)
 	if t.Format.Storage == sample.U16 {

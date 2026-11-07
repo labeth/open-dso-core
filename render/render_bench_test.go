@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render_test
 
@@ -18,7 +18,7 @@ import (
 // go test ./render -run - -bench render.Render
 
 // benchRender renders f with h b.N times.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func benchRender(b *testing.B, f *sample.Frame, h render.HUD) {
 	b.Helper()
 	sf := render.NewImage565(&render.Metrics800x480)
@@ -28,23 +28,23 @@ func benchRender(b *testing.B, f *sample.Frame, h render.HUD) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkRenderTrace(b *testing.B) { benchRender(b, rendertest.YTFrame(), rendertest.YTHUD()) }
 
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func BenchmarkRenderScopeRail(b *testing.B) {
 	v := wsview.View{WS: wsview.Scope, Layout: rendertest.PaneLayout(0), Rail: true, Scope: &wsview.ScopePane{AdjustTag: "Adjust: Level 200mV"}}
 	benchRender(b, rendertest.YTFrame(), rendertest.UIHUD(v))
 }
 
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func BenchmarkRenderSheet(b *testing.B) {
 	keys := &wsview.Keys{Title: "LEVEL", Top: 30, Items: [5]wsview.Key{{Label: "Down"}, {Label: "Up"}}}
 	v := wsview.View{WS: wsview.Scope, Layout: wsview.Layout{MenuW: 116, Sheet: true, HideTraces: true, HideBottom: true}, Sheet: rendertest.Sheet(), Keys: keys}
 	benchRender(b, rendertest.YTFrame(), rendertest.UIHUD(v))
 }
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func BenchmarkRenderBusEye(b *testing.B) {
 	const cols, rows = 384, 166
 	grid, mx := rendertest.EyeGrid(cols, rows)
@@ -58,7 +58,7 @@ func BenchmarkRenderBusEye(b *testing.B) {
 	benchRender(b, rendertest.BusFrame(), h)
 }
 
-// TRLC-LINKS: REQ-SDS-221
+// TRLC-LINKS: REQ-DSO-221
 func BenchmarkDrawSaver(b *testing.B) {
 	sf := render.NewImage565(&render.Metrics800x480)
 	f := rendertest.YTFrame()
@@ -72,7 +72,7 @@ func BenchmarkDrawSaver(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkRenderBode(b *testing.B) {
 	h := rendertest.DefaultHUD()
 	h.ViewMode = 3
@@ -86,7 +86,7 @@ func BenchmarkRenderBode(b *testing.B) {
 	benchRender(b, nil, h)
 }
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func BenchmarkRenderFFT(b *testing.B) {
 	const n = 4096
 	f := rendertest.Frame(n,
@@ -102,7 +102,7 @@ func BenchmarkRenderFFT(b *testing.B) {
 	benchRender(b, f, h)
 }
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func BenchmarkRenderSpectrogram(b *testing.B) {
 	sg := render.NewSpectrogram()
 	for s := range 8 {
@@ -116,7 +116,7 @@ func BenchmarkRenderSpectrogram(b *testing.B) {
 	benchRender(b, nil, h)
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkRenderCursorsMeasure(b *testing.B) {
 	h := rendertest.YTHUD()
 	h.CurOn, h.CurType, h.CurSel = true, 0, 0
@@ -125,7 +125,7 @@ func BenchmarkRenderCursorsMeasure(b *testing.B) {
 	benchRender(b, rendertest.YTFrame(), h)
 }
 
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func BenchmarkDrawMeasPanel(b *testing.B) {
 	f := rendertest.YTFrame()
 	f.Seq = 7 // measured once, then cached: the panel's own cost
@@ -137,7 +137,7 @@ func BenchmarkDrawMeasPanel(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkMathCodes(b *testing.B) {
 	c1, c2 := make([]uint8, 20000), make([]uint8, 20000)
 	for i := range c1 {
@@ -153,7 +153,7 @@ func BenchmarkMathCodes(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-273
 func BenchmarkDrawSoundPane(b *testing.B) {
 	s := rendertest.SoundPane("MODULATION", []wsview.Span{{Text: "TREMOLO (AM)", Col: wsview.Amber}, {Text: "depth 30.0%  5.4 dB", Col: wsview.Text}})
 	p := render.PlotOf(&render.Metrics800x480, wsview.Layout{MenuW: 30, PlotTop: 262})
@@ -164,7 +164,7 @@ func BenchmarkDrawSoundPane(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkDrawSuperresTrace(b *testing.B) {
 	h := rendertest.SuperresHUD()
 	sf := render.NewImage565(&render.Metrics800x480)
@@ -173,7 +173,7 @@ func BenchmarkDrawSuperresTrace(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkSRResample(b *testing.B) {
 	h := rendertest.SuperresHUD()
 	for b.Loop() {
@@ -183,7 +183,7 @@ func BenchmarkSRResample(b *testing.B) {
 
 // The saver picture is the live mini scope and its lines in the box, and
 // black everywhere else, whatever the screen showed before.
-// TRLC-LINKS: REQ-SDS-221
+// TRLC-LINKS: REQ-DSO-221
 func TestDrawSaver(t *testing.T) {
 	f := rendertest.YTFrame()
 	hud := rendertest.YTHUD()

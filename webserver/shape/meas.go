@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package shape
 
@@ -50,7 +50,7 @@ type MeasCache struct {
 // throttle false for single-shot or stopped captures, where one frame's
 // values must be exact (a stale reuse there would never be corrected by a
 // next frame).
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (c *MeasCache) Get(key MeasKey, throttle bool, compute func() MeasVal) MeasVal {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -67,7 +67,7 @@ func (c *MeasCache) Get(key MeasKey, throttle bool, compute func() MeasVal) Meas
 }
 
 // Expire makes the next Get recompute even within the throttle window.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (c *MeasCache) Expire() {
 	c.mu.Lock()
 	c.at = time.Time{}

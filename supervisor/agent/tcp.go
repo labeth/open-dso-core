@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -16,7 +16,7 @@ import (
 // even when NATS is unreachable (e.g. no outbound path from the lab), reached
 // directly at OTA_LISTEN. Like every other worker it only calls Dispatch —
 // never the GPMC bus.
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func (a *Agent) serveTCP() {
 	ln, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", a.cfg.TCPListen)
 	if err != nil {
@@ -51,7 +51,7 @@ func (a *Agent) serveTCP() {
 // TCPAddr reports the TCP control listener's bound address ("" until it is
 // listening). With OTA_LISTEN=127.0.0.1:0 this is how a harness learns the
 // ephemeral port; it records state only and changes no listener behavior.
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func (a *Agent) TCPAddr() string {
 	a.tcpMu.Lock()
 	defer a.tcpMu.Unlock()
@@ -63,7 +63,7 @@ func (a *Agent) TCPAddr() string {
 // whole, so a peer that never sends a newline would grow it without limit.
 const maxRequestLine = 8 << 20
 
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func (a *Agent) handleConn(conn net.Conn) {
 	defer func() { _ = conn.Close() }() // the reply was written or the peer is gone
 	// Large deadline: file-transfer chunks and long exec can take a while.
@@ -97,7 +97,7 @@ func (a *Agent) handleConn(conn net.Conn) {
 var errLineTooLong = errors.New("request line over 8 MiB")
 
 // readLine is ReadBytes('\n') that stops at max bytes.
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func readLine(r *bufio.Reader, maxLen int) ([]byte, error) {
 	var line []byte
 	for {

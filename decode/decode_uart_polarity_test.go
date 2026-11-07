@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestUARTInvertedPolarity(t *testing.T) {
 	want := []int{0x48, 0x69, 0x20, 0x55, 0xaa, 0x0f, 0xf0, 0x0a}
 	var samples []uint8

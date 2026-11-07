@@ -1,7 +1,7 @@
 // Package streamwire is the decoded stream's transcript as the web server
 // serves it: the formatted window the display's list writes and the lines
 // as data for a reader following the stream.
-// ENGMODEL-OWNER-UNIT: FU-APP-ENGINE
+// ENGMODEL-OWNER-UNIT: FU-DSO-STREAMWIRE
 package streamwire
 
 // ListRows is how many transcript lines the full-screen list shows; the

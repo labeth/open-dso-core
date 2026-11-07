@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -128,7 +128,7 @@ type streamCPUCase struct {
 }
 
 // streamCPUCaseOf finds name's generator and its stream's bucket.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamCPUCaseOf(tb testing.TB, name string) streamCPUCase {
 	tb.Helper()
 	var all []streamCase
@@ -165,7 +165,7 @@ func streamCPUCaseOf(tb testing.TB, name string) streamCPUCase {
 // streamCPULines is about secs of the case's traffic as the peak stream's
 // samples; bursty adds a quiet stretch of 20 frames' length after every
 // fourth frame.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamCPULines(tc streamCPUCase, seed int64, secs float64, bursty bool) (a, b []uint8, ss float64) {
 	const m = 8
 	rng := rand.New(rand.NewSource(seed))
@@ -194,7 +194,7 @@ func streamCPULines(tc streamCPUCase, seed int64, secs float64, bursty bool) (a,
 
 // streamCPUIdle is secs of the case's idle line as the peak stream's
 // samples: what a quiet bus costs.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamCPUIdle(tc streamCPUCase, secs float64) (a, b []uint8, ss float64) {
 	const m = 8
 	rng := rand.New(rand.NewSource(1))
@@ -214,7 +214,7 @@ func streamCPUIdle(tc streamCPUCase, secs float64) (a, b []uint8, ss float64) {
 
 // streamCPURun pushes the samples through a stream decoder in the engine's
 // pushes and returns the frames.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func streamCPURun(tc streamCPUCase, a, b []uint8, ss float64, dec func(a, b []uint8) Result) []StreamFrame {
 	d := NewStreamDecoder(dec, int(tc.quiet/ss), int((tc.longest+tc.quiet)/ss))
 	d.SetLead(int(tc.lead / ss))
@@ -233,7 +233,7 @@ func streamCPURun(tc streamCPUCase, a, b []uint8, ss float64, dec func(a, b []ui
 }
 
 // threadCPU is the process's user+system CPU time in ns.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func threadCPU() int64 {
 	var r syscall.Rusage
 	_ = syscall.Getrusage(syscall.RUSAGE_SELF, &r) // the collector's threads too
@@ -245,7 +245,7 @@ func threadCPU() int64 {
 // With SDS_STREAM_CPU_CYCLES=1 it is the calling thread's user cycles a
 // call instead (perf counters: a loaded PC's time swings by a third), with
 // =insn its instructions.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func cpuOf(fn func()) float64 {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -270,7 +270,7 @@ func cpuOf(fn func()) float64 {
 
 // cyclesOf is fn's user-mode cycles on this thread a call, the least of
 // five rounds; ok false without a perf counter.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func cyclesOf(fn func()) (float64, bool) {
 	var attr [128]byte
 	binary.LittleEndian.PutUint32(attr[0:], 0)               // PERF_TYPE_HARDWARE
@@ -304,7 +304,7 @@ func cyclesOf(fn func()) (float64, bool) {
 
 // TestStreamCPU reports each protocol's decode CPU a second of stream, and
 // how many samples reach the decoder and its slicing a pushed sample.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestStreamCPU(t *testing.T) {
 	if os.Getenv("SDS_STREAM_CPU") == "" {
 		t.Skip("SDS_STREAM_CPU=1 to measure")
@@ -377,7 +377,7 @@ var streamCPUBench = map[string]streamCPUData{}
 
 // BenchmarkStreamCPU is TestStreamCPU's dense streams for a profile
 // (SDS_STREAM_BURSTY=1: the bursty ones).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func BenchmarkStreamCPU(b *testing.B) {
 	for _, name := range streamCPUNames {
 		b.Run(name, func(b *testing.B) {

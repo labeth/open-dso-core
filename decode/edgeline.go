@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -43,7 +43,7 @@ type scratch struct {
 }
 
 // reset begins a decode: its requests take the slots from the first again.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (sc *scratch) reset() {
 	if sc != nil {
 		sc.next = 0
@@ -52,7 +52,7 @@ func (sc *scratch) reset() {
 
 // scratchAppend is append(s, x) for a slice from slot k of sc: an array it
 // outgrows is replaced in the slot by the larger one.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func scratchAppend[T any](sc *scratch, k int, s []T, x T) []T {
 	if len(s) == cap(s) {
 		s = scratchGrow(sc, k, s)
@@ -62,7 +62,7 @@ func scratchAppend[T any](sc *scratch, k int, s []T, x T) []T {
 
 // scratchGrow is s, from slot k of sc, in an array of twice the room,
 // which replaces it in the slot (no scratch: append's growth).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func scratchGrow[T any](sc *scratch, k int, s []T) []T {
 	if sc == nil {
 		return slices.Grow(s, 1)
@@ -76,7 +76,7 @@ func scratchGrow[T any](sc *scratch, k int, s []T) []T {
 // scratchSlice is an empty slice of capacity n or more: the next slot's
 // array when it holds as many of T, a new one (kept in the slot) when not,
 // and a new one each call without a scratch.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func scratchSlice[T any](sc *scratch, n int) []T {
 	if sc == nil {
 		return make([]T, 0, n)
@@ -94,13 +94,13 @@ func scratchSlice[T any](sc *scratch, n int) []T {
 }
 
 // Reset empties the line.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) Reset() {
 	l.N, l.First, l.At = 0, 0, l.At[:0]
 }
 
 // Last is the level of the line's last sample (0 for an empty line).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) Last() uint8 {
 	if l.N == 0 {
 		return 0
@@ -110,7 +110,7 @@ func (l *EdgeLine) Last() uint8 {
 
 // start opens the next samples at level lvl: the line's first, or an edge
 // where it differs from the last.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) start(lvl uint8) {
 	if l.N == 0 {
 		l.First, l.At = lvl, l.At[:0]
@@ -120,7 +120,7 @@ func (l *EdgeLine) start(lvl uint8) {
 }
 
 // AppendLevel appends n samples of level lvl (0 or 1).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) AppendLevel(lvl uint8, n int) {
 	if n <= 0 {
 		return
@@ -135,7 +135,7 @@ func (l *EdgeLine) AppendLevel(lvl uint8, n int) {
 // that differ from the bit before (the word against itself shifted up a
 // period, the last word's level below it), found a set bit at a time: a
 // quiet word costs a compare.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) AppendWords(raw []byte, ch int) {
 	n := len(raw) / 4
 	if n == 0 {
@@ -170,7 +170,7 @@ func (l *EdgeLine) AppendWords(raw []byte, ch int) {
 }
 
 // AppendRange appends samples from..to-1 of src.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) AppendRange(src *EdgeLine, from, to int) {
 	from, to = max(from, 0), min(to, src.N)
 	if to <= from {
@@ -188,7 +188,7 @@ func (l *EdgeLine) AppendRange(src *EdgeLine, from, to int) {
 }
 
 // Drop removes the first n samples.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) Drop(n int) {
 	if n <= 0 {
 		return
@@ -208,7 +208,7 @@ func (l *EdgeLine) Drop(n int) {
 }
 
 // Samples is the line as samples, 0 or 255.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) Samples() []uint8 {
 	out := make([]uint8, l.N)
 	lvl, from := l.First, 0
@@ -225,7 +225,7 @@ func (l *EdgeLine) Samples() []uint8 {
 
 // runs counts the line's high samples, and each level's samples in runs
 // of three or more (heldBeyond's runs).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) runs() (ones int, held [2]int) {
 	lvl, from := l.First&1, 0
 	for _, at := range l.At {
@@ -242,7 +242,7 @@ func (l *EdgeLine) runs() (ones int, held [2]int) {
 
 // ones counts the line's high samples: the runs between its edges, every
 // other one from the first high.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) ones() int {
 	at, ones := l.At, 0
 	k := 0
@@ -267,7 +267,7 @@ func (l *EdgeLine) ones() int {
 // crossing sliceChannel computes between a 0 and a 255. A threshold whose
 // band does not lie within the codes (sliceChannel would then read a 0 or a
 // 255 as the other level) slices the samples themselves.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (l *EdgeLine) slice(thr float64, haveThr bool) sliced {
 	const hystFrac = 0.20
 	n := l.N
@@ -334,16 +334,16 @@ type lineIn struct {
 }
 
 // samplesIn is a line of samples.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func samplesIn(codes []uint8) lineIn { return lineIn{codes: codes} }
 
 // edgesIn is a digital line's edges (nil: no line).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func edgesIn(l *EdgeLine) lineIn { return lineIn{e: l} }
 
 // scratch is the scratch the line's decodes take their arrays from (nil:
 // none).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (in lineIn) scratch() *scratch {
 	if in.e != nil {
 		return in.e.sc
@@ -352,11 +352,11 @@ func (in lineIn) scratch() *scratch {
 }
 
 // none reports a line not given.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (in lineIn) none() bool { return in.codes == nil && in.e == nil }
 
 // slice is sliceChannel of the line.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (in lineIn) slice(thr float64, haveThr bool) sliced {
 	if in.e != nil {
 		return in.e.slice(thr, haveThr)
@@ -365,7 +365,7 @@ func (in lineIn) slice(thr float64, haveThr bool) sliced {
 }
 
 // samples is the line's sample count.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (in lineIn) samples() int {
 	if in.e != nil {
 		return in.e.N
@@ -374,7 +374,7 @@ func (in lineIn) samples() int {
 }
 
 // sum is the sum of the line's samples.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (in lineIn) sum() int {
 	if in.e != nil {
 		ones, _ := in.e.runs()
@@ -394,7 +394,7 @@ func (in lineIn) sum() int {
 // lies below or above a half whatever i is, within the rounding of x
 // (2^-29 under 2^24 samples); ok false where frac lies nearer a half than
 // that can be told, and for a line sliced from samples.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func (s *sliced) roundUps() (fall, rise int, ok bool) {
 	if !s.ok || s.codes != nil || s.n >= 1<<24 {
 		return 0, 0, false
@@ -425,7 +425,7 @@ type levelCursor struct {
 }
 
 // at is logicAt(c.s, x).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func (c *levelCursor) at(x float64) int {
 	s := c.s
 	if s.codes != nil {
@@ -435,7 +435,7 @@ func (c *levelCursor) at(x float64) int {
 }
 
 // atSample is at of a position's nearest sample i.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func (c *levelCursor) atSample(i int) int {
 	s := c.s
 	if s.codes != nil {

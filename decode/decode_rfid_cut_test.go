@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ import (
 
 // A record that opens amid a reader command marks that command cut ("?"),
 // not as a coding error, and decodes the whole one after it.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func TestT55xxCommandCutByTheRecord(t *testing.T) {
 	const sr = 1000000
 	w := newTimeline(sr)

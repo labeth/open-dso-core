@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -7,7 +7,7 @@ import "testing"
 // The BUS lists write each bus's address in its own terms: the bench ARINC
 // labels 205 and 310 (octal, as the strip writes them) read "85 W" and
 // "C8 W", a CAN data frame "123 W" (no direction on CAN).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func TestAddrText(t *testing.T) {
 	for _, c := range []struct {
 		proto string

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e on a real panel controller (argv[2] the app server, argv[3] its control server): the page's
 // REF A/B are the scope's. A reference stored, shown or cleared on the scope (here its COMPARE rows, as the
 // phone sets them) shows on the page; one saved, hidden or cleared on the page is the scope's; the difference
@@ -10,15 +10,15 @@ run(async (t) => {
   const app = process.argv[2], ctrl = process.argv[3];
   const { page, po, browser, pageErrors } = await openScope(app);
   t.browser = browser;
-  // TRLC-LINKS: REQ-SDS-227
+  // TRLC-LINKS: REQ-DSO-227
   const post = (path, body) => page.evaluate(([u, b]) => fetch(u, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify(b) }).then((x) => x.json()), [app + path, body]);
-  // TRLC-LINKS: REQ-SDS-227
+  // TRLC-LINKS: REQ-DSO-227
   const row = (id) => page.evaluate(([u, r]) => fetch(u + "/api/sheets").then((x) => x.json()).then((m) => {
     for (const tb of m.Tabs) for (const x of tb.Rows) if (x.ID === r) return x;
     return null;
   }), [app, id]);
-  // TRLC-LINKS: REQ-SDS-226
+  // TRLC-LINKS: REQ-DSO-226
   const lcd = () => fetch(ctrl + "/status").then((x) => x.json());
   // a status round trip, as on a loaded CI runner
   const RT = 8000;
@@ -51,11 +51,11 @@ run(async (t) => {
 
   // ---- AUTO frames for the page's workspace ------------------------------------------------
   t.ok((await lcd()).WorkspaceID === "scope", "the LCD shows SCOPE");
-  // TRLC-LINKS: REQ-SDS-226
+  // TRLC-LINKS: REQ-DSO-226
   const idle = async () => { const t1 = Date.now(); while ((await lcd()).AutosetBusy && Date.now() - t1 < 60000) await new Promise((r) => setTimeout(r, 100)); };
   // AUTO pressed on the page in workspace wsId: what the scope's AUTO said while it ran (with stop, the scope's
   // AUTO key cancels it once one of its words shows) and its notice after
-  // TRLC-LINKS: REQ-SDS-226
+  // TRLC-LINKS: REQ-DSO-226
   const auto = async (wsId, stop) => {
     await page.evaluate((w) => setWs(w), wsId);
     const msgs = new Set(), done0 = (await lcd()).AutosetDone || 0;

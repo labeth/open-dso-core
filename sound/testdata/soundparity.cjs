@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 // soundparity.cjs - runs the web's SOUND analysis (internal/web/sound.js) on
 // the vectors of TestSoundJSParity. Usage: node soundparity.cjs <vectors.json>
 // <web dir>. Prints, per vector, the readings the Go test compares.
@@ -10,7 +10,7 @@ const [vecPath, webDir] = process.argv.slice(2);
 const S = require(path.resolve(webDir, "sound.js"));
 const vecs = JSON.parse(fs.readFileSync(vecPath, "utf8"));
 
-// TRLC-LINKS: REQ-SDS-266, REQ-SDS-267, REQ-SDS-268, REQ-SDS-269, REQ-SDS-270, REQ-SDS-271, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-266, REQ-DSO-267, REQ-DSO-268, REQ-DSO-269, REQ-DSO-270, REQ-DSO-271, REQ-DSO-272
 function run(v) {
   const x = Float64Array.from(v.x || []);
   const y = Float64Array.from(v.y || []);
@@ -53,7 +53,7 @@ function run(v) {
 }
 
 // JSON cannot carry -Infinity or NaN: they go as strings.
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 function enc(k, val) {
   if (typeof val === "number" && !Number.isFinite(val)) return String(val);
   return val;

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-MEASURE
+// ENGMODEL-OWNER-UNIT: FU-DSO-MEASURE
 
 package measure
 
@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func TestNthFloatMatchesSort(t *testing.T) {
 	r := rand.New(rand.NewSource(5))
 	for range 20000 {

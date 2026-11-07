@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // decode_wire2.js — SD card (SD mode CMD line), Atmel PDI, compact JTAG,
 // SEGA Maple bus and digital calipers, a classic script mirroring
 // decode_wire2.go step for step. Uses sliceChannel, logicAt, hex2 and fail
@@ -6,7 +6,7 @@
 // medianOf from decode_motion.js and wireOut from decode_wire1.js.
 
 // risingBits mirrors decode_wire2.go risingBits.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function risingBits(a, b, cfg) {
   const L = clockedLines(a, b, cfg);
   if (L.why) return { why: L.why };
@@ -21,7 +21,7 @@ function risingBits(a, b, cfg) {
 }
 
 // crc7 mirrors decode_wire2.go crc7.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function crc7(bits) {
   let c = 0;
   for (const b of bits) {
@@ -33,7 +33,7 @@ function crc7(bits) {
 }
 
 // bitsInt mirrors decode_wire2.go bitsInt.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function bitsInt(b) {
   let v = 0;
   for (const x of b) v = (v << 1) | x;
@@ -41,7 +41,7 @@ function bitsInt(b) {
 }
 
 // sdResyncs mirrors decode_wire2.go sdResyncs.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function sdResyncs(B, j, lastCmd, acmd) {
   if (j + 1 >= B.length) return false;
   const t = sdCheck(B, j, lastCmd, acmd);
@@ -60,7 +60,7 @@ function sdResyncs(B, j, lastCmd, acmd) {
 
 // sdCheck mirrors decode_wire2.go sdCheck: the token at bit i's length,
 // whether it checks, and whether a CRC was checked.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function sdCheck(B, i, lastCmd, acmd) {
   const host = B[i + 1].v === 1;
   let n = 48;
@@ -77,7 +77,7 @@ function sdCheck(B, i, lastCmd, acmd) {
 }
 
 // decodeSDCard mirrors decode_wire2.go DecodeSDCard.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function decodeSDCard(a, b, colTimeS, cfg) {
   cfg = cfg || {};
   const R = risingBits(a, b, cfg);
@@ -146,7 +146,7 @@ function decodeSDCard(a, b, colTimeS, cfg) {
 const PDI_OPS = ["LDS", "LD", "STS", "ST", "LDCS", "REPEAT", "STCS", "KEY"];
 
 // decodePDI mirrors decode_wire2.go DecodePDI.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function decodePDI(a, b, colTimeS, cfg) {
   cfg = cfg || {};
   const R = risingBits(a, b, cfg);
@@ -212,7 +212,7 @@ const JTAG_NEXT = [[1, 0], [1, 2], [3, 9], [4, 5], [4, 5], [6, 8], [6, 7], [4, 8
   [10, 0], [11, 12], [11, 12], [13, 15], [13, 14], [11, 15], [1, 2]];
 
 // decodeCJTAG mirrors decode_wire2.go DecodeCJTAG.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function decodeCJTAG(a, b, colTimeS, cfg) {
   cfg = cfg || {};
   if (!b) return fail("cjtag", "needs both lines (TCKC and TMSC)");
@@ -233,7 +233,7 @@ function decodeCJTAG(a, b, colTimeS, cfg) {
   }
   // logicAt(M, x) inline: a call a clock was most of a decode.
   const mc = M.codes, mthr = M.threshold, mn = M.n;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
   const lvM = (x) => { const i = Math.round(x); return i < 0 || i >= mn || mc[i] < 0 ? -1 : mc[i] >= mthr ? 1 : 0; };
   const FOUR = 0, OAC = 1, OSCAN = 2;
   let mode = FOUR, oacp = 0, oaclen = 12, cyc = 0, state = 1, tdi = 0, ti = 0, to = 0, nb = 0, x0 = 0, good = false;
@@ -293,7 +293,7 @@ function decodeCJTAG(a, b, colTimeS, cfg) {
 const MAPLE_NAMES = ["L", "S", "D", "C"];
 
 // decodeMaple mirrors decode_wire2.go DecodeMaple.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function decodeMaple(a, b, colTimeS, cfg) {
   cfg = cfg || {};
   if (!b) return fail("maple", "needs both lines (SDCKA and SDCKB)");
@@ -397,7 +397,7 @@ function decodeMaple(a, b, colTimeS, cfg) {
 }
 
 // decodeCaliper mirrors decode_wire2.go DecodeCaliper.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 function decodeCaliper(a, b, colTimeS, cfg) {
   cfg = cfg || {};
   const R = risingBits(a, b, cfg);

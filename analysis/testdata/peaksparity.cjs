@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 // peaksparity.cjs - runs the web's FFT peak search (internal/web/peaks.js:
 // spectrum + detectPeaks) on the vectors of TestPeaksJSParity in
 // peaks_node_test.go. Usage: node peaksparity.cjs <vectors.json> <web dir>.
@@ -16,7 +16,7 @@ if (!vecPath || !webDir) {
 const P = require(path.resolve(webDir, "peaks.js"));
 const vecs = JSON.parse(fs.readFileSync(vecPath, "utf8"));
 
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 function run(v) {
   const sp = P.spectrum(v.samples, v.nyq);
   const peaks = P.detectPeaks(sp, { floorDb: -50, maxPeaks: v.max });

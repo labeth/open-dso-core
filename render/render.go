@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -23,7 +23,7 @@ import (
 
 // HUD is the UI-state snapshot the overlay renders alongside the frozen
 // frame (spec 07 §6). It carries no capture state.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 type HUD struct {
 	// Ch are the channels' settings, C1 first; NumChans of them exist (0 or
 	// 1: C1 alone).
@@ -206,7 +206,7 @@ type Zone struct {
 }
 
 // drawGraticule draws the plot's 10 x 8 divisions, centre axes brighter.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawGraticule(sf Canvas, p plotArea) {
 	for c := range p.m.DivsH + 1 {
 		x := p.gridX(c)
@@ -227,7 +227,7 @@ func drawGraticule(sf Canvas, p plotArea) {
 }
 
 // hline draws row y from x0 to x1 inclusive.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func hline(sf Canvas, x0, x1, y int, c Color) {
 	if fillSpan(sf, x0, y, x1+1, y+1, c) {
 		return
@@ -238,7 +238,7 @@ func hline(sf Canvas, x0, x1, y int, c Color) {
 }
 
 // drawLine is a Bresenham segment (spec 07 §3.5).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawLine(sf Canvas, x0, y0, x1, y1 int, c Color) {
 	dx := x1 - x0
 	if dx < 0 {
@@ -309,7 +309,7 @@ func drawLine(sf Canvas, x0, y0, x1, y1 int, c Color) {
 }
 
 // linePx is drawLine on a page w pixels wide that holds both ends.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func linePx[P pixel](px []P, w, x0, y0, x1, y1 int, c P) {
 	dx, dy := absI(x1-x0), absI(y1-y0)
 	sx, sy := 1, 1
@@ -353,14 +353,14 @@ type traceID struct {
 // drawTraceID maps the record window onto plot p: nearest sample when
 // interp is false, linear interpolation of REAL samples when true — never
 // sinc, never a segment across a skipped column.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawTraceID(sf Canvas, p plotArea, id traceID, sig []uint8, win int, xc float64, interp bool, col Color, posFrac float64, zoom ...int) {
 	drawTraceHeld(sf, p, id, sig, nil, win, xc, interp, col, posFrac, zoom...)
 }
 
 // heldColor is a trace colour dimmed to about 40 %: the stretches of a roll
 // view no capture covered, drawn at the last value held.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func heldColor(f hal.PixelFormat, col Color) Color {
 	r, g, b := atPrecision(f, col).channels()
 	if f == hal.RGB565 { // RGB565's own steps
@@ -372,7 +372,7 @@ func heldColor(f hal.PixelFormat, col Color) Color {
 // codeAt is sig's code at record position pos (n = len(sig) > 0): linearly
 // interpolated between the neighbours, or the nearest-below sample, with pos
 // held to the record.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func codeAt(sig []uint8, pos float64, interp bool) float64 {
 	n := len(sig)
 	if !interp {
@@ -401,7 +401,7 @@ func codeAt(sig []uint8, pos float64, interp bool) float64 {
 // drawTraceHeld is drawTraceID with held marking samples (len(sig), or nil)
 // that no capture covered: those are drawn in heldColor, so a roll view's
 // held stretches do not read as signal.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawTraceHeld(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool, win int, xc float64, interp bool, col Color, posFrac float64, zoom ...int) {
 	if len(held) != len(sig) {
 		held = nil
@@ -447,7 +447,7 @@ func drawTraceHeld(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool, 
 
 // drawAcquiring notes that the capture for the current timebase is still
 // filling its record.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawAcquiring(sf Canvas, p plotArea, hud HUD) {
 	lines := acquiringLines(hud)
 	y := (p.top+p.bot)/2 - 8 - 7*(len(lines)-1)
@@ -464,7 +464,7 @@ func drawAcquiring(sf Canvas, p plotArea, hud HUD) {
 // timebase takes its record's time; one that waits for a trigger takes as
 // long as the signal does to hold it, and a screen that only said
 // ACQUIRING did not tell the two apart.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-206
 func acquiringLines(hud HUD) []string {
 	if !hud.Waiting {
 		msg := "ACQUIRING"
@@ -506,7 +506,7 @@ const waitHintS = 5
 // everything between: a stopped 1 M-sample record at 100 us/div would show one
 // sample in 1250, so a captured glitch would not be drawn.
 // Columns beyond the record repeat its nearest end, as drawTrace does.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool, left float64, win int, col Color, z float64) {
 	cols := denseColumns(id, sig, left, win, p.w)
 	rows := p.codeRows(z)
@@ -554,7 +554,7 @@ const spanBlock = 128
 // LCD frame 14 ms on the scope. The rows all of a block's columns cover in one
 // colour are copied a row at a time instead (3 ms), the ragged ends drawn a
 // column at a time.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
 	switch m := sf.(type) {
 	case *Image565:
@@ -582,7 +582,7 @@ func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
 
 // fillSpansPx is fillSpans on a w×h page of pixels px, the colours in its
 // format.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fillSpansPx[P pixel](px []P, w, h int, top, bot []int16, cc []P) {
 	// Spans arrive clipped to [0,h) by drawDenseTrace; clip again for any
 	// other caller so vlinePx may assume it.
@@ -632,7 +632,7 @@ func fillSpansPx[P pixel](px []P, w, h int, top, bot []int16, cc []P) {
 // they cover most of the rows between their extremes (a fast signal's ragged
 // columns), and reports whether it did: a row costs a compare a column but
 // its stores are sequential, where a column's each wait on a cache line.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func denseBlock[P pixel](px []P, w, h int, top, bot []int16, cc []P, x0 int) bool {
 	nb := len(top)
 	if nb > spanBlock || x0+nb > w {
@@ -661,7 +661,7 @@ func denseBlock[P pixel](px []P, w, h int, top, bot []int16, cc []P, x0 int) boo
 
 // spanRow writes row r's pixels of the columns covering it. Out of line so
 // the tables are registers, not reloaded from the caller's frame.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 //
 //go:noinline
 func spanRow[P pixel](row []P, t0, ht []int32, cc []P, r int32) {
@@ -676,7 +676,7 @@ func spanRow[P pixel](row []P, t0, ht []int32, cc []P, r int32) {
 // floorInt is int(math.Floor(v)) for the sample positions of a plot column:
 // math.Floor is a software routine on this ARM and these run per column per
 // frame. Out of int32 range, or NaN, it defers to math.Floor.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func floorInt(v float64) int {
 	if !(v > -1<<31 && v < 1<<31) {
 		return int(math.Floor(v))
@@ -690,7 +690,7 @@ func floorInt(v float64) int {
 
 // columnHeld reports whether every sample of plot column x is held (or off
 // the record past a held end).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func columnHeld(held []bool, left float64, win, w, x int) bool {
 	n := len(held)
 	a := floorInt(left + float64(x)*float64(win)/float64(w))
@@ -711,7 +711,7 @@ type denseCols struct {
 }
 
 // grow gives c room for ncols columns: a cache slot keeps the widest it saw.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (c *denseCols) grow(ncols int) {
 	if len(c.mn) < ncols {
 		buf := make([]uint8, 3*ncols)
@@ -736,7 +736,7 @@ var denseCache struct {
 	slot [zoomTraceID + MaxChans]denseCols
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseCols {
 	ncols = min(max(ncols, 1), MaxW)
 	key := denseKey{id: id, n: len(sig), win: win, cols: ncols, left: left, ptr: &sig[0]}
@@ -792,7 +792,7 @@ func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseC
 // drawEnvelope fills each column min→max (spec 07 §4): every pixel lies
 // between a real captured min and max, magnified about mid-scale by the
 // channel's display zoom like drawTrace.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawEnvelope(sf Canvas, p plotArea, mn, mx []uint8, cols int, col Color, zoom int) {
 	z := float64(max(zoom, 1))
 	sc := spanScratchPool.Get().(*spanScratch)
@@ -817,7 +817,7 @@ func drawEnvelope(sf Canvas, p plotArea, mn, mx []uint8, cols int, col Color, zo
 
 // codesPerDiv is frame f's codes a division on the 8-bit view: its first
 // trace's, or an 8-bit converter's when it states none.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func codesPerDiv(f *sample.Frame) float64 {
 	if f != nil && len(f.Traces) > 0 && f.Traces[0].CodesPerDiv > 0 {
 		return f.Traces[0].CodesPerDiv8()
@@ -827,7 +827,7 @@ func codesPerDiv(f *sample.Frame) float64 {
 
 // frameValid clamps a frame's valid-sample count into range (shared by the
 // alternate-view renderers below).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func frameValid(f *sample.Frame) int {
 	valid := min(max(f.Len(), 1), len(f.Codes8(0)))
 	return valid
@@ -835,7 +835,7 @@ func frameValid(f *sample.Frame) int {
 
 // coupledDisplay applies the software coupling model for a channel (mirrors the
 // Y-T path so the alternate views see the same trace).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func coupledDisplay(sig []uint8, cpl int) []uint8 {
 	if cpl != dsp.CoupleDC {
 		return dsp.CoupleDisplay(sig, cpl)
@@ -849,7 +849,7 @@ func coupledDisplay(sig []uint8, cpl int) []uint8 {
 // frame. Applied to the RENDERED Y-T trace/envelope only: measurements,
 // decode, math, X-Y/FFT and mask/zone tests keep the true captured polarity
 // (see the Cn:INVS handler for the rationale).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func invertCodes(sig []uint8) []uint8 {
 	out := make([]uint8, len(sig))
 	for i, v := range sig {
@@ -861,7 +861,7 @@ func invertCodes(sig []uint8) []uint8 {
 // ---- value formatting (spec 07 §6.2): 3 sig figs, ASCII suffixes ----
 
 // siUnit is one prefix row for siScale (high→low).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 type siUnit struct {
 	scale  float64
 	suffix string
@@ -874,7 +874,7 @@ var (
 )
 
 // fillRect paints a solid rectangle (clipped to the surface).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fillRect(sf Canvas, x, y, w, h int, c Color) {
 	if fillSpan(sf, x, y, x+w, y+h, c) {
 		return
@@ -887,7 +887,7 @@ func fillRect(sf Canvas, x, y, w, h int, c Color) {
 }
 
 // strokeRect draws a 1 px rectangle outline.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func strokeRect(sf Canvas, x, y, w, h int, c Color) {
 	if w <= 0 || h <= 0 {
 		return
@@ -902,7 +902,7 @@ func strokeRect(sf Canvas, x, y, w, h int, c Color) {
 // fill → graticule → trace/envelope → liveness strip → readouts → the
 // workspace UI (the pane, the rail, a sheet or the picker). Never blanks on
 // a held frame; the strip goes red instead.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
 func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	f = view8(f)
 	sf.Fill(colBG)
@@ -1004,7 +1004,7 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 // drawViews draws the plot's content for the view: the transcript, the
 // super-res review, X-Y, FFT, Bode, spectrogram, or the Y-T traces with
 // their overlays.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawViews(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	// X-Y / FFT only make sense on per-sample (native/decimated) frames — an
 	// envelope/roll frame has no paired samples or usable spectrum, so fall
@@ -1046,7 +1046,7 @@ func drawViews(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 
 // drawYT draws the Y-T view: the traces (or a live envelope's bands), C1
 // on top, and their overlays.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	valid := frameValid(f)
 	if f.Flags.Has(sample.Envelope) && len(f.Min8(0)) > 0 {
@@ -1073,7 +1073,7 @@ func drawYT(sf, traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD) {
 }
 
 // drawEnvelopes draws a live envelope frame's bands, C1 on top.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawEnvelopes(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	for ch := hud.numChans() - 1; ch >= 0; ch-- {
 		if !hud.shown(ch) {
@@ -1090,7 +1090,7 @@ func drawEnvelopes(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 // drawChan draws channel ch's trace: coupled and inverted for the display,
 // over the record window rec, or over zw from the view window when the
 // screen is zoomed into a live envelope.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawChan(traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, ch, valid int, rec, zw ytWindow, view *sample.Frame, zoomed bool) {
 	c := hud.Ch[ch]
 	codes := f.Codes8(ch)[:valid]
@@ -1123,7 +1123,7 @@ type ytWindow struct {
 // traceWindow is the sample window the Y-T plot shows: win samples with the
 // trigger crossing xc at posFrac of the screen; zoomed, win/zoom samples
 // centred on the panned crossing.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func traceWindow(f *sample.Frame, hud HUD, valid int) (win int, xc, posFrac float64) {
 	win = f.WinPoints
 	if win <= 0 || win > valid {
@@ -1153,7 +1153,7 @@ func traceWindow(f *sample.Frame, hud HUD, valid int) (win int, xc, posFrac floa
 	return win, xc, posFrac
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func absI(x int) int {
 	if x < 0 {
 		return -x
@@ -1162,17 +1162,17 @@ func absI(x int) int {
 }
 
 // shownChans is C1's and C2's display enable (shown).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (h HUD) shownChans() (bool, bool) { return h.shown(0), h.shown(1) }
 
 // numChans is how many channels the HUD describes, C1 at least.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (h HUD) numChans() int { return min(max(h.NumChans, 1), MaxChans) }
 
 // shown is channel ch's display enable. All off means "unset" (show every
 // channel) unless the panel set the flags: then the user hid them all and
 // none is drawn.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (h HUD) shown(ch int) bool {
 	if ch < 0 || ch >= MaxChans {
 		return false
@@ -1190,7 +1190,7 @@ func (h HUD) shown(ch int) bool {
 }
 
 // heldOf is a roll frame's held samples over its valid prefix; nil otherwise.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func heldOf(f *sample.Frame, valid int) []bool {
 	if len(f.Held(0)) < valid {
 		return nil
@@ -1201,7 +1201,7 @@ func heldOf(f *sample.Frame, valid int) []bool {
 // zoomView is the frame's view window when it covers the zoomed part of a live
 // envelope frame, and where it lies: vwin of its values span the plot, the
 // zoom's centre at vxc.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func zoomView(f *sample.Frame, hud HUD, valid int) (view *sample.Frame, vwin int, vxc float64, ok bool) {
 	v := f.Detail(sample.RoleView(0))
 	if hud.Zoom <= 1 || v == nil || f.Content != sample.PeakPairs || v.Frame.Len() < 2 || !(v.To > v.From) {

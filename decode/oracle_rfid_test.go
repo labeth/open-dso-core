@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func TestOracleEM4100(t *testing.T) {
 	const sr = 500000
 	const hp = 256e-6
@@ -63,7 +63,7 @@ func TestOracleEM4100(t *testing.T) {
 }
 
 // rfidFieldTexts is a writes decode's units as sigrok's fields read.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func rfidFieldTexts(r Result) []string {
 	var out []string
 	for _, sp := range r.Spans {
@@ -77,7 +77,7 @@ func rfidFieldTexts(r Result) []string {
 	return out
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func TestOracleEM4305(t *testing.T) {
 	const sr = 1000000
 	w := newTimeline(sr)
@@ -115,7 +115,7 @@ func TestOracleEM4305(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 func TestOracleT55xx(t *testing.T) {
 	const sr = 1000000
 	w := newTimeline(sr)

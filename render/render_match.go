@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -22,7 +22,7 @@ type MatchView struct {
 // editor: the pattern with its cursor, an ASCII preview, the key grid with
 // the highlighted key, and the knob hints. The F-key column (Keys, Type,
 // Delete, OK, Cancel) is the sheet's.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func drawMatchEditor(sf Canvas, m MatchView) {
 	if !m.Open {
 		return
@@ -139,7 +139,7 @@ func drawMatchEditor(sf Canvas, m MatchView) {
 
 // hexPair parses a two-digit hex byte (either case), as ParseUint(t, 16, 8)
 // on a two-character token.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func hexPair(t string) (byte, bool) {
 	if len(t) != 2 {
 		return 0, false
@@ -149,7 +149,7 @@ func hexPair(t string) (byte, bool) {
 	return hi<<4 | lo, ok1 && ok2
 }
 
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func hexNibble(c byte) (byte, bool) {
 	switch {
 	case c >= '0' && c <= '9':

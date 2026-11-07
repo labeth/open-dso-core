@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -25,7 +25,7 @@ type Epoch struct {
 }
 
 // NewEpoch starts the epoch at the current time.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func NewEpoch() *Epoch {
 	e := &Epoch{start: uint64(time.Now().UnixMilli())} //nolint:gosec // G115: a wall clock after 1970
 	e.cur.Store(e.start)
@@ -33,12 +33,12 @@ func NewEpoch() *Epoch {
 }
 
 // Current is the epoch last issued (the start before any claim).
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func (e *Epoch) Current() uint64 { return e.cur.Load() }
 
 // ServeClaim issues a fresh epoch. The page calls it once on load; opening a
 // second browser bumps the epoch and takes over.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func (e *Epoch) ServeClaim(w http.ResponseWriter, _ *http.Request) {
 	n := e.cur.Add(1)
 	w.Header().Set("Content-Type", "application/json")
@@ -52,7 +52,7 @@ func (e *Epoch) ServeClaim(w http.ResponseWriter, _ *http.Request) {
 // once a browser has claimed in this run: an older one (a newer browser has
 // claimed) or one from before a restart. epoch 0 / absent (SCPI, curl,
 // tests) is exempt, and so is every page until a claim in this run.
-// TRLC-LINKS: REQ-SDS-161
+// TRLC-LINKS: REQ-DSO-161
 func (e *Epoch) Superseded(r *http.Request) bool {
 	q := r.URL.Query().Get("epoch")
 	if q == "" {

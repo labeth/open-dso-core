@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -45,7 +45,7 @@ var debugRoots = []string{
 
 // CollectSystem stores /proc, the boot log, sysfs and debugfs attributes,
 // and the /dev nodes.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func CollectSystem(a *Archive) {
 	for _, f := range procFiles {
 		if _, err := os.Stat("/proc/" + f); err == nil {
@@ -64,7 +64,7 @@ func CollectSystem(a *Archive) {
 
 // run runs a busybox command for at most 20 s and returns its output and,
 // on failure, the error.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func run(argv ...string) []byte {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -78,7 +78,7 @@ func run(argv ...string) []byte {
 // walkAttrs stores the readable regular files under roots, at most depth
 // levels deep and size bytes each, to at most total bytes. Links are not
 // followed: sysfs links back to its own trees.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func walkAttrs(a *Archive, prefix string, roots []string, depth int, size, total int64) {
 	var stored int64
 	var b strings.Builder
@@ -118,7 +118,7 @@ func walkAttrs(a *Archive, prefix string, roots []string, depth int, size, total
 
 // readSome reads at most limit bytes of path, waiting at most 2 s: a few
 // sysfs attributes block.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func readSome(path string, limit int64) ([]byte, error) {
 	type res struct {
 		b   []byte
@@ -148,7 +148,7 @@ func readSome(path string, limit int64) ([]byte, error) {
 }
 
 // devNodes lists the device nodes under dir with their major and minor numbers.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func devNodes(dir string) string {
 	var lines []string
 	_ = filepath.WalkDir(dir, func(p string, _ fs.DirEntry, err error) error {
@@ -176,7 +176,7 @@ func devNodes(dir string) string {
 }
 
 // listTree lists the files under dir to depth levels with their sizes.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func listTree(dir string, depth int) string {
 	var b strings.Builder
 	base := strings.Count(dir, "/")

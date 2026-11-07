@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -24,7 +24,7 @@ type RecordReply struct {
 
 // EncodeRecord lays out /api/record.bin: a little-endian uint32 header
 // length, the JSON header, then the codes, C1's then C2's.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 func EncodeRecord(h RecordReply, c1, c2 []byte) []byte {
 	js, _ := json.Marshal(h)
 	out := make([]byte, 4, 4+len(js)+len(c1)+len(c2))

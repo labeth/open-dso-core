@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-BINFRAME
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 "use strict";
 // binframe2.js — decoder for frame wire v2 (/api/frame.bin?v=2; layout doc
 // beside wire.EncodeFrame2): a "DSF2" magic, a u32 header length, the JSON
@@ -27,13 +27,13 @@ const V2_MAGIC = [0x44, 0x53, 0x46, 0x32]; // "DSF2"
 // DISPLAY_CPD and DISPLAY_MID are the display domain the drawing code works in.
 const DISPLAY_CPD = 25, DISPLAY_MID = 128;
 
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function isFrameV2(buf) {
   const u8 = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
   return u8.length === 4 && u8[0] === V2_MAGIC[0] && u8[1] === V2_MAGIC[1] && u8[2] === V2_MAGIC[2] && u8[3] === V2_MAGIC[3];
 }
 
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function decodeFrameV2(buf) {
   if (!buf || buf.byteLength < 8 || !isFrameV2(buf)) return null;
   const u8 = new Uint8Array(buf);
@@ -69,14 +69,14 @@ function decodeFrameV2(buf) {
 }
 
 // identityScale reports a trace whose words are the display domain itself.
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function identityScale(t) {
   return t.fmt.storage === "u8" && !t.fmt.frac && t.scale.zero === DISPLAY_MID && t.scale.codes_per_div === DISPLAY_CPD;
 }
 
 // toDisplay maps a trace's words into the display domain over len columns,
 // head of them before the words (-1, as v1's margins).
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function toDisplay(t, words, len, head) {
   const exact = identityScale(t);
   const out = exact ? new Int16Array(len) : new Float32Array(len);
@@ -89,7 +89,7 @@ function toDisplay(t, words, len, head) {
 
 // frameDisplay is the page's frame object of a decoded v2 frame (see the
 // file comment); null when its margins disagree with its columns.
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function frameDisplay(h) {
   if (!h || h.unchanged) return h;
   const f = Object.assign({}, h);
@@ -130,7 +130,7 @@ function frameDisplay(h) {
 
 // decodeAnyFrame decodes a frame reply of either wire, told by its magic,
 // into the page's frame object.
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function decodeAnyFrame(buf) {
   if (isFrameV2(buf)) return frameDisplay(decodeFrameV2(buf));
   return (typeof decodeBinFrame === "function" ? decodeBinFrame : require("./binframe.js").decodeBinFrame)(buf);

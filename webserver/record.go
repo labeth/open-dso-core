@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -26,7 +26,7 @@ const RecordNever = "this acquisition cannot serve sampled records"
 // header length, the JSON header (wire.RecordReply) and the codes, C1's
 // then C2's. One record is taken at a time. A record refused (another under
 // way, none in time, none this acquisition can serve) is a 409 naming why.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 func (s *Server) hRecord(w http.ResponseWriter, r *http.Request) {
 	want, err := strconv.ParseFloat(r.URL.Query().Get("sample_s"), 64)
 	if err != nil || !(want >= 2e-9) || want > 1 {
@@ -66,7 +66,7 @@ func (s *Server) hRecord(w http.ResponseWriter, r *http.Request) {
 }
 
 // recordRefused answers a record refused for the scope's state: 409 and why.
-// TRLC-LINKS: REQ-SDS-280
+// TRLC-LINKS: REQ-DSO-280
 func recordRefused(w http.ResponseWriter, why string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusConflict)

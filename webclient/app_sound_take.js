@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_sound_take.js — SOUND's takes on the web page (ADR-SOUND): RUN/STOP,
 // SINGLE and the trigger mode as the rest of the scope has them; a take
 // shown (STOP's last seconds, a NORMAL or SINGLE trigger's stretch with the
@@ -21,24 +21,24 @@ const SND_TAKE_ROWS = 160;
 const sndTk = { cur: [null, null], drag: null, key: "", pendKey: "", pendAt: 0, spec: null, pitch: null, img: null, prevView: "cycle", wasOn: false, lanes: null };
 
 // sndTakeTrigIdx is the trigger's sample in the take (-1 without).
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeTrigIdx() { const t = snd.take; return t && t.hasTrig ? t.trig - t.first : -1; }
 
 // sndTakeT is sample i's time: from the trigger, or from the take's start.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeT(i) { const ti = sndTakeTrigIdx(); return (i - (ti >= 0 ? ti : 0)) / snd.take.rate; }
 
 // sndTakeY maps a frequency to the spectrogram lane's height (log axis).
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeFy(f, y0, h) { return y0 + h * (1 - Math.log(f / SND_TAKE_FMIN) / Math.log(SND_TAKE_FMAX / SND_TAKE_FMIN)); }
 
 // sndTakeYf is the frequency at a height of the spectrogram lane.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeYf(y, y0, h) { return SND_TAKE_FMIN * Math.pow(SND_TAKE_FMAX / SND_TAKE_FMIN, 1 - (y - y0) / h); }
 
 // sndHeatAt writes the spectrogram's colour of a level 0..1, opaque, at
 // img[o]: in place, as it runs per pixel.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndHeatAt(img, o, v) {
   v = Math.max(0, Math.min(1, v));
   img[o] = Math.min(255, Math.max(0, 255 * (1.6 * v - 0.3)));
@@ -49,7 +49,7 @@ function sndHeatAt(img, o, v) {
 
 // sndTakeAnalyse makes the window's spectrogram and pitch curve once the
 // window has held still for a moment (scrolling stays light).
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeAnalyse(cols) {
   const t = snd.take, v = snd.tview, set = snd.settings;
   const key = `${t.id}:${Math.round(v.from)}:${Math.round(v.span)}:${cols}:${set.ch}:${set.range}`;
@@ -80,13 +80,13 @@ function sndTakeAnalyse(cols) {
 }
 
 // sndTakeRender draws the take view into the Sound view's canvas.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeRender(g, W, H, d) {
   const t = snd.take, v = snd.tview, set = snd.settings;
   if (!t) { g.fillStyle = DIMCOL; g.textAlign = "center"; g.fillText(snd.mode === "armed" ? "Armed: waiting for the FPGA's edge" : snd.mode === "triggered" ? "Triggered: streaming the post-trigger time" : "No take: STOP, SINGLE or NORMAL", W / 2, H / 2); g.textAlign = "left"; return; }
   const waveH = Math.round(H * 0.4), specY = waveH + 14 * d, specH = H - specY - 14 * d;
   sndTk.lanes = { waveH, specY, specH, W, H };
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   const xOf = (i) => (i - v.from) / v.span * W;
   // the waveform: both channels, a band of each column's lowest and highest
   const cols = Math.max(16, Math.min(Math.round(W), 1600));
@@ -96,7 +96,7 @@ function sndTakeRender(g, W, H, d) {
   if (!(hi > lo)) { lo = -1; hi = 1; }
   const pad = 0.06 * (hi - lo);
   lo -= pad; hi += pad;
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   const yOf = (val) => waveH - (val - lo) / (hi - lo) * waveH;
   g.strokeStyle = "#182430"; g.lineWidth = 1;
   for (let k = 1; k < 10; k++) { g.beginPath(); g.moveTo(k * W / 10, 0); g.lineTo(k * W / 10, waveH); g.stroke(); }
@@ -163,11 +163,11 @@ function sndTakeRender(g, W, H, d) {
 }
 
 // sndTakeTxt writes a time from the trigger.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeTxt(s) { return (s >= 0 ? "+" : "") + eng(s, "s"); }
 
 // sndTakeCursorRows are the cursors' readings and their differences.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeCursorRows() {
   const t = snd.take, set = snd.settings, rows = [];
   if (!t) return rows;
@@ -204,21 +204,21 @@ function sndTakeCursorRows() {
 }
 
 // sndTakeEventX is an event's place across the canvas in device pixels.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeEventXY(cv, e) {
   const r = cv.getBoundingClientRect();
   return [(e.clientX - r.left) * cv.width / r.width, (e.clientY - r.top) * cv.height / r.height];
 }
 
 // sndTakeWire connects the take's controls and the canvas's mouse.
-// TRLC-LINKS: REQ-SDS-275, REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-275, REQ-DSO-274
 function sndTakeWire() {
   const cv = $("sndViewCv");
   segInit($("sndTrigMode"));
   segInit($("sndSpeed"));
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   const active = () => snd.view === "take" && snd.take;
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   cv.addEventListener("wheel", (e) => {
     if (!active()) return;
     e.preventDefault();
@@ -226,13 +226,13 @@ function sndTakeWire() {
     if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) sndTakeScroll(snd, Math.sign(e.deltaX || e.deltaY) * v.span / 10);
     else sndTakeZoom(snd, e.deltaY > 0 ? 1.3 : 1 / 1.3, at);
   }, { passive: false });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   cv.addEventListener("mousedown", (e) => {
     if (!active()) return;
     const [x, y] = sndTakeEventXY(cv, e);
     sndTk.drag = { x0: x, from0: snd.tview.from, moved: false, y, shift: e.shiftKey || e.button === 2 };
   });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   window.addEventListener("mousemove", (e) => {
     const dr = sndTk.drag;
     if (!dr || !active()) return;
@@ -240,7 +240,7 @@ function sndTakeWire() {
     if (Math.abs(x - dr.x0) > 4) dr.moved = true;
     if (dr.moved) { snd.tview.from = dr.from0; sndTakeScroll(snd, -(x - dr.x0) / cv.width * snd.tview.span); }
   });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   window.addEventListener("mouseup", (e) => {
     const dr = sndTk.drag;
     sndTk.drag = null;
@@ -251,29 +251,29 @@ function sndTakeWire() {
     sndTk.cur[dr.shift ? 1 : 0] = cu;
     if (!dr.shift) snd.focus = cu.i;
   });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   cv.addEventListener("contextmenu", (e) => { if (active()) e.preventDefault(); });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   cv.addEventListener("dblclick", () => { if (active()) { snd.tview = { from: 0, span: snd.take.n }; sndTk.cur = [null, null]; snd.focus = -1; } });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndRun").onclick = () => send("runtoggle", 0);
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndSingle").onclick = () => send("single", 1);
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndTrigMode").onchange = () => send("norm", $("sndTrigMode").value === "norm" ? 1 : 0);
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndPre").onchange = () => sndSet({ pre_s: +$("sndPre").value });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndPost").onchange = () => sndSet({ post_s: +$("sndPost").value });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndTrigFrom").onchange = () => sndSet({ trig_gate: $("sndTrigFrom").value === "1" });
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndLoop").onclick = () => { snd.play.loop = !snd.play.loop; $("sndLoop").classList.toggle("on", snd.play.loop); };
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndSpeed").onchange = () => { snd.play.speed = +$("sndSpeed").value || 1; };
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndTakeAll").onclick = () => { if (snd.take) { snd.tview = { from: 0, span: snd.take.n }; } };
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   $("sndTakeTrig").onclick = () => {
     const ti = sndTakeTrigIdx();
     if (ti < 0) return;
@@ -284,7 +284,7 @@ function sndTakeWire() {
 
 // sndTakeTick runs each analysis tick: Listen on the take, the Take view
 // in and out as takes come and go, and the bar's state.
-// TRLC-LINKS: REQ-SDS-275
+// TRLC-LINKS: REQ-DSO-275
 function sndTakeTick() {
   sndTakeFeed(snd);
   if (snd.takeOn && !sndTk.wasOn) {

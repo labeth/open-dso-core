@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // webdec.js — the digital stream decoded in the browser (ADR-STREAM-CLIENT-DECODE).
 //
 // The scope hands a page that asks (/api/stream/words.bin) the digital
@@ -16,7 +16,7 @@
 // ---- EdgeLine -------------------------------------------------------------------------
 // A digital line held as its edges: n samples, the level of the first, and
 // the samples where the level changes (decode/edgeline.go).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function WebDecLine() {
   this.n = 0;
   this.first = 0;
@@ -24,7 +24,7 @@ function WebDecLine() {
   this.len = 0;
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.reset = function () {
   this.n = 0;
   this.first = 0;
@@ -32,12 +32,12 @@ WebDecLine.prototype.reset = function () {
 };
 
 // last is the level of the line's last sample (0 for an empty line).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.last = function () {
   return this.n === 0 ? 0 : this.first ^ (this.len & 1);
 };
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.push = function (x) {
   if (this.len === this.at.length) {
     const a = new Int32Array(this.at.length * 2);
@@ -48,7 +48,7 @@ WebDecLine.prototype.push = function (x) {
 };
 
 // start opens the next samples at level lvl: the line's first, or an edge.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.start = function (lvl) {
   if (this.n === 0) {
     this.first = lvl;
@@ -56,7 +56,7 @@ WebDecLine.prototype.start = function (lvl) {
   } else if (this.last() !== lvl) this.push(this.n);
 };
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.appendLevel = function (lvl, n) {
   if (n <= 0) return;
   this.start(lvl & 1);
@@ -65,7 +65,7 @@ WebDecLine.prototype.appendLevel = function (lvl, n) {
 
 // appendWords appends words[from..to) (Uint32Array) of line ch (0 CH1, 1
 // CH2): a word's edges are its bits that differ from the bit before.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.appendWords = function (words, from, to, ch) {
   if (to <= from) return;
   const sh = ch ? 16 : 0;
@@ -100,7 +100,7 @@ WebDecLine.prototype.appendWords = function (words, from, to, ch) {
 };
 
 // search is the first edge index whose sample is >= x (sort.SearchInts).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.search = function (x) {
   let lo = 0;
   let hi = this.len;
@@ -113,7 +113,7 @@ WebDecLine.prototype.search = function (x) {
 };
 
 // appendRange appends samples from..to-1 of src.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.appendRange = function (src, from, to) {
   from = Math.max(from, 0);
   to = Math.min(to, src.n);
@@ -125,7 +125,7 @@ WebDecLine.prototype.appendRange = function (src, from, to) {
 };
 
 // drop removes the first n samples.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.drop = function (n) {
   if (n <= 0) return;
   if (n >= this.n) {
@@ -141,7 +141,7 @@ WebDecLine.prototype.drop = function (n) {
 };
 
 // samples is the line as samples, 0 or 255.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.samples = function () {
   const out = new Uint8Array(this.n);
   let lvl = this.first;
@@ -157,7 +157,7 @@ WebDecLine.prototype.samples = function () {
 
 // length is the line's samples: a decoder reads a line's length as its samples'.
 Object.defineProperty(WebDecLine.prototype, "length", {
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
   get: function () { return this.n; },
 });
 
@@ -166,7 +166,7 @@ WebDecLine.prototype.isEdgeLine = true;
 
 // runs counts the line's high samples, and each level's samples in runs of
 // three or more (EdgeLine.runs).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.runs = function () {
   let lvl = this.first;
   let from = 0;
@@ -190,7 +190,7 @@ let webdecGen = 0;
 // line's own from the decode before (a window's decode makes hundreds of
 // thousands, and their collection was a quarter of the page's work), or new
 // ones when the line is sliced again in the same decode.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.edgeObjects = function () {
   const n = this.len;
   if (this.edgeGen === webdecGen) {
@@ -211,14 +211,14 @@ WebDecLine.prototype.edgeObjects = function () {
 };
 
 // webdecCodeCeil is decode.go codeCeil: the least code at or above t (256 none).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecCodeCeil(t) {
   if (!(t <= 255)) return 256;
   return Math.max(0, Math.ceil(t));
 }
 
 // webdecCodeFloor is decode.go codeFloor: the greatest code at or below t (-1 none).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecCodeFloor(t) {
   if (!(t >= 0)) return -1;
   return Math.min(255, Math.floor(t));
@@ -230,7 +230,7 @@ function webdecCodeFloor(t) {
 // line sliceChannel would refuse, or slice with a band outside the codes or
 // settings of its own, is sliced from its samples. The samples and levels
 // are made only for a decoder that reads them.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecLine.prototype.sliceEdges = function (opts, sampled) {
   opts = opts || {};
   const thr = opts.threshold;
@@ -276,13 +276,13 @@ WebDecLine.prototype.sliceEdges = function (opts, sampled) {
   let codes = null;
   let level = null;
   Object.defineProperty(S, "codes", {
-    // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+    // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
     get: function () { return codes || (codes = line.samples()); },
   });
   // The decoders on a digital line read a level at a sample or two (the
   // first), not every sample's: each read finds its edge.
   Object.defineProperty(S, "level", {
-    // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+    // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
     get: function () { return level || (level = webdecLevels(line, n)); },
   });
   return S;
@@ -290,11 +290,11 @@ WebDecLine.prototype.sliceEdges = function (opts, sampled) {
 
 // webdecLevels is a line's level at each sample (sliceChannel's level
 // array), read where a decoder reads it.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecLevels(line, n) {
   const first = line.first;
   return new Proxy({}, {
-    // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+    // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
     get: function (t, k) {
       if (k === "length") return n;
       const i = typeof k === "string" ? Number(k) : NaN;
@@ -307,19 +307,19 @@ function webdecLevels(line, n) {
 // webdecInstall makes the decoders read a WebDecLine through its edges:
 // sliceChannel slices it from its edges and logicAt reads its level there.
 // The page's own decode (which never hands them a WebDecLine) is unchanged.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecInstall(scope) {
   if (!scope || typeof scope.sliceChannel !== "function" || scope.sliceChannel.webdec) return;
   const sampled = scope.sliceChannel;
   const level = scope.logicAt;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
   const slice = function (codes, opts) {
     if (codes && codes.isEdgeLine) return codes.sliceEdges(opts, sampled);
     return sampled(codes, opts);
   };
   slice.webdec = true;
   scope.sliceChannel = slice;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
   scope.logicAt = function (s, x) {
     if (!s.eline) return level(s, x);
     const i = Math.round(x);
@@ -331,7 +331,7 @@ function webdecInstall(scope) {
 // ---- StreamDecoder over edges ----------------------------------------------------------
 // decode/stream.go's StreamDecoder with an edge window: a window starting
 // in a silence between frames, each frame handed out once it is whole.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function WebDecStream(edec, closeN, maxN) {
   closeN = Math.max(closeN, 2);
   this.edec = edec;
@@ -347,20 +347,20 @@ function WebDecStream(edec, closeN, maxN) {
   this.eb = new WebDecLine();
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.held = function () { return this.ea.n; };
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.next = function () { return this.base + this.ea.n; };
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.pushEdges = function (a, b, from, to) {
   this.ea.appendRange(a, from, to);
   if (b) this.eb.appendRange(b, from, to);
   return this.run();
 };
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.flush = function () {
   const out = this.run();
   this.skip(0);
@@ -369,7 +369,7 @@ WebDecStream.prototype.flush = function () {
 
 // skip drops the window and moves the stream on by n samples that will not
 // arrive.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.skip = function (n) {
   this.base += this.held() + n;
   this.done = Math.max(this.done, this.base);
@@ -379,27 +379,27 @@ WebDecStream.prototype.skip = function (n) {
 
 // cutStart drops the first frame from stream index at on unless it opens
 // with a start of frame Close samples or more after at (StreamDecoder.CutStart).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.cutStart = function (at) {
   this.atStart = true;
   this.startAt = at;
 };
 
 // keepFirst judges the first frame after cutStart's index (StreamDecoder.keepFirst).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.keepFirst = function (i0, s) {
   if (!this.atStart || this.base + i0 < this.startAt) return true;
   this.atStart = false;
   return this.isFrameStart(s) && this.base + i0 >= this.startAt + this.closeN;
 };
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.isFrameStart = function (s) {
   return s.kind === "sof" || s.kind === "break" || (this.subframes && s.kind === "rw");
 };
 
 // run decodes the window and hands out its whole frames (StreamDecoder.run).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecStream.prototype.run = function () {
   const n = this.held();
   if (n === 0) return [];
@@ -428,7 +428,7 @@ WebDecStream.prototype.run = function () {
   const out = [];
   const base = this.base;
   let last = -1;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
   const take = (g) => {
     if (!this.keepFirst(g.i0, sp[g.from])) {
       last = g.i1;
@@ -508,7 +508,7 @@ const WEBDEC_LINECFG = { pwm: 1, rcencode: 1, ook: 1, miller: 1, morse: 1, dcf77
 // webdecDecoder is the protocol's decoder as the scope's registry calls it
 // (engine serial_registry.go), on a window's samples: (a, b, sampleS,
 // thresholdB) -> the decoder's result. null for a protocol it has none for.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecDecoder(proto, p, scope) {
   scope = scope || globalThis;
   const thr = p.haveThr ? p.threshold : undefined;
@@ -536,7 +536,7 @@ function webdecDecoder(proto, p, scope) {
 // would (soft_stream.go): info is the words.bin header. Frames come out of
 // onFrames(frames) in the stream's sample index, as the scope's decoder
 // counts them.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function WebDecSession(info, scope) {
   const p = info.params || {};
   this.info = info;
@@ -552,7 +552,7 @@ function WebDecSession(info, scope) {
   const dec = webdecDecoder(info.proto, p, scope);
   if (!dec) throw new Error("no decoder for " + info.proto);
   this.decodeFn = dec;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
   const edec = (a, b) => this.decode(a, b);
   this.dec = new WebDecStream(edec, info.closeN, info.maxN);
   this.dec.leadN = info.leadN;
@@ -578,7 +578,7 @@ function WebDecSession(info, scope) {
 
 // decode is the scope's edgeDecodeFunc: the decoder on the window, line B
 // sliced at its learned level when the settings give none.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.decode = function (a, b) {
   let thrB = this.p.haveThrB ? this.p.thresholdB : undefined;
   if (!this.p.haveThrB && this.bSeen && this.bHi - this.bLo >= 24) thrB = (this.bLo + this.bHi) / 2;
@@ -587,13 +587,13 @@ WebDecSession.prototype.decode = function (a, b) {
 };
 
 // position is the stream index of the next word's first sample.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.position = function () {
   return this.dec.next() + this.pendA.n + 16 * this.skipped;
 };
 
 // feedBits queues words[from..to) as the lines' edges (feedBits).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.feedBits = function (words, from, to) {
   if (to <= from) return;
   this.pendA.appendWords(words, from, to, this.ch);
@@ -605,7 +605,7 @@ WebDecSession.prototype.feedBits = function (words, from, to) {
 };
 
 // learnBWords follows line B's extremes (learnBWords).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.learnBWords = function (words, from, to, ch) {
   const sh = ch ? 16 : 0;
   if (!this.bSeen) {
@@ -622,7 +622,7 @@ WebDecSession.prototype.learnBWords = function (words, from, to, ch) {
 };
 
 // feedWords is feedBitsQuiet over words[from..to).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.feedWords = function (words, i0, i1) {
   const ch = this.ch;
   const two = this.two;
@@ -656,7 +656,7 @@ WebDecSession.prototype.feedWords = function (words, i0, i1) {
 };
 
 // feedRun is feedWords over n copies of the quiet word w, without making them.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.feedRun = function (w, n) {
   if (n <= 0) return;
   this.one[0] = w;
@@ -678,21 +678,21 @@ WebDecSession.prototype.feedRun = function (w, n) {
 };
 
 // learnBRun is learnBWords over a quiet word of line B.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.learnBRun = function (b) {
   this.one[0] = this.ch ? b : b << 16;
   this.learnBWords(this.one, 0, 1, 1 - this.ch);
 };
 
 // queueLevel queues n samples of each line's quiet level.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.queueLevel = function (n) {
   this.pendA.appendLevel(this.lvlA & 1, n);
   if (this.two) this.pendB.appendLevel(this.lvlB & 1, n);
 };
 
 // push decodes the queued edges in the scope's pieces (softPushEdges).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.push = function () {
   const n = this.pendA.n;
   if (n === 0) return;
@@ -715,7 +715,7 @@ WebDecSession.prototype.push = function () {
 // by the scope's ring): what arrived is decoded, the window dropped, and
 // the decode starts afresh at index (softLoss). report: the scope does not
 // know of it (the page fell behind), so the frames posted back mark it.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.loss = function (index, report) {
   this.push();
   this.dec.skip(0);
@@ -729,7 +729,7 @@ WebDecSession.prototype.loss = function (index, report) {
 
 // feedChunk takes one chunk of a words.bin reply: its words coded as runs
 // and literals (engine appendWordsRLE), then the scope's push check.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.feedChunk = function (c) {
   if (!this.started) {
     // the session's first words: the scope's decoder index starts there
@@ -756,7 +756,7 @@ WebDecSession.prototype.feedChunk = function (c) {
 };
 
 // takeFrames hands out the frames decoded so far.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 WebDecSession.prototype.takeFrames = function () {
   const f = this.frames;
   this.frames = [];
@@ -766,7 +766,7 @@ WebDecSession.prototype.takeFrames = function () {
 // ---- the wire -----------------------------------------------------------------------------
 // webdecParse reads a /api/stream/words.bin reply (an ArrayBuffer): the
 // JSON header and the chunks, each chunk's tokens a view in buf.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecParse(buf) {
   const dv = new DataView(buf);
   if (buf.byteLength < 8 || dv.getUint8(0) !== 0x53 || dv.getUint8(1) !== 0x44 || dv.getUint8(2) !== 0x57 || dv.getUint8(3) !== 0x31)
@@ -795,7 +795,7 @@ const WEBDEC_KINDS = { data: 0, "frame-error": 1, "parity-error": 2, gap: 3, sof
 // index decoded through and the frames - each frame's first span (its start
 // of frame), its data and error spans, and a loss (losses: indices) as a
 // frame of one "loss" span.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 function webdecFramesBody(session, through, frames, losses) {
   const enc = new TextEncoder();
   const items = [];
@@ -821,9 +821,9 @@ function webdecFramesBody(session, through, frames, losses) {
   const dv = new DataView(buf);
   const u8 = new Uint8Array(buf);
   let o = 0;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
   const u32 = (v) => { dv.setUint32(o, v >>> 0, true); o += 4; };
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
   const u64 = (v) => { u32(v % 4294967296); u32(Math.floor(v / 4294967296)); };
   u8.set([0x53, 0x44, 0x46, 0x31], 0);
   o = 4;

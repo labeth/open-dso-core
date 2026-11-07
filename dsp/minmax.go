@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DSP
+// ENGMODEL-OWNER-UNIT: FU-DSO-DSP
 
 package dsp
 
@@ -11,7 +11,7 @@ const minMaxBulk = 64
 // extremes and a drawn column's, in 32-code blocks on the vector unit where
 // the platform has one. Each sample's compare-and-branch is what a scan of a
 // whole record cost.
-// TRLC-LINKS: REQ-SDS-017
+// TRLC-LINKS: REQ-DSO-017
 func MinMax8(s []uint8) (lo, hi uint8) {
 	if len(s) == 0 {
 		return 0, 0

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // MEASURE's statistics count a reading once: by the frame measured (meas_seq;
 // the server reuses a reading for the frames of the next 100 ms while
 // running), the edge shape by its edge-window read (edge_read; carried to the
@@ -13,7 +13,7 @@ const c = { RunStats, ws: { cur: "measure" }, st: { tdiv_s: 2e-4 }, frame: null,
 vm.createContext(c);
 vm.runInContext(fs.readFileSync('caps.js', 'utf8'), c);
 vm.runInContext(code + '\nthis.count = (id) => (measStats.get(id) || { n: 0 }).n;', c);
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 const m = (rise) => ({ vpp: 3.3, rise_s: rise, edge_shape: true, has_timing: true, window_timing: true, freq: 1e6, period: 1e-6, duty: 50 });
 const feed = [
   { seq: 1, meas_seq: 1, edge_read: 1, m1: m(25e-9) },

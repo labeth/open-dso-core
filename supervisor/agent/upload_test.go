@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func TestUploadRejectsGapWhenSizeDeclared(t *testing.T) {
 	a := testAgent(t)
 	dest := filepath.Join(t.TempDir(), "out.bin")
@@ -32,7 +32,7 @@ func TestUploadRejectsGapWhenSizeDeclared(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func TestUploadRoundTripWithSHA(t *testing.T) {
 	a := testAgent(t)
 	dest := filepath.Join(t.TempDir(), "ok.bin")
@@ -63,7 +63,7 @@ func TestUploadRoundTripWithSHA(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func fileSHAOfBytes(b []byte) (string, error) {
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:]), nil
@@ -72,7 +72,7 @@ func fileSHAOfBytes(b []byte) (string, error) {
 // A stale session is evicted while a chunk may still be writing to it: the
 // eviction waits for the session's own lock, so it never closes the file
 // under a chunk in progress.
-// TRLC-LINKS: REQ-SDS-106
+// TRLC-LINKS: REQ-DSO-106
 func TestUploadEvictionWaitsForAChunk(t *testing.T) {
 	a := testAgent(t)
 	dir := t.TempDir()

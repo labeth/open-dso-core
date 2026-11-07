@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // sound_analysis.js — SOUND's heavy page analyses in a Web Worker, off the
 // page's thread: the tuner's pitch, the modulation page's four-second demodulation and its
 // spectrum, the harmonics page's spectra, A/B's comparison and spectra. On
@@ -7,7 +7,7 @@
 "use strict";
 importScripts("sound.js");
 
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-270, REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-270, REQ-DSO-271
 onmessage = (e) => {
   const j = e.data;
   let r = {};

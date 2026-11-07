@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -36,7 +36,7 @@ import (
 // canStuffTrackedB mirrors canStuffCore but records realIdx[k] = the wire index
 // of the k-th input (real, non-stuff) bit, so a two-rate FD renderer can find
 // the exact wire position of the BRS bit.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func canStuffTrackedB(bits []int) (out, realIdx []int) {
 	runVal, runLen := -1, 0
 	for _, b := range bits {
@@ -58,7 +58,7 @@ func canStuffTrackedB(bits []int) (out, realIdx []int) {
 
 // canFDBRSFrameB builds a CAN-FD base frame with BRS=1 (data-phase rate switch)
 // through the data field. split = wire index of the last nominal-rate bit (BRS).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func canFDBRSFrameB(id, dlc int, data []int) (wire []int, split int) {
 	var bits []int
 	bits = append(bits, 0)                     // SOF
@@ -84,7 +84,7 @@ func canFDBRSFrameB(id, dlc int, data []int) (wire []int, split int) {
 
 // canRenderTwoRateB lays wire out with wire[0..split] at spb1 and wire[split+1:]
 // at spb2 (the faster data-phase rate), plus recessive idle.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func canRenderTwoRateB(wire []int, split, spb1, spb2 int, dominantLow bool, lead, trail int) []uint8 {
 	lo, hi := uint8(40), uint8(210)
 	var codes []uint8
@@ -120,7 +120,7 @@ func canRenderTwoRateB(wire []int, split, spb1, spb2 int, dominantLow bool, lead
 }
 
 // canStdRemoteFrameB builds a classic standard REMOTE (RTR) frame — no data.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func canStdRemoteFrameB(id, dlc int) []int {
 	var crcInput []int
 	crcInput = append(crcInput, 0)                     // SOF
@@ -145,13 +145,13 @@ func canStdRemoteFrameB(id, dlc int) []int {
 
 // ---- helpers -----------------------------------------------------------------
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func fmtInts(v []int) string { return fmt.Sprintf("%v", v) }
 
 // confidentValidCAN reports whether the result is a *confident* classic CAN frame
 // by the protocol's own integrity: OK, with a CRC span whose text is NOT flagged
 // with '!' (i.e. the on-wire CRC matched the recomputed CRC-15).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func confidentValidCAN(r Result) bool {
 	if !r.OK {
 		return false
@@ -162,7 +162,7 @@ func confidentValidCAN(r Result) bool {
 
 // safeDecodeCAN runs the decoder under a recover so a panic becomes a test error
 // rather than crashing the run.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func safeDecodeCAN(t *testing.T, tag string, codes []uint8, ct float64, cfg CANFDCfg) (r Result) {
 	t.Helper()
 	defer func() {
@@ -175,14 +175,14 @@ func safeDecodeCAN(t *testing.T, tag string, codes []uint8, ct float64, cfg CANF
 
 // exactBaudCfg returns a cfg+ct pair that makes the decoder's samples/bit equal
 // exactly `spb` (NominalBaud=1, colTimeS=1/spb  =>  spb = (1/1)/(1/spb)).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func exactBaudCfg(spb int, dominantLow bool) (float64, CANFDCfg) {
 	return 1.0 / float64(spb), CANFDCfg{NominalBaud: 1, DominantLow: dominantLow}
 }
 
 // ---- the suite ---------------------------------------------------------------
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakCanfd(t *testing.T) {
 	t.Run("false_negative", breakCANFalseNeg)
 	t.Run("false_positive", breakCANFalsePos)
@@ -190,7 +190,7 @@ func TestBreakCanfd(t *testing.T) {
 }
 
 // 1. FALSE NEGATIVES: >= 50 fully valid frames must decode byte-exact.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func breakCANFalseNeg(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xCA11FD))
 
@@ -363,7 +363,7 @@ func breakCANFalseNeg(t *testing.T) {
 
 // 2. FALSE POSITIVES: garbage / corrupted frames must not be reported as a
 // confident (unflagged-CRC) valid classic frame.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func breakCANFalsePos(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDEAD))
 
@@ -522,7 +522,7 @@ func breakCANFalsePos(t *testing.T) {
 }
 
 // 3. EDGE CASES: extreme rates, boundary sample counts, degenerate config.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func breakCANEdge(t *testing.T) {
 	// minimum legal bit rate (spb == 3) must still round-trip.
 	{
@@ -646,7 +646,7 @@ func breakCANEdge(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func byte8(v int) int { return v & 0xff }
 
 // A record that opens inside a frame reads no frame from there: every
@@ -654,7 +654,7 @@ func byte8(v int) int { return v & 0xff }
 // or data bit, and the bench CAN line read so gave frames of garbage (RTR,
 // FD, wrong bytes) that the BUS packet list then held. Each cut of the bench
 // line's three frames decodes only frames of the line itself.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestCANRecordOpeningInsideAFrame(t *testing.T) {
 	_, w1 := canStdFrame(0x123, 4, []int{0x55, 0xAA, 0x0F, 0xF0})
 	_, w2 := canStdFrame(0x100, 2, []int{0x11, 0x22})
@@ -705,7 +705,7 @@ func TestCANRecordOpeningInsideAFrame(t *testing.T) {
 // An inferred bit rate within 1.5% of a standard CAN rate is that rate: a
 // 500 kbit/s bench bus read as 502-507 kbit/s from a live record's edge gaps.
 // A rate far from any standard one stands.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestCANBitRateSnapsToStandard(t *testing.T) {
 	data := []int{0x55, 0xAA, 0x0F, 0xF0}
 	_, w := canStdFrame(0x123, len(data), data)

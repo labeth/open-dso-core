@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import "math"
 // silence that ends a frame (StreamDecoder's Close: no frame goes longer
 // without a decoded span, a whole-frame decoder's frame included). ok is
 // false for a protocol the stream does not decode.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func StreamTiming(proto string, baud float64) (feature, longest, quiet float64, ok bool) {
 	bit := func(def float64) float64 {
 		if baud > 0 {
@@ -146,7 +146,7 @@ func StreamTiming(proto string, baud float64) (feature, longest, quiet float64, 
 // frame may have been cut: a frame starting in it is dropped
 // (StreamRecord). SWD has no leader, so a request read from the middle of a
 // cut transfer looks like any other: its head is a whole transfer.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func StreamRecordHead(proto string, feature, longest float64) float64 {
 	if proto == protoSWD {
 		return longest
@@ -159,7 +159,7 @@ func StreamRecordHead(proto string, feature, longest float64) float64 {
 // (StreamRecordFromIdle). PDI runs its characters back to back and its
 // instructions too: a record opened inside an instruction reads its
 // operands as opcodes, and on a periodic bus stays out of step for good.
-// TRLC-LINKS: REQ-SDS-260
+// TRLC-LINKS: REQ-DSO-260
 func StreamRecordAfterIdle(proto string) bool {
 	return proto == protoPDI
 }
@@ -169,7 +169,7 @@ func StreamRecordAfterIdle(proto string) bool {
 // whose place a cut loses (SWIM): in a record, a frame cut by the
 // record's start reads as frames until a quiet line (StreamRecord's cutN, a
 // longest frame).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-260
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-260
 func StreamEdgeFramed(proto string) bool {
 	switch proto {
 	case protoMiller, protoSWIM:
@@ -182,7 +182,7 @@ func StreamEdgeFramed(proto string) bool {
 // frame's start to find it: DCF77 knows second 0 by the missing pulse before
 // it, so the pulse before that; a JVC repeat comes without a leader and is
 // read only after the frame it repeats (IRMP), a longest frame earlier.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-260
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-260
 func StreamLead(proto string, baud float64) float64 {
 	switch proto {
 	case protoDCF77:
@@ -221,7 +221,7 @@ const StreamMaxLog = 20
 // 2^11 leaves fewer than three and a half buckets in takes the coarsest
 // finer one that leaves it that many (streamCheapLog). ok is false when even
 // the finest leaves fewer: the edges then move by a bucket within a feature.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func StreamBucketLog(feature float64) (log int, ok bool) {
 	bucket := func(l int) float64 { return streamBuckets[l] }
 	if feature < 3.5*bucket(streamCheapLog) {
@@ -275,12 +275,12 @@ var StreamBitsMinPeriod = int(math.Ceil(1 / (16 * StreamRawWord * StreamBusWords
 
 // StreamBitsPeriod is the time of a digital period of period raw words
 // (ADR-STREAM-BITS): one sample a period a line.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func StreamBitsPeriod(period int) float64 { return float64(period) * StreamRawWord }
 
 // StreamBitsWordRate is the digital stream's words a second at a period of
 // period raw words: sixteen periods a word.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func StreamBitsWordRate(period int) float64 { return 1 / (16 * StreamBitsPeriod(period)) }
 
 // StreamBitsPlan is the digital stream's period in raw words for a feature
@@ -292,7 +292,7 @@ func StreamBitsWordRate(period int) float64 { return 1 / (16 * StreamBitsPeriod(
 // feature). Any whole period, so the plan takes what the CPU and the bus
 // allow instead of the power of two under it. ok is false when even the
 // finest leaves fewer: the edges then move by a period within a feature.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func StreamBitsPlan(feature, rate float64) (period int, ok bool) {
 	const tol = 1 + 1e-9 // a feature a whole number of periods keeps them
 	fine := StreamBitsMinPeriod
@@ -311,7 +311,7 @@ func StreamBitsPlan(feature, rate float64) (period int, ok bool) {
 // carrier (an IR remote's 38 kHz, an RFID tag's 125 kHz field) sliced at a
 // period finer than its cycle reads as the carrier itself, not the runs the
 // decoders merge from a bucket's two extremes.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func StreamBitsLine(proto string) bool {
 	switch proto {
 	case protoIRNEC, protoIRSIRC, protoIRRC5, protoIRRC6, protoIRMP, protoEM4100, protoEM4305, protoT55xx:

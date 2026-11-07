@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -29,7 +29,7 @@ const (
 // and its screen every 30 s. Then it stops the app. Whether the app comes up
 // and what its status says is the end-to-end answer: this firmware as it
 // stands on this population.
-// TRLC-LINKS: REQ-SDS-289
+// TRLC-LINKS: REQ-DSO-289
 func (c *Collection) RunApp(a *Archive, app string, env []string) string {
 	settings := filepath.Join(filepath.Dir(c.Self), "app-settings")
 	if err := os.MkdirAll(settings, 0o755); err != nil { //nolint:gosec // G301: a directory on the stick
@@ -102,7 +102,7 @@ func (c *Collection) RunApp(a *Archive, app string, env []string) string {
 }
 
 // fetch stores one of the app's pages in the archive.
-// TRLC-LINKS: REQ-SDS-289
+// TRLC-LINKS: REQ-DSO-289
 func (c *Collection) fetch(a *Archive, name, path string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render_test
 
@@ -14,7 +14,7 @@ import (
 // full precision: packed to RGB565 they agree, but where a colour is worked
 // out from others (the eye's shades, dimmed held stretches, the SOUND
 // trace's persistence), which a 32-bit canvas works out at 8 bits.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestImage32MatchesImage565(t *testing.T) {
 	shaded := map[string]bool{"ws_bus_eye": true, "ws_sound_mod": true}
 	m := &render.Metrics800x480
@@ -52,7 +52,7 @@ func scene(name string) rendertest.Scene {
 
 // Every scene paints every pixel at every screen's metrics: a scene that
 // starts on a colour no frame uses leaves none of it.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestScenesPaintEveryScreen(t *testing.T) {
 	fill := render.RGB(255, 0, 255)
 	for _, m := range []*render.Metrics{&render.Metrics800x480, &render.Metrics1024x600, &render.Metrics1280x800} {

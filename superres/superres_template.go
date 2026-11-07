@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -7,7 +7,7 @@ import "math"
 // buildTemplate isolates the reference's distinguishing content — the active
 // (non-flat) region after the trigger transition — as a zero-mean template. See
 // srBuildTemplate in superres.js; general-purpose (burst, UART byte, glitch…).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func buildTemplate(ref []float32, n int, edgeX float64, valid int) *template {
 	hi0 := n
 	if valid > 0 && valid <= n {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package shape
 
@@ -12,7 +12,7 @@ const (
 )
 
 // ResampleEnv nearest-resamples an envelope column array to n output columns.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func ResampleEnv(v []uint8, envCols, n int) []int16 {
 	out := make([]int16, n)
 	for x := range n {
@@ -26,7 +26,7 @@ func ResampleEnv(v []uint8, envCols, n int) []int16 {
 
 // RawInt16 copies a raw code slice to the []int16 wire type without resampling —
 // used when there is no trigger to anchor on (free-run). Codes are contiguous.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func RawInt16(codes []uint8) []int16 {
 	out := make([]int16, len(codes))
 	for i, c := range codes {
@@ -42,7 +42,7 @@ func RawInt16(codes []uint8) []int16 {
 // stays centred except near the record ends where there is no data to slide
 // into view. Gaps (-1) only occur off the record; the client breaks the
 // polyline there.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func Window(sig []uint8, valid, winCols int, edgeX float64, interp bool, n int, posFrac float64) []int16 {
 	out := make([]int16, n)
 	if valid < 1 {
@@ -99,7 +99,7 @@ func Window(sig []uint8, valid, winCols int, edgeX float64, interp bool, n int, 
 // CoupleQ8 copies precision words with the coupling display transform
 // (Coupling*): a copy taken while the frame lock is held. AC centering uses
 // its fractional mean; exported raw records bypass this display operation.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func CoupleQ8(src []uint16, cpl int) []uint16 {
 	out := append([]uint16(nil), src...)
 	if cpl == CouplingDC {
@@ -124,7 +124,7 @@ func CoupleQ8(src []uint16, cpl int) []uint16 {
 
 // HeldRanges is the [a, b) runs of held samples among the first n; nil when
 // there are none.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 func HeldRanges(held []bool, n int) [][2]int {
 	if len(held) < n {
 		return nil

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// The UART layers (REQ-SDS-244): a packet is a burst of characters the
+// The UART layers (REQ-DSO-244): a packet is a burst of characters the
 // line's idle of 1.5 character times ends. S.BUS sends a 25-byte frame per
 // burst; the trace streams (ITM, TPIU, ETM) and the text protocols read the
 // bytes of a burst in order, a packet's note naming what it holds.
@@ -18,7 +18,7 @@ import (
 // sbusFrame reads one S.BUS frame: 0x0F, 16 channels of 11 bits least
 // significant bit first, a flag byte (channels 17 and 18, frame lost,
 // failsafe) and the end byte (0x00; S.BUS2 sends 04, 14, 24 or 34).
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func sbusFrame(b []byte) (string, bool) {
 	var ch [16]int
 	bit := 0
@@ -58,7 +58,7 @@ func sbusFrame(b []byte) (string, bool) {
 }
 
 // sbusNote reads the S.BUS frames of a burst.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func sbusNote(p Packet) (string, bool) {
 	b := p.Bytes
 	if len(b) != 25 || b[0] != 0x0f {
@@ -72,7 +72,7 @@ func sbusNote(p Packet) (string, bool) {
 }
 
 // sbusNotes writes each burst's S.BUS frame.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func sbusNotes(ps []Packet) {
 	for i := range ps {
 		ps[i].Note, ps[i].NoteErr = sbusNote(ps[i])
@@ -81,7 +81,7 @@ func sbusNotes(ps []Packet) {
 
 // sbusDetect: two or more bursts of 25 bytes opening with 0x0F and ending
 // with an end byte, no character with a parity or framing error.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func sbusDetect(ps []Packet) string {
 	n := 0
 	for _, p := range ps {
@@ -100,7 +100,7 @@ func sbusDetect(ps []Packet) string {
 }
 
 // sbusMatch: the frame's header.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func sbusMatch(_ Packet) ([]string, int) { return []string{"0F"}, -1 }
 
 // ---- ARM ITM (instrumentation trace over SWO) ----
@@ -112,7 +112,7 @@ var itmExceptions = map[int]string{
 }
 
 // itmText reports a character an ITM stimulus write joins to a string.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func itmText(v byte) bool { return (v >= 0x20 && v < 0x7f) || (v >= 9 && v <= 13) }
 
 // itmParse reads ITM packets: synchronization, overflow, local timestamps,
@@ -120,7 +120,7 @@ func itmText(v byte) bool { return (v >= 0x20 && v < 0x7f) || (v >= 9 && v <= 13
 // bytes; single printable characters on a channel join into a string) and
 // hardware (DWT) packets: event counters, exception trace, PC samples, data
 // trace. The items are what the bytes hold, in order.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func itmParse(b []byte) (items []string, bad bool) {
 	items = make([]string, 0, len(b)/2+1) // room for an item every two bytes: grown once at most
 	textCh, text := -1, []byte{}
@@ -246,7 +246,7 @@ func itmParse(b []byte) (items []string, bad bool) {
 }
 
 // itmNotes writes each burst's ITM packets.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func itmNotes(ps []Packet) {
 	eachNote(ps, func(b []byte) (string, bool) {
 		items, bad := itmParse(b)
@@ -256,7 +256,7 @@ func itmNotes(ps []Packet) {
 
 // itmDetect: an ITM synchronization packet (five or more zeros then 0x80)
 // and the bytes after it all ITM packets.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func itmDetect(ps []Packet) string {
 	for _, p := range ps {
 		b := p.Bytes
@@ -273,7 +273,7 @@ func itmDetect(ps []Packet) string {
 }
 
 // itmMatch: the ITM packet header that opens the burst (its channel).
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func itmMatch(p Packet) ([]string, int) {
 	if len(p.Bytes) == 0 {
 		return nil, -1
@@ -288,7 +288,7 @@ func itmMatch(p Packet) ([]string, int) {
 // even bytes; an even byte with bit 0 set is a stream ID (taking effect
 // after the next byte when its low bit says so), else data; odd bytes are
 // data. It returns the bytes of each stream in order.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func tpiuDemux(b []byte) (ids []int, data [][]byte, cut bool) {
 	start := 0
 	for k := 0; k+4 <= len(b); k++ {
@@ -337,7 +337,7 @@ func tpiuDemux(b []byte) (ids []int, data [][]byte, cut bool) {
 // tpiuNotes writes each burst's TPIU streams: stream 1 read as ITM (the
 // usual ATB ID of a Cortex-M's ITM), the others as bytes, the null stream
 // and the reserved ID 0x7F (padding) left out.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func tpiuNotes(ps []Packet) {
 	eachNote(ps, func(b []byte) (string, bool) {
 		ids, data, cut := tpiuDemux(b)
@@ -367,7 +367,7 @@ func tpiuNotes(ps []Packet) {
 }
 
 // tpiuDetect: a TPIU synchronization (FF-FF-FF-7F) and a whole frame after.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func tpiuDetect(ps []Packet) string {
 	for _, p := range ps {
 		b := p.Bytes
@@ -390,7 +390,7 @@ type etmState struct {
 }
 
 // etmVarint reads a value seven bits a byte, bit 7 continuing.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func etmVarint(b []byte, limit int) (v int64, n int, ok bool) {
 	for n < len(b) && n < limit {
 		v |= int64(b[n]&0x7f) << (7 * n)
@@ -406,7 +406,7 @@ func etmVarint(b []byte, limit int) (v int64, n int, ok bool) {
 // ID, no cycle accuracy): A-sync, I-sync with its address and reason,
 // branch addresses (compressed against the last), P-header atoms, trigger,
 // exception entry and exit, timestamps and the ones it skips.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func (st *etmState) parse(b []byte) (items []string, bad bool) {
 	for i := 0; i < len(b); {
 		h := b[i]
@@ -521,7 +521,7 @@ func (st *etmState) parse(b []byte) (items []string, bad bool) {
 }
 
 // etmNotes writes each burst's ETM packets, the branch state carried on.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func etmNotes(ps []Packet) {
 	st := &etmState{}
 	eachNote(ps, func(b []byte) (string, bool) {
@@ -550,7 +550,7 @@ var amuletCmds = map[int][2]string{
 }
 
 // amuletHex reads n ASCII hex characters.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func amuletHex(b []byte) (int, bool) {
 	v := 0
 	for _, c := range b {
@@ -571,7 +571,7 @@ func amuletHex(b []byte) (int, bool) {
 }
 
 // amuletNote reads a burst's Amulet commands and replies.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func amuletNote(b []byte) (string, bool) {
 	var parts []string
 	for i := 0; i < len(b); {
@@ -644,7 +644,7 @@ type panState struct{ line []byte }
 // note reads the lines a burst ends: the host's AT+J commands (name,
 // security, auto-accept, data to send, reset, production mode) and the
 // module's replies (ROK, OK, ERR=).
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func (st *panState) note(b []byte) (string, bool) {
 	var parts []string
 	bad := false
@@ -698,14 +698,14 @@ func (st *panState) note(b []byte) (string, bool) {
 }
 
 // panNotes reads a record's PAN1321 lines in order.
-// TRLC-LINKS: REQ-SDS-244
+// TRLC-LINKS: REQ-DSO-244
 func panNotes(ps []Packet) {
 	st := &panState{}
 	eachNote(ps, st.note)
 }
 
 // panDetect: a PAN1321 command (AT+J...) ending in CR LF.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func panDetect(ps []Packet) string {
 	for _, p := range ps {
 		s := string(p.Bytes)

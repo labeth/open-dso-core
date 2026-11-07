@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -15,7 +15,7 @@ import (
 
 // hSet applies one scalar control: {"control":name,"value":v} and the
 // qualifiers' parameters. The reply is {"ok","applied","err"}.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hSet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -47,7 +47,7 @@ func (s *Server) hSet(w http.ResponseWriter, r *http.Request) {
 
 // hZones installs the zone-trigger rectangles (POST JSON array of zones in
 // edge-anchored seconds x display codes). Empty array clears.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hZones(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -93,7 +93,7 @@ func (s *Server) hZones(w http.ResponseWriter, r *http.Request) {
 // /api/set {control:"serialmode"}. GET answers the trigger as armed (on
 // the display, a phone or a page): a page shows it rather than replace it
 // with its own empty match.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hSerial(w http.ResponseWriter, r *http.Request) {
 	tr, ok := s.sc.Triggers()
 	if r.Method == http.MethodGet {
@@ -125,7 +125,7 @@ func (s *Server) hSerial(w http.ResponseWriter, r *http.Request) {
 }
 
 // hSerialProtocols lists the protocols the trigger takes.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hSerialProtocols(w http.ResponseWriter, _ *http.Request) {
 	tr, ok := s.sc.Triggers()
 	if !ok {
@@ -135,7 +135,7 @@ func (s *Server) hSerialProtocols(w http.ResponseWriter, _ *http.Request) {
 	WriteJSON(w, tr.SerialProtocols())
 }
 
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func clampI(v, lo, hi int) int {
 	if v < lo {
 		return lo
@@ -150,7 +150,7 @@ func clampI(v, lo, hi int) int {
 // clears). Full masks use compact base64 lo_b64/hi_b64 byte arrays.
 // The envelopes are display-window columns (win = the scope's window
 // columns at build time); the client builds and dilates.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hMask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -219,7 +219,7 @@ func (s *Server) hMask(w http.ResponseWriter, r *http.Request) {
 // hBode serves the accumulated Frequency-Response (Bode) curve as parallel
 // arrays (compact for the plot): frequency (Hz), magnitude (dB), phase (deg),
 // sorted ascending by frequency.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hBode(w http.ResponseWriter, _ *http.Request) {
 	bd, ok := s.sc.Bode()
 	if !ok {
@@ -238,7 +238,7 @@ func (s *Server) hBode(w http.ResponseWriter, _ *http.Request) {
 
 // hMaskFail serves one captured failing frame from the ring as JSON (gallery
 // click — not a hot path). ?i=k indexes the snapshot, most recent last.
-// TRLC-LINKS: REQ-SDS-162
+// TRLC-LINKS: REQ-DSO-162
 func (s *Server) hMaskFail(w http.ResponseWriter, r *http.Request) {
 	mk, ok := s.sc.Masks()
 	if !ok {

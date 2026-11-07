@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -12,7 +12,7 @@ import (
 
 // A record denser than the screen draws each column's full min..max: a
 // one-sample spike in a 1 M-sample stopped record stays on screen.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestDenseTraceKeepsSpikes(t *testing.T) {
 	sig := make([]uint8, 1<<20)
 	for i := range sig {
@@ -37,7 +37,7 @@ func TestDenseTraceKeepsSpikes(t *testing.T) {
 }
 
 // Running, a frame from another timebase is not drawn under the new label.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestStaleTimebaseFrameNotDrawn(t *testing.T) {
 	f := &sample.Frame{Seq: 1, WinPoints: 2048, SampleS: 1e-3, TriggerAt: -1, Snapshot: sample.Settings{TdivS: 0.1}, Traces: []sample.Trace{{Codes8: make([]uint8, 2048), Valid: 2048}, {Ch: 1, Codes8: make([]uint8, 2048), Valid: 2048}}}
 	for i := range f.Codes8(0) {
@@ -68,25 +68,25 @@ func TestStaleTimebaseFrameNotDrawn(t *testing.T) {
 // per-pixel paths.
 type pixelSurface struct{ m *Image565 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (s pixelSurface) SetPixel(x, y int, c Color) { s.m.SetPixel(x, y, c) }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (s pixelSurface) Fill(c Color) { s.m.Fill(c) }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (s pixelSurface) At(x, y int) Color { return s.m.At(x, y) }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (s pixelSurface) Format() hal.PixelFormat { return s.m.Format() }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (s pixelSurface) Metrics() *Metrics { return s.m.Metrics() }
 
 // A dense trace filled in blocks (the rows all of a block's columns cover a
 // row at a time) sets the same pixels as each column drawn down its span: held
 // stretches, quiet and full-height columns, zoom and the plot's width included.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestDenseTraceBlockFillMatchesColumns(t *testing.T) {
 	sig := make([]uint8, 40000)
 	for i := range sig {
@@ -128,7 +128,7 @@ func TestDenseTraceBlockFillMatchesColumns(t *testing.T) {
 
 // The min/max envelope is filled the same way: the same pixels as a column at
 // a time, columns past the envelope's data left empty.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func TestEnvelopeBlockFillMatchesColumns(t *testing.T) {
 	mn, mx := make([]uint8, 700), make([]uint8, 700)
 	for i := range mn {

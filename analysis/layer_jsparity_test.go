@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -19,7 +19,7 @@ import (
 // same packets listed with the same notes, the same flagged, and the same
 // layers offered per bus. Skips without node (fails under
 // CI_REQUIRE_BROWSER=1).
-// TRLC-LINKS: REQ-SDS-241, REQ-SDS-242, REQ-SDS-243, REQ-SDS-244, REQ-SDS-245, REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-241, REQ-DSO-242, REQ-DSO-243, REQ-DSO-244, REQ-DSO-245, REQ-DSO-246
 func TestJSLayerParity(t *testing.T) {
 	testenv.NeedNode(t)
 	node, _ := exec.LookPath("node")
@@ -122,7 +122,7 @@ func TestJSLayerParity(t *testing.T) {
 }
 
 // clonePackets copies packets (their byte slices too), as a layer writes notes.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func clonePackets(ps []Packet) []Packet {
 	out := make([]Packet, len(ps))
 	for i, p := range ps {

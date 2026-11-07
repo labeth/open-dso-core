@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-GEOM
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_geom.js — viewport/window/nav geometry + marker/zoom math (classic script; shares app.js globals).
 
 "use strict";
@@ -8,12 +8,12 @@
 // absolute fraction would slide ~1 screen/frame; anchoring to the edge pins a
 // marker to its feature. srEdgeAnchor is the current frame's edge (record fraction,
 // 0.5 when free-run); srGateRF maps a stored offset to THIS frame's record fraction.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function srEdgeAnchor() { return (frame && frame.edge_frac >= 0) ? frame.edge_frac : 0.5; }
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function srGateRF(off) { return off + srEdgeAnchor(); }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function srGateDefaultFromView() {
   const w = view.win, s = w.b - w.a, anchor = srEdgeAnchor();
   // fallback: inset from the visible edges so both handles are easy to grab.
@@ -50,19 +50,19 @@ function srGateDefaultFromView() {
 
 // The ONE column<->pixel mapping: traces, overlays and decode all go through it,
 // so they stay aligned at any zoom. At win={0,1} it equals the legacy i/(n-1)*(CW-1).
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function xForCol(i, n) { const w = view.win; return (i / (n - 1) - w.a) / (w.b - w.a) * (CW - 1); }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function fracForX(xpx) { const w = view.win; return w.a + (xpx / (CW - 1)) * (w.b - w.a); }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function navFrac(ev) { const r = nav.getBoundingClientRect(); return Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)); }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function navY(code, zoom) { zoom = zoom || 1; return NH * (1 - (128 + (code - 128) * zoom) / 255); }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function setWin(a, b) { view.win.a = a; view.win.b = b; scheduleRender(); }
 
 // homeSpan: one acquisition screen = DIVX divisions of the HARDWARE time/div, as
@@ -71,7 +71,7 @@ function setWin(a, b) { view.win.a = a; view.win.b = b; scheduleRender(); }
 // Deep memory holds more than one screen, so at fast HW timebases the record's
 // WinCols display window is only a zoomed-in slice of it; this uses enough of the
 // record to fill a full HW screen. Clamps to the whole record for a short capture.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function homeSpan(f) {
   if (!f) return 1;
   if (f.tdiv_s > 0 && f.col_span_s > 0) return Math.min(1, DIVX * f.tdiv_s / f.col_span_s);
@@ -81,7 +81,7 @@ function homeSpan(f) {
 // The "home" window: the trigger-centered HARDWARE-timebase screen (grid =
 // tdiv_s/div), including stopped captures. Full SRAM recall must not silently
 // zoom out; the rest of the record remains accessible through navigation.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function homeWindow(f) {
   if (!f) return { a: 0, b: 1 };
   let wf = homeSpan(f);
@@ -102,30 +102,30 @@ function homeWindow(f) {
   return { a, b };
 }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function goHome() { if (frame) { const h = homeWindow(frame); view.win.a = h.a; view.win.b = h.b; } view.vwin.a = 0; view.vwin.b = 1; userZoomed = false; clearPersist(); redraw(); }
 
 // Acquisition signature: a change (band/env/depth/run-state) re-homes the window.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function acqSig(f) { return (f.is_env ? "E" : "") + ":" + (f.c1 ? f.c1.length : 0) + ":" + ((st && st.running) ? "R" : "S"); }
 
 // winRange returns the column index range [iLo,iHi] visible in view.win (a small
 // margin so segments enter/exit cleanly). Iterating only these is also faster
 // when zoomed in.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function winRange(n) {
   const w = view.win;
   return [Math.max(0, Math.floor(w.a * (n - 1)) - 1), Math.min(n - 1, Math.ceil(w.b * (n - 1)) + 1)];
 }
 
 // ---- cursor dragging ----
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function ptToNorm(ev) {
   const r = scope.getBoundingClientRect();
   return { x: (ev.clientX - r.left) / r.width, y: (ev.clientY - r.top) / r.height };
 }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function markerHit(p) {
   if (!st || view.mode !== "YT" || !frame) return null;
   const vpcT = frame["vpc" + trigChan()] || (1 / 25);
@@ -145,14 +145,14 @@ function markerHit(p) {
 
 // offHit is markerHit's test of one channel's ground arrow, the channels
 // tried in order without a table built a pointer move.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function offHit(p, ch, en, vpc, offV, zoom) {
   if (!en || !vpc) return null;
   const gy = yFor(128 + (offV || 0) / vpc, zoom) / CH;
   return Math.abs(p.y - gy) < 0.06 ? { kind: "off" + ch, vpc, zoom } : null;
 }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function moveMarker(ev) {
   const cy = Math.max(0, Math.min(1, ptToNorm(ev).y));
   if (mk.kind === "level") {
@@ -165,13 +165,13 @@ function moveMarker(ev) {
   scheduleRender();
 }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function commitMarker() {
   if (mk.kind === "level") sendTrigLevel(st.trig_volts);
   else { const ch = +mk.kind.slice(3); sendChan("offset", ch, st["off" + ch + "_v"] / probeOf(ch)); }
 }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function boxRect() {
   const r = scope.getBoundingClientRect();
   const x0 = (Math.min(boxZoom.sx, boxZoom.ex) - r.left) / r.width;
@@ -182,7 +182,7 @@ function boxRect() {
   return { x0: Math.max(0, x0), x1: Math.min(1, x1), y0: Math.max(0, y0), y1: Math.min(1, y1), wpx, hpx };
 }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function applyBoxZoom() {
   const b = boxRect();
   if (view.mode === "FFT") {
@@ -208,10 +208,10 @@ function applyBoxZoom() {
   clearPersist();
 }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function moveCursor(ev) {
   const p = ptToNorm(ev);
-  // TRLC-LINKS: REQ-SDS-202
+  // TRLC-LINKS: REQ-DSO-202
   const clamp = x => Math.max(0, Math.min(1, x));
   if (cur.drag[0] === "t") cur[cur.drag] = clamp(p.x); else cur[cur.drag] = Math.min(clamp(p.y), plotH() / CH);
   curAnchor(cur.drag); // Y-T: the cursor now keeps this time or level
@@ -220,7 +220,7 @@ function moveCursor(ev) {
 
 // moveSrGate maps the pointer's canvas-x into a RECORD fraction (so the marker
 // stays on the signal through zoom) and updates the dragged gate edge.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function moveSrGate(ev) {
   const px = ptToNorm(ev).x, span = view.win.b - view.win.a;
   // Record fraction under the pointer, clamped onto the record, stored EDGE-RELATIVE
@@ -235,7 +235,7 @@ function moveSrGate(ev) {
 
 // Wheel over the scope: zoom about the cursor (Y-T only). Anchors the record
 // fraction under the pointer so it stays put as the span grows/shrinks.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function panWin(dir) {
   userZoomed = true;
   const w = view.win, span = w.b - w.a;
@@ -243,7 +243,7 @@ function panWin(dir) {
   setWin(na, na + span);
 }
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function stepTdiv(dir) {
   const sel = $("tdiv");
   if (!sel.options.length) return;
@@ -252,7 +252,7 @@ function stepTdiv(dir) {
 }
 
 // nearest ladder value to a target (time/div, V/div).
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function nearestLadder(target, list) {
   let best = list[0], bd = Infinity;
   for (const v of list) { const d = Math.abs(v - target); if (d < bd) { bd = d; best = v; } }

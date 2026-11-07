@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ import (
 )
 
 // boxDownClean is boxDown without noise: a box-averaged record at its best.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func boxDownClean(w []uint8, box, phase int) []uint8 {
 	var d []uint8
 	for i := phase; i+box <= len(w); i += box {
@@ -23,7 +23,7 @@ func boxDownClean(w []uint8, box, phase int) []uint8 {
 }
 
 // pickDown is every box-th sample from phase: a record of picked samples.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func pickDown(w []uint8, box, phase int) []uint8 {
 	var d []uint8
 	for i := phase; i < len(w); i += box {
@@ -41,7 +41,7 @@ func pickDown(w []uint8, box, phase int) []uint8 {
 // timebase it reads, and not from every phase at the next: WS281x and
 // low-speed SWIM to 10ms/div, S/PDIF to 1ms/div, USB full speed to 200us/div
 // (the full rate; 500us/div's 32 ns), USB low speed to 5ms/div.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func TestBusDecodeEndsWhereTheRecordCannotHoldIt(t *testing.T) {
 	const sr = 500e6 // the full rate, 2 ns
 	type bus struct {

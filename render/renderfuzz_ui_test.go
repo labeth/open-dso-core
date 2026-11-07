@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -12,7 +12,7 @@ import (
 // fuzzView is a hostile workspace UI for the render fuzz: any workspace,
 // pane, sheet or picker, with out-of-range layout, indices, cursors and
 // grids.
-// TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
 func fuzzView(rng *rand.Rand) wsview.View {
 	pick := func(n int) bool { return rng.Intn(n) == 0 }
 	str := func() string {

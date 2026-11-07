@@ -1,10 +1,10 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-VIEWS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_views.js — Bode + spectrogram view glue + small formatters (classic script; shares app.js globals).
 
 "use strict";
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 function fmtTdiv(s) {
-  // TRLC-LINKS: REQ-SDS-125
+  // TRLC-LINKS: REQ-DSO-125
   const strip = x => x.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
   if (s >= 1) return strip(s.toPrecision(3)) + " s";
   if (s >= 1e-3) return strip((s * 1e3).toPrecision(3)) + " ms";
@@ -12,10 +12,10 @@ function fmtTdiv(s) {
   return Math.round(s * 1e9) + " ns";
 }
 
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 function fmtVdiv(v) { return v >= 1 ? v + " V" : Math.round(v * 1e3) + " mV"; }
 
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 function hexA(hex, a) {
   // kept per colour and alpha: the decode strip asks once a token a frame
   let byA = HEXA_CACHE.get(hex);
@@ -31,7 +31,7 @@ function hexA(hex, a) {
 
 const HEXA_CACHE = new Map();
 
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 function fitLabel(g, text, maxW) {
   if (maxW <= 6 * dpr) return "";
   if (g.measureText(text).width <= maxW) return text;
@@ -47,7 +47,7 @@ function fitLabel(g, text, maxW) {
 }
 
 // ---- measurements ----
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 function fmtMeas(key, m) {
   if (!m) return "—";
   switch (key) {
@@ -73,37 +73,37 @@ function fmtMeas(key, m) {
   return "—";
 }
 
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 function bodeColors() {
   return { grid: GRIDCOL, axis: AXISCOL, mag: C1COL, phase: C2COL, text: DIMCOL };
 }
 
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 function bodeStatus(m) { if (m !== undefined) $("bodeStats").textContent = m; }
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 function spgStatus(m) { if (m !== undefined) $("spgStats").textContent = m; }
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 function spgEnsure() { if (!spg.sg) spg.sg = sgNew(400, 200); return spg.sg; }
 
 // SPECTRUM draws its spectrogram and Bode views on the scope canvas itself, so
 // they get the large pane (and maximize) like the FFT. The plot routines take
 // CSS pixels; a dpr scale keeps their text crisp and the right size on HiDPI.
-// TRLC-LINKS: REQ-SDS-068, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-068, REQ-DSO-216
 function drawSpgMain() {
   ctx.save(); ctx.scale(dpr, dpr);
   sgBlit(ctx, CW / dpr, CH / dpr, spg.sg, DIMCOL);
   ctx.restore();
 }
-// TRLC-LINKS: REQ-SDS-125, REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-125, REQ-DSO-216
 function drawBodeMain() {
   ctx.save(); ctx.scale(dpr, dpr);
   bodeDraw(ctx, CW / dpr, CH / dpr, bode.pts || { freq: [], gain_db: [], phase_deg: [] }, bodeColors());
   ctx.restore();
 }
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 function spgPushCurrent() {
   // the FFT's source and transform (fftReduce): the spectrum frame while the
   // spectrogram is shown, as the LCD's waterfall
@@ -123,7 +123,7 @@ function spgPushCurrent() {
 }
 
 // spgRender repaints the waterfall when SPECTRUM shows it (on the scope canvas).
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 function spgRender() { if (view.mode === "SPG") scheduleRender(); }
 
 // ==== wiring ====
@@ -133,7 +133,7 @@ function spgRender() { if (view.mode === "SPG") scheduleRender(); }
 
 // bodeRenderNow fetches the accumulated response into bode.pts and repaints the
 // Bode view when it is shown. Returns the point count.
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 async function bodeRenderNow() {
   if (typeof bodeDraw !== "function") return 0;
   let pts = { freq: [], gain_db: [], phase_deg: [] };
@@ -144,7 +144,7 @@ async function bodeRenderNow() {
   return pts.n || 0;
 }
 
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 $("bodeArm").onclick = () => {
   bode.armed = !bode.armed;
   bode.pending = { armed: bode.armed, until: Date.now() + 3000 };
@@ -156,7 +156,7 @@ $("bodeArm").onclick = () => {
   fetch("/api/set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ control: "bodemode", value: bode.armed ? 1 : 0, lo: ref, hi: dut }) }).catch(() => {});
   bodeStatus(bode.armed ? "armed — sweep the source frequency to add points" : "stopped");
 };
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 $("bodeClear").onclick = () => {
   send("bodeclear", 0);
   bode.lastN = -1;
@@ -166,7 +166,7 @@ $("bodeClear").onclick = () => {
 // The channels are the scope's (its VIEW tab's Bode REF / DUT rows show them):
 // a change goes there armed or not, and picking the other's channel swaps the
 // two, as on the scope.
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 for (const id of ["bodeRef", "bodeDut"]) $(id).onchange = () => {
   let ref = +$("bodeRef").value || 0, dut = +$("bodeDut").value || 0;
   if (ref === dut) {
@@ -178,7 +178,7 @@ for (const id of ["bodeRef", "bodeDut"]) $(id).onchange = () => {
 };
 // bodeFollow shows the scope's own Bode state: armed (its Bode view arms it
 // too) and the channels set on the scope or the phone.
-// TRLC-LINKS: REQ-SDS-125
+// TRLC-LINKS: REQ-DSO-125
 function bodeFollow() {
   const armed = st.bode_mode > 0;
   // a click is shown until the scope's status agrees with it: the status read
@@ -221,7 +221,7 @@ setInterval(async () => {
   bodeStatus(line);
 }, 1000);
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 $("spgArm").onclick = () => {
   spg.armed = !spg.armed;
   $("spgArm").classList.toggle("on", spg.armed);
@@ -229,11 +229,11 @@ $("spgArm").onclick = () => {
   if (spg.armed) spgEnsure();
   spgStatus(spg.armed ? "armed — building the waterfall from each capture" : "stopped");
 };
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 $("spgClear").onclick = () => { if (spg.sg) sgClear(spg.sg); spgRender(); spgStatus(spg.armed ? "cleared — building" : "cleared"); };
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 $("spgCh").onchange = () => { const n = +$("spgCh").value | 0; spg.ch = chanNums().includes(n) ? n : 1; };
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 $("spgFloor").onchange = () => { if (spg.sg) spg.sg.floorDb = +$("spgFloor").value || -60; };
 // push + render on a fast tick so the waterfall scrolls at ~frame rate
 setInterval(() => {

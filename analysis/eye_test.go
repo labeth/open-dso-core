@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -10,7 +10,7 @@ import (
 const eyeSampleS = 2e-9
 
 // feedEye folds records into a fresh 384x170 eye (the LCD's 2 px cells).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func feedEye(recs [][]float64, sampleS, hintS float64) (*Eye, EyeResult) {
 	e := NewEye(384, 170)
 	for _, r := range recs {
@@ -20,7 +20,7 @@ func feedEye(recs [][]float64, sampleS, hintS float64) (*Eye, EyeResult) {
 }
 
 // prbsRecords renders nrec PRBS7 records of n samples at ui samples per bit.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func prbsRecords(nrec, n int, ui float64, w wave, tie func(r, k int) float64) [][]float64 {
 	bits := prbs7(8000)
 	var recs [][]float64
@@ -39,7 +39,7 @@ func prbsRecords(nrec, n int, ui float64, w wave, tie func(r, k int) float64) []
 // TestEyeMatchesWebOnStreams: on a continuous bit stream the LCD eye is one
 // burst, so its UI and TIE equal the web engine's exactly, and its eye height
 // and width (the same rules on the LCD's line-drawn grid) agree closely.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeMatchesWebOnStreams(t *testing.T) {
 	vecs, web := ejWeb(t)
 	for i, v := range vecs {
@@ -93,7 +93,7 @@ func TestEyeMatchesWebOnStreams(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func webF(m *ejWebEye, height bool) any {
 	switch {
 	case m == nil:
@@ -106,7 +106,7 @@ func webF(m *ejWebEye, height bool) any {
 
 // TestEyeFiguresClean checks the figures against the signal's ground truth:
 // a 25-sample-UI PRBS with 4-sample edges and 140 codes of swing.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeFiguresClean(t *testing.T) {
 	const ui = 25.0
 	_, r := feedEye(prbsRecords(10, 8192, ui, wave{lo: 60, hi: 200, rise: 4, noise: 0.7}, nil), eyeSampleS, 0)
@@ -162,7 +162,7 @@ func TestEyeFiguresClean(t *testing.T) {
 // TestEyeSampleLimitedBounds: sharp edges at 4.3 samples per UI fall between
 // samples, so TIE, rise and fall are upper bounds, the width a lower bound,
 // no crossing is given, and the eye is sample-limited (the review's rule).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeSampleLimitedBounds(t *testing.T) {
 	_, r := feedEye(prbsRecords(8, 8192, 4.3, wave{lo: 60, hi: 200, noise: 0.5}, nil), eyeSampleS, 0)
 	if r.Records == 0 {
@@ -188,7 +188,7 @@ func TestEyeSampleLimitedBounds(t *testing.T) {
 // closes the eye by about 6/50 UI. Its pk-pk reads 6 to 8.4: each record's
 // least-squares clock tilts to absorb part of jitter this slow (32 bits in a
 // 164-bit record), exactly as in the web engine (the CDR corner, tieHpHz).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeJitterInjected(t *testing.T) {
 	dj := func(r, k int) float64 {
 		if int(math.Floor(float64(k)+math.Mod(float64(r)*53.7, 32))/16)%2 == 1 {
@@ -210,7 +210,7 @@ func TestEyeJitterInjected(t *testing.T) {
 
 // TestEyeSparsePulses: a lone pulse every 19 bits leaves every burst with two
 // edges; the record is then fitted as one grid, as the web does.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeSparsePulses(t *testing.T) {
 	sparse := make([]int, 600)
 	for i := 3; i < len(sparse); i += 19 {
@@ -233,7 +233,7 @@ func TestEyeSparsePulses(t *testing.T) {
 // TestEyeAsyncUART: a UART message starts at any time, so one bit grid over
 // the whole record cannot fit it; the web engine locks onto a smear (or not
 // at all), the LCD eye fits each message on its own grid.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeAsyncUART(t *testing.T) {
 	const ui = 9.6
 	msgs := [][]byte{[]byte("Hi U\xaa"), []byte("status=OK\r\n"), []byte("\x01\x02\x03")}
@@ -268,7 +268,7 @@ func TestEyeAsyncUART(t *testing.T) {
 // TestEyeUndersampledUARTWithHint: at 3.6 samples per bit with sharp edges
 // the intervals do not cluster well enough for the estimator alone; the
 // decoder's baud seeds it and the eye folds, flagged sample-limited.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeUndersampledUARTWithHint(t *testing.T) {
 	const ui = 3.6
 	msg := []byte("The quick brown fox jumps over the lazy dog. 0123456789")
@@ -293,7 +293,7 @@ func TestEyeUndersampledUARTWithHint(t *testing.T) {
 // TestEyeI2CFramingEdges folds I2C SDA at the SCL period: the START and STOP
 // edges move SDA while SCL is high, half a bit off the data grid; they are left
 // out of the TIE instead of reading as half a UI of jitter.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeI2CFramingEdges(t *testing.T) {
 	const h = 20 // samples per SCL half period
 	var recs [][]float64
@@ -338,7 +338,7 @@ func TestEyeI2CFramingEdges(t *testing.T) {
 
 // TestEyeEdgeStarvedWithHint: a capture holding one UART byte has too few
 // edges to estimate a bit period; the decoder's period folds it.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeEdgeStarvedWithHint(t *testing.T) {
 	const ui = 40.0
 	w := wave{n: 1024, lo: 60, hi: 200, rise: 3, noise: 0.5, startHigh: true, seed: 9}
@@ -359,7 +359,7 @@ func TestEyeEdgeStarvedWithHint(t *testing.T) {
 }
 
 // TestEyeRejectsAndReset covers the rejections and Reset.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeRejectsAndReset(t *testing.T) {
 	e := NewEye(200, 100)
 	good := prbsRecords(1, 4096, 20, wave{lo: 60, hi: 200, rise: 3, noise: 0.5}, nil)[0]
@@ -406,7 +406,7 @@ func TestEyeRejectsAndReset(t *testing.T) {
 }
 
 // TestEyeOpeningCursors moves the threshold and the sample point.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeOpeningCursors(t *testing.T) {
 	e, r := feedEye(prbsRecords(10, 8192, 25, wave{lo: 60, hi: 200, rise: 8, noise: 0.7}, nil), eyeSampleS, 0)
 	mid := (r.Lo + r.Hi) / 2
@@ -433,7 +433,7 @@ func TestEyeOpeningCursors(t *testing.T) {
 }
 
 // TestEyeDegenerateSizes: tiny, odd and huge grid sizes are clamped.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeDegenerateSizes(t *testing.T) {
 	rec := prbsRecords(1, 4096, 20, wave{lo: 60, hi: 200, rise: 3, noise: 0.5}, nil)[0]
 	for _, sz := range [][2]int{{0, 0}, {1, 1}, {3, 3}, {-5, 7}, {101, 33}, {1 << 20, 1 << 20}} {
@@ -448,7 +448,7 @@ func TestEyeDegenerateSizes(t *testing.T) {
 }
 
 // TestEyeGridHalving keeps the counts from overflowing on a long run.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func TestEyeGridHalving(t *testing.T) {
 	e := NewEye(64, 32)
 	rec := prbsRecords(1, 4096, 20, wave{lo: 60, hi: 200, rise: 3, noise: 0.5}, nil)[0]
@@ -463,7 +463,7 @@ func TestEyeGridHalving(t *testing.T) {
 }
 
 // BenchmarkEyeFeed: one capture into the eye, the LCD's per-frame cost.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func BenchmarkEyeFeed(b *testing.B) {
 	for _, bc := range []struct {
 		name string
@@ -489,7 +489,7 @@ func BenchmarkEyeFeed(b *testing.B) {
 }
 
 // BenchmarkEyeResult: the figures and the grid, once per LCD frame.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func BenchmarkEyeResult(b *testing.B) {
 	e, _ := feedEye(prbsRecords(4, 10000, 20, wave{lo: 60, hi: 200, rise: 3, noise: 0.7}, nil), eyeSampleS, 0)
 	b.ReportAllocs()

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package shape
 
@@ -11,7 +11,7 @@ import (
 // The cache measures a frame once; running, the next frame within 100 ms
 // reuses it, a configuration change or a stopped capture never does, and an
 // expired cache measures again.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func TestMeasCache(t *testing.T) {
 	var c MeasCache
 	runs := 0

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the task workspaces (argv[2]=URL): the tabs and their
 // panes, Alt+1..5 matched on the key code (macOS Option+digit types a symbol),
 // roving focus on the tab list, "again" per workspace, the view each workspace
@@ -11,15 +11,15 @@ import { openScope, run } from "./scope_po.mjs";
 run(async (t) => {
   const { page, po, browser, pageErrors } = await openScope(process.argv[2], { viewport: { width: 1600, height: 1000 } });
   t.browser = browser;
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const cur = () => po.curWs();
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const mode = () => page.evaluate(() => view.mode);
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const canvas = () => page.evaluate(() => { const c = document.getElementById("scope"); const r = c.getBoundingClientRect(); return { w: c.width, h: c.height, cw: r.width, ch: r.height }; });
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const key = async (k) => { await page.evaluate(() => { const a = document.activeElement; if (a && a !== document.body) a.blur(); }); await page.keyboard.press(k); await po.wait(120); };
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const status = () => page.evaluate(async () => (await (await fetch("/api/status")).json()));
 
   // ---- the tab list ------------------------------------------------------------
@@ -134,7 +134,7 @@ run(async (t) => {
   t.ok(await cur() === "scope" && await mode() === "YT", "Y: SCOPE's Y-T");
 
   // ---- dots ---------------------------------------------------------------------------------
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const dot = (w) => page.evaluate((x) => !document.querySelector("#tab-" + x + " .tdot").hidden, w);
   // (BUS's entry detection may have found something on the square: start from decode off)
   await po.eval(() => { const e = document.getElementById("decProto"); e.value = "off"; e.dispatchEvent(new Event("change")); });
@@ -162,7 +162,7 @@ run(async (t) => {
   await t.until(async () => Math.abs((await canvas()).h - m0.h) <= 2, "expanding it gives the canvas its height back", 2000);
   await page.dblclick("#p-meas-scope > .ph .pt");
   await t.until(async () => (await canvas()).w > m0.w * 1.2, "double-clicking the scope pane's title maximizes it (wider canvas)", 2000);
-  // TRLC-LINKS: REQ-SDS-219
+  // TRLC-LINKS: REQ-DSO-219
   const inert = () => page.evaluate(() => [!!document.querySelector("#p-stats").closest("[inert]"), !!document.querySelector("#p-meas-scope").closest("[inert]")]);
   t.ok(JSON.stringify(await inert()) === "[true,false]", "the panes under the maximized one are inert (no focus, no clicks), it is not: " + JSON.stringify(await inert()));
   await key("Escape");
@@ -223,7 +223,7 @@ run(async (t) => {
   await key("e");
 
   // V/div reads at the probe tip, as on the LCD: 10x at a BNC range reads ten times it
-  // TRLC-LINKS: REQ-SDS-125
+  // TRLC-LINKS: REQ-DSO-125
   const vdivText = () => po.eval(() => { const el = document.getElementById("vdiv1"); return [+el.value, el.options[el.selectedIndex].textContent]; });
   const [bnc] = await vdivText();
   await po.seg("probe1", "10");

@@ -1,10 +1,10 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-DRAW
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_draw.js — Y-T/X-Y trace, grid, math, refs, cursors drawing (classic script; shares app.js globals).
 
 "use strict";
 // Clear the afterglow accumulation buffer (the WebGL persistence framebuffer).
 // Called on view/zoom/scale changes so stale trails don't linger.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function clearPersist() { if (GLR) GLR.persistClear(); }
 
 // ---- drawing ----
@@ -13,7 +13,7 @@ const DEC_LANE_PX = 30;
 
 // decLaneOn reports whether the Y-T plot has the decode lane under it: a
 // protocol decoded, in Y-T, as the LCD's decode strip.
-// TRLC-LINKS: REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-207
 function decLaneOn() {
   return view.mode === "YT" && typeof dcfg !== "undefined" && dcfg.proto !== "off";
 }
@@ -22,17 +22,17 @@ function decLaneOn() {
 // lane while one shows, so the eight divisions end above the decoded bytes
 // and no trace, marker or cursor lies under them (the LCD's plot ends above
 // its decode strip alike).
-// TRLC-LINKS: REQ-SDS-071, REQ-SDS-207
+// TRLC-LINKS: REQ-DSO-071, REQ-DSO-207
 function plotH() {
   return decLaneOn() ? Math.max(CH - DEC_LANE_PX * dpr, CH / 2) : CH;
 }
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawGrid(g) {
   g.fillStyle = "#05080c"; g.fillRect(0, 0, CW, CH);
   g.strokeStyle = "#182430"; g.lineWidth = dpr;
   const PH = plotH();
-  // TRLC-LINKS: REQ-SDS-071
+  // TRLC-LINKS: REQ-DSO-071
   const vline = xf => { const px = Math.round(xf) + .5; g.beginPath(); g.moveTo(px, 0); g.lineTo(px, PH); g.stroke(); };
   // Vertical (TIME) divisions. In Y-T each line marks one tdiv_s of SIGNAL,
   // anchored to the trigger — so the marker SPACING scales with zoom (further
@@ -61,7 +61,7 @@ function drawGrid(g) {
 
 // yFor maps a code to a screen y through the VOLTAGE window (vwin) — box
 // zoom narrows vwin so a stack's sub-code detail becomes visible.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function yFor(code, zoom) {
   zoom = zoom || 1;
   const v01 = 0.5 + (code - 128) * zoom / 200; // 0=bottom .. 1=top of full scale
@@ -71,7 +71,7 @@ function yFor(code, zoom) {
 
 // codeAtY inverts yFor for interactions (marker drags, shift+click): cy is
 // the pointer's screen fraction (0=top), zoom the channel detent zoom.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function codeAtY(cy, zoom) {
   zoom = zoom || 1;
   const w = view.vwin;
@@ -86,7 +86,7 @@ function codeAtY(cy, zoom) {
 // and mask/zone tests keep the true captured polarity (hardware scopes vary
 // here; this clone pins the narrow, unsurprising meaning — what you SEE flips,
 // what is measured does not). Gap sentinels (-1) pass through untouched.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawTrace(g, cols, color, zoom, inv) {
   if (!cols || !cols.length) return;
   g.strokeStyle = color; g.lineWidth = 1.4 * dpr; g.lineJoin = "round";
@@ -134,7 +134,7 @@ function drawTrace(g, cols, color, zoom, inv) {
 // viewCovers is whether frame f's view window (vc1/vc2: the zoom's stretch
 // read again at full detail, its first value at view_a of the served array
 // and its last at view_b) covers the shown window.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function viewCovers(f) {
   if (!f || !f.vc1 || !f.vc2 || f.vc1.length < 2 || !(f.view_b > f.view_a)) return false;
   const w = view.win, tol = (w.b - w.a) / 100;
@@ -144,7 +144,7 @@ function viewCovers(f) {
 // drawViewTrace draws a view window's values (first at a, last at b of the
 // served array) with drawTrace, the shown window put in the view's own
 // fractions for the call.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawViewTrace(g, vals, a, b, color, zoom, inv) {
   const w = view.win, wa = w.a, wb = w.b, s = b - a;
   w.a = (wa - a) / s; w.b = (wb - a) / s;
@@ -154,7 +154,7 @@ function drawViewTrace(g, vals, a, b, color, zoom, inv) {
 // drawTraceHeld draws a trace whose held ranges ([a, b) samples a roll view's
 // capture did not cover: the last value held between chunks) are no signal:
 // the captured samples in color, the held ones dimmed.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawTraceHeld(g, cols, held, color, zoom, inv) {
   if (!cols || !held || !held.length) { drawTrace(g, cols, color, zoom, inv); return; }
   const split = heldSplit(cols, held);
@@ -166,7 +166,7 @@ function drawTraceHeld(g, cols, held, color, zoom, inv) {
 
 // heldSplit is cols as two traces, the captured samples and the held ones,
 // each with the other's samples as gaps (-1); kept on the array per ranges.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function heldSplit(cols, held) {
   const c = cols._heldSplit;
   if (c && c.ranges === held) return c;
@@ -177,7 +177,7 @@ function heldSplit(cols, held) {
   return (cols._heldSplit = { ranges: held, real, held: only });
 }
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawEnv(g, mn, mx, color, zoom, inv) {
   if (!mn || !mx) return;
   zoom = zoom || 1; g.fillStyle = color; g.globalAlpha = .8;
@@ -192,7 +192,7 @@ function drawEnv(g, mn, mx, color, zoom, inv) {
   g.globalAlpha = 1;
 }
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawTrigMarkers(g) {
   if (!st) return;
   // Horizontal trigger-LEVEL line (where the level sits on the trace = the
@@ -229,7 +229,7 @@ function drawTrigMarkers(g) {
 
 // Per-channel GROUND (0 V) markers on the left edge: where each channel's zero
 // sits after its offset. Ground code = 128 + offV/vpc (V = (code-128)·vpc - offV).
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawChannelMarkers(g) {
   if (!frame) return;
   g.textBaseline = "middle"; g.font = "bold " + (10 * dpr) + "px system-ui";
@@ -245,7 +245,7 @@ function drawChannelMarkers(g) {
   g.textBaseline = "alphabetic";
 }
 
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function componentMemo(src, cyclesPerLen) {
   if (compMemo.src !== src) { compMemo.src = src; compMemo.map.clear(); }
   const m = compMemo.map;
@@ -259,7 +259,7 @@ function componentMemo(src, cyclesPerLen) {
 // mathParse reads a math function's value: "c<a><op>c<b>" (op "-", "+" or
 // "*") is arithmetic on channels a and b, "res<n>" channel n less its picked
 // FFT peaks; null for "off" or anything else.
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function mathParse(fn) {
   let m = /^c(\d+)([-+*])c(\d+)$/.exec(fn);
   if (m) return { op: m[2], a: +m[1], b: +m[3] };
@@ -267,7 +267,7 @@ function mathParse(fn) {
   return m ? { op: "res", a: +m[1] } : null;
 }
 
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function computeMath() {
   const p = mathParse(mathFn);
   if (!p || !frame || frame.is_env || !frame.c1) return null;
@@ -282,10 +282,10 @@ function computeMath() {
 
 // computeMathRaw is the math trace of p (mathParse) on the frame, in the
 // display domain at mathScale() a division.
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function computeMathRaw(p) {
   const n = frame.c1.length, out = new Array(n);
-  // TRLC-LINKS: REQ-SDS-203
+  // TRLC-LINKS: REQ-DSO-203
   const clip = v => v < 0 ? 0 : v > 255 ? 255 : v;
   if (p.op === "res") {
     const src = chanArr(frame, p.a), S = fftCh[p.a];
@@ -321,15 +321,15 @@ function computeMathRaw(p) {
 // mathScale is the math trace's units a division: the V/div of the
 // lower-numbered operand (C1's for C2 − C1, as the page always drew it), or
 // for a product 4× the product of both operands' V/div.
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function mathScale() {
   const p = mathParse(mathFn) || { op: "-", a: 1, b: 2 };
-  // TRLC-LINKS: REQ-SDS-203
+  // TRLC-LINKS: REQ-DSO-203
   const vd = (n) => chanVpc(frame, n)*25/((st && st["zoom" + n]) || 1);
   return p.op === "*" ? 4*vd(p.a)*vd(p.b) : vd(p.op === "res" ? 1 : Math.min(p.a, p.b));
 }
 
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function drawMath(g) {
   const m = computeMath(), p = mathParse(mathFn);
   const residual = !!p && p.op === "res";
@@ -342,7 +342,7 @@ function drawMath(g) {
 // pair a < b, a − b, b − a, a + b and a × b, then each channel less its
 // picked FFT peaks (on two channels exactly the page's own list). A
 // function whose channel is gone turns the math off.
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function mathOptions() {
   const el = $("mathFn");
   if (!el) return;
@@ -365,7 +365,7 @@ CAPS_HOOKS.push(mathOptions);
 // the live record's) the reference is placed by time from the trigger, so one
 // taken from a record of another length (an averaged master) lines up; without
 // it, index-proportionally over the record.
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function drawRefTrace(g, cols, refVpc, refOff, curVpc, curOff, color, zoom, tm) {
   if (!cols || !cols.length || !curVpc) return;
   g.strokeStyle = color; g.lineWidth = 1.2 * dpr; g.lineJoin = "round";
@@ -375,17 +375,17 @@ function drawRefTrace(g, cols, refVpc, refOff, curVpc, curOff, color, zoom, tm) 
   let iLo, iHi, xOf;
   if (tm) {
     // live record index of reference index i, then its screen x
-    // TRLC-LINKS: REQ-SDS-203
+    // TRLC-LINKS: REQ-DSO-203
     const liveIdx = (i) => tm.edgeL + (i - tm.edge) * tm.dt / tm.dtL;
-    // TRLC-LINKS: REQ-SDS-203
+    // TRLC-LINKS: REQ-DSO-203
     const refIdx = (frac) => tm.edge + (frac * (tm.nL - 1) - tm.edgeL) * tm.dtL / tm.dt;
     iLo = Math.max(0, Math.floor(refIdx(view.win.a)) - 1); iHi = Math.min(n - 1, Math.ceil(refIdx(view.win.b)) + 1);
-    // TRLC-LINKS: REQ-SDS-203
+    // TRLC-LINKS: REQ-DSO-203
     xOf = (i) => xForCol(liveIdx(i), tm.nL);
     if (iHi - iLo > 4 * CW) tm.step = Math.ceil((iHi - iLo) / (4 * CW)); // dense: a few points per pixel
   } else {
     [iLo, iHi] = winRange(n);
-    // TRLC-LINKS: REQ-SDS-203
+    // TRLC-LINKS: REQ-DSO-203
     xOf = (i) => xForCol(i, n);
   }
   const step = tm && tm.step ? tm.step : 1;
@@ -400,7 +400,7 @@ function drawRefTrace(g, cols, refVpc, refOff, curVpc, curOff, color, zoom, tm) 
   g.stroke(); g.globalAlpha = 1; g.setLineDash([]);
 }
 
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function drawRefs(g) {
   for (const [slot, r] of [["A", refs.A], ["B", refs.B], ["B", srModel]]) {
     if (!r || !r.show) continue;
@@ -427,12 +427,12 @@ function drawRefs(g) {
 // saveRef has the scope store its screen as reference slot ("A"/"B"): the
 // page shows the scope's references, so the LCD, the phone and this page
 // hold the same REF A and B.
-// TRLC-LINKS: REQ-SDS-203, REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-203, REQ-DSO-227
 function saveRef(slot) { return refAct(slot, "store"); }
 
 // refAct stores, shows, hides or clears a reference on the scope and takes
 // both of the scope's slots from its answer.
-// TRLC-LINKS: REQ-SDS-227
+// TRLC-LINKS: REQ-DSO-227
 async function refAct(slot, op) {
   let j = null;
   try {
@@ -445,7 +445,7 @@ async function refAct(slot, op) {
 }
 
 // updateRefRows syncs COMPARE's REF A/B controls with the stored references.
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function updateRefRows() {
   for (const slot of ["A", "B"]) {
     const r = refs[slot];
@@ -457,7 +457,7 @@ function updateRefRows() {
     const held = r ? refChans(r) : [];
     const chans = held.map(chanName).join("+");
     // each channel's V/div at the tip as stored, with its probe when not 1x
-    // TRLC-LINKS: REQ-SDS-227
+    // TRLC-LINKS: REQ-DSO-227
     const scale = (ch) => {
       const v = r["vdiv" + ch], p = (r.probe || [1, 1])[ch - 1] || 1;
       return v > 0 && r["c" + ch] ? chanName(ch) + " " + fmtVdiv(+v.toPrecision(3)) + (p !== 1 ? " ×" + p : "") : "";
@@ -477,21 +477,23 @@ function updateRefRows() {
   if (typeof cmpRender === "function" && typeof ws !== "undefined" && ws.cur === "compare") cmpRender();
 }
 for (const slot of ["A", "B"]) {
-  // TRLC-LINKS: REQ-SDS-203
+  // TRLC-LINKS: REQ-DSO-203
   $("refShow" + slot).onclick = () => { const r = refs[slot]; if (r) refAct(slot, r.show ? "hide" : "show"); };
-  // TRLC-LINKS: REQ-SDS-203
+  // TRLC-LINKS: REQ-DSO-203
   $("refClear" + slot).onclick = () => { if (refs[slot]) refAct(slot, "clear"); };
 }
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawYT(g) {
   drawGrid(g);
   drawRefs(g); // references sit UNDER the live traces
   if (frame) {
     // the channels drawn last first, so C1 lies on top
     const shown = chanNums().reverse().filter((n) => view["c" + n]);
-    // TRLC-LINKS: REQ-SDS-071
-    const zoom = (n) => st ? st["zoom" + n] : 1, inv = (n) => !!(st && st["inv" + n]);
+    // TRLC-LINKS: REQ-DSO-071
+    const zoom = (n) => st ? st["zoom" + n] : 1;
+    // TRLC-LINKS: REQ-DSO-071
+    const inv = (n) => !!(st && st["inv" + n]);
     if (frame.is_env) {
       for (const n of shown) drawEnv(g, frame["e" + n + "min"], frame["e" + n + "max"], chanColor(n), zoom(n), inv(n));
     } else if (viewCovers(frame)) {
@@ -511,7 +513,7 @@ function drawYT(g) {
 // scope of more channels (xyOptions).
 const xyPair = [1, 2];
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawXY() {
   drawGrid(ctx);
   const [cx, cy] = xyPair, X = chanArr(frame, cx), Y = chanArr(frame, cy);
@@ -535,7 +537,7 @@ function drawXY() {
 // than two (beside the Scope pane's view choice); with two it is C1 against
 // C2 and the pane has no choice. A pair whose channel is gone goes back to
 // the first two.
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function xyOptions() {
   const nums = chanNums();
   if (!nums.includes(xyPair[0]) || !nums.includes(xyPair[1])) { xyPair[0] = nums[0]; xyPair[1] = nums[1] || nums[0]; }
@@ -549,7 +551,7 @@ function xyOptions() {
     box.innerHTML = '<span class="lbl">X</span><select id="xyX" aria-label="X-Y horizontal channel"></select><span class="lbl">Y</span><select id="xyY" aria-label="X-Y vertical channel"></select>';
     at.after(box);
     for (const [id, k] of [["xyX", 0], ["xyY", 1]]) {
-      // TRLC-LINKS: REQ-SDS-071
+      // TRLC-LINKS: REQ-DSO-071
       $(id).onchange = () => { xyPair[k] = +$(id).value; redraw(); };
     }
   }
@@ -561,14 +563,14 @@ function xyOptions() {
 }
 CAPS_HOOKS.push(xyOptions);
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawCursors() {
   if (!view.cursors) return;
   curSync(); // Y-T: on their signal times and levels
   const g = ctx, PH = view.mode === "YT" ? plotH() : CH;
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   const onX = (t) => t >= 0 && t <= 1;
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   const onY = (v) => v >= 0 && v * CH <= PH;
   g.lineWidth = dpr; g.strokeStyle = CURCOL; g.setLineDash([4 * dpr, 4 * dpr]);
   for (const t of [cur.t1, cur.t2]) { if (!onX(t)) continue; const x = t * CW; g.beginPath(); g.moveTo(x, 0); g.lineTo(x, PH); g.stroke(); }
@@ -590,7 +592,7 @@ function drawCursors() {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function drawBoxZoom(g) {
   if (!boxZoom.active || !boxZoom.moved) return;
   const b = boxRect();

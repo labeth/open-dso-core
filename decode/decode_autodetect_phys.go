@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -18,7 +18,7 @@ import (
 
 // considerPhysLines tries the single-line protocols beyond the first
 // thirty on a line, those its timing (t, microseconds) allows.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func considerPhysLines(codes []uint8, colTimeS float64, format string, t lineTiming, consider func(Result)) {
 	lc := LineCfg{Format: format}
 	if t.edges >= 12 {
@@ -70,7 +70,7 @@ func considerPhysLines(codes []uint8, colTimeS float64, format string, t lineTim
 // with line x as the clock (A, STEP, TCKC, SDCKA) and y the data.
 // byteBursts is x clocking whole bytes a burst (byteClocked): SPI's, never
 // PDI's, whose clock runs on through its 12-bit characters.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func considerPhysPairs(x, y []uint8, colTimeS float64, format string, tx lineTiming, byteBursts bool, consider func(Result)) {
 	cfg := ClockedCfg{Format: format}
 	consider(Quadrature(x, y, colTimeS, cfg))
@@ -89,7 +89,7 @@ func considerPhysPairs(x, y []uint8, colTimeS float64, format string, tx lineTim
 }
 
 // scorePhys scores the protocols beyond the first thirty (scoreProto).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func scorePhys(r Result) float64 { //nolint:gocyclo,funlen // one self-contained rule per protocol, kept together in the order they apply
 	n := len(r.Bytes)
 	c := r.count(kindSOF, kindFrameError, kindParityError, kindData)
@@ -327,7 +327,7 @@ func scorePhys(r Result) float64 { //nolint:gocyclo,funlen // one self-contained
 // the fly, or its address's three bytes and a data byte after them (a
 // record that opens inside a transaction: the decoder reads addresses
 // only after a command and its count).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func swimTransaction(r Result) bool {
 	at := 0 // address bytes in a row
 	for _, s := range r.Spans {
@@ -367,7 +367,7 @@ func swimTransaction(r Result) bool {
 // of n samples, two of its periods at most before the first and after the
 // last: a PWM output runs on. A burst of steady edges between idle stretches
 // (a MIDI message's bits, three bytes in a 2 ms record) is another bus's.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func pwmFillsRecord(r Result, n int) bool {
 	first, last := -1, -1
 	for _, s := range r.Spans {
@@ -385,7 +385,7 @@ func pwmFillsRecord(r Result, n int) bool {
 }
 
 // pwmSteady reports a PWM decode's periods all within 5 % of their median.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func pwmSteady(r Result) bool {
 	per := make([]float64, 0, len(r.Spans))
 	for _, s := range r.Spans {
@@ -407,7 +407,7 @@ func pwmSteady(r Result) bool {
 
 // innerErrs is r's error spans between its first and its last good unit
 // ("data" spans).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func innerErrs(r Result) int {
 	first, last := -1, -1
 	for i, s := range r.Spans {
@@ -429,7 +429,7 @@ func innerErrs(r Result) int {
 
 // pwmTwoLevel reports duty cycles (of 256) that lie within tol of one of
 // two values far apart: the bits of a pulse-width code, not a PWM output.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func pwmTwoLevel(duty []int, tol float64) bool {
 	if len(duty) == 0 {
 		return false
@@ -456,7 +456,7 @@ func pwmTwoLevel(duty []int, tol float64) bool {
 
 // pdiErrorsFromFirstGood counts the flagged characters from the first
 // instruction whose next span checks on; -1 when none does.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func pdiErrorsFromFirstGood(spans []Span) int {
 	from := -1
 	for i, s := range spans {

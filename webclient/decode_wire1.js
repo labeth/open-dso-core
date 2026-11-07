@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // decode_wire1.js — STM8 SWIM, TI SDQ, PJDL with PJON, DSI and Qi, a
 // classic script mirroring decode_wire1.go step for step. Uses
 // sliceChannel, logicAt, hex2, fmtByte and fail from decode.js,
@@ -7,10 +7,10 @@
 // from decode_rfcodes.js.
 
 // wireOut mirrors decode_wire1.go wireOut.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function wireOut(n) {
   const o = { n, spans: [], toks: [], units: [] };
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
   o.add = (x0, x1, text, kind, val, unit) => {
     o.spans.push(pspan(x0, x1, n, text, kind, val));
     if (text !== "") o.toks.push(text);
@@ -20,7 +20,7 @@ function wireOut(n) {
 }
 
 // fallsAndRises mirrors decode_wire1.go fallsAndRises.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function fallsAndRises(S) {
   const E = S.edges, falls = [], rises = [];
   for (let k = 0; k < E.length; k++) {
@@ -34,7 +34,7 @@ function fallsAndRises(S) {
 const SWIM_NAMES = { 0: "SRST", 1: "ROTF", 2: "WOTF" };
 
 // decodeSWIM mirrors decode_wire1.go DecodeSWIM.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function decodeSWIM(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -51,7 +51,7 @@ function decodeSWIM(codes, colTimeS, cfg) {
   if (baud > 0 && colTimeS > 0) T = 1 / (baud * colTimeS);
   const o = wireOut(S.n);
   let state = 0, left = 0, good = false, fr = [];
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
   const frame = () => {
     if (!fr.length) return;
     const f = fr;
@@ -112,7 +112,7 @@ function decodeSWIM(codes, colTimeS, cfg) {
 }
 
 // decodeSDQ mirrors decode_wire1.go DecodeSDQ.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function decodeSDQ(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -152,7 +152,7 @@ function decodeSDQ(codes, colTimeS, cfg) {
 const PJDL_MODES = [[0, 0], [44, 116], [40, 92], [28, 88], [26, 60]];
 
 // pjdlIn mirrors decode_wire1.go pjdlIn.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function pjdlIn(us, want) {
   const lo = Math.min(want * 0.9, want - 1.5);
   const hi = Math.max(want * 1.1, want + 1.5);
@@ -160,7 +160,7 @@ function pjdlIn(us, want) {
 }
 
 // crc8PJON mirrors decode_wire1.go crc8PJON.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function crc8PJON(b) {
   let c = 0;
   for (const v of b) {
@@ -171,9 +171,9 @@ function crc8PJON(b) {
 }
 
 // pjonFields mirrors decode_wire1.go pjonFields.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function pjonFields(o, b, fx, dt) {
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
   const put = (i, txt, bad) => {
     let kind = "data";
     if (bad) { txt = "!" + txt; kind = "frame-error"; }
@@ -217,14 +217,14 @@ function pjonFields(o, b, fx, dt) {
 }
 
 // decodePJDL mirrors decode_wire1.go DecodePJDL.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function decodePJDL(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
   if (!S.ok) return fail("pjdl", S.reason);
   if (!(colTimeS > 0)) return fail("pjdl", "no sample time");
   const runs = levelRuns(S);
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
   const us = (d) => d * colTimeS * 1e6;
   let mode = cfg.variant | 0;
   if (mode < 1 || mode > 4) {
@@ -247,7 +247,7 @@ function decodePJDL(codes, colTimeS, cfg) {
   const dt = data / us(1);
   const o = wireOut(S.n);
   let good = false, frame = [], fx = [], inFrame = false;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
   const flush = () => {
     if (inFrame && frame.length) good = pjonFields(o, frame, fx, dt) || good;
     inFrame = false; frame = []; fx = [];
@@ -255,7 +255,7 @@ function decodePJDL(codes, colTimeS, cfg) {
   let lastEnd = 0;
   const idle = (pad + 9 * data + 4) / us(1);
   let ri = 0;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
   const highFrom = (x) => {
     while (ri < runs.length && (runs[ri].x1 <= x || runs[ri].lvl !== 1 || (runs[ri].open && runs[ri].x0 === 0))) ri++;
     if (ri >= runs.length || runs[ri].open) return null;
@@ -294,7 +294,7 @@ function decodePJDL(codes, colTimeS, cfg) {
 }
 
 // decodeDSI mirrors decode_wire1.go DecodeDSI.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function decodeDSI(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -302,7 +302,7 @@ function decodeDSI(codes, colTimeS, cfg) {
   if (!(colTimeS > 0)) return fail("dsi", "no sample time");
   const { marks, high } = irMarks(S, colTimeS);
   const n = S.n;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
   const us = (d) => d * colTimeS * 1e6;
   const half = 833.33;
   const hx = half / us(1);
@@ -339,7 +339,7 @@ function decodeDSI(codes, colTimeS, cfg) {
 }
 
 // qiLen mirrors decode_wire1.go qiLen.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function qiLen(h) {
   if (h <= 0x1f) return 1 + Math.trunc(h / 32);
   if (h <= 0x7f) return 2 + Math.trunc((h - 32) / 16);
@@ -348,7 +348,7 @@ function qiLen(h) {
 }
 
 // decodeQi mirrors decode_wire1.go DecodeQi.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 function decodeQi(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);

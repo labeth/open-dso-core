@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -11,7 +11,7 @@ import (
 // comp_jsparity_test.go): the curve's anchor points, the auto sizing's caps,
 // and Compensate's contract (gap preservation, DC preservation, in-band
 // restoration, and the return-input-unchanged gates).
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 func TestCompCurveBasics(t *testing.T) {
 	if h := CompCalH(0); h != 1 {
 		t.Errorf("CalH(0) = %g, want 1", h)
@@ -37,7 +37,7 @@ func TestCompCurveBasics(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 func TestCompAutoCaps(t *testing.T) {
 	// More bits → monotonically higher RECOVERED −3 dB (fbw itself saturates at
 	// the 200 MHz cal-trust cap; the shrinking eps keeps buying bandwidth).
@@ -63,7 +63,7 @@ func TestCompAutoCaps(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 func TestCompensateContract(t *testing.T) {
 	const m = 512
 	dt := 1e-9 / 16

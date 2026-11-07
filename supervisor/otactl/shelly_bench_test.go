@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-OTACTL
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-OTACTL
 
 package otactl
 
@@ -10,7 +10,7 @@ import (
 )
 
 // A relay switch through a local stand-in for the plug.
-// TRLC-LINKS: REQ-SDS-112
+// TRLC-LINKS: REQ-DSO-112
 func BenchmarkShellyOn(b *testing.B) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"ison":true}`))

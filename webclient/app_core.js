@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-CORE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_core.js — frame/status apply, redraw dispatch, measurement/status UI updates (classic script; shares app.js globals).
 
 "use strict";
@@ -9,7 +9,7 @@
 // to input between frames instead of blocking inside a network/pointer callback.
 // The expensive protocol decode is throttled so it never dominates the loop.
 let _renderRaf = 0, _lastDecodeMs = 0;
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function scheduleRender() {
   if (_renderRaf) return;
   _renderRaf = requestAnimationFrame(() => {
@@ -26,7 +26,7 @@ function scheduleRender() {
   });
 }
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function redraw() {
   refreshAria(); // keep aria-pressed in sync with view toggles (which call redraw)
   updateStatusLine(); // time/div follows the zoom → keep it live, not just per status poll
@@ -65,24 +65,24 @@ function redraw() {
 // quick readouts (the core set, both channels) and MEASURE's all-values table.
 // Every value cell carries data-meas="<ch>:<key>" so one reader finds it
 // wherever it is shown.
-// TRLC-LINKS: REQ-SDS-204, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-204, REQ-DSO-217
 function updateMeas() {
   const nums = chanNums(), clips = nums.map((n) => !!(frame && frame["clip" + n]));
   const sig = clips.join(":");
   if (sig !== measDomSig || !measCells) {
     measDomSig = sig;
-    // TRLC-LINKS: REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-204
     const clipTag = c => c ? ` <span class="clip" title="signal is clipping — increase V/div or probe; measurements unreliable">⚠ CLIP</span>` : "";
     // more channels than the stylesheet's two columns: one column each
     const qcols = nums.length > 2 ? ` style="grid-template-columns: 58px repeat(${nums.length}, minmax(0, 104px))"` : "";
-    // TRLC-LINKS: REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-204
     const half = (keys) => `<div class="qcol"${qcols}><span></span>` + nums.map((n, i) => `<span class="hd cc${n}">${chanName(n)}${clipTag(clips[i])}</span>`).join("") +
       keys.map((k) => `<span class="k">${k}</span>` + nums.map((n) => `<span class="v cc${n}" data-meas="${n}:${k}"></span>`).join("")).join("") + `</div>`;
     $("quickBody").innerHTML = half(MEAS_CORE.slice(0, 4)) + half(MEAS_CORE.slice(4));
     // all values: every parameter in two columns side by side, nine and nine as
     // on the scope, so every value shows without scrolling and the channels sit
     // close to their names
-    // TRLC-LINKS: REQ-SDS-217
+    // TRLC-LINKS: REQ-DSO-217
     const cell = (k) => k ? `<th>${k}</th>` + nums.map((n) => `<td class="cc${n}" data-meas="${n}:${k}"></td>`).join("") : "<th></th>" + nums.map(() => "<td></td>").join("");
     const hd = `<th></th>` + nums.map((n, i) => `<td class="cc${n}">${chanName(n)}${clipTag(clips[i])}</td>`).join("");
     let html = `<tr class="hd">${hd}<td></td>${hd}</tr>`;
@@ -110,35 +110,35 @@ let lastCurHTML = "";
 // 0..1 when off the screen), recomputed per draw.
 
 // curTimeAt is the time from the trigger (s) at screen fraction x.
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function curTimeAt(x) {
   const edge = frame.edge_frac >= 0 ? frame.edge_frac : 0.5;
   return ((view.win.a + x * (view.win.b - view.win.a)) - edge) * (frame.col_span_s || 0);
 }
 
 // curXAt is the screen fraction of time t from the trigger.
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function curXAt(t) {
   const edge = frame.edge_frac >= 0 ? frame.edge_frac : 0.5;
   return (edge + t / frame.col_span_s - view.win.a) / (view.win.b - view.win.a);
 }
 
 // curScale is channel ch's volts per code (at the tip), detent zoom and offset.
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function curScale(ch) {
   const n = ch > 1 ? ch : 1;
   return { vpc: frame["vpc" + n] || 1 / 25, z: (st && st["zoom" + n]) || 1, off: frame["off" + n + "_v"] || 0 };
 }
 
 // curVoltAt is channel ch's volts at canvas fraction y.
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function curVoltAt(y, ch) {
   const k = curScale(ch);
   return (codeAtY(y, k.z) - 128) * k.vpc - k.off;
 }
 
 // curYAt is the canvas fraction of channel ch's volts v.
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function curYAt(v, ch) {
   const k = curScale(ch);
   return yFor(128 + (v + k.off) / k.vpc, k.z) / CH;
@@ -146,14 +146,14 @@ function curYAt(v, ch) {
 
 // curAnchored reports whether the cursors map to the signal now (Y-T, a
 // frame with a known record span).
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function curAnchored() {
   return view.mode === "YT" && !!frame && frame.col_span_s > 0 && view.win.b > view.win.a;
 }
 
 // curSync places the cursors on their signal times and levels; the first
 // time, it takes them from where they are on the screen.
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function curSync() {
   if (!curAnchored()) return;
   if (!cur.at) {
@@ -167,7 +167,7 @@ function curSync() {
 
 // curAnchor takes cursor k's (t1, t2, v1, v2) signal value from its screen
 // place, after a drag.
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function curAnchor(k) {
   if (!curAnchored() || !cur.at) return;
   cur.at[k] = k[0] === "t" ? curTimeAt(cur[k]) : curVoltAt(cur[k], cur.at.ch);
@@ -175,7 +175,7 @@ function curAnchor(k) {
 
 // updateCursors fills MEASURE's cursor table: the A/B time and voltage cursor
 // positions and their differences, per channel.
-// TRLC-LINKS: REQ-SDS-202, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-202, REQ-DSO-217
 function updateCursors() {
   const body = $("curBody");
   if (!view.cursors || !frame) {
@@ -187,7 +187,7 @@ function updateCursors() {
   // Time of a cursor relative to the trigger (t = 0 at the edge), volts at a
   // channel's tip: the anchored values themselves.
   const ta = curTimeAt(cur.t1), tb = curTimeAt(cur.t2), dt = Math.abs(tb - ta);
-  // TRLC-LINKS: REQ-SDS-217
+  // TRLC-LINKS: REQ-DSO-217
   const v = (y, ch) => cur.at && ch === cur.at.ch && curAnchored() ? cur.at[y] : curVoltAt(cur[y], ch);
   const html =
     `<tr><th>A / B</th><td>${eng(ta, "s")}</td><td>${eng(tb, "s")}</td></tr>` +
@@ -201,7 +201,7 @@ function updateCursors() {
   if (lastCurHTML !== html) { lastCurHTML = html; body.innerHTML = html; }
 }
 
-// TRLC-LINKS: REQ-SDS-023, REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-023, REQ-DSO-202
 function applyFrame(f) {
   if (sr.showing) { // unfrozen behind our back (freeze button): leave stack view cleanly
     sr.savedWin = { a: view.win.a, b: view.win.b, zoomed: userZoomed };
@@ -231,7 +231,7 @@ function applyFrame(f) {
 
 // trigState mirrors the LCD state machine (render.go) so a glance between the
 // bench screen and the browser shows the same word.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function trigState() {
   if (!st) return "—";
   if (!st.running) return "STOP";
@@ -243,7 +243,7 @@ function trigState() {
   return "AUTO";
 }
 
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function refreshAria() {
   for (const id of PRESSED) {
     const b = $(id);
@@ -256,10 +256,10 @@ function refreshAria() {
 // upd sets o[k] to v only when it differs (loosely: a number and the string
 // an input's min reads back are the same value): a DOM write is a mutation
 // the browser restyles for, and the status rewrote the same values a poll.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function upd(o, k, v) { if (o[k] != v) o[k] = v; } // eslint-disable-line eqeqeq
 
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function applyStatus() {
   // The button shows the ACTION you can take: running → press to STOP, stopped →
   // press to RUN (green run / red stop). Redundant glyph + word.
@@ -367,7 +367,7 @@ function applyStatus() {
 // screen (win_frac of the served record), the effective time/div scales by
 // win_span/win_frac. Rebuilt on every redraw so it tracks zoom/pan live, not just
 // on the 1s status poll. (Cursor Δt already scales by win_span.)
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function updateStatusLine() {
   if (!st) return;
   // Time/div is ALWAYS the HARDWARE timebase — zoom NEVER changes it. Zoom instead
@@ -414,12 +414,12 @@ function updateStatusLine() {
 // awaitFrame resolves when a fresh frame satisfying `pred` arrives (the global
 // `frame` is updated by the poll loop), or after `timeout` ms. Used by autoset
 // to converge across scale changes instead of relying on one stale capture.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function awaitFrame(pred, timeout = 2500) {
   return new Promise((resolve) => {
     const startSeq = frame ? frame.seq : 0;
     const t0 = Date.now();
-    // TRLC-LINKS: REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-204
     const tick = () => {
       if (frame && frame.seq !== startSeq && pred(frame)) return resolve(true);
       if (Date.now() - t0 > timeout) return resolve(false);
@@ -430,7 +430,7 @@ function awaitFrame(pred, timeout = 2500) {
 }
 
 // updateQualRow shows the qualifier block of the chosen trigger type (Edge has none).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function updateQualRow() {
   const t = +$("ttype").value;
   $("qualrow").style.display = t === 0 ? "none" : "block";
@@ -446,7 +446,7 @@ function updateQualRow() {
   if (noise) $("trigNoise").textContent = `${Math.round(100 * st.noise_triggers)}% of triggers dropped as noise: raise the gain or move the level`;
 }
 
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function updateAcqN() {
   const rate=$("precisionRate");
   if (!rate.options.length) for(let log=4;log<=20;log++) {
@@ -463,7 +463,7 @@ function updateAcqN() {
   $("acqSub").textContent = names[m] + (m === 1 || m === 4 ? " ×" + $("acqn").value : m === 2 ? " " + $("acqn").value : "");
 }
 
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function fillAcqN(opts, sel) {
   const n = $("acqn");
   if (n.dataset.opts !== opts.join()) { n.innerHTML = ""; for (const v of opts) { const o = document.createElement("option"); o.value = v; o.textContent = v; n.appendChild(o); } n.dataset.opts = opts.join(); }
@@ -474,7 +474,7 @@ function fillAcqN(opts, sel) {
 // setMode switches what the scope canvas draws: Y-T, X-Y, FFT, or SPECTRUM's
 // spectrogram ("SPG") and Bode ("BODE") views. The workspaces own which view
 // is shown (app_ws.js setWsView); this only applies it.
-// TRLC-LINKS: REQ-SDS-204, REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-204, REQ-DSO-219
 function setMode(m) {
   view.mode = m;
   // Mode-dependent panels must be synced HERE, not only inside their drawer.
@@ -486,10 +486,10 @@ function setMode(m) {
   clearPersist(); resize();
 }
 
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 function recompute() { computeDecode(); redraw(); }
 
-// TRLC-LINKS: REQ-SDS-203
+// TRLC-LINKS: REQ-DSO-203
 function updateMathHint() {
   const h = $("mathHint");
   const mp = mathParse(mathFn);
@@ -507,7 +507,7 @@ function updateMathHint() {
 // overlay. The device serves ONE live client at a time (to keep the engine's
 // drain fast); a newer browser's /api/claim supersedes this one. Multiple tabs
 // can stay open — refreshing any one reclaims control and supersedes the rest.
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function showSuperseded() {
   if (superseded) return;
   superseded = true;
@@ -521,7 +521,7 @@ function showSuperseded() {
     const b = document.createElement("button");
     b.textContent = "Refresh to reclaim";
     b.style.cssText = "font:inherit;padding:.6em 1.3em;cursor:pointer;border-radius:7px;border:1px solid #6a9;background:#183028;color:#cfe;font-weight:600";
-    // TRLC-LINKS: REQ-SDS-023
+    // TRLC-LINKS: REQ-DSO-023
     b.onclick = () => location.reload();
     o.appendChild(b);
     document.body.appendChild(o);
@@ -537,7 +537,7 @@ let viewLeased = false; // the last poll asked for a view window
 // from the trigger, a little wider than shown, and the canvas columns);
 // view=off once it is not (X-Y draws no zoomed stretch), so the reads, which
 // cost frames, stop at once.
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function viewParam() {
   const f = frame, w = view.win, n = f && f.c1 ? f.c1.length : 0;
   if (userZoomed && view.mode === "YT" && f && f.peak_detect && f.win_frac > 0 && n > 1 && st && st.running) {
@@ -554,7 +554,7 @@ function viewParam() {
   return "&view=off";
 }
 
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 async function pollFrameBin() {
   if (superseded) return; // another browser took control; wait for a manual refresh
   if (frozen || document.hidden) { setTimeout(pollFrameBin, 90); return; } // idle tick; hidden tabs stop hitting the device
@@ -595,7 +595,7 @@ async function pollFrameBin() {
 // which carries its bandwidth) to source the FFT and the spectrogram.
 // Fire-and-forget + throttled by the caller; sets fftRaw + fftRawT, then a
 // redraw picks it up.
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 async function fetchFftRaw() {
   if (fftRawBusy) return;
   fftRawBusy = true; fftRawT = performance.now();
@@ -607,7 +607,7 @@ async function fetchFftRaw() {
 }
 
 let pollTimer = 0, pollBusy = false, pollKick = false;
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 async function pollStatus() {
   if (superseded) return; // taken over by another browser; stop loading the device
   clearTimeout(pollTimer);
@@ -622,7 +622,7 @@ async function pollStatus() {
 
 // sheetSet sets one of the scope's sheet rows, as the phone does, and polls
 // the status soon after.
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 async function sheetSet(row, value) {
   try {
     const r = await (await fetch("/api/sheets/set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ row, value }) })).json();
@@ -634,7 +634,7 @@ async function sheetSet(row, value) {
 
 // pageStream asks the scope for its stream for this page, which then reads
 // it (on), or ends it: the scope ends a stream its page stopped reading.
-// TRLC-LINKS: REQ-SDS-228, REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-228, REQ-DSO-278
 async function pageStream(on) {
   try {
     const r = await (await fetch("/api/stream/page", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on }) })).json();
@@ -659,7 +659,7 @@ setInterval(() => {
 // pageStreamRelease gives back a stream this page holds while it shows
 // another workspace (the scope captures again for it); one the scope took
 // over stays.
-// TRLC-LINKS: REQ-SDS-228, REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-228, REQ-DSO-278
 async function pageStreamRelease() {
   if (!pageStreamHeld) return false;
   pageStreamHeld = false;
@@ -673,7 +673,7 @@ async function pageStreamRelease() {
 // pageStreamLeave tells the scope the page is going (closed, reloaded;
 // whichever of the two events comes, once): a stream it still holds ends and
 // the scope goes back to its view; one taken over on the scope stays.
-// TRLC-LINKS: REQ-SDS-228, REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-228, REQ-DSO-278
 function pageStreamLeave() {
   if (!pageStreamHeld) return;
   pageStreamHeld = false;
@@ -693,7 +693,7 @@ addEventListener("beforeunload", pageStreamLeave);
 // once, so Stack master never writes a stale N over the depth set on the scope.
 let sheetsSeqSeen = -1, sheetsBusy = false;
 const SHEET_FOLLOW = [["bwl1", "ch1.bwl"], ["bwl2", "ch2.bwl"], ["inv1", "ch1.invert"], ["inv2", "ch2.invert"], ["masterN", "cmp.master_depth"], ["streamStops", "bus.stream_trigger"]];
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 async function sheetsFollow() {
   const seq = st && st.panel ? st.panel.SheetsSeq : undefined;
   if (seq === undefined || seq === sheetsSeqSeen || sheetsBusy) return;
@@ -713,7 +713,7 @@ async function sheetsFollow() {
 
 // kickStatus re-polls soon after a control change, so the loading indicator
 // for the frame it causes shows without waiting out the 1 s poll.
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function kickStatus() {
   if (pollBusy) { pollKick = true; return; }
   clearTimeout(pollTimer);
@@ -721,7 +721,7 @@ function kickStatus() {
 }
 
 // ---- controls ----
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 async function send(control, value) {
   if (autosetBusy && !await autosetDone) return { ok: false };
   try { const r = await (await fetch("/api/set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ control, value }) })).json(); kickStatus(); return r; }
@@ -734,7 +734,7 @@ const AUTOSET_WAIT_MS = 30000;
 // autoset runs the scope's AUTO for the workspace this page shows, or for
 // workspace forWs ("scope": the eye's fit wants SCOPE's edge-triggered
 // framing, not BUS's frame-start trigger).
-// TRLC-LINKS: REQ-SDS-204, REQ-SDS-226
+// TRLC-LINKS: REQ-DSO-204, REQ-DSO-226
 async function autoset(forWs) {
   if (autosetBusy) return;
   autosetBusy = true;

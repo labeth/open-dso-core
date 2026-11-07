@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -12,7 +12,7 @@ import (
 	"github.com/labeth/open-dso-core/supervisor/fdinherit"
 )
 
-// TRLC-LINKS: REQ-SDS-027, REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-027, REQ-DSO-113
 func testAgent(t *testing.T) *Agent {
 	t.Helper()
 	dir := t.TempDir()
@@ -30,7 +30,7 @@ func testAgent(t *testing.T) *Agent {
 	return New(cfg, newFakeBoard(cfg, dir), "test")
 }
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func TestDispatchUnknownCmd(t *testing.T) {
 	a := testAgent(t)
 	resp := a.Dispatch([]byte(`{"cmd":"nope"}`))
@@ -42,7 +42,7 @@ func TestDispatchUnknownCmd(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func TestDispatchBadJSON(t *testing.T) {
 	a := testAgent(t)
 	resp := a.Dispatch([]byte(`{not json`))
@@ -51,7 +51,7 @@ func TestDispatchBadJSON(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func TestDispatchPing(t *testing.T) {
 	a := testAgent(t)
 	resp := a.Dispatch([]byte(`{"cmd":"ping"}`))
@@ -64,7 +64,7 @@ func TestDispatchPing(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-113
+// TRLC-LINKS: REQ-DSO-113
 func TestDispatchPanicContained(t *testing.T) {
 	// Register a handler that panics; Dispatch must contain it (the agent must
 	// never die to a bad request — it holds the inherited fds).
@@ -77,7 +77,7 @@ func TestDispatchPanicContained(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-113, REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-113, REQ-DSO-117
 func TestAppStartRequiresTakeover(t *testing.T) {
 	a := testAgent(t)
 	resp := a.Dispatch([]byte(`{"cmd":"app.start"}`))
@@ -86,7 +86,7 @@ func TestAppStartRequiresTakeover(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func TestTakeoverRefusedByTheBoard(t *testing.T) {
 	a := testAgent(t)
 	fakeOf(a).land = func(res *TakeoverResult, _ TakeoverOpts) bool {
@@ -102,7 +102,7 @@ func TestTakeoverRefusedByTheBoard(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func TestTakeoverDryRunReportsCandidates(t *testing.T) {
 	a := testAgent(t)
 	fakeOf(a).holders = []fdinherit.Holder{{PID: 4242, Comm: "vendor"}}
@@ -119,7 +119,7 @@ func TestTakeoverDryRunReportsCandidates(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func TestTakeoverSequence(t *testing.T) {
 	a := testAgent(t)
 	fb := fakeOf(a)
@@ -150,7 +150,7 @@ func TestTakeoverSequence(t *testing.T) {
 }
 
 // A board without a watchdog takes over without one.
-// TRLC-LINKS: REQ-SDS-027, REQ-SDS-086
+// TRLC-LINKS: REQ-DSO-027, REQ-DSO-086
 func TestTakeoverWithoutWatchdog(t *testing.T) {
 	a := testAgent(t)
 	fakeOf(a).wd = nil
@@ -162,7 +162,7 @@ func TestTakeoverWithoutWatchdog(t *testing.T) {
 }
 
 // A takeover whose taken_over cannot be persisted stops before the kill.
-// TRLC-LINKS: REQ-SDS-027, REQ-SDS-104
+// TRLC-LINKS: REQ-DSO-027, REQ-DSO-104
 func TestTakeoverPersistFailureStopsBeforeTheKill(t *testing.T) {
 	a := testAgent(t)
 	fb := fakeOf(a)
@@ -178,7 +178,7 @@ func TestTakeoverPersistFailureStopsBeforeTheKill(t *testing.T) {
 }
 
 // fakeOf is the test agent's fake board.
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func fakeOf(a *Agent) *fakeBoard {
 	fb, _ := a.board.(*fakeBoard)
 	return fb

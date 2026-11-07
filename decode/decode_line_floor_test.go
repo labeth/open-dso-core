@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -10,7 +10,7 @@ import (
 
 // boxDown averages a 2 ns record over box samples from a random phase, with
 // a little noise, as a decimated record of the box image holds the line.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func boxDown(w []uint8, box int, rng *rand.Rand) []uint8 {
 	var d []uint8
 	for i := rng.Intn(box); i+box <= len(w); i += box {
@@ -26,7 +26,7 @@ func boxDown(w []uint8, box int, rng *rand.Rand) []uint8 {
 // FlexRay at 10 Mbit/s, MIL-STD-1553 and Manchester at 1 Mbit/s decode every
 // message from records box-averaged to 3.1 samples a bit (500us/div and
 // 10ms/div's own records), and refuse fewer than three: their floor.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestLineCodesDecodeAtThreeSamplesABit(t *testing.T) {
 	for seed := range 50 {
 		rng := rand.New(rand.NewSource(int64(seed)))

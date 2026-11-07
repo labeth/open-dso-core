@@ -3,5 +3,5 @@
 // keys and lamps show), the settings sheets with their rows, the outcome of
 // a remote change, the saved references and SOUND's settings. A scope's UI
 // fills these types; the web server serves them as they are.
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-UIMODEL
 package uimodel

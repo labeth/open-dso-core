@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 // reads every whole token after the cut: the cut token fails its check and
 // the decode takes up the next token whose CRC checks rather than reading
 // on out of step.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestDecodeSDCardRecordCutInsideAToken(t *testing.T) {
 	var bits []int
 	for range 4 {

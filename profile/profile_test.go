@@ -54,6 +54,7 @@ const oneVariant = `  - name: plus
     match: {model: "SDS1102CML+"}
 `
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestLoadBaseAndVariant(t *testing.T) {
 	id := hal.Identity{Vendor: "V", Model: "SDS1102CML+"}
 	p, err := Load([]byte(doc(oneVariant+`    set:
@@ -97,6 +98,7 @@ func TestLoadBaseAndVariant(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestUnknownIdentityRefused(t *testing.T) {
 	_, err := Load([]byte(doc(oneVariant)), hal.Identity{Model: "SDS1102CML"})
 	r, ok := hal.AsRefusal(err)
@@ -105,6 +107,7 @@ func TestUnknownIdentityRefused(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestOrderedOverlayAndConflicts(t *testing.T) {
 	id := hal.Identity{Model: "M1", HWRevision: "B", Fitted: map[string]string{"sram": "present"}, Licences: []string{"decode"}}
 	cases := []struct {
@@ -185,6 +188,7 @@ func TestOrderedOverlayAndConflicts(t *testing.T) {
 }
 
 // A later variant overrides the base: the overlay is ordered base first.
+// TRLC-LINKS: REQ-DSO-1002
 func TestVariantOverridesBase(t *testing.T) {
 	p, err := Load([]byte(doc(oneVariant+"    set: {channels: 1, rates: [{samples_per_s: 1e9, max_channels: 1}]}\n")), hal.Identity{Model: "SDS1102CML+"})
 	if err != nil {
@@ -195,6 +199,7 @@ func TestVariantOverridesBase(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestParseErrors(t *testing.T) {
 	cases := []struct{ name, src, want string }{
 		{"unknown key", base + "colour: red\nvariants:\n" + oneVariant, "colour (line"},
@@ -225,6 +230,7 @@ func TestParseErrors(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestValidate(t *testing.T) {
 	cases := []struct{ name, set, want string }{
 		{"rate for too many channels", "{rates: [{samples_per_s: 1e9, max_channels: 3}]}", "rates[0]"},
@@ -246,6 +252,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestVariants(t *testing.T) {
 	d, err := Parse([]byte(doc(oneVariant + "  - name: other\n    match: {model: X}\n")))
 	if err != nil {
@@ -256,6 +263,7 @@ func TestVariants(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestYAMLSubset(t *testing.T) {
 	n, err := parseYAML([]byte(`---
 a: 'it''s # not a comment'
@@ -304,6 +312,7 @@ g: [1, 2,
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestRefusalUnwraps(t *testing.T) {
 	_, err := Load([]byte(doc(oneVariant)), hal.Identity{})
 	var r *hal.Refusal
@@ -312,6 +321,7 @@ func TestRefusalUnwraps(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func TestAbsentReasons(t *testing.T) {
 	p, err := Load([]byte(doc(oneVariant)), hal.Identity{Model: "SDS1102CML+"})
 	if err != nil {

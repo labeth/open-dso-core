@@ -1,11 +1,11 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Node tests for binframe.js — golden byte fixtures built to the wire layout
 // documented in web.go (encodeBinFrame). Run by binframe_node_test.go.
 "use strict";
 const { decodeBinFrame, BIN_MAGIC } = require("./binframe.js");
 
 let fails = 0;
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 function check(name, ok) {
   if (!ok) {
     console.log("FAIL " + name);
@@ -15,7 +15,7 @@ function check(name, ok) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 function msg(flags, hdrObj, payload) {
   const hdr = new TextEncoder().encode(JSON.stringify(hdrObj));
   const buf = new Uint8Array(8 + hdr.length + payload.length);

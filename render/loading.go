@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -6,7 +6,7 @@ import "strconv"
 
 // DrawLoading displays an explicit acquisition interruption. Transfer progress
 // is supplied by the loader; this never advances a simulated progress bar.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func DrawLoading(sf Canvas, stage string, sent, total int) {
 	sm := metricsOf(sf)
 	cx, cy := sm.W/2, sm.H/2 // the picture is centred: 400, 240 on 800×480

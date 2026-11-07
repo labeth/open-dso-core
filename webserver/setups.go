@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webserver
 
@@ -17,7 +17,7 @@ const setupSlotCount = 20
 // GET lists what the slots hold, as the scope's FILE tab shows them:
 // {"ok":true,"slots":[{"slot":1,"used":true,"summary":"BUS  500us/div ..."}]}
 // (slots is null when the store cannot say).
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 func (s *Server) hSetup(w http.ResponseWriter, r *http.Request) {
 	setups, have := s.sc.Setups()
 	if r.Method == http.MethodGet {

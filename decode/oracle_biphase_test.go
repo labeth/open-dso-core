@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-235
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-235
 func TestOracleDALI(t *testing.T) {
 	const sr = 100000
 	w := newTimeline(sr)
@@ -45,7 +45,7 @@ func TestOracleDALI(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-235
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-235
 func TestOracleUSBPD(t *testing.T) {
 	const sr = 20000000
 	w := newTimeline(sr)
@@ -114,7 +114,7 @@ func TestOracleUSBPD(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-235
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-235
 func TestOracleSPDIF(t *testing.T) {
 	const sr = 100000000
 	w := newTimeline(sr)

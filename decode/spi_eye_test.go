@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -18,7 +18,7 @@ import (
 // (6 to 8 ns at 104 MHz) reads its eye's middle 7 ns after the sampling
 // edge; the receiver on the samples and the software decoder taking the
 // data there read every byte, where the data at the edge reads garbage.
-// TRLC-LINKS: REQ-SDS-229, REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-229, REQ-DSO-230
 func TestSPIEyeFindsLateData(t *testing.T) {
 	frames := [][]byte{benchFrame(0)[:20], benchFrame(7)[30:69], {0x00, 0xff, 0xa5, 0x5a}}
 	for _, late := range []float64{0, 3e-9, 7e-9} {
@@ -60,13 +60,13 @@ func TestSPIEyeFindsLateData(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func first(ev []SampleSPIEvent, _ []SampleSPIEdge) []SampleSPIEvent { return ev }
 
 // The bench source's recorded 104 MHz bursts change data 1.8 ns before the
 // clock's other edge (its clock leaves through a clock buffer): the eye's
 // middle is that far before the sampling edge, the opening wide.
-// TRLC-LINKS: REQ-SDS-229, REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-229, REQ-DSO-230
 func TestSPIEyeRecorded(t *testing.T) {
 	c1, c2 := lines(readCapture(t, "spi_sample_104mhz.bin.gz"))
 	eye, ok := MeasureSPIEye(c2, c1, 2e-9, SPICfg{MSB: true, Threshold: 128, HaveThr: true, DataLag: SPIDataLag(1, 2e-9)})
@@ -79,7 +79,7 @@ func TestSPIEyeRecorded(t *testing.T) {
 // A gated clock's last pulse of a burst can be a runt that crosses the
 // level but not the band beyond it: the bursts after it still read whole
 // (the line low for a receiver clock re-arms the edge).
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleSPIRuntPulse(t *testing.T) {
 	frames := [][]byte{benchFrame(1)[:12], benchFrame(2)[:12], benchFrame(3)[:12]}
 	for _, runt := range []float64{2e-9, 2.2e-9, 2.4e-9} { // peaks of about 130 to 139: past the level, short of the band's top
@@ -97,7 +97,7 @@ func TestSampleSPIRuntPulse(t *testing.T) {
 // C1, mode 0, the data 7 ns after the launching edge) taken by the
 // instrument at 2 ns: four at 100 ns/div, the serial trigger on a burst's
 // start (its start and first 2.5 us, no end), and two at 1 us/div.
-// TRLC-LINKS: REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-230
 func flash104Records(t *testing.T) (r []struct {
 	TdivS  float64 `json:"tdiv_s"`
 	C1, C2 []uint8
@@ -132,7 +132,7 @@ func flash104Records(t *testing.T) (r []struct {
 // as sent, where before the edge every bit read one clock off ("85 80 08 00
 // 7F A9"). The records at 1 us/div hold ends, and the launches after them
 // keep the reading after the edge.
-// TRLC-LINKS: REQ-SDS-229, REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-229, REQ-DSO-230
 func TestSPIEyeFlashStartsOnly(t *testing.T) {
 	var v SPIEyeVotes
 	for i, r := range flash104Records(t) {
@@ -157,7 +157,7 @@ func TestSPIEyeFlashStartsOnly(t *testing.T) {
 }
 
 // starts reports, for each offset of b, whether want begins there.
-// TRLC-LINKS: REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-230
 func starts(b, want []int) []bool {
 	var out []bool
 	for i := 0; i+len(want) <= len(b); i++ {
@@ -170,7 +170,7 @@ func starts(b, want []int) []bool {
 // other edge, and nothing after a burst's last edge: across records of two
 // or three bursts, their ends without a launch read the middle before the
 // edge, and the bursts read as sent.
-// TRLC-LINKS: REQ-SDS-229, REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-229, REQ-DSO-230
 func TestSPIEyeEarlyAcrossRecords(t *testing.T) {
 	c1, c2 := lines(readCapture(t, "spi_sample_104mhz.bin.gz"))
 	cfg := SPICfg{MSB: true, Threshold: 128, HaveThr: true, DataLag: SPIDataLag(1, 2e-9)}
@@ -198,7 +198,7 @@ func TestSPIEyeEarlyAcrossRecords(t *testing.T) {
 // launch, and back; a clock period changed by more than 3% starts the votes
 // over; with no burst seen a middle past any device's settling reads
 // before the edge (a host's data changing at the other edge, skewed).
-// TRLC-LINKS: REQ-SDS-230
+// TRLC-LINKS: REQ-DSO-230
 func TestSPIEyeVotesFollowBursts(t *testing.T) {
 	const T = 9.6e-9
 	mid := SPIEye{MiddleS: 7.3e-9, PeriodS: T}

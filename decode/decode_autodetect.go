@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -18,7 +18,7 @@ import (
 // parity, ARINC 429 word parity, USB's PID complement, I2C's START/addr/ACK
 // framing), which outscore the purely heuristic ones (UART stop bits,
 // Manchester mid-cell coding, and SPI — no framing at all, the fallback).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 // i2cMinClockS is the shortest clock period an I2C bus runs (Ultra Fast-mode,
 // 5 MHz, less a margin): a faster "clock" is edge ringing on another bus -
 // ARINC 429's two lines at the full rate read as I2C on an 18 ns clock.
@@ -33,7 +33,7 @@ const i2cMinSetupS = 100e-9
 // i2cConditionsOnEdges reports whether most of an I2C decode's STARTs and
 // STOPs sit on an edge of SCL (sliced as scl): within i2cMinSetupS, and at
 // least a sample and a half, of one.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cConditionsOnEdges(r Result, scl *sliced, colTimeS float64) bool {
 	guard := 1.5
 	if colTimeS > 0 {
@@ -64,7 +64,7 @@ const uartMaxBaud = 64e6
 
 // sentDistinctFrames counts the different CRC-valid frames among a SENT
 // decode's spans: each frame's nibbles from its SYNC to its CRC.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func sentDistinctFrames(spans []Span) int {
 	seen := map[string]bool{}
 	var frame []byte
@@ -86,7 +86,7 @@ func sentDistinctFrames(spans []Span) int {
 // back, and they span the line from its first edge to its last; frames
 // spanning under half of it, one of them valid, are CRC-4's one in sixteen
 // (a Maple bus's line, cut at both ends, read as SENT).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func sentOnLine(r Result, s *sliced) Result {
 	if !r.OK || sentDistinctFrames(r.Spans) >= 2 || len(s.edges) < 2 {
 		return r
@@ -118,7 +118,7 @@ func sentOnLine(r Result, s *sliced) Result {
 // remote repeats its frames and a sensor sends them back to back, so one
 // frame among a line's other edges is the protocol's chance match (an
 // Oregon sensor's bursts, cut, read as one RC-5 frame).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func loneFrameOnLine(r Result, s *sliced) Result {
 	if !r.OK || len(s.edges) < 2 {
 		return r
@@ -142,7 +142,7 @@ func loneFrameOnLine(r Result, s *sliced) Result {
 
 // scoreResult rates a decode as the bus a line carries: -1e9 for none, more
 // for more frames that pass the protocol's own checks.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func scoreResult(r Result) float64 { //nolint:gocyclo // one self-contained rule per protocol, kept together in the order they apply
 	if !r.OK {
 		return -1e9
@@ -360,7 +360,7 @@ func scoreResult(r Result) float64 { //nolint:gocyclo // one self-contained rule
 	return scoreProto(r)
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type clockInfo struct {
 	ok      bool
 	uniFrac float64
@@ -378,7 +378,7 @@ type clockInfo struct {
 // dominant half-period is a low percentile of the edge gaps (ignoring big idle
 // gaps); uniFrac is the fraction of gaps that ARE that half-period (~1 for a
 // clock, low for a data line whose edges land on data-dependent bit boundaries).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func clockScore(codes []uint8) clockInfo {
 	s := sliceChannel(codes, 0, false)
 	if !s.ok || len(s.edges) < 6 {
@@ -408,7 +408,7 @@ func clockScore(codes []uint8) clockInfo {
 // periodUniformity is the fraction of same-way edge gaps (rise to rise, fall
 // to fall) within 15% of their dominant one (a low percentile, as clockScore
 // takes it: robust to the idle between bytes), and that gap.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func periodUniformity(edges []edge) (float64, float64) {
 	var gaps []int
 	last := [2]int{-1, -1}
@@ -446,14 +446,14 @@ func periodUniformity(edges []edge) (float64, float64) {
 // phase under a quarter of its period (the half-period gaps then alternate,
 // half of them the short one). A bit-banged SCLK is one; a data line's
 // rises fall on its bits and are not even, I2C's SCL is near half duty.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (c *clockInfo) pulseClock() bool {
 	return c.ok && c.periodFrac > 0.7 && c.period > 0 && c.hp*4 < c.period && c.uniFrac > 0.35 && c.uniFrac < 0.65
 }
 
 // clockLike is how clock-like a channel is: the evenness of its edges, or of
 // its same-way edges for a clock of short pulses (pulseClock).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func (c *clockInfo) clockLike() float64 {
 	if c.pulseClock() {
 		return c.periodFrac
@@ -465,7 +465,7 @@ func (c *clockInfo) clockLike() float64 {
 // clock edge (beyond a quarter half-period). SPI launches data on a clock edge;
 // I2C moves SDA in the middle of SCL low. Mostly mid-phase data is not SPI:
 // an I2C window without its START reads as "SPI mode 3, 3 bytes" otherwise.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func midPhaseData(c *clockInfo, d *sliced) float64 {
 	if !c.ok || c.hp <= 0 || !d.ok || len(d.edges) == 0 || len(c.s.edges) == 0 {
 		return 0
@@ -495,7 +495,7 @@ func midPhaseData(c *clockInfo, d *sliced) float64 {
 // A line this clock clocks is near 1: SPI launches data on an edge, I2C moves
 // SDA at one delay into SCL low. A line that only shares the screen with a
 // clock, a UART beside a free-running clock, spreads over the whole cycle.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func phaseLock(c *clockInfo, d *sliced) (share float64, n int) {
 	if !c.ok || c.hp <= 0 || !d.ok {
 		return 0, 0
@@ -543,7 +543,7 @@ func phaseLock(c *clockInfo, d *sliced) (share float64, n int) {
 // launches each bit on one clock edge and samples it on the other, so the
 // data's edges name the launch edge and with it CPHA, where the sampled
 // amplitude cannot: on sharp edges every sample is a full rail either way.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func launchEdges(c *clockInfo, d *sliced) (fall, rise int) {
 	if !c.ok || c.hp <= 0 || !d.ok {
 		return 0, 0
@@ -581,7 +581,7 @@ func launchEdges(c *clockInfo, d *sliced) (fall, rise int) {
 // most, low when neither holds a run more: a screen of nothing but clocking
 // holds both alike, and a vote of 12759 samples to 12753 read a mode 0 clock
 // as mode 3. Low is SPI's usual idle (mode 0).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func idleLevel(s *sliced) int {
 	if !s.ok {
 		return 0
@@ -613,7 +613,7 @@ func idleLevel(s *sliced) int {
 
 // levelRunStats is the median of a line's runs between edges and the
 // record's ends, its longest run and where that starts.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func levelRunStats(s *sliced) (median, longest, at int) {
 	runs := make([]int, 0, len(s.edges)+1)
 	prev := 0
@@ -636,7 +636,7 @@ func levelRunStats(s *sliced) (median, longest, at int) {
 // Autodetect tries every plausible protocol / channel-role / sub-setting against
 // the two channels (c1=index 0, c2=index 1) and returns the best-scoring decoded
 // Result, formatted per `format`. A Result with Proto=="off" means nothing matched.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //nolint:gocyclo // Autodetect's stages run in order on its shared state and closures
 	chans := [2][]uint8{c1, c2}
 	// The helpers below take the channels' figures by address: copies of
@@ -921,20 +921,20 @@ func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //noli
 }
 
 // StandardBaud reports whether baud is a rate UARTs use (within 3 %).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func StandardBaud(baud float64) bool { return nearStandardBaud(baud, 0.03) }
 
 // arincRate reports a bit rate an ARINC 429 bus runs at, as read off a record:
 // high speed 100 kbit/s, low speed 12 to 14.5 kbit/s, with a tenth's margin
 // for a rate read off a decimated record's pulse spacing.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func arincRate(baud float64) bool {
 	return (baud >= 90e3 && baud <= 110e3) || (baud >= 10.8e3 && baud <= 16e3)
 }
 
 // nearStandardBaud reports whether baud lies within tol (fraction) of a
 // standard UART rate.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func nearStandardBaud(baud, tol float64) bool {
 	for _, std := range standardBauds {
 		if math.Abs(baud-std) <= tol*std {
@@ -954,7 +954,7 @@ type lineRuns struct {
 }
 
 // runStats measures a sliced line's closed runs (lineRuns).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func runStats(sl sliced) lineRuns {
 	var lo, hi []float64
 	for _, r := range levelRuns(sl) {
@@ -987,7 +987,7 @@ func runStats(sl sliced) lineRuns {
 // swdWholeReads counts an SWD reading's whole transfers: a data word whose
 // parity checks (a transfer the record cuts, or one a WAIT or FAULT ends,
 // carries none).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func swdWholeReads(r Result) int {
 	n := 0
 	for _, s := range r.Spans {
@@ -1000,7 +1000,7 @@ func swdWholeReads(r Result) int {
 
 // i2cAddressesMove reports a read whose addresses are not all SDA held
 // through them (0x00 low, 0x7F high), or that has none.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cAddressesMove(r Result) bool {
 	seen := false
 	for _, s := range r.Spans {
@@ -1020,7 +1020,7 @@ func i2cAddressesMove(r Result) bool {
 // most (a master reading ends so), and a STOP. None where STARTs with no
 // address after them outnumber the addresses (data edges while a clock
 // rests high, as scoreResult reads them).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cAckedTransfers(r Result) int {
 	n, addrs, starts := 0, 0, 0
 	open, datas, nak := false, 0, false
@@ -1059,7 +1059,7 @@ func i2cAckedTransfers(r Result) int {
 // cJTAG probe's TCKC under noise), or eight in ten holding one 0 bit at
 // most (a line of short low pulses, a Wiegand reader's, each read as a
 // start bit and a byte of ones).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func clockOrPulseBytes(b []int) bool {
 	if len(b) < 8 {
 		return false
@@ -1080,7 +1080,7 @@ func clockOrPulseBytes(b []int) bool {
 // periodicBits reports bytes whose bits, LSB first in order, repeat with a
 // period of eight bits or fewer through nine tenths of them: a square wave
 // read as a line code (Miller's "92 24 49" over and over), no data.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func periodicBits(b []int) bool {
 	var bs []int
 	for _, v := range b {
@@ -1106,7 +1106,7 @@ func periodicBits(b []int) bool {
 }
 
 // pulseBytes reports bytes that are each all zeros or all ones.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func pulseBytes(b []int) bool {
 	for _, v := range b {
 		if v&0xff != 0 && v&0xff != 0xff {
@@ -1126,7 +1126,7 @@ func pulseBytes(b []int) bool {
 // short transfers as SWD requests with an OK). A burst the record cuts at
 // either end is left out. A single long burst says nothing (a debug probe's
 // SWD runs its clock on).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func byteClocked(s *sliced) bool {
 	var rise []int
 	for _, e := range s.edges {
@@ -1190,7 +1190,7 @@ func byteClocked(s *sliced) bool {
 }
 
 // quickMedianInts is the median of v (reordering a copy).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func quickMedianInts(v []int) int {
 	c := slices.Clone(v)
 	slices.Sort(c)
@@ -1199,7 +1199,7 @@ func quickMedianInts(v []int) int {
 
 // i2cDataPastNak counts the data bytes an I2C decode reads after a NAK in
 // the same transfer, where an I2C master sends STOP or a repeated START.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cDataPastNak(r Result) int {
 	n, nak := 0, false
 	for _, s := range r.Spans {
@@ -1220,7 +1220,7 @@ func i2cDataPastNak(r Result) int {
 
 // i2cDataPastAddrNak reports an I2C decode reading a data byte after an
 // address a NAK answered, in the same transfer.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cDataPastAddrNak(r Result) bool {
 	addr, nak := false, false
 	for _, s := range r.Spans {
@@ -1246,7 +1246,7 @@ func i2cDataPastAddrNak(r Result) bool {
 
 // i2cReadEndsAcked reports an I2C decode with a read transfer whose last
 // byte before its STOP was acknowledged.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func i2cReadEndsAcked(r Result) bool {
 	read, last := false, ""
 	for _, s := range r.Spans {
@@ -1273,7 +1273,7 @@ func i2cReadEndsAcked(r Result) bool {
 
 // i2cEscape reports an I2C decode holding five STARTs and STOPs in a row
 // with nothing between them: a cJTAG escape's TMSC edges while TCKC is high.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func i2cEscape(r Result) bool {
 	run, last := 0, ""
 	for _, s := range r.Spans {

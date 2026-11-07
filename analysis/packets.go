@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -12,7 +12,7 @@ import (
 )
 
 // Packets: the decoded spans of one record grouped into the messages of the
-// BUS workspace's packet list (REQ-SDS-214). Byte-stream buses (UART, SPI)
+// BUS workspace's packet list (REQ-DSO-214). Byte-stream buses (UART, SPI)
 // group bytes that follow each other closely: an idle gap of 1.5 byte times
 // ends a packet, and so does a UART break. I2C groups START to STOP (or a
 // repeated START). The framed protocols take their own frames: a CAN frame
@@ -51,7 +51,7 @@ const (
 // the USB PID, the ARINC 429 label, or the RT address of a 1553 command or
 // status word. Read is an I2C read, a CAN remote frame or a 1553 transmit
 // command.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 type Packet struct {
 	I0, I1   int // first and last sample of the packet
 	Bytes    []byte
@@ -71,7 +71,7 @@ type Packet struct {
 // Packets groups the spans of r into packets in record order. recordLen is
 // the number of samples the decode ran on; with 0 the record is taken to end
 // at the last span, so its last packet counts as cut.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func Packets(r decode.Result, recordLen int) []Packet {
 	if len(r.Spans) == 0 {
 		return nil
@@ -105,7 +105,7 @@ func Packets(r decode.Result, recordLen int) []Packet {
 }
 
 // wordWidth is the number of bytes a decoded word takes in Packet.Bytes.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func wordWidth(r decode.Result) int {
 	switch r.Proto {
 	case protoMIL1553:
@@ -136,13 +136,13 @@ func wordWidth(r decode.Result) int {
 }
 
 // isWord reports whether a span of a byte-stream decode carries a data word.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func isWord(kind string) bool {
 	return kind == kindData || kind == kindFrameError || kind == kindParityError
 }
 
 // grouper builds the packets of one decode.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 type grouper struct {
 	n     int     // record length (samples)
 	bit   float64 // samples per bit (0 when unknown)
@@ -153,14 +153,14 @@ type grouper struct {
 }
 
 // open starts a packet at sample i0; startOK says its start is not cut.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) open(i0 int, startOK bool) {
 	g.out = append(g.out, Packet{I0: i0, I1: i0})
 	g.cur, g.start = &g.out[len(g.out)-1], startOK
 }
 
 // close ends the open packet; endOK says its end is not cut.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) close(endOK bool) {
 	if g.cur == nil {
 		return
@@ -172,7 +172,7 @@ func (g *grouper) close(endOK bool) {
 }
 
 // span widens the open packet to cover sp.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) span(sp decode.Span) {
 	g.cur.I0 = min(g.cur.I0, sp.I0, sp.I1)
 	g.cur.I1 = max(g.cur.I1, sp.I0, sp.I1)
@@ -180,7 +180,7 @@ func (g *grouper) span(sp decode.Span) {
 
 // word appends a decoded word to the open packet, most significant byte
 // first, and widens the packet to its span.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) word(sp decode.Span, bad bool) {
 	g.span(sp)
 	for k := g.width - 1; k >= 0; k-- {
@@ -190,7 +190,7 @@ func (g *grouper) word(sp decode.Span, bad bool) {
 }
 
 // markLast flags the bytes of the open packet's last word.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) markLast() {
 	for k := len(g.cur.ByteErr) - 1; k >= 0 && k >= len(g.cur.ByteErr)-g.width; k-- {
 		g.cur.ByteErr[k] = true
@@ -198,7 +198,7 @@ func (g *grouper) markLast() {
 }
 
 // room reports whether the record runs at least d samples past sample i.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) room(i int, d float64) bool { return float64(g.n-1-i) >= d }
 
 // gaps groups a byte stream (UART, SPI) by idle gaps: a packet ends where the
@@ -206,7 +206,7 @@ func (g *grouper) room(i int, d float64) bool { return float64(g.n-1-i) >= d }
 // break (a framing error on a zero byte: the line held low), and where the
 // decoder could not complete a frame ("gap", cut by the record's edges or
 // before the decode synced), which also leaves the packets touching it cut.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) gaps(uart bool, spans []decode.Span) {
 	ws := make([]int, 0, len(spans))
 	for _, sp := range spans {
@@ -266,7 +266,7 @@ func (g *grouper) gaps(uart bool, spans []decode.Span) {
 
 // i2c groups START to STOP; a repeated START ends one packet and opens the
 // next, each with its own address.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) i2c(spans []decode.Span) {
 	addrPhase := false // the last byte seen was the address
 	for _, sp := range spans {
@@ -319,7 +319,7 @@ func (g *grouper) i2c(spans []decode.Span) {
 // can takes each frame from its SOF. A classic frame is complete with its ACK
 // slot; an FD frame, decoded through its data field only, when the record
 // holds room for its CRC and ACK after it.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) can(spans []decode.Span) {
 	acked, fd := false, false
 	end := func() {
@@ -363,7 +363,7 @@ func (g *grouper) can(spans []decode.Span) {
 // framed takes the frames of the self-framing protocols, each from its start
 // marker: the room a frame needs around it (in bits) says when the record's
 // edges may have cut it.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) framed(proto string, spans []decode.Span) {
 	var head, tail float64 // bits of record needed before and after a frame
 	switch proto {
@@ -448,7 +448,7 @@ var openedFault = map[string]string{
 // bits, an S/PDIF sample 24, an SWD data word 32 (its request and
 // acknowledge one byte each), an IR multi address or command 16, a cJTAG
 // scan's low 31 bits 32.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func openedWidth(proto string, sp decode.Span) int {
 	switch proto {
 	case protoMDIO, "wiegand", "irmp":
@@ -473,7 +473,7 @@ func openedWidth(proto string, sp decode.Span) int {
 // or with a tenth of the record after it. The first unit names the packet's
 // address where a protocol has one (LIN's frame ID, Modbus's server
 // address, CEC's header, an IR remote's address, an MDIO frame's PHY).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) opened(proto string, spans []decode.Span) {
 	tail := float64(g.n) / 10
 	end := func(next bool) {
@@ -528,7 +528,7 @@ func (g *grouper) opened(proto string, spans []decode.Span) {
 }
 
 // frameError records a framed protocol's error span on the open packet.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (g *grouper) frameError(proto string, sp decode.Span) {
 	switch proto {
 	case "sent": // an out-of-range nibble, or a CRC nibble that does not check
@@ -552,7 +552,7 @@ func (g *grouper) frameError(proto string, sp decode.Span) {
 }
 
 // abs is |v|.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func abs(v int) int {
 	if v < 0 {
 		return -v
@@ -565,7 +565,7 @@ func abs(v int) int {
 // ("123", "123 R" for a remote frame), an ARINC 429 label in octal ("310", as
 // the decode strip and ARINC practice write it), a MIL-1553 RT address and
 // its transmit/receive bit ("RT5 T"), else hex. "" without an address.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func AddrText(proto string, p Packet) string {
 	if !p.HasAddr {
 		return ""
@@ -588,7 +588,7 @@ func AddrText(proto string, p Packet) string {
 
 // quickselect is the value sorting a would put at index k (a is reordered):
 // the packet-width median here, the jitter medians in eyejitter.go.
-// TRLC-LINKS: REQ-SDS-214, REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-199
 func quickselect[T cmp.Ordered](a []T, k int) T {
 	lo, hi := 0, len(a)-1
 	for lo < hi {

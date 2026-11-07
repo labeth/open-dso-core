@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -15,7 +15,7 @@ import (
 )
 
 // parityMult is PARITY_MULT, the corruption count multiplier (1 in CI).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-073
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-073
 func parityMult() int { return fuzzKnob("PARITY_MULT", 1) }
 
 // TestJSDecoderParity guarantees the browser JS twins (internal/web/decode_*.js)
@@ -25,7 +25,7 @@ func parityMult() int { return fuzzKnob("PARITY_MULT", 1) }
 // truth, then replays the vectors through the JS twins under node and asserts an
 // exact {ok, bytes} match. Skips when node is unavailable — a hard failure
 // under CI_REQUIRE_BROWSER=1 (internal/testenv).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-073
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-073
 func TestJSDecoderParity(t *testing.T) {
 	testenv.NeedNode(t)
 	node, _ := exec.LookPath("node")

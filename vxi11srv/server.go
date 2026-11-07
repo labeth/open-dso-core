@@ -3,7 +3,7 @@
 // portmapper on :111. Every complete message goes to the injected handler;
 // the server itself holds no instrument state. scpi/host serves it beside
 // the raw-socket and telnet transports.
-// ENGMODEL-OWNER-UNIT: FU-APP-VXI11SRV
+// ENGMODEL-OWNER-UNIT: FU-DSO-VXI11SRV
 package vxi11srv
 
 import (
@@ -51,11 +51,11 @@ const (
 )
 
 // Handler executes one complete SCPI line and returns the reply bytes.
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 type Handler func(line []byte) []byte
 
 // Server is one running VXI-11 DEVICE_CORE listener with its single link.
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 type Server struct {
 	h    Handler
 	logf func(string, ...any)
@@ -66,7 +66,7 @@ type Server struct {
 	nextLID   uint32
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 type conn struct {
 	c       net.Conn
 	srv     *Server
@@ -77,7 +77,7 @@ type conn struct {
 
 // Start listens on an ephemeral TCP port, optionally registers with the
 // portmapper (register=false for tests), and serves in the background.
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func Start(h Handler, register bool, logf func(string, ...any)) (*Server, int, error) {
 	// Every interface: the instrument is controlled over the LAN.
 	var lc net.ListenConfig
@@ -102,9 +102,10 @@ func Start(h Handler, register bool, logf func(string, ...any)) (*Server, int, e
 }
 
 // Close stops accepting links; established ones end with their connection.
+// TRLC-LINKS: REQ-DSO-024
 func (s *Server) Close() error { return s.ln.Close() }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (s *Server) acceptLoop() {
 	for {
 		c, err := s.ln.Accept()
@@ -122,7 +123,7 @@ func (s *Server) acceptLoop() {
 // capped at maxRecvSize; the header + payload fit comfortably below this).
 const maxRecord = maxRecvSize + 0x10000
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func readRecord(r io.Reader) ([]byte, error) {
 	var msg []byte
 	for {
@@ -147,7 +148,7 @@ func readRecord(r io.Reader) ([]byte, error) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func writeRecord(w io.Writer, msg []byte) error {
 	var hdr [4]byte
 	binary.BigEndian.PutUint32(hdr[:], 0x80000000|uint32(len(msg))) //nolint:gosec // G115: replies are a few header words plus at most maxRecvSize data, far below 2^31
@@ -160,14 +161,14 @@ func writeRecord(w io.Writer, msg []byte) error {
 
 // ---- XDR ----
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 type xdr struct {
 	b   []byte
 	off int
 	err bool
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (x *xdr) u32() uint32 {
 	if x.off+4 > len(x.b) {
 		x.err = true
@@ -178,7 +179,7 @@ func (x *xdr) u32() uint32 {
 	return v
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (x *xdr) opaque() []byte {
 	n := int(x.u32())
 	// Overflow-safe bound: on the 32-bit ARM target `int` is 32-bit, so
@@ -201,7 +202,7 @@ func (x *xdr) opaque() []byte {
 	return v
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (x *xdr) skipAuth() {
 	x.u32() // flavor
 	n := int(x.u32())
@@ -216,14 +217,14 @@ func (x *xdr) skipAuth() {
 	x.off += pad
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func putU32(b []byte, v uint32) []byte {
 	var w [4]byte
 	binary.BigEndian.PutUint32(w[:], v)
 	return append(b, w[:]...)
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func putOpaque(b, data []byte) []byte {
 	b = putU32(b, uint32(len(data))) //nolint:gosec // G115: data comes from a record bounded by maxRecord
 	b = append(b, data...)
@@ -235,7 +236,7 @@ func putOpaque(b, data []byte) []byte {
 
 // ---- connection ----
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (cn *conn) serve() {
 	defer func() {
 		cn.srv.release(cn)
@@ -281,7 +282,7 @@ func (cn *conn) serve() {
 
 // release frees the single link when its TCP connection dies — a dropped
 // client must never wedge the interface (spec 11 §6 trap 1).
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (s *Server) release(cn *conn) {
 	s.mu.Lock()
 	if s.linkOwner == cn {
@@ -290,7 +291,7 @@ func (s *Server) release(cn *conn) {
 	s.mu.Unlock()
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (cn *conn) dispatch(proc uint32, x *xdr) []byte {
 	s := cn.srv
 	switch proc {
@@ -417,7 +418,7 @@ func (cn *conn) dispatch(proc uint32, x *xdr) []byte {
 	return nil
 }
 
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func (cn *conn) owns(lid uint32) bool {
 	cn.srv.mu.Lock()
 	defer cn.srv.mu.Unlock()
@@ -429,7 +430,7 @@ func (cn *conn) owns(lid uint32) bool {
 // registerPortmap UNSETs any stale DEVICE_CORE mapping and SETs ours. The
 // classic portmapper rejects SET/UNSET from unprivileged source ports, so
 // dial from a local port <1024 (the app runs as root on the device).
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func registerPortmap(port int, logf func(string, ...any)) error {
 	call := func(proc, prog, vers, prot, prt uint32) error {
 		var c net.Conn

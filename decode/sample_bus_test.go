@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -35,7 +35,7 @@ type lineSet struct {
 	shift      [2]float64
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (p lineSet) words() []uint64 {
 	n := int(p.endS/2e-9) + 64
 	n = (n + 3) &^ 3
@@ -90,7 +90,7 @@ func (p lineSet) words() []uint64 {
 	return wide
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func addTr(list *[]lineTr, level *bool, at float64, v bool) {
 	if *level != v {
 		*list = append(*list, lineTr{at, v})
@@ -117,7 +117,7 @@ type uartBus struct {
 	seed         int64
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (u uartBus) lines() lineSet {
 	T := 1 / (u.baud * (1 + u.err))
 	var list []lineTr
@@ -158,7 +158,7 @@ func (u uartBus) lines() lineSet {
 	return set
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (u uartBus) config() SampleUARTConfig {
 	return SampleUARTConfig{
 		Ch: u.ch, Level: 120, Low: 107, High: 133, Inverted: u.inverted, Period16: UARTPeriod16(u.baud),
@@ -168,7 +168,7 @@ func (u uartBus) config() SampleUARTConfig {
 
 // want is the events the receiver publishes for the frames: their data, or
 // an error.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (u uartBus) want() []SampleBusEvent {
 	var out []SampleBusEvent
 	for _, f := range u.frames {
@@ -183,7 +183,7 @@ func (u uartBus) want() []SampleBusEvent {
 
 // uartFrames is a run of characters with every bit pattern edge case,
 // back to back and with gaps, and an error of each kind.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func uartFrames(bits int, seed int64) []uartFrame {
 	rng := rand.New(rand.NewSource(seed))
 	vals := []int{0x00, 0x1ff, 0x55, 0xaa, 0x01, 0x100, 0x80, 0x7f, 0x48, 0x0f, 0xf0}
@@ -215,7 +215,7 @@ type uartFormat struct {
 // uartCases: every rate from 115200 Bd to the receiver's 62.5 MBd, in
 // every data width and parity, inverted, on either channel, with the
 // transmitter 2 % fast and slow.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func uartCases() []uartBus {
 	formats := []uartFormat{{8, 0, 1, false}, {7, 1, 1, false}, {8, 2, 1, false}, {9, 0, 1, false}, {5, 0, 2, false}, {8, 1, 1, true}}
 	var cases []uartBus
@@ -234,13 +234,13 @@ func uartCases() []uartBus {
 	return cases
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func uartName(u uartBus) string {
 	p := "NEO"[u.parity : u.parity+1]
 	return fmt.Sprintf("%.0fBd/%d%s%d/inv%v/C%d/err%+.0f%%", u.baud, u.bits, p, u.stop, u.inverted, u.ch+1, 100*u.err)
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func stripEvents(ev []SampleBusEvent) []SampleBusEvent {
 	out := make([]SampleBusEvent, len(ev))
 	for i, e := range ev {
@@ -251,7 +251,7 @@ func stripEvents(ev []SampleBusEvent) []SampleBusEvent {
 
 // The UART receiver reads every synthetic line exactly: each character, and
 // an error where the frame has one.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleUARTSynthetic(t *testing.T) {
 	for _, u := range uartCases() {
 		t.Run(uartName(u), func(t *testing.T) {
@@ -265,7 +265,7 @@ func TestSampleUARTSynthetic(t *testing.T) {
 
 // Without resynchronising, the receiver holds a 2 % baud error over a
 // frame of nine data bits and parity.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleUARTNoResync(t *testing.T) {
 	for _, e := range []float64{-0.02, 0.02} {
 		u := uartBus{baud: 50e6, err: e, bits: 9, parity: 1, stop: 1, rise: 3e-9, noise: 1, seed: 7}
@@ -280,7 +280,7 @@ func TestSampleUARTNoResync(t *testing.T) {
 
 // The byte trigger fires on the character that completes the pattern, and
 // only there.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleUARTMatch(t *testing.T) {
 	u := uartBus{baud: 50e6, bits: 8, stop: 1, rise: 3e-9, noise: 1, seed: 3}
 	for _, s := range []string{"OPEN-SDS", "UART", "SDS!"} {
@@ -327,7 +327,7 @@ type i2cOp struct {
 
 // i2cTransfers: a register write then a read with a repeated START, a
 // ten-bit-address write, and a NACKed address.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func i2cTransfers(seq byte) [][]i2cOp {
 	B := func(b byte) i2cOp { return i2cOp{kind: 'B', b: b} }
 	S, P := i2cOp{kind: 'S'}, i2cOp{kind: 'P'}
@@ -343,7 +343,7 @@ func i2cTransfers(seq byte) [][]i2cOp {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (b i2cBus) lines() lineSet {
 	period := 1 / b.rateHz
 	low, high := period/2, period/2
@@ -388,7 +388,7 @@ func (b i2cBus) lines() lineSet {
 	return set
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (b i2cBus) config() SampleI2CConfig {
 	delay := int(math.Round(synthPhaseS * 16e9))
 	if b.clockCh == 0 {
@@ -403,7 +403,7 @@ func (b i2cBus) config() SampleI2CConfig {
 
 // want is the events the bus carries: START, each byte with its address
 // and NACK flags, STOP.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (b i2cBus) want() []SampleBusEvent {
 	var out []SampleBusEvent
 	for _, tr := range b.transfers {
@@ -434,7 +434,7 @@ func (b i2cBus) want() []SampleBusEvent {
 // i2cCases: standard, fast, fast-plus and high-speed mode with open-drain
 // rise times at each mode's limit, push-pull edges, SDA held 5 ns after SCL
 // falls at 3.4 MHz, inverted, and SCL on either channel.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func i2cCases() []i2cBus {
 	var cases []i2cBus
 	for i, m := range []struct{ rate, rise float64 }{{100e3, 1000e-9}, {400e3, 300e-9}, {1e6, 120e-9}, {3.4e6, 40e-9}} {
@@ -458,13 +458,13 @@ func i2cCases() []i2cBus {
 	return append(cases, tight, apart, slow)
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func i2cName(b i2cBus) string {
 	return fmt.Sprintf("%.0fkHz/rise%.0fns/hold%.0fns/inv%v/SCL C%d/shift%v", b.rateHz/1e3, b.rise*1e9, b.hold*1e9, b.inverted, b.clockCh+1, b.shift)
 }
 
 // The I2C receiver reads every synthetic bus exactly.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleI2CSynthetic(t *testing.T) {
 	for _, b := range i2cCases() {
 		t.Run(i2cName(b), func(t *testing.T) {
@@ -477,7 +477,7 @@ func TestSampleI2CSynthetic(t *testing.T) {
 }
 
 // The address and data triggers fire on the byte that completes them.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleI2CMatch(t *testing.T) {
 	b := i2cCases()[6] // 3.4 MHz
 	words := b.lines().words()
@@ -535,7 +535,7 @@ type rxRun struct {
 	matches []int
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func (s rtlSim) runRx(t *testing.T, words []uint64, args ...string) rxRun {
 	t.Helper()
 	var in strings.Builder
@@ -591,7 +591,7 @@ func (s rtlSim) runRx(t *testing.T, words []uint64, args ...string) rxRun {
 
 // modelEdges is the model's extractor output as the testbench prints it:
 // each edge on the clock it leaves the extractor.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func modelEdges(out []SampleLineEdge) []rxEdge {
 	var edges []rxEdge
 	for k, o := range out {
@@ -609,7 +609,7 @@ func modelEdges(out []SampleLineEdge) []rxEdge {
 	return edges
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func sameEdges(t *testing.T, name string, rtl, model []rxEdge) {
 	t.Helper()
 	// the model runs to the words' end; the RTL's last clocks are not printed
@@ -622,7 +622,7 @@ func sameEdges(t *testing.T, name string, rtl, model []rxEdge) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func sameEvents(t *testing.T, rtl, model []SampleBusEvent) {
 	t.Helper()
 	if !reflect.DeepEqual(rtl, model) {
@@ -636,7 +636,7 @@ func sameEvents(t *testing.T, rtl, model []SampleBusEvent) {
 
 // The RTL (sample_edges.v, uart_sample.v) finds the model's edges and
 // publishes its events and matches on the same clocks.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleUARTRTL(t *testing.T) {
 	sim := newRTLSim(t, "tb_sample_rx", "sample_edges.v", "uart_sample.v", "i2c_sample.v")
 	for i, u := range uartCases() {
@@ -664,7 +664,7 @@ func TestSampleUARTRTL(t *testing.T) {
 
 // The RTL (two sample_edges.v, i2c_sample.v) finds the model's edges on
 // both lines and publishes its events and matches on the same clocks.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleI2CRTL(t *testing.T) {
 	sim := newRTLSim(t, "tb_sample_rx", "sample_edges.v", "uart_sample.v", "i2c_sample.v")
 	for i, b := range i2cCases() {
@@ -718,7 +718,7 @@ var uartCaptures = []uartCapture{
 }
 
 // uartBenchBurst is the source's burst n at the given data width.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func uartBenchBurst(n, bits int) []int {
 	var out []int
 	for _, c := range "OPEN-SDS UART!\r\n" {
@@ -737,7 +737,7 @@ func uartBenchBurst(n, bits int) []int {
 // Every character of the recorded captures decodes, on both channels (C2
 // inverted), from the first burst the receiver frames (a record opens
 // inside back-to-back characters) to the record's end.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleUARTCaptures(t *testing.T) {
 	for _, c := range uartCaptures {
 		words := readCapture(t, c.file)
@@ -783,7 +783,7 @@ func TestSampleUARTCaptures(t *testing.T) {
 
 // i2cBenchPass is the I2C bench source's program for counter n, as tokens:
 // S, P, and each byte as hex with "a" (address byte) and "N" (NACK).
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func i2cBenchPass(n int) []string {
 	var out []string
 	for _, tr := range i2cTransfers(byte(n)) {
@@ -809,7 +809,7 @@ func i2cBenchPass(n int) []string {
 	return out
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func i2cTokens(ev []SampleBusEvent) []string {
 	var out []string
 	for _, e := range ev {
@@ -837,7 +837,7 @@ func i2cTokens(ev []SampleBusEvent) []string {
 // first START the record holds whole: a register write, a read with a
 // repeated START and a NACKed last byte, a ten-bit-address write and a
 // NACKed address, the read's data counting by eight each pass.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func TestSampleI2CCaptures(t *testing.T) {
 	for _, f := range []string{"i2c_sample_400khz.bin.gz", "i2c_sample_1mhz.bin.gz", "i2c_sample_3400khz.bin.gz"} {
 		t.Run(f, func(t *testing.T) {
@@ -890,7 +890,7 @@ func TestSampleI2CCaptures(t *testing.T) {
 
 // Detection names the recorded fast buses: a 62.5 MBd UART (not Manchester
 // at half its rate) and high-speed-mode I2C.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 func TestAutodetectFastBuses(t *testing.T) {
 	for _, c := range []struct{ file, proto, src string }{
 		{"uart_sample_62mbd.bin.gz", "uart", "C1"}, {"uart_sample_50mbd.bin.gz", "uart", "C1"}, {"i2c_sample_3400khz.bin.gz", "i2c", "SCL C1 SDA C2"},

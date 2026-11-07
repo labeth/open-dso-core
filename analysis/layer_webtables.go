@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -26,7 +26,7 @@ var layerNameTables = map[string]map[int]string{
 
 // LayerTablesJS is layer_tables.js: the layers' name and command tables as
 // one JavaScript object, so the web page's layers name what the scope's do.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func LayerTablesJS() string { return layerTablesJS() }
 
 // layerTablesJS is the text, built once: the tables are fixed.
@@ -61,7 +61,7 @@ var layerTablesJS = sync.OnceValue(func() string {
 	}
 	obj["owROMCmds"] = ow
 	var sb strings.Builder
-	sb.WriteString("// ENGMODEL-OWNER-UNIT: FU-WEB-PACKETS\n")
+	sb.WriteString("// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS\n")
 	sb.WriteString("// layer_tables.js - the layers' name and command tables, written from the scope's own\n")
 	sb.WriteString("// (internal/analysis LayerTablesJS; TestLayerTablesJS keeps this file equal to them).\n")
 	sb.WriteString("\"use strict\";\n")
@@ -85,7 +85,7 @@ var layerTablesJS = sync.OnceValue(func() string {
 })
 
 // jsKeyed is a table keyed by its numbers as decimal strings.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func jsKeyed(t map[int]string) map[string]string {
 	out := map[string]string{}
 	for k, v := range t {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -39,7 +39,7 @@ type banner struct {
 
 // newBanner draws word (scale 12) and lines (scale 3, upper-cased) on a box
 // of colour bg, the text white.
-// TRLC-LINKS: REQ-SDS-292
+// TRLC-LINKS: REQ-DSO-292
 func newBanner(w, h int, bg uint16, word string, lines []string) *banner {
 	b := &banner{w: w, h: h, px: make([]uint16, w*h)}
 	for i := range b.px {
@@ -59,7 +59,7 @@ func newBanner(w, h int, bg uint16, word string, lines []string) *banner {
 }
 
 // text draws s at x, y, each set glyph bit a scale×scale white block.
-// TRLC-LINKS: REQ-SDS-292
+// TRLC-LINKS: REQ-DSO-292
 func (b *banner) text(x, y int, s string, scale int) {
 	for _, r := range s {
 		g := glyphs5x7[r]
@@ -90,7 +90,7 @@ const (
 
 // showBanner writes b to every page of fb0 (16 bpp) and has the board light
 // the screen.
-// TRLC-LINKS: REQ-SDS-292
+// TRLC-LINKS: REQ-DSO-292
 func showBanner(b *banner, screenOn func() error) error {
 	g, err := readFBGeom("/sys/class/graphics/fb0")
 	if err != nil {
@@ -127,7 +127,7 @@ func showBanner(b *banner, screenOn func() error) error {
 
 // holdBanner shows b, and again every second until hold has passed while
 // someone else (the factory app) may draw over it.
-// TRLC-LINKS: REQ-SDS-292
+// TRLC-LINKS: REQ-DSO-292
 func holdBanner(b *banner, hold time.Duration, others bool, screenOn func() error) {
 	_ = showBanner(b, screenOn)
 	if !others {
@@ -142,7 +142,7 @@ func holdBanner(b *banner, hold time.Duration, others bool, screenOn func() erro
 // doneScreen syncs the stick and shows DONE (or FAILED) with lines on the
 // scope's screen: once when the stick took the scope over, else kept over
 // the vendor app's screen for c.Hold.
-// TRLC-LINKS: REQ-SDS-292
+// TRLC-LINKS: REQ-DSO-292
 func (c *Collection) doneScreen(ok bool, lines []string) {
 	// the archive and the status file are on the stick before the screen says
 	// it can be switched off

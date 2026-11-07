@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 )
 
 // hexText is fmt's "%s%0*X" of a non-negative value, every width.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestHexTextIsSprintf(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	for it := range 20000 {
@@ -28,7 +28,7 @@ func TestHexTextIsSprintf(t *testing.T) {
 }
 
 // FmtByte's tables are the texts it formatted each time.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestFmtByteTables(t *testing.T) {
 	for v := -300; v < 600; v++ {
 		b := v & 0xff
@@ -54,7 +54,7 @@ func TestFmtByteTables(t *testing.T) {
 // nthNear is nthValue for values within a hair of their integers: gaps
 // alike, ones off by rounding either way, integers spread past the
 // histogram, the same working arrays from call to call.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestNthNearIsNthValue(t *testing.T) {
 	rng := rand.New(rand.NewSource(2))
 	var b nearBuf
@@ -89,7 +89,7 @@ func TestNthNearIsNthValue(t *testing.T) {
 }
 
 // orderKey orders as the values do, and keyValue gives each back.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-254
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
 func TestOrderKey(t *testing.T) {
 	rng := rand.New(rand.NewSource(3))
 	vals := []float64{0, 1, -1, 0.5, -0.5, math.Inf(1), math.Inf(-1), math.MaxFloat64, -math.MaxFloat64, 5e-324, -5e-324}
@@ -109,7 +109,7 @@ func TestOrderKey(t *testing.T) {
 }
 
 // levelCursor is logicAt wherever it is asked, forward or back.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestLevelCursorIsLogicAt(t *testing.T) {
 	rng := rand.New(rand.NewSource(4))
 	for range 300 {
@@ -136,7 +136,7 @@ func TestLevelCursorIsLogicAt(t *testing.T) {
 
 // roundUps is what math.Round adds to each crossing of a line sliced from
 // its edges, at thresholds below, on and a hair off the half.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestRoundUpsIsRound(t *testing.T) {
 	rng := rand.New(rand.NewSource(5))
 	thrs := []float64{128, 127.5, 127.5 + 1e-12, 127.5 - 1e-12, 127.5 + 1e-3, 30, 228, 90.25}
@@ -168,7 +168,7 @@ func TestRoundUpsIsRound(t *testing.T) {
 
 // nearBoundOf puts an integer clear of a bound only where every value
 // within a hair of it lies on that side.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestNearBound(t *testing.T) {
 	rng := rand.New(rand.NewSource(6))
 	for range 20000 {
@@ -187,7 +187,7 @@ func TestNearBound(t *testing.T) {
 
 // A scratch lends the arrays of one decode apart, the same ones to the
 // next, and keeps the larger array an append grows.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestScratch(t *testing.T) {
 	var sc scratch
 	a := scratchSlice[int](&sc, 10)[:10]

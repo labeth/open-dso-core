@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -13,7 +13,7 @@ import (
 // clock rests high between transfers and read as I2C STARTs (39 of 50
 // captures), and in every mode a short transfer read as an SWD request with
 // an OK now and then.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectShortSPITransfers(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	var ok, total [4]int
@@ -45,7 +45,7 @@ func TestAutodetectShortSPITransfers(t *testing.T) {
 // An I2C transfer's clock rises 9 times a byte and once more for its STOP:
 // seven bytes make a burst of 64, whole bytes for SPI. Transfers of that
 // length stay I2C.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectI2CBurstsOfWholeBytes(t *testing.T) {
 	var scl, sda []uint8
 	for i := range 4 {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -8,7 +8,7 @@ package wire
 // min and max segments, its Q8.8 precision words u16 codes with 8 fraction
 // bits, and its view window the view segments. A scope that builds v1
 // replies serves v2 with it until it fills f from its own frames.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (f *Frame) FromReply(rep FrameReply) {
 	f.Reset()
 	f.Header = FrameHeader{
@@ -86,6 +86,7 @@ func (f *Frame) FromReply(rep FrameReply) {
 }
 
 // margins counts c's contiguous -1 head and tail runs.
+// TRLC-LINKS: REQ-DSO-163
 func margins(c []int16) (head, tail int) {
 	for head < len(c) && c[head] < 0 {
 		head++
@@ -97,6 +98,7 @@ func margins(c []int16) (head, tail int) {
 }
 
 // codes8 is c as bytes (display codes, 0..255).
+// TRLC-LINKS: REQ-DSO-163
 func codes8(c []int16) []uint8 {
 	out := make([]uint8, len(c))
 	for i, v := range c {

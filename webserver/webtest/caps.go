@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package webtest
 
@@ -12,7 +12,7 @@ import (
 )
 
 // decade is m·10^e, rounded as its decimal reads.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func decade(m float64, e int) float64 {
 	if e < 0 {
 		return m / math.Pow10(-e)
@@ -21,7 +21,7 @@ func decade(m float64, e int) float64 {
 }
 
 // tdivLadder is a 1-2-5 timebase ladder from 1 ns to 50 s.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func tdivLadder() []float64 {
 	var out []float64
 	for e := -9; e <= 1; e++ {
@@ -33,7 +33,7 @@ func tdivLadder() []float64 {
 }
 
 // vdivLadder is a 1-2-5 V/div ladder from lo to 10 V.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func vdivLadder(lo float64) []float64 {
 	var out []float64
 	for e := -4; e <= 1; e++ {
@@ -50,7 +50,7 @@ func vdivLadder(lo float64) []float64 {
 // codes a division about code 128 with Q8.8 precision words: exactly what
 // the shared page assumes of a scope that serves no caps, so a scope that
 // serves these sees no change in the page.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func Caps2x8() wire.Caps {
 	return wire.Caps{
 		Gen:      1,
@@ -76,7 +76,7 @@ func Caps2x8() wire.Caps {
 // Caps4x12 is the capabilities of a four-channel scope whose 12-bit codes
 // sit left-aligned in 16-bit words about 0x8000, 7680 stored units a
 // division, with a trigger on any channel and only edge triggers.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func Caps4x12() wire.Caps {
 	c := Caps2x8()
 	c.Identity = wire.Identity{Model: "fake four-channel 12-bit"}
@@ -119,19 +119,19 @@ type Wide struct {
 }
 
 // NewWide is a running four-channel fake with its first frame published.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func NewWide() *Wide { return &Wide{Fake: NewFake(false)} }
 
 // Caps is Caps4x12.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (w *Wide) Caps() wire.Caps { return Caps4x12() }
 
 // CapsGen is Caps4x12's generation.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (w *Wide) CapsGen() uint64 { return 1 }
 
 // Frames serves v2 frames beside the Fake's v1.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (w *Wide) Frames() webserver.Frames { return wideFrames{fakeFrames{w.Fake}} }
 
 // wideFrames are the Fake's frames plus v2.
@@ -139,7 +139,7 @@ type wideFrames struct{ fakeFrames }
 
 // WideRecord is the four-channel fake's record of n samples per channel, as
 // a sample frame: the words a v2 frame of it carries.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func WideRecord(seq uint64, n int) *sample.Frame {
 	f := &sample.Frame{
 		Content: sample.RawFullRate, SampleS: 1e-8, CaptureS: 1e-8, AcqDecim: 1, Depth: n, WinPoints: n / 2,
@@ -176,7 +176,7 @@ func WideRecord(seq uint64, n int) *sample.Frame {
 }
 
 // FrameV2 serves the whole record of four channels.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (fr wideFrames) FrameV2(q webserver.FrameQueryV2, dst *wire.Frame) {
 	fr.f.mu.Lock()
 	seq := fr.f.seq
@@ -198,7 +198,7 @@ func (fr wideFrames) FrameV2(q webserver.FrameQueryV2, dst *wire.Frame) {
 
 // Status is the status document of the fields the shared page reads, for
 // four channels.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (w *Wide) Status() any {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -224,26 +224,26 @@ type Twin struct {
 }
 
 // NewTwin is a running two-channel fake with caps.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func NewTwin() *Twin { return &Twin{Fake: NewFake(false)} }
 
 // Caps is Caps2x8.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (t *Twin) Caps() wire.Caps { return Caps2x8() }
 
 // CapsGen is Caps2x8's generation.
-// TRLC-LINKS: REQ-SDS-164
+// TRLC-LINKS: REQ-DSO-164
 func (t *Twin) CapsGen() uint64 { return 1 }
 
 // Frames serves the Fake's frames in either wire.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (t *Twin) Frames() webserver.Frames { return twinFrames{fakeFrames{t.Fake}} }
 
 // twinFrames serve v2 from the Fake's v1 replies.
 type twinFrames struct{ fakeFrames }
 
 // FrameV2 is the Fake's v1 reply as v2.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func (fr twinFrames) FrameV2(q webserver.FrameQueryV2, dst *wire.Frame) {
 	if !q.Raw {
 		dst.FromReply(fr.Frame(q.FrameQuery))

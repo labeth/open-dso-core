@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -13,7 +13,7 @@ import (
 // TestVisualPictures: each bus's picture draws from its spans (a MIDI
 // capture's pushes and releases, DMX's levels, LEDs, PS/2's keys, the
 // readings, the frames), says what it shows, and paints the picture.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func TestVisualPictures(t *testing.T) {
 	sp := func(kind, text string, i0, val int) decode.Span {
 		return decode.Span{Kind: kind, Text: text, I0: i0, I1: i0 + 10, Val: val}
@@ -64,7 +64,7 @@ func TestVisualPictures(t *testing.T) {
 // TestVisualPicturesNeverBreak: random spans of every kind, every plot a
 // layout makes, a record with no samples: each picture draws without a panic,
 // and inside its rectangle on Visual's own plots.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func TestVisualPicturesNeverBreak(t *testing.T) {
 	protos := []string{"midi", "dmx512", "ws281x", "ps2", "irnec", "caliper", "wiegand", "pwm", "dcf77", "quad", "stepper", "lin", "canfd", "uart", "spi"}
 	kinds := []string{"data", "data", "data", "sof", "rw", "id", "frame-error"}
@@ -102,7 +102,7 @@ func TestVisualPicturesNeverBreak(t *testing.T) {
 
 // TestVisualLongFrameFits: a CAN FD frame's 64 bytes fit their row before
 // the frame's count on Visual's plots, the bytes left out counted.
-// TRLC-LINKS: REQ-SDS-281
+// TRLC-LINKS: REQ-DSO-281
 func TestVisualLongFrameFits(t *testing.T) {
 	spans := []decode.Span{{Kind: "sof"}, {Kind: "id", Val: 0x123}}
 	for i := range 64 {

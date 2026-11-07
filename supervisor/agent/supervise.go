@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -23,7 +23,7 @@ import (
 //  3. classify the outcome; stable+healthy confirms the slot, repeated
 //     failure rolls back active→confirmed.
 //
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) superviseLoop() {
 	for {
 		select {
@@ -72,7 +72,7 @@ func (a *Agent) superviseLoop() {
 
 // idleWait sleeps but still services control requests so app.start / restart
 // respond while idle/paused.
-// TRLC-LINKS: REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-117
 func (a *Agent) idleWait(d time.Duration) {
 	select {
 	case <-a.stopped:
@@ -101,7 +101,7 @@ func (a *Agent) idleWait(d time.Duration) {
 }
 
 // pickSlot chooses what to run: the active slot, else the confirmed slot.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) pickSlot() string {
 	active := a.store.Active()
 	if a.store.HasBinary(active) {
@@ -115,7 +115,7 @@ func (a *Agent) pickSlot() string {
 }
 
 // orphanAppPid returns a live app pid from a previous agent generation.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) orphanAppPid() int {
 	b, err := os.ReadFile(a.pidPath(appPidFile))
 	if err != nil {
@@ -131,7 +131,7 @@ func (a *Agent) orphanAppPid() int {
 // superviseAdopted monitors an app we cannot wait() on (it reparented to init
 // when the previous agent exited). Health verdicts still apply; any failure
 // or control request tears it down so the normal child path takes over.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) superviseAdopted(pid int) {
 	a.log.Printf("adopted running app pid=%d from previous agent generation", pid)
 	h := &healthWatcher{path: a.cfg.HealthPath(), started: time.Now().Add(-time.Hour)}
@@ -185,7 +185,7 @@ func (a *Agent) superviseAdopted(pid int) {
 
 // runAppOnce launches one app generation and blocks until it ends, then
 // classifies the outcome (confirm / fail / rollback).
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) runAppOnce(slot string) {
 	bin := a.store.BinPath(slot)
 	h := newHealthWatcher(a.cfg.HealthPath())
@@ -297,7 +297,7 @@ loop:
 // (the stick flipped read-only) is not remembered: the next tick tries again,
 // and the run's first failure is logged and sent once - a confirmed pointer
 // left on the old slot is the slot the next update overwrites.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) confirmIfStable(slot string, hs healthStatus, ran time.Duration) {
 	if !hs.HealthyOnce || ran < a.cfg.Stable || a.confirmedRun == slot {
 		return
@@ -318,7 +318,7 @@ func (a *Agent) confirmIfStable(slot string, hs healthStatus, ran time.Duration)
 
 // terminate asks the app to land the engine (SIGTERM), then SIGKILLs the
 // process group after a grace period.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) terminate(cmd *exec.Cmd, exit chan error) {
 	pid := cmd.Process.Pid
 	_ = syscall.Kill(-pid, syscall.SIGTERM) // whole group
@@ -334,7 +334,7 @@ func (a *Agent) terminate(cmd *exec.Cmd, exit chan error) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) killPid(pid int) {
 	_ = syscall.Kill(pid, syscall.SIGTERM)
 	deadline := time.Now().Add(3 * time.Second)
@@ -347,7 +347,7 @@ func (a *Agent) killPid(pid int) {
 	_ = syscall.Kill(pid, syscall.SIGKILL)
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) bumpFail(why string) {
 	a.appMu.Lock()
 	a.app.Fails++
@@ -361,7 +361,7 @@ func (a *Agent) bumpFail(why string) {
 // failures: active→confirmed; when the confirmed slot itself is the failure
 // the loop keeps retrying with backoff — the agent itself stays up so the OTA
 // path can push a fix.
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) rollbackIfNeeded(slot string) {
 	a.appMu.Lock()
 	fails := a.app.Fails
@@ -383,14 +383,14 @@ func (a *Agent) rollbackIfNeeded(slot string) {
 }
 
 // clearFails starts the failure count over (after an OTA push).
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) clearFails() {
 	a.appMu.Lock()
 	a.app.Fails = 0
 	a.appMu.Unlock()
 }
 
-// TRLC-LINKS: REQ-SDS-028
+// TRLC-LINKS: REQ-DSO-028
 func (a *Agent) setAppState(fn func(*appState)) {
 	a.appMu.Lock()
 	fn(&a.app)
@@ -398,7 +398,7 @@ func (a *Agent) setAppState(fn func(*appState)) {
 }
 
 // ctlRequest sends a control op to the supervisor and waits.
-// TRLC-LINKS: REQ-SDS-117
+// TRLC-LINKS: REQ-DSO-117
 func (a *Agent) ctlRequest(op ctlOp, timeout time.Duration) error {
 	m := ctlMsg{op: op, reply: make(chan error, 1)}
 	select {

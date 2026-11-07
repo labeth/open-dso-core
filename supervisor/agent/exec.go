@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -16,7 +16,7 @@ import (
 
 // runArgv runs a command with a timeout, capturing combined output. It never
 // runs on the bus; it is a plain userspace exec for remote orchestration.
-// TRLC-LINKS: REQ-SDS-115
+// TRLC-LINKS: REQ-DSO-115
 func runArgv(argv []string, dir string, timeout time.Duration) ([]byte, int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -38,14 +38,14 @@ func runArgv(argv []string, dir string, timeout time.Duration) ([]byte, int, err
 
 // RunShell runs a script through /bin/sh -c (busybox ash on the device),
 // with a timeout, capturing combined output.
-// TRLC-LINKS: REQ-SDS-115
+// TRLC-LINKS: REQ-DSO-115
 func RunShell(script string, timeout time.Duration) ([]byte, error) {
 	out, _, err := runArgv([]string{"/bin/sh", "-c", script}, "", timeout)
 	return out, err
 }
 
 // tailFile returns the last n bytes of a file.
-// TRLC-LINKS: REQ-SDS-115
+// TRLC-LINKS: REQ-DSO-115
 func tailFile(path string, n int) ([]byte, error) {
 	f, err := os.Open(path) //nolint:gosec // the logs RPC reads the file the operator names, like its exec RPC could
 	if err != nil {
@@ -71,5 +71,5 @@ func tailFile(path string, n int) ([]byte, error) {
 }
 
 // copyExecFile copies src to dst (0755) atomically and returns dst's sha256.
-// TRLC-LINKS: REQ-SDS-119
+// TRLC-LINKS: REQ-DSO-119
 func copyExecFile(src, dst string) (string, error) { return slots.CopyExecutable(src, dst) }

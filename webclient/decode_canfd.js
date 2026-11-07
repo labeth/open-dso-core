@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE-CANFD
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // CAN / CAN-FD decoder — the JS twin of Go internal/decode/decode_canfd.go.
 // Kept algorithm-faithful (same slicing/destuffing/CRC) so the web overlay and
 // the on-device LCD agree byte-for-byte. Classic CAN is decoded fully; CAN-FD
@@ -24,7 +24,7 @@ const CAN_STANDARD_BAUDS = [10000, 20000, 50000, 83333, 100000, 125000, 250000, 
 
 // canSnapBaud moves an inferred samples-per-bit onto the nearest standard CAN
 // rate within 1.5%; otherwise the estimate stands (Go snapCANBaud).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canSnapBaud(spb, colTimeS) {
   if (!(spb > 0) || !(colTimeS > 0)) return spb;
   const baud = 1 / (spb * colTimeS);
@@ -32,13 +32,13 @@ function canSnapBaud(spb, colTimeS) {
   return spb;
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canFail(reason) {
   return { ok: false, error: reason, proto: "canfd", spans: [], text: "", bytes: [] };
 }
 
 // canCRC15: classic-CAN CRC-15 (poly 0x4599) over the destuffed SOF..data bits.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canCRC15(bits) {
   let crc = 0;
   for (let k = 0; k < bits.length; k++) {
@@ -50,7 +50,7 @@ function canCRC15(bits) {
 }
 
 // fdDataLen maps a CAN-FD DLC (0..15) to its byte count.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function fdDataLen(dlc) {
   if (dlc <= 8) return dlc;
   return { 9: 12, 10: 16, 11: 20, 12: 24, 13: 32, 14: 48, 15: 64 }[dlc] || 64;
@@ -58,7 +58,7 @@ function fdDataLen(dlc) {
 
 // canReadRaw samples one wire bit at pos+0.5*spb (0=dominant,1=recessive) and
 // advances pos by spb. Returns -1 out of range.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canResync(r) {
   // Re-synchronize as a CAN controller does: an edge within 0.4 bit of the
   // expected boundary becomes the boundary (free-running from SOF, a 2 %
@@ -69,7 +69,7 @@ function canResync(r) {
   if (r.ei < E.length && Math.abs(E[r.ei].x - r.pos) <= w) r.pos = E[r.ei].x;
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canReadRaw(r) {
   canResync(r);
   const center = r.pos + 0.5 * r.spb;
@@ -85,7 +85,7 @@ function canReadRaw(r) {
 }
 
 // canNext returns the next destuffed bit, dropping a stuff bit after 5 identical.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canNext(r) {
   if (r.stuffOn && r.runLen >= 5) {
     const sv = canReadRaw(r);
@@ -103,7 +103,7 @@ function canNext(r) {
 }
 
 // canReadField reads nbits destuffed bits MSB-first. Returns {val,i0,i1,ok}.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canReadField(r, nbits) {
   let val = 0, i0 = -1, i1 = -1;
   for (let k = 0; k < nbits; k++) {
@@ -124,7 +124,7 @@ function canReadField(r, nbits) {
 // the 1-bit hypothesis, refined by re-centered mean, validated by the
 // fraction of gaps explained as integer bit multiples; ties go to the larger
 // period. Gaps beyond ~16 candidate bits are idle spacing, not evidence.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canInferSPB(S) {
   const gaps = [];
   for (let k = 1; k < S.edges.length; k++) {
@@ -180,7 +180,7 @@ function canInferSPB(S) {
 
 // canOneFrame decodes a single frame starting at sofStart (fractional samples).
 // Returns { ok, spans, toks, bytes, endI }.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function canOneFrame(S, dominantLow, sofStart, spb, dataSpb) {
   const r = { S, dominantLow, pos: sofStart, spb, runVal: -1, runLen: 0,
     stuffOn: true, record: true, stuffed: 0, stuffErr: false, bits: [], li0: -1, li1: -1 };
@@ -289,7 +289,7 @@ function canOneFrame(S, dominantLow, sofStart, spb, dataSpb) {
   return { ok: true, spans, toks, bytes, endI: Math.round(r.pos), crcOK };
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 function decodeCANFD(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const dominantLow = cfg.dominantLow !== false; // default true

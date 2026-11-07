@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ import (
 
 // TestScanRuns checks the word-at-a-time run scans against a byte loop for
 // every level, start and alignment, on codes that sit near the level.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestScanRuns(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	buf := make([]uint8, 200)
@@ -52,7 +52,7 @@ func TestScanRuns(t *testing.T) {
 
 // TestHeldBeyondRuns checks the run-by-run held count against the sample
 // loop it replaced, at thresholds between, on and off the codes.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestHeldBeyondRuns(t *testing.T) {
 	ref := func(codes []uint8, thr float64) float64 {
 		var held [2]int
@@ -94,7 +94,7 @@ func TestHeldBeyondRuns(t *testing.T) {
 }
 
 // BenchmarkScanIdle is a run scan over a quiet line's noisy level.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func BenchmarkScanIdle(b *testing.B) {
 	rng := rand.New(rand.NewSource(1))
 	codes := make([]uint8, 1<<16)
@@ -108,7 +108,7 @@ func BenchmarkScanIdle(b *testing.B) {
 }
 
 // BenchmarkHistogramIdle is rails' histogram over the same line.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func BenchmarkHistogramIdle(b *testing.B) {
 	rng := rand.New(rand.NewSource(1))
 	codes := make([]uint8, 1<<16)

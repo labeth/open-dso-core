@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-FRAMECALC
 
 package framecalc
 
@@ -7,7 +7,7 @@ import "math"
 // hypotFinite is math.Hypot's own arithmetic on this architecture (pure Go
 // here) without its infinity and NaN checks: a spectrum's bins are finite,
 // and the checks were a third of the call, once a bin a frame.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func hypotFinite(p, q float64) float64 {
 	p, q = math.Abs(p), math.Abs(q)
 	if p < q {

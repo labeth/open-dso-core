@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -10,7 +10,7 @@ import (
 	"github.com/labeth/open-dso-core/streamwire"
 )
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkDrawText(b *testing.B) {
 	sf := NewImage565(m800)
 	for b.Loop() {
@@ -22,7 +22,7 @@ func BenchmarkDrawText(b *testing.B) {
 
 // benchPattern fills a surface like a persistence layer: mostly black, a
 // band of trace pixels at varying brightness.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func benchPattern() *Image565 {
 	m := NewImage565(m800)
 	for y := range H {
@@ -35,7 +35,7 @@ func benchPattern() *Image565 {
 	return m
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkFadeToBlack(b *testing.B) {
 	m := benchPattern()
 	src := append([]byte(nil), m.Pix...)
@@ -45,7 +45,7 @@ func BenchmarkFadeToBlack(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkBlitBright(b *testing.B) {
 	src := benchPattern()
 	d := NewImage565(m800)
@@ -54,7 +54,7 @@ func BenchmarkBlitBright(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkEncodePNG(b *testing.B) {
 	m := benchPattern()
 	for b.Loop() {
@@ -62,7 +62,7 @@ func BenchmarkEncodePNG(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkDrawTraceSparse(b *testing.B) {
 	sig := make([]uint8, 1000)
 	for i := range sig {
@@ -75,7 +75,7 @@ func BenchmarkDrawTraceSparse(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkFmtLabels(b *testing.B) {
 	for b.Loop() {
 		_ = vdivLabel(0.2, 10)
@@ -85,7 +85,7 @@ func BenchmarkFmtLabels(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkDrawLoading(b *testing.B) {
 	sf := NewImage565(m800)
 	for b.Loop() {
@@ -93,7 +93,7 @@ func BenchmarkDrawLoading(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func BenchmarkStreamStatus(b *testing.B) {
 	v := streamwire.View{Label: "UART 115200", State: streamwire.Streaming, Units: 123456, UnitsPerSecond: 11520, Errors: 2, Lost: 1, Mode: "hex"}
 	for b.Loop() {
@@ -101,7 +101,7 @@ func BenchmarkStreamStatus(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func BenchmarkDrawMatchEditor(b *testing.B) {
 	toks := make([]string, 32)
 	for i := range toks {
@@ -117,7 +117,7 @@ func BenchmarkDrawMatchEditor(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func BenchmarkSpectrogramPush(b *testing.B) {
 	sg := NewSpectrogram()
 	x := sgSine(4096, 25e6, 2e-9)
@@ -128,7 +128,7 @@ func BenchmarkSpectrogramPush(b *testing.B) {
 
 // The waterfall in a plot narrower than the screen (beside the rail): its
 // columns are scaled.
-// TRLC-LINKS: REQ-SDS-068
+// TRLC-LINKS: REQ-DSO-068
 func BenchmarkSpectrogramPaneBlit(b *testing.B) {
 	sg := NewSpectrogram()
 	for r := range 40 {
@@ -141,7 +141,7 @@ func BenchmarkSpectrogramPaneBlit(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func BenchmarkDrawSpectrum(b *testing.B) {
 	const n = 4096
 	x := make([]float64, n)
@@ -155,7 +155,7 @@ func BenchmarkDrawSpectrum(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkDrawEnvelope(b *testing.B) {
 	const cols = 800
 	mn, mx := make([]uint8, cols), make([]uint8, cols)
@@ -172,7 +172,7 @@ func BenchmarkDrawEnvelope(b *testing.B) {
 
 // A live fast-signal frame: 7000 samples over the full plot, two channels,
 // each frame new (no column cache hit).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkDrawDenseTrace(b *testing.B) {
 	sig := make([]uint8, 7000)
 	for i := range sig {
@@ -186,7 +186,7 @@ func BenchmarkDrawDenseTrace(b *testing.B) {
 }
 
 // Render clears the back buffer every frame.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func BenchmarkFillBlack(b *testing.B) {
 	m := NewImage565(m800)
 	for b.Loop() {

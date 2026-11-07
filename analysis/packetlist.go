@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -9,7 +9,7 @@ import "encoding/binary"
 const maxKnown = 4096
 
 // PacketList is the BUS workspace's packet list: the complete packets of a
-// capture, held still while the same messages repeat (REQ-SDS-214). A running
+// capture, held still while the same messages repeat (REQ-DSO-214). A running
 // scope captures 20 times a second, and each capture holds the messages at
 // other times, one more or one fewer of them, or another part of a repeating
 // cycle; replacing the rows every time would make them jump.
@@ -20,7 +20,7 @@ const maxKnown = 4096
 // and then holds). The selection follows the message the user selected, by
 // content, through replacements, and returns to it when a later capture lists
 // it again. The zero value is an empty list.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 type PacketList struct {
 	rows    []Packet
 	keys    []string            // content key per row
@@ -36,7 +36,7 @@ type PacketList struct {
 // packets are left out) and reports whether it replaced the rows: for a
 // message never seen, or a fuller view of the known ones. A capture without a
 // complete packet leaves the list alone.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (l *PacketList) Update(ps []Packet) (changed bool) {
 	keys, distinct := completeKeys(ps)
 	if len(keys) == 0 {
@@ -61,7 +61,7 @@ func (l *PacketList) Update(ps []Packet) (changed bool) {
 // Replace takes the complete packets of ps as the rows unconditionally, as
 // when the scope stops and the list must show the capture on screen; the
 // selection follows its message. It reports whether the rows changed.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (l *PacketList) Replace(ps []Packet) (changed bool) {
 	keys, distinct := completeKeys(ps)
 	if samePackets(l.rows, ps, keys) {
@@ -73,17 +73,17 @@ func (l *PacketList) Replace(ps []Packet) (changed bool) {
 
 // Reset empties the list and forgets the messages it has seen, as a decode
 // or timebase change must.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (l *PacketList) Reset() { *l = PacketList{} }
 
 // Rows are the listed packets in capture order. The slice is the list's own:
 // it stays the same while the list holds still, and must not be modified.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (l *PacketList) Rows() []Packet { return l.rows }
 
 // Select selects row i, clamped to the rows; the selection then follows that
 // row's message.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (l *PacketList) Select(i int) {
 	if len(l.rows) == 0 {
 		return
@@ -94,7 +94,7 @@ func (l *PacketList) Select(i int) {
 
 // Selected is the selected row, -1 when the list is empty. A new list
 // selects its first row.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (l *PacketList) Selected() int {
 	if len(l.rows) == 0 {
 		return -1
@@ -107,7 +107,7 @@ func (l *PacketList) Selected() int {
 // capture's complete packets is nearest the selected row (the list holds
 // still while the capture moves on). It returns its index in ps, -1 when the
 // capture does not hold the message.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (l *PacketList) SelectedIn(ps []Packet) int {
 	s := l.Selected()
 	if s < 0 {
@@ -140,7 +140,7 @@ type selMemo struct {
 
 // nearestMessage is the complete packet of ps with content key want whose
 // place among the complete packets is nearest s, -1 none.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func nearestMessage(ps []Packet, want string, s int) int {
 	best, bestD, c := -1, 0, 0
 	var buf [256]byte
@@ -163,7 +163,7 @@ func nearestMessage(ps []Packet, want string, s int) int {
 // remembers their messages, and moves the selection onto the followed
 // message (the copy nearest the old place), or keeps its place when the
 // message is not listed.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func (l *PacketList) set(ps []Packet, keys []string, distinct int) {
 	rows := make([]Packet, 0, len(keys))
 	for _, p := range ps {
@@ -202,7 +202,7 @@ func (l *PacketList) set(ps []Packet, keys []string, distinct int) {
 
 // completeKeys are the content keys of the complete packets of ps, in order,
 // and how many distinct messages they hold.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func completeKeys(ps []Packet) ([]string, int) {
 	keys := make([]string, 0, len(ps))
 	seen := make(map[string]struct{}, len(ps))
@@ -220,7 +220,7 @@ func completeKeys(ps []Packet) ([]string, int) {
 
 // samePackets reports whether rows equal the complete packets of ps (whose
 // keys are given), positions included.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func samePackets(rows, ps []Packet, keys []string) bool {
 	if len(rows) != len(keys) {
 		return false
@@ -247,7 +247,7 @@ func samePackets(rows, ps []Packet, keys []string) bool {
 // appendContentKey appends p's contentKey to b: a caller that only compares
 // keys builds them in a buffer of its own (the display looks for the
 // selected message in every packet of the record at each tick).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func appendContentKey(b []byte, p *Packet) []byte {
 	var flags byte
 	if p.HasAddr {

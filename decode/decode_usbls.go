@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -14,7 +14,7 @@ import (
 //	          else bits/s (LS = 1_500_000, FS = 12_000_000).
 //	Threshold /HaveThr override the auto slice threshold (see sliceChannel).
 //
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type USBLSCfg struct {
 	Bitrate   int
 	Threshold float64
@@ -41,7 +41,7 @@ var usbPIDName = map[int]string{
 // packet is SYNC (00000001 = KJKJKJKK) + PID (4 bits + 4-bit complement) +
 // optional data/CRC + EOP (~2 bit-times of SE0, which on the single D+ line
 // reads as an extended idle that, with the inter-packet idle, bounds the packet).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func USBLS(dp []uint8, colTimeS float64, cfg USBLSCfg) Result { //nolint:gocyclo,funlen // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	const minSPB = 4.0  // samples per bit floor
 	const eopCells = 2  // EOP ~ 2 bit-times of SE0 trailing every packet
@@ -290,7 +290,7 @@ func USBLS(dp []uint8, colTimeS float64, cfg USBLSCfg) Result { //nolint:gocyclo
 
 // usblsBitPeriod infers a USB low/full-speed line's bit period, in samples,
 // from its edges (USBLS tells how), or why it cannot.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func usblsBitPeriod(edges []edge) (float64, string) {
 	var gaps []float64
 	for k := 1; k < len(edges); k++ {
@@ -348,13 +348,13 @@ func usblsBitPeriod(edges []edge) (float64, string) {
 
 // usbIsToken reports a token PID (OUT, IN, SOF, SETUP, PING), whose 11
 // bits after the PID end in a CRC5.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-237
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-237
 func usbIsToken(pid4 int) bool { return pid4&3 == 1 || pid4 == 0x4 }
 
 // usbCRC5 is the USB token CRC: x^5+x^2+1 over the 11 bits in wire order
 // (least significant first) from all ones, inverted, its highest term sent
 // first: as the field reads least significant bit first, bit-reversed.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-237
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-237
 func usbCRC5(v int) int {
 	c := 0x1F
 	for i := range 11 {
@@ -369,12 +369,12 @@ func usbCRC5(v int) int {
 }
 
 // usbIsData reports a DATA0/DATA1/DATA2/MDATA PID, whose payload ends in a CRC16.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func usbIsData(pid4 int) bool { return pid4&3 == 3 }
 
 // usbCRC16 is the USB data CRC: polynomial 0x8005 reflected (0xA001), initial
 // all ones, inverted; sent low byte first.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func usbCRC16(data []int) int {
 	c := 0xFFFF
 	for _, b := range data {

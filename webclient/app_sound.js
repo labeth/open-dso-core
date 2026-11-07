@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_sound.js — the SOUND workspace (ADR-SOUND): the gap-free audio stream
 // (/api/sound.bin) in a ring here, Listen through an AudioWorklet (jitter
 // buffer, rate following, limiter) with source, gain, filters and A−B,
@@ -49,22 +49,22 @@ const snd = Object.assign(sndClient(() => snd.view === "cycle"), {
 // output).
 
 // sndLanes is the channel index (0-based) each lane carries.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndLanes() { return Array.isArray(snd.lanes) && snd.lanes.length === 2 ? snd.lanes : [0, 1]; }
 // sndLaneOf is the lane that carries channel index ch (the first when none does).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndLaneOf(ch) { const i = sndLanes().indexOf(ch); return i < 0 ? 0 : i; }
 // sndLaneName and sndLaneColor name and colour lane k by its channel.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndLaneName(k) { return chanName(sndLanes()[k] + 1); }
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndLaneColor(k) { return chanColor(sndLanes()[k] + 1); }
 
 let sndChansSig = "";
 // sndChans labels the lanes' choices and meters by the channels they carry
 // and offers every channel of the scope as the envelope's gate (on C1 and C2
 // lanes of a two-channel scope, the page's own labels).
-// TRLC-LINKS: REQ-SDS-265, REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-265, REQ-DSO-273
 function sndChans() {
   const sig = sndLanes().join() + "/" + chanNums().join();
   if (sig === sndChansSig) return;
@@ -92,15 +92,15 @@ function sndChans() {
 CAPS_HOOKS.push(sndChans);
 
 // sndLatest is the newest n samples of lane ch that are one signal.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndLatest(ch, n) { return sndClientLatest(snd, ch, n); }
 
 // sndRangeOf is samples [from, from+n) of lane ch.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 function sndRangeOf(ch, from, n) { return sndClientRange(snd, ch, from, n); }
 
 // ---- settings and the scope's readouts -----------------------------------------
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 async function sndPost(body) {
   try {
     const r = await fetch("/api/sound", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -110,7 +110,7 @@ async function sndPost(body) {
   } catch (e) { toast("SOUND: " + e.message, "err"); }
 }
 
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 async function sndPoll() {
   try {
     const r = await fetch("/api/sound" + (snd.view === "cycle" ? "?marks=1" : ""), { cache: "no-store" });
@@ -120,7 +120,7 @@ async function sndPoll() {
 }
 
 // sndTakeReport adopts the scope's settings and readouts and sets the controls.
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 function sndTakeReport(rep) {
   snd.report = rep;
   snd.reportAt = performance.now();
@@ -144,7 +144,7 @@ function sndTakeReport(rep) {
 }
 
 // sndSet changes some settings on the scope (shared with the LCD).
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 function sndSet(part) {
   Object.assign(snd.settings, part);
   if ("ch" in part || "range" in part || "slow" in part) { snd.tuner = sndTuner(snd.settings.slow); snd.strip = []; snd.cycles = []; }
@@ -154,7 +154,7 @@ function sndSet(part) {
 
 // ---- Listen -----------------------------------------------------------------------
 // sndListen starts or stops playing the stream (a user's click starts audio).
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 async function sndListen(on) {
   try {
     await sndClientListen(snd, on);
@@ -170,7 +170,7 @@ async function sndListen(on) {
 }
 
 // ---- analysis tick ------------------------------------------------------------------
-// TRLC-LINKS: REQ-SDS-266, REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-266, REQ-DSO-267
 function sndTick() {
   if (!snd.shown) return;
   const now = performance.now(), set = snd.settings, fs = snd.rate;
@@ -217,7 +217,7 @@ function sndTick() {
 const SND_MOD_MIN_CODES = 12;
 
 // sndSwingCodes is x's swing in converter codes (vpc volts a code; 0 without).
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 function sndSwingCodes(x, vpc) {
   if (!(vpc > 0) || !x.length) return Infinity;
   let lo = Infinity, hi = -Infinity;
@@ -228,7 +228,7 @@ function sndSwingCodes(x, vpc) {
 // sndAnalyse runs a view's heavy analysis in the worker (sound_analysis.js),
 // one of each kind at a time (a new one waits for the last to come back),
 // and applies its reply; without workers it runs here.
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-270, REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-270, REQ-DSO-271
 function sndAnalyse(kind, job) {
   const w = snd.worker || (snd.worker = sndStartWorker());
   snd.busy = snd.busy || {};
@@ -240,20 +240,20 @@ function sndAnalyse(kind, job) {
 }
 
 // sndStartWorker starts the analysis worker (null where there is none).
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 function sndStartWorker() {
   try {
     const w = new Worker("sound_analysis.js");
-    // TRLC-LINKS: REQ-SDS-269
+    // TRLC-LINKS: REQ-DSO-269
     w.onmessage = (e) => { snd.busy[e.data.kind] = false; sndApply(e.data); };
-    // TRLC-LINKS: REQ-SDS-269
+    // TRLC-LINKS: REQ-DSO-269
     w.onerror = () => { snd.busy = {}; };
     return w;
   } catch (e) { return null; }
 }
 
 // sndAnalyseHere is the worker's job on the page's thread (no worker).
-// TRLC-LINKS: REQ-SDS-269
+// TRLC-LINKS: REQ-DSO-269
 function sndAnalyseHere(j) {
   if (j.kind === "pitch") return { p: j.enough ? sndPitch(j.x, j.fs, j.range) : { ok: false, hz: 0, clarity: 0 } };
   if (j.kind === "mod") {
@@ -267,7 +267,7 @@ function sndAnalyseHere(j) {
 
 // sndApply takes an analysis's reply into the page (a reply for a view
 // since left is dropped).
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-270, REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-270, REQ-DSO-271
 function sndApply(m) {
   const r = m.r, set = snd.settings;
   if (m.kind === "pitch") { snd.pitchNew = r.p; return; }
@@ -289,7 +289,7 @@ function sndApply(m) {
 }
 
 // sndViewUpdate runs the shown view's analysis at its rate.
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-270, REQ-SDS-271, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-270, REQ-DSO-271, REQ-DSO-272
 function sndViewUpdate(now) {
   const set = snd.settings, fs = snd.rate;
   switch (snd.view) {
@@ -331,7 +331,7 @@ function sndViewUpdate(now) {
 // sndCycleUpdate draws the newest marked cycle: the FPGA's rising mark on the
 // tuned channel placed on its crossing of the marks' level, then the cycles
 // after it. No mark, no trace: the trigger is the FPGA's.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 function sndCycleUpdate() {
   const set = snd.settings, fs = snd.rate, h = snd.hdr;
   if (!h || !h.marks_on) { snd.cycleWhy = "this FPGA image marks no edges in the stream"; return; }
@@ -367,7 +367,7 @@ function sndCycleUpdate() {
 // sndCycleStale says the cycle view has had no new cycle for a second: a
 // cycle missed now and then (an edge without its crossing, a moment without
 // a pitch) keeps the last ones on screen instead of a message that blinks.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 function sndCycleStale() {
   if (!snd.cycleWhy) { snd.cycleWhyAt = 0; return false; }
   const now = performance.now();
@@ -378,7 +378,7 @@ function sndCycleStale() {
 // sndHoldRange is the cycle view's vertical range: on round volts, widened at
 // once to hold a trace, narrowed only once the traces have used under half
 // of it for two seconds, so the grid and the traces stay put.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 function sndHoldRange(st, lo, hi) {
   const now = performance.now(), span = Math.max(hi - lo, 1e-6);
   const step = sndNiceStep(span / 4), want = { lo: Math.floor((lo - 0.05 * span) / step) * step, hi: Math.ceil((hi + 0.05 * span) / step) * step };
@@ -392,19 +392,19 @@ function sndHoldRange(st, lo, hi) {
 }
 
 // sndNiceStep is the 1-2-5 step at or above x.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 function sndNiceStep(x) {
   const p = Math.pow(10, Math.floor(Math.log10(x))), m = x / p;
   return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p;
 }
 
 // sndCycleMedian is the median of each of the cycles' figures.
-// TRLC-LINKS: REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-272
 function sndCycleMedian(cs) {
   const v = new Float64Array(cs.length);
   // the finite figures gathered into a typed array and sorted there (numeric,
   // no comparator call), not mapped, filtered and sorted a figure
-  // TRLC-LINKS: REQ-SDS-272
+  // TRLC-LINKS: REQ-DSO-272
   const med = (k) => {
     let n = 0;
     for (const c of cs) { const x = c[k]; if (Number.isFinite(x)) v[n++] = x; }
@@ -414,7 +414,7 @@ function sndCycleMedian(cs) {
 }
 
 // ---- drawing ------------------------------------------------------------------------
-// TRLC-LINKS: REQ-SDS-273, REQ-SDS-266, REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-273, REQ-DSO-266, REQ-DSO-267
 function sndRender() {
   sndRenderTuner();
   sndRenderMeters();
@@ -430,7 +430,7 @@ function sndRender() {
   $("sndGainV").textContent = a.auto ? (20 * Math.log10(a.agc)).toFixed(0) + " dB" : a.gainDB + " dB";
 }
 
-// TRLC-LINKS: REQ-SDS-267
+// TRLC-LINKS: REQ-DSO-267
 function sndRenderTuner() {
   const set = snd.settings, el = $("sndNote");
   if (snd.hz > 0) {
@@ -452,7 +452,7 @@ function sndRenderTuner() {
   const col = chanColor(set.ch + 1);
   // needle
   const ny = 6 * d, nh = 30 * d;
-  // TRLC-LINKS: REQ-SDS-267
+  // TRLC-LINKS: REQ-DSO-267
   const cx = (c) => W * (0.5 + Math.max(-50, Math.min(50, c)) / 100);
   g.fillStyle = "rgba(63,185,80,0.25)"; g.fillRect(cx(-2), ny, cx(2) - cx(-2), nh);
   g.strokeStyle = "#50506e"; g.lineWidth = d;
@@ -486,7 +486,7 @@ function sndRenderTuner() {
   glCardEnd(cv);
 }
 
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 function sndRenderMeters() {
   const ref = sndPreset(snd.settings.ref), unit = ref.id === "dbu" ? "dBu" : ref.id === "dbv" ? "dBV" : "dB";
   for (let ch = 0; ch < 2; ch++) {
@@ -495,7 +495,7 @@ function sndRenderMeters() {
     el.querySelector(".snd-clip").hidden = performance.now() - snd.clipAt[ch] > 1500;
     if (!m) { bar.style.width = "0"; el.querySelector(".snd-mv").textContent = ""; continue; }
     const db = sndDB(m.rms, ref.vrms), pk = sndDB(m.peak / Math.SQRT2, ref.vrms);
-    // TRLC-LINKS: REQ-SDS-266
+    // TRLC-LINKS: REQ-DSO-266
     const frac = (v) => Math.max(0, Math.min(1, (v + 60) / 66));
     bar.style.width = (100 * frac(db)).toFixed(1) + "%";
     // past the reference is hot only where it is a nominal level (dBu and dBV are scales)
@@ -507,10 +507,10 @@ function sndRenderMeters() {
 }
 
 // sndAxisLog places f on the spectrum's log axis.
-// TRLC-LINKS: REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-270
 function sndAxisLog(f, W) { return W * sndLogX(f, 10, snd.rate / 2); }
 
-// TRLC-LINKS: REQ-SDS-272, REQ-SDS-268, REQ-SDS-269, REQ-SDS-270, REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-272, REQ-DSO-268, REQ-DSO-269, REQ-DSO-270, REQ-DSO-271
 function sndRenderView() {
   const cv = $("sndViewCv");
   if (!fitCanvas(cv)) return;
@@ -519,15 +519,15 @@ function sndRenderView() {
   const W = cv.width, H = cv.height, d = window.devicePixelRatio || 1, set = snd.settings;
   const col = chanColor(set.ch + 1);
   g.font = (11 * d) + "px monospace";
-  // TRLC-LINKS: REQ-SDS-272
+  // TRLC-LINKS: REQ-DSO-272
   const msg = (t) => { g.fillStyle = DIMCOL; g.textAlign = "center"; g.fillText(t, W / 2, H / 2); g.textAlign = "left"; };
-  // TRLC-LINKS: REQ-SDS-272
+  // TRLC-LINKS: REQ-DSO-272
   const grid = () => {
     g.strokeStyle = "#182430"; g.lineWidth = 1;
     for (let i = 1; i < 10; i++) { g.beginPath(); g.moveTo(i * W / 10, 0); g.lineTo(i * W / 10, H); g.stroke(); }
     for (let i = 1; i < 8; i++) { g.beginPath(); g.moveTo(0, i * H / 8); g.lineTo(W, i * H / 8); g.stroke(); }
   };
-  // TRLC-LINKS: REQ-SDS-272
+  // TRLC-LINKS: REQ-DSO-272
   const line = (arr, x0, x1, y, c, w) => {
     g.strokeStyle = c; g.lineWidth = (w || 1.3) * d; g.beginPath();
     for (let i = 0; i < arr.length; i++) { const x = x0 + (x1 - x0) * i / Math.max(1, arr.length - 1), yy = y(arr[i]); if (i) g.lineTo(x, yy); else g.moveTo(x, yy); }
@@ -541,7 +541,7 @@ function sndRenderView() {
       let lo = Infinity, hi = -Infinity;
       for (const t of snd.cycles) for (let i = 0; i < t.length; i++) { lo = Math.min(lo, t[i]); hi = Math.max(hi, t[i]); }
       ({ lo, hi } = sndHoldRange(snd, lo, hi));
-      // TRLC-LINKS: REQ-SDS-272
+      // TRLC-LINKS: REQ-DSO-272
       const y = (v) => H - (v - lo) / (hi - lo) * H;
       snd.cycles.forEach((t, k) => { g.globalAlpha = k === snd.cycles.length - 1 ? 1 : 0.15 + 0.4 * k / snd.cycles.length; line(t, 0, W, y, col); });
       g.globalAlpha = 1;
@@ -559,7 +559,7 @@ function sndRenderView() {
       let hi = 0;
       for (const v of env) hi = Math.max(hi, v || 0);
       hi = hi * 1.1 || 1;
-      // TRLC-LINKS: REQ-SDS-268
+      // TRLC-LINKS: REQ-DSO-268
       const y = (v) => H - (v || 0) / hi * H;
       line(env, 0, W, y, col, 1.6);
       const T = env.length / fs;
@@ -595,7 +595,7 @@ function sndRenderView() {
       if (!sp || !sp.dbv.length) { msg("Spectrum: waiting"); break; }
       $("sndViewSub").textContent = `log axis 10 Hz – ${eng(snd.rate / 2, "Hz")} · dBV · RBW ${eng(sp.binHz, "Hz")} · grey: the scope's own floor`;
       const top = 20, bot = -120;
-      // TRLC-LINKS: REQ-SDS-270
+      // TRLC-LINKS: REQ-DSO-270
       const y = (db) => H * (top - Math.max(bot, Math.min(top, db))) / (top - bot);
       g.strokeStyle = "#182430"; g.lineWidth = 1;
       for (let db = 0; db >= bot; db -= 20) { g.beginPath(); g.moveTo(0, y(db)); g.lineTo(W, y(db)); g.stroke(); g.fillStyle = DIMCOL; g.fillText(db + " dBV", 4 * d, y(db) - 2 * d); }
@@ -635,7 +635,7 @@ function sndRenderView() {
       for (let i = 0; i < a.length; i += step) g.fillRect((a[i] - al) / (ah - al || 1) * (half - 8 * d), H - (b[i] - bl) / (bh - bl || 1) * H, 1.5 * d, 1.5 * d);
       g.fillStyle = DIMCOL; g.fillText("out vs in", 4 * d, 14 * d);
       const top = 20, bot = -120;
-      // TRLC-LINKS: REQ-SDS-271
+      // TRLC-LINKS: REQ-DSO-271
       const y = (db) => H * (top - Math.max(bot, Math.min(top, db))) / (top - bot);
       for (const [sp, c, al2] of [[snd.specA, sndLaneColor(0), 0.45], [snd.specB, sndLaneColor(1), 1]]) {
         if (!sp) continue;
@@ -659,10 +659,10 @@ function sndRenderView() {
 }
 
 // sndRow is a table row of label and value(s).
-// TRLC-LINKS: REQ-SDS-273
+// TRLC-LINKS: REQ-DSO-273
 function sndRow(k, ...v) { return `<tr><td class="k">${k}</td>${v.map((x) => `<td>${x}</td>`).join("")}</tr>`; }
 
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-270, REQ-SDS-271, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-270, REQ-DSO-271, REQ-DSO-272
 function sndRenderCtx() {
   // the readouts change at most twice a second, each the median of the
   // view's last few readings (sndSteady); the take's cursors follow at once
@@ -671,7 +671,7 @@ function sndRenderCtx() {
   snd.ctxAt = now;
   if (snd.ctxView !== snd.view) { snd.ctxView = snd.view; snd.steady = {}; }
   const set = snd.settings, rows = [];
-  // TRLC-LINKS: REQ-SDS-269
+  // TRLC-LINKS: REQ-DSO-269
   const pct = (v) => Number.isFinite(v) ? v.toFixed(2) + " %" : "—";
   let title = "Details";
   switch (snd.view) {
@@ -708,7 +708,7 @@ function sndRenderCtx() {
       if (h && h.ok) {
         rows.push(sndRow("H1", eng(h.f0, "Hz", 5), h.h[0].dbv.toFixed(1) + " dBV"));
         for (let i = 1; i < h.h.length; i += 2) {
-          // TRLC-LINKS: REQ-SDS-270
+          // TRLC-LINKS: REQ-DSO-270
           const cell = (x) => x ? (x.found ? x.relDB.toFixed(1) + " dB" : "—") : "";
           rows.push(sndRow("H" + (i + 1) + (h.h[i + 1] ? " / H" + (i + 2) : ""), cell(h.h[i]), cell(h.h[i + 1])));
         }
@@ -740,7 +740,7 @@ function sndRenderCtx() {
 // sndSteady is a view's reading as shown: the median of each number over its
 // last six readings (each harmonic's own), the newest for the rest (a shape,
 // a character); a reading that is not ok shows at once and starts again.
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-270, REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-270, REQ-DSO-271
 function sndSteady(key, obj) {
   if (!obj) return obj;
   const st = snd.steady || (snd.steady = {});
@@ -751,7 +751,7 @@ function sndSteady(key, obj) {
 }
 
 // sndMedianOf is the element-wise median of like readings.
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-270, REQ-SDS-271
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-270, REQ-DSO-271
 function sndMedianOf(list) {
   const last = list[list.length - 1];
   if (typeof last === "number") {
@@ -768,9 +768,9 @@ function sndMedianOf(list) {
 }
 
 // sndAdsrRows are the envelope's figures (the scope's reading).
-// TRLC-LINKS: REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-268
 function sndAdsrRows(r) {
-  // TRLC-LINKS: REQ-SDS-268
+  // TRLC-LINKS: REQ-DSO-268
   const s = (v) => typeof v === "number" ? eng(v, "s") : "—";
   const out = [sndRow("attack 10-90", s(r.Attack1090), "0-100", s(r.Attack0100))];
   if (r.HasSustain) out.push(sndRow("decay", s(r.Decay), "τ", s(r.DecayTau)), sndRow("sustain", r.SustainPct.toFixed(0) + " %", r.SustainDB.toFixed(1) + " dB"),
@@ -780,7 +780,7 @@ function sndAdsrRows(r) {
   return out;
 }
 
-// TRLC-LINKS: REQ-SDS-267, REQ-SDS-268
+// TRLC-LINKS: REQ-DSO-267, REQ-DSO-268
 function sndRenderReadouts() {
   const rep = snd.report;
   $("sndReadAdsr").hidden = snd.read !== "adsr";
@@ -824,10 +824,10 @@ function sndRenderReadouts() {
 const SND_VIEWS = ["cycle", "env", "mod", "spec", "ab", "take"];
 
 // sndNextView is SOUND again (Alt+6 on SOUND): the next view.
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 function sndNextView() { sndSetView(SND_VIEWS[(SND_VIEWS.indexOf(snd.view) + 1) % SND_VIEWS.length]); }
 
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 function sndSetView(v) {
   snd.view = v;
   $("sndView").value = v;
@@ -843,7 +843,7 @@ let sndTimer = 0;
 // SOUND is acting on the scope, so the page takes it (the last one to act
 // wins), even if a key on the scope took it back long ago; a page left on
 // SOUND stays paused after a key until it is shown again or Take the scope.
-// TRLC-LINKS: REQ-SDS-274, REQ-SDS-277
+// TRLC-LINKS: REQ-DSO-274, REQ-DSO-277
 function sndEnter() {
   sndTakeScope(snd).catch(() => {});
   sndClientStart(snd);
@@ -853,7 +853,7 @@ function sndEnter() {
 }
 
 // sndLeave stops the stream and Listen as SOUND goes: the scope captures again.
-// TRLC-LINKS: REQ-SDS-274
+// TRLC-LINKS: REQ-DSO-274
 function sndLeave() {
   const was = snd.audio.on;
   sndClientStop(snd);
@@ -862,29 +862,29 @@ function sndLeave() {
 }
 
 WS_HOOKS.push({
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   enter(id) { if (id === "sound") sndEnter(); },
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   leave(prev) { if (prev === "sound") sndLeave(); },
 });
 
 // sndPref reads a per-browser Listen choice.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndPref(k, def) { try { const v = localStorage.getItem(SND_PREF + k); return v === null ? def : v; } catch (e) { return def; } }
 
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndPrefSet(k, v) { try { localStorage.setItem(SND_PREF + k, String(v)); } catch (e) { /* private window */ } }
 
 // sndFilterHz is a filter slider's cutoff: a log scale, the high-pass 20 Hz
 // to 5 kHz and the low-pass 100 Hz to 20 kHz.
-// TRLC-LINKS: REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-265
 function sndFilterHz(kind, pos) {
   const [lo, hi] = kind === "hp" ? [20, 5000] : [100, 20000];
   return lo * Math.pow(hi / lo, Math.max(0, Math.min(1, pos)));
 }
 
 // sndWire connects the controls.
-// TRLC-LINKS: REQ-SDS-274, REQ-SDS-265
+// TRLC-LINKS: REQ-DSO-274, REQ-DSO-265
 function sndWire() {
   for (const id of ["sndSrc", "sndGainMode", "sndView", "sndCycles", "sndCh", "sndSlow", "sndRead", "sndEnvCV", "sndVAuto", "sndDriftOn"]) segInit($(id));
   const a = snd.audio;
@@ -892,7 +892,7 @@ function sndWire() {
   $("sndSrc").value = a.src; $("sndGainMode").value = a.auto ? "auto" : "man"; $("sndGain").value = a.gainDB; $("sndVol").value = a.vol;
   // the high- and low-pass: on/off and a cutoff each (a log slider)
   const filt = { hp: { on: sndPref("hpOn", "0") === "1", pos: +sndPref("hpPos", "0.3") }, lp: { on: sndPref("lpOn", "0") === "1", pos: +sndPref("lpPos", "0.6") } };
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   const apply = () => {
     for (const k of ["hp", "lp"]) {
       const hz = sndFilterHz(k, filt[k].pos), id = k === "hp" ? "sndHP" : "sndLP";
@@ -904,65 +904,65 @@ function sndWire() {
   };
   apply();
   for (const [id, k] of [["sndHP", "hp"], ["sndLP", "lp"]]) {
-    // TRLC-LINKS: REQ-SDS-274
+    // TRLC-LINKS: REQ-DSO-274
     $(id).onclick = () => { filt[k].on = !filt[k].on; sndPrefSet(k + "On", filt[k].on ? 1 : 0); apply(); };
-    // TRLC-LINKS: REQ-SDS-274
+    // TRLC-LINKS: REQ-DSO-274
     $(id + "f").oninput = () => { filt[k].pos = +$(id + "f").value; filt[k].on = true; sndPrefSet(k + "Pos", filt[k].pos); sndPrefSet(k + "On", 1); apply(); };
   }
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndListen").onclick = () => sndListen(!a.on);
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndSrc").onchange = () => { a.src = $("sndSrc").value; a.filt = null; a.delay = []; sndPrefSet("src", a.src); };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndMute").onclick = () => { a.mute = !a.mute; $("sndMute").classList.toggle("on", a.mute); };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndVol").oninput = () => { a.vol = +$("sndVol").value; sndPrefSet("vol", a.vol); };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndGainMode").onchange = () => { a.auto = $("sndGainMode").value === "auto"; sndPrefSet("auto", a.auto ? 1 : 0); };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndGain").oninput = () => { a.gainDB = +$("sndGain").value; a.auto = false; $("sndGainMode").value = "man"; sndPrefSet("gain", a.gainDB); sndPrefSet("auto", 0); };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndView").onchange = () => sndSetView($("sndView").value);
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndCycles").onchange = () => sndSet({ cycles: +$("sndCycles").value });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndCh").onchange = () => sndSet({ ch: +$("sndCh").value });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndSlow").onchange = () => sndSet({ slow: $("sndSlow").value === "1" });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndA4").onchange = () => { const v = +$("sndA4").value; if (v >= 400 && v <= 480) sndSet({ a4: v }); else toast("A4 between 400 and 480 Hz", "warn"); };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndRange").onchange = () => sndSet({ range: $("sndRange").value });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndRef").onchange = () => sndSet({ ref: $("sndRef").value });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndRead").onchange = () => { snd.read = $("sndRead").value; };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndArm").onclick = () => { const busy = snd.report && (snd.report.adsr === "armed" || snd.report.adsr === "capturing"); sndPost({ action: busy ? "adsr_cancel" : "adsr_arm" }); if (!busy) sndSetView("env"); };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndGate").onchange = () => sndSet({ gate: +$("sndGate").value });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndGateV").onchange = () => sndSet({ gate_v: +$("sndGateV").value });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndEnvCV").onchange = () => sndSet({ env_cv: $("sndEnvCV").value === "1" });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndVTake").onclick = () => sndPost({ action: "voct_capture" });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndVUndo").onclick = () => sndPost({ action: "voct_undo" });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndVClear").onclick = () => sndPost({ action: "voct_clear" });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndVAuto").onchange = () => sndSet({ voct_auto: $("sndVAuto").value === "1" });
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndDriftOn").onchange = () => sndSet({ drift: $("sndDriftOn").value === "1" });
-  // TRLC-LINKS: REQ-SDS-277
+  // TRLC-LINKS: REQ-DSO-277
   $("sndTakeScope").onclick = async () => {
     try {
       const j = await sndTakeScope(snd);
       if (j.report) sndTakeReport(j.report);
     } catch (e) { toast("SOUND: " + e.message, "err"); }
   };
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   $("sndDriftClear").onclick = () => sndPost({ action: "drift_clear" });
   sndSetView(sndPref("view", "cycle"));
 }

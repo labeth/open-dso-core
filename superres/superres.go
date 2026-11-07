@@ -12,7 +12,7 @@
 //   - float32 for the reference + drift-normalized frame + mean; float64 for
 //     accumulators/scores. Single-threaded, fixed feed order, one accumulator/bin.
 //
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 package superres
 
 import (
@@ -21,10 +21,10 @@ import (
 
 // jsRound mirrors JS Math.round (round half UP, toward +Inf): base/shift are
 // routinely negative x.5 where Go's math.Round (half away from zero) diverges.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func jsRound(x float64) int { return int(math.Floor(x + 0.5)) }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 type chanState struct {
 	sum, sum2, cnt, sumA, cntA []float64
 	ref                        []float32 // reference for the drift fit
@@ -32,7 +32,7 @@ type chanState struct {
 	clipSkips                  int
 }
 
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 type template struct {
 	data      []float64
 	lo, hi, L int
@@ -40,7 +40,7 @@ type template struct {
 }
 
 // Stack is one accumulation state: n input samples drizzled onto n*K fine bins.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 type Stack struct {
 	N, K, Nbins int
 	C           [2]chanState
@@ -76,7 +76,7 @@ type Stack struct {
 }
 
 // New allocates a stack: n input samples → n*k fine bins per channel.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func New(n, k int) *Stack {
 	nb := n * k
 	mk := func() chanState {
@@ -95,7 +95,7 @@ func New(n, k int) *Stack {
 }
 
 // Clipped reports whether a channel is railed (≥0.5% of samples pinned at a rail).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func Clipped(sig []uint8) bool {
 	lo, hi := 255, 0
 	for _, v := range sig {
@@ -124,7 +124,7 @@ func Clipped(sig []uint8) bool {
 }
 
 // median = upper-middle element after sort (matches JS med: s[len>>1]).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func median(a []float64) float64 {
 	if len(a) == 0 {
 		return 0
@@ -136,7 +136,7 @@ func median(a []float64) float64 {
 // selectKth is the value sorting a would put at index k, found by
 // quickselect in place (a is reordered): the element a sort gives, in linear
 // time where the sort of a fine grid's sigmas took most of a Result.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func selectKth(a []float64, k int) float64 {
 	lo, hi := 0, len(a)-1
 	for lo < hi {

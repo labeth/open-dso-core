@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -80,7 +80,7 @@ type webdecCase struct {
 // webdecGoRun decodes the words as a stream over edges in random pieces,
 // now and then skipping words that will not arrive, and returns the frames
 // and the pieces.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func webdecGoRun(tc streamCPUCase, raw []byte, ss float64, seed int64, edec func(a, b *EdgeLine, s float64) Result) ([]StreamFrame, [][3]int) {
 	closeN, maxN, leadN := int(tc.quiet/ss), int((tc.longest+tc.quiet)/ss), int(tc.lead/ss)
 	d := NewEdgeStreamDecoder(func(x, y *EdgeLine) Result { return edec(x, y, ss) }, closeN, maxN)
@@ -124,7 +124,7 @@ func webdecGoRun(tc streamCPUCase, raw []byte, ss float64, seed int64, edec func
 }
 
 // webdecFramesJSON is frames as webdec_check.mjs writes them.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func webdecFramesJSON(frames []StreamFrame) string {
 	var sb strings.Builder
 	sb.WriteString("[")
@@ -151,7 +151,7 @@ func webdecFramesJSON(frames []StreamFrame) string {
 // frames - every span's samples, kind, value and text - for every protocol
 // with an edge decoder, on long random traffic, dense and bursty, pushed in
 // the same random pieces with lost stretches between.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestWebDecStreamParity(t *testing.T) {
 	testenv.NeedNode(t)
 	names := make([]string, 0, len(edgeStreamDecs))

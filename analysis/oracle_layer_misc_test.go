@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -16,7 +16,7 @@ import (
 
 // orcOWRun decodes 1-Wire transactions with the layer and with sigrok's
 // onewire_link and the stack on it.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func orcOWRun(t *testing.T, layer, pd string, txns [][]byte) ([]Packet, []orcAnn) {
 	t.Helper()
 	const sr = 1_000_000
@@ -32,13 +32,13 @@ func orcOWRun(t *testing.T, layer, pd string, txns [][]byte) ([]Packet, []orcAnn
 
 // orcSigrokROM writes sigrok's 64-bit ROM value (family in the low byte)
 // as the scope's family-serial.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func orcSigrokROM(s string) string {
 	s = strings.ToUpper(s)
 	return s[14:16] + "-" + s[2:14]
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func TestOracleLayerOneWireNetwork(t *testing.T) {
 	orcNeed(t, "onewire_link", "onewire_network")
 	rom := orcROM(0x28, 0x2c, 0x1b, 0x6a, 0x05, 0, 0)
@@ -78,7 +78,7 @@ func TestOracleLayerOneWireNetwork(t *testing.T) {
 	orcEq(t, "1-Wire transactions", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func TestOracleLayerDS28EA00(t *testing.T) {
 	orcNeed(t, "onewire_link", "onewire_network", "ds28ea00")
 	rom := orcROM(0x42, 1, 2, 3, 4, 5, 6)
@@ -110,7 +110,7 @@ func TestOracleLayerDS28EA00(t *testing.T) {
 	orcEq(t, "DS28EA00 functions", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func TestOracleLayerDS2408(t *testing.T) {
 	orcNeed(t, "onewire_link", "onewire_network", "ds2408")
 	rom := orcROM(0x29, 1, 2, 3, 4, 5, 6)
@@ -133,7 +133,7 @@ func TestOracleLayerDS2408(t *testing.T) {
 	orcEq(t, "DS2408 functions", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func TestOracleLayerDS243x(t *testing.T) {
 	orcNeed(t, "onewire_link", "onewire_network", "ds243x")
 	rom := orcROM(0x23, 1, 2, 3, 4, 5, 6)
@@ -173,7 +173,7 @@ func TestOracleLayerDS243x(t *testing.T) {
 	orcEq(t, "DS243x functions", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func TestOracleLayerCFP(t *testing.T) {
 	orcNeed(t, "mdio", "cfp")
 	const sr = 10_000_000
@@ -211,7 +211,7 @@ func TestOracleLayerCFP(t *testing.T) {
 	orcEq(t, "CFP register reads", repo, orc)
 }
 
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func TestOracleLayerUSBRequest(t *testing.T) {
 	orcNeed(t, "usb_signalling", "usb_packet", "usb_request")
 	const sr = 120_000_000

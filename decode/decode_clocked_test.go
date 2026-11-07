@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestDecodePS2RoundTrip(t *testing.T) {
 	sr := 1e6
 	l := newTwoLine(sr)
@@ -24,7 +24,7 @@ func TestDecodePS2RoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestDecodeSWDRoundTrip(t *testing.T) {
 	sr := 100e6
 	s := &swdLine{t: newTwoLine(sr), per: 1e-6}
@@ -42,7 +42,7 @@ func TestDecodeSWDRoundTrip(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestDecodeMDIORoundTrip(t *testing.T) {
 	sr := 50e6
 	l := newTwoLine(sr)
@@ -64,7 +64,7 @@ func TestDecodeMDIORoundTrip(t *testing.T) {
 // samples, as the gap-free stream's window does once a long idle follows a
 // frame: at the stated thresholds the frame reads as in a short window, not
 // as D1's pulses alone split into garbage frames.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236, REQ-DSO-240
 func TestDecodeWiegandSparseD0(t *testing.T) {
 	sr := 100e3
 	cfg := ClockedCfg{Threshold: 128, HaveThr: true, ThresholdB: 128, HaveThrB: true}
@@ -80,7 +80,7 @@ func TestDecodeWiegandSparseD0(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-236
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestDecodeWiegandRoundTrip(t *testing.T) {
 	sr := 200e3
 	l := newTwoLine(sr)

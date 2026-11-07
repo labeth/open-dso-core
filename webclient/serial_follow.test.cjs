@@ -1,5 +1,5 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
-// TRLC-LINKS: REQ-SDS-206
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
+// TRLC-LINKS: REQ-DSO-206
 // The web follows the scope: with a serial trigger this page armed (owns),
 // a clock rate set on the scope (its Clock rate row, AUTO in BUS) is shown
 // here and never sent back; a decode change followed from the scope sends
@@ -20,43 +20,43 @@ const els = {};
 for (const id of ['stArm', 'stStats', 'stAddr', 'stRW', 'stBytes', 'dsClock', 'decThr']) {
   const classes = new Set();
   els[id] = {id, value: '', placeholder: '', textContent: '', classList: {
-    // TRLC-LINKS: REQ-SDS-206
+    // TRLC-LINKS: REQ-DSO-206
     contains: k => classes.has(k),
-    // TRLC-LINKS: REQ-SDS-206
+    // TRLC-LINKS: REQ-DSO-206
     add: k => classes.add(k),
-    // TRLC-LINKS: REQ-SDS-206
+    // TRLC-LINKS: REQ-DSO-206
     remove: k => classes.delete(k),
-    // TRLC-LINKS: REQ-SDS-206
+    // TRLC-LINKS: REQ-DSO-206
     toggle(k, on) { if (on) classes.add(k); else classes.delete(k); }}};
 }
 els.stRW.value = '2';
 els.dsClock.value = '10400000'; // what the page's field held: Hz, a digit short of 104 MHz
 let tick;
 const c = {
-  // TRLC-LINKS: REQ-SDS-206
+  // TRLC-LINKS: REQ-DSO-206
   $: id => els[id],
   dcfg: {proto: 'spi', clk: 2, data: 1, bits: 8, msb: true, auto: true, baud: 115200},
   st: {serial_mode: 0}, superseded: false,
   document: {activeElement: null, hidden: false},
-  // TRLC-LINKS: REQ-SDS-206
+  // TRLC-LINKS: REQ-DSO-206
   send: async (control, value) => { if (control === 'serialmode') c.st.serial_mode = value; return {ok: true}; },
-  // TRLC-LINKS: REQ-SDS-206
+  // TRLC-LINKS: REQ-DSO-206
   sheetSet: async (row, value) => { sheets.push([row, value]); if (row === 'bus.spi_clock') scope.spiClockHz = value; return {ok: true}; },
-  // TRLC-LINKS: REQ-SDS-206
+  // TRLC-LINKS: REQ-DSO-206
   fetch: async (url, opt) => {
     if (opt && opt.method === 'POST') { const p = JSON.parse(opt.body); posts.push(p); scope = {...p}; }
     const body = opt && opt.method === 'POST' ? {ok: true} : {ok: true, params: JSON.parse(JSON.stringify(scope)), mode: c.st.serial_mode};
     return {ok: true,
-      // TRLC-LINKS: REQ-SDS-206
+      // TRLC-LINKS: REQ-DSO-206
       json: async () => body};
   },
-  // TRLC-LINKS: REQ-SDS-206
+  // TRLC-LINKS: REQ-DSO-206
   setInterval: f => { tick = f; }};
 vm.createContext(c);
 vm.runInContext(source, c);
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 const settle = () => new Promise(r => setTimeout(r, 5));
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 async function seconds(n) { for (let i = 0; i < n; i++) { tick(); await settle(); } }
 
 (async () => {

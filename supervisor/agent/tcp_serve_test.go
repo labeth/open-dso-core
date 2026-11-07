@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -19,7 +19,7 @@ import (
 
 // startTCPAgent brings up serveTCP on an ephemeral localhost port and returns
 // the agent plus the bound address.
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func startTCPAgent(t *testing.T) (*Agent, string) {
 	t.Helper()
 	a := testAgent(t)
@@ -38,7 +38,7 @@ func startTCPAgent(t *testing.T) (*Agent, string) {
 
 // stopTCPAgent stops the agent and pokes the listener once so the accept loop
 // observes the stop and closes it (the loop checks a.stopped between accepts).
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func stopTCPAgent(a *Agent, addr string) {
 	a.Stop()
 	if c, err := (&net.Dialer{Timeout: time.Second}).DialContext(context.Background(), "tcp", addr); err == nil {
@@ -46,7 +46,7 @@ func stopTCPAgent(a *Agent, addr string) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func roundTrip(t *testing.T, conn net.Conn, r *bufio.Reader, req string) Response {
 	t.Helper()
 	if _, err := conn.Write([]byte(req + "\n")); err != nil {
@@ -63,7 +63,7 @@ func roundTrip(t *testing.T, conn net.Conn, r *bufio.Reader, req string) Respons
 	return resp
 }
 
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func TestServeTCPDispatchesOverRealSocket(t *testing.T) {
 	a, addr := startTCPAgent(t)
 	defer stopTCPAgent(a, addr)
@@ -99,7 +99,7 @@ func TestServeTCPDispatchesOverRealSocket(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func TestServeTCPConcurrentConnections(t *testing.T) {
 	a, addr := startTCPAgent(t)
 	defer stopTCPAgent(a, addr)
@@ -129,7 +129,7 @@ func TestServeTCPConcurrentConnections(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func TestServeTCPListenerClosesAfterStop(t *testing.T) {
 	a, addr := startTCPAgent(t)
 

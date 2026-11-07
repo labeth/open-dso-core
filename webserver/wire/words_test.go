@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -9,7 +9,7 @@ import (
 
 // The words header reads as a struct embedding the stream's description:
 // its fields first, then the read's.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestWordsHeaderFlattensInfo(t *testing.T) {
 	type info struct {
 		Session uint32 `json:"session"`

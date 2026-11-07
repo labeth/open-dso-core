@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Perf regression guard for the superres-view hot path (argv[2]=server URL).
 // Synthesizes a large multi-tone frame (a stand-in for a viewed stack), selects
 // many FFT peaks and turns on the residual, then times a COLD redraw (which must
@@ -23,7 +23,7 @@ try { browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] }
 catch (e) { console.log("SKIP: cannot launch chromium:", e.message); process.exit(0); }
 
 let fails = 0;
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 const ok = (c, m) => { console.log((c ? "ok  - " : "FAIL- ") + m); if (!c) fails++; };
 
 try {
@@ -62,14 +62,14 @@ try {
 
   const r = await page.evaluate(() => {
     if (frame.c1.length !== 655360 || fftCh[1].sel.length < 8) throw new Error("large selected-tone fixture was replaced before timing");
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     const once = fn => { const a = performance.now(); fn(); return performance.now() - a; };
     // Force a genuinely COLD state atomically: rendering is now coalesced onto a
     // background rAF (poll-driven), which may have warmed the memos between the
     // two page.evaluate calls. Freeze the poll and invalidate BOTH memos here so
     // the first timed redraw truly recomputes every tone fit.
     frozen = true;
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     const invalidate = () => { compMemo.src = null; compMemo.map.clear(); mathMemo = {}; };
     // Compare BEST-of-N on both sides, not one cold sample against a warm mean.  A single
     // cold reading and a mean warm reading are both contaminated by scheduler noise, and on a
@@ -85,9 +85,9 @@ try {
     // CI runner a working memo measured 2.8x where the bar was 3x.
     const realComp = component, realMath = computeMathRaw;
     let fits = 0, maths = 0, cold = null, warm = null;
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     component = (...a) => { fits++; return realComp(...a); };
-    // TRLC-LINKS: REQ-SDS-180
+    // TRLC-LINKS: REQ-DSO-180
     computeMathRaw = (...a) => { maths++; return realMath(...a); };
     try {
       invalidate(); redraw(); cold = { fits, maths };

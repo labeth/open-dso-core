@@ -164,6 +164,7 @@ type errorQueue struct{ q []queued }
 
 // push appends an error. A 17th error is discarded and -350 queued after the
 // 16 kept; later errors are discarded while the queue is full.
+// TRLC-LINKS: REQ-DSO-024
 func (eq *errorQueue) push(e queued) {
 	switch {
 	case len(eq.q) < queueSize:
@@ -174,6 +175,7 @@ func (eq *errorQueue) push(e queued) {
 }
 
 // pop removes and returns the oldest entry; the zero entry when empty.
+// TRLC-LINKS: REQ-DSO-024
 func (eq *errorQueue) pop() queued {
 	if len(eq.q) == 0 {
 		return queued{}
@@ -183,10 +185,12 @@ func (eq *errorQueue) pop() queued {
 	return e
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func (eq *errorQueue) clear() { eq.q = nil }
 
 // errorText is the text of code in the dialect's list; a code the list does
 // not hold reads "Unknown error".
+// TRLC-LINKS: REQ-DSO-024
 func errorText(texts map[int]string, code int) string {
 	if t, ok := texts[code]; ok {
 		return t
@@ -195,6 +199,7 @@ func errorText(texts map[int]string, code int) string {
 }
 
 // format renders an entry as SYSTem:ERRor? answers: <code>,"<text>[;<info>]".
+// TRLC-LINKS: REQ-DSO-024
 func (e queued) format(texts map[int]string) string {
 	t := errorText(texts, e.code)
 	if e.info != "" {

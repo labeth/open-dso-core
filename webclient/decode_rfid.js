@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // decode_rfid.js — 125 kHz RFID: EM4100 tag frames and a reader's EM4305
 // and T55xx commands, a classic script mirroring decode_rfid.go step for
 // step. Uses sliceChannel, hex2 and fail from decode.js, levelRuns/pspan
@@ -9,7 +9,7 @@ const RFID_COIL_HZ = 125000;
 const EM4305_CMDS = ["CMD0", "LOGIN", "WRITE", "CMD3", "READ", "DISABLE", "PROTECT", "CMD7"];
 
 // rfidGaps mirrors decode_rfid.go rfidGaps.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function rfidGaps(S, fc) {
   const runs = levelRuns(S);
   // The closed runs' lengths straight into a typed array, sorted numerically
@@ -30,10 +30,10 @@ function rfidGaps(S, fc) {
 }
 
 // rfidOut mirrors decode_rfid.go rfidOut.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function rfidOut(n) {
   const o = { n, spans: [], toks: [], units: [] };
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
   o.add = (x0, x1, text, kind, val, unit) => {
     o.spans.push(pspan(x0, x1, n, text, kind, val));
     if (text !== "") o.toks.push(text);
@@ -43,7 +43,7 @@ function rfidOut(n) {
 }
 
 // bitsMSB mirrors decode_rfid.go bitsMSB.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function bitsMSB(b, at, n) {
   let v = 0;
   for (let i = 0; i < n; i++) v = (v << 1) | b[at + i].v;
@@ -51,7 +51,7 @@ function bitsMSB(b, at, n) {
 }
 
 // evenOK mirrors decode_rfid.go evenOK.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function evenOK(b, at, n) {
   let p = 0;
   for (let i = 0; i <= n; i++) p ^= b[at + i].v;
@@ -59,7 +59,7 @@ function evenOK(b, at, n) {
 }
 
 // em4305Fields mirrors decode_rfid.go em4305Fields.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function em4305Fields(o, b) {
   if (b.length !== 50 && b.length !== 57) {
     for (const x of b) o.add(x.x0, x.x1, String(x.v), "rw", x.v, false);
@@ -67,7 +67,7 @@ function em4305Fields(o, b) {
     return false;
   }
   let ok = true;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
   const unit = (at, n, txt, v, good) => {
     let kind = "data";
     if (!good) { txt = "!" + txt; kind = "parity-error"; ok = false; }
@@ -95,7 +95,7 @@ function em4305Fields(o, b) {
 }
 
 // t55xxFields mirrors decode_rfid.go t55xxFields.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function t55xxFields(o, b) {
   const n = b.length;
   if (n !== 70 && n !== 38 && n !== 2) {
@@ -107,7 +107,7 @@ function t55xxFields(o, b) {
   o.add(b[0].x0, b[1].x1, "OP" + (op >> 1) + (op & 1), "data", op, true);
   if (n === 2) return true;
   let at = 2;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
   const word = (prefix) => {
     for (let k = 0; k < 4; k++) {
       const v = bitsMSB(b, at + 8 * k, 8);
@@ -125,7 +125,7 @@ function t55xxFields(o, b) {
 }
 
 // rfidWrites mirrors decode_rfid.go rfidWrites.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function rfidWrites(proto, codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);
@@ -141,7 +141,7 @@ function rfidWrites(proto, codes, colTimeS, cfg) {
   // a command opened within a command's end of the record's start may have
   // begun before it: one that fails its checks is marked cut ("?" gap)
   let cut = false, fromSpan = 0, fromTok = 0;
-  // TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+  // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
   const finish = () => {
     if (!inCmd) return;
     inCmd = false;
@@ -191,15 +191,15 @@ function rfidWrites(proto, codes, colTimeS, cfg) {
 }
 
 // decodeEM4305 mirrors decode_rfid.go DecodeEM4305.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function decodeEM4305(codes, colTimeS, cfg) { return rfidWrites("em4305", codes, colTimeS, cfg); }
 
 // decodeT55xx mirrors decode_rfid.go DecodeT55xx.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function decodeT55xx(codes, colTimeS, cfg) { return rfidWrites("t55xx", codes, colTimeS, cfg); }
 
 // manchesterStream mirrors decode_rfid.go manchesterStream.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function manchesterStream(runs, hp) {
   const lv = [], xs = [];
   for (let k = 0; k < runs.length; k++) {
@@ -228,7 +228,7 @@ function manchesterStream(runs, hp) {
 }
 
 // decodeEM4100 mirrors decode_rfid.go DecodeEM4100.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-252
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
 function decodeEM4100(codes, colTimeS, cfg) {
   cfg = cfg || {};
   const S = sliceChannel(codes, cfg);

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -12,7 +12,7 @@ import (
 // spectrum run several times a second on the instrument: they reuse their
 // working buffers instead of allocating megabytes each time (8 MB a
 // demodulation kept the collector running under the app's memory limit).
-// TRLC-LINKS: REQ-SDS-269, REQ-SDS-267, REQ-SDS-270
+// TRLC-LINKS: REQ-DSO-269, REQ-DSO-267, REQ-DSO-270
 func TestAnalysesReuseTheirBuffers(t *testing.T) {
 	if raceBuild {
 		t.Skip("the race detector's sync.Pool drops buffers on purpose")

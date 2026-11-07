@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -21,29 +21,31 @@ type Color uint32
 const Transparent Color = 0
 
 // RGB is an opaque colour.
+// TRLC-LINKS: REQ-DSO-021
 func RGB(r, g, b uint8) Color {
 	return 0xff000000 | Color(r)<<16 | Color(g)<<8 | Color(b)
 }
 
 // rgb is RGB.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func rgb(r, g, b uint8) Color { return RGB(r, g, b) }
 
 // channels are c's red, green and blue.
+// TRLC-LINKS: REQ-DSO-021
 func (c Color) channels() (r, g, b uint8) {
 	return uint8(c >> 16), uint8(c >> 8), uint8(c) //nolint:gosec // a byte each
 }
 
 // c565 is an RGB565 word as a colour, each channel's bits repeated into its
 // low bits: packing it again gives the word back.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func c565(p uint16) Color {
 	r, g, b := uint8(p>>11), uint8(p>>5)&0x3f, uint8(p)&0x1f //nolint:gosec // 5 and 6 bits
 	return RGB(r<<3|r>>2, g<<2|g>>4, b<<3|b>>2)
 }
 
 // pack565 is c in RGB565: each channel's top bits.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func pack565(c Color) uint16 {
 	return uint16(c>>8)&0xf800 | uint16(c>>5)&0x07e0 | uint16(c>>3)&0x001f //nolint:gosec // masked to 16 bits
 }
@@ -51,7 +53,7 @@ func pack565(c Color) uint16 {
 // Canvas is what the renderer draws on (spec 07 §1.3): the same renderer
 // runs pixel-identically against a board's framebuffer and an in-memory
 // canvas. Its pixel format decides how a Color is stored.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 type Canvas interface {
 	Format() hal.PixelFormat
 	Metrics() *Metrics          // the screen's layout table; its W and H are the canvas's size
@@ -76,7 +78,7 @@ type Overlay interface {
 }
 
 // underOf is the area canvas sf leaves to a hardware plane (empty for none).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func underOf(sf Canvas) image.Rectangle {
 	if o, ok := sf.(Overlay); ok {
 		return o.Under()
@@ -86,7 +88,7 @@ func underOf(sf Canvas) image.Rectangle {
 
 // Image565 is an in-memory RGB565 canvas: a display's back buffer (exactly
 // one page) and the test canvas.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 type Image565 struct {
 	Pix  []byte // RGB565 little-endian, W*H*2 bytes
 	pix  []uint16
@@ -95,20 +97,22 @@ type Image565 struct {
 }
 
 // NewImage565 returns a blank (black) RGB565 page of screen m's size.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func NewImage565(m *Metrics) *Image565 {
 	pix := make([]uint16, m.W*m.H)
 	return &Image565{Pix: unsafe.Slice((*byte)(unsafe.Pointer(&pix[0])), 2*len(pix)), pix: pix, m: m, w: m.W, h: m.H} //nolint:gosec // the words' own bytes, little-endian as the panel takes them
 }
 
 // Format is RGB565.
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image565) Format() hal.PixelFormat { return hal.RGB565 }
 
 // Metrics is the canvas's screen.
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image565) Metrics() *Metrics { return m.m }
 
 // SetPixel sets one pixel; one off the page is ignored.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image565) SetPixel(x, y int, c Color) {
 	if uint(x) >= uint(m.w) || uint(y) >= uint(m.h) {
 		return
@@ -118,11 +122,11 @@ func (m *Image565) SetPixel(x, y int, c Color) {
 
 // px is the page's pixels as RGB565 words (little-endian, native on ARM and
 // amd64).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image565) px() []uint16 { return m.pix }
 
 // Fill sets every pixel of the page to c.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image565) Fill(c Color) {
 	p := pack565(c)
 	if p == 0 { // black: a memclr, not the row copies
@@ -133,7 +137,7 @@ func (m *Image565) Fill(c Color) {
 }
 
 // At reads one pixel (Transparent off the page).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image565) At(x, y int) Color {
 	if uint(x) >= uint(m.w) || uint(y) >= uint(m.h) {
 		return Transparent
@@ -144,7 +148,7 @@ func (m *Image565) At(x, y int) Color {
 // FadeToBlack dims every pixel toward black by 1/4 (the persistence decay
 // step). Pixels already black are skipped. Traces drawn onto this layer at
 // full brightness thus glow and fade over ~8 frames.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image565) FadeToBlack() {
 	p := m.px()
 	for i, c := range p {
@@ -160,7 +164,7 @@ func (m *Image565) FadeToBlack() {
 
 // BlitBright copies the non-black (bright enough) pixels of src onto m — the
 // persistence trace layer composited over the fresh graticule.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image565) BlitBright(src Canvas) {
 	sm, ok := src.(*Image565)
 	if !ok {
@@ -183,7 +187,7 @@ func (m *Image565) BlitBright(src Canvas) {
 // framebuffer holds them. On an ARGB8888 canvas a Transparent pixel shows
 // the plane under it (a hardware waveform renderer's); on XRGB8888 every
 // pixel is opaque.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 type Image32 struct {
 	Pix    []byte // W*H*4 bytes
 	pix    []uint32
@@ -196,7 +200,7 @@ type Image32 struct {
 
 // NewImage32 returns a blank 32-bit page of screen m's size: black on
 // XRGB8888, transparent on ARGB8888.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func NewImage32(m *Metrics, format hal.PixelFormat) *Image32 {
 	pix := make([]uint32, m.W*m.H)
 	img := &Image32{Pix: unsafe.Slice((*byte)(unsafe.Pointer(&pix[0])), 4*len(pix)), pix: pix, m: m, format: format, w: m.W, h: m.H} //nolint:gosec // the words' own bytes, little-endian as a framebuffer takes them
@@ -208,6 +212,7 @@ func NewImage32(m *Metrics, format hal.PixelFormat) *Image32 {
 }
 
 // Format is XRGB8888 or ARGB8888.
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) Format() hal.PixelFormat { return m.format }
 
 // SetUnder makes an ARGB8888 canvas an overlay over a hardware waveform
@@ -215,7 +220,7 @@ func (m *Image32) Format() hal.PixelFormat { return m.format }
 // renderer leaves r transparent and draws no traces
 // (ADR-HAL-UI-OVER-HW-RENDERER). An empty r, or another format, draws the
 // whole picture.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) SetUnder(r image.Rectangle) {
 	if m.format == hal.ARGB8888 {
 		m.under = r
@@ -223,16 +228,19 @@ func (m *Image32) SetUnder(r image.Rectangle) {
 }
 
 // Under is the area SetUnder gave.
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) Under() image.Rectangle { return m.under }
 
 // Metrics is the canvas's screen.
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) Metrics() *Metrics { return m.m }
 
 // native is c as the canvas stores it.
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) native(c Color) uint32 { return uint32(c) | m.opaque }
 
 // SetPixel sets one pixel; one off the page is ignored.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) SetPixel(x, y int, c Color) {
 	if uint(x) >= uint(m.w) || uint(y) >= uint(m.h) {
 		return
@@ -241,7 +249,7 @@ func (m *Image32) SetPixel(x, y int, c Color) {
 }
 
 // Fill sets every pixel of the page to c.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) Fill(c Color) {
 	if p := m.native(c); p == 0 {
 		clear(m.pix)
@@ -251,7 +259,7 @@ func (m *Image32) Fill(c Color) {
 }
 
 // At reads one pixel (Transparent off the page).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) At(x, y int) Color {
 	if uint(x) >= uint(m.w) || uint(y) >= uint(m.h) {
 		return Transparent
@@ -260,7 +268,7 @@ func (m *Image32) At(x, y int) Color {
 }
 
 // FadeToBlack dims every pixel toward black by 1/4, as Image565's does.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) FadeToBlack() {
 	for i, c := range m.pix {
 		if c&0xffffff == 0 {
@@ -272,7 +280,7 @@ func (m *Image32) FadeToBlack() {
 }
 
 // BlitBright copies src's bright enough pixels onto m, as Image565's does.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func (m *Image32) BlitBright(src Canvas) {
 	s, ok := src.(*Image32)
 	if !ok {
@@ -291,7 +299,7 @@ func (m *Image32) BlitBright(src Canvas) {
 // compressed at BestSpeed: the default level cost ~10x the time for a
 // screen grab the browser decodes to the same pixels. An ARGB8888 canvas
 // keeps its alpha.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func EncodePNG(sf Canvas) []byte {
 	sm := sf.Metrics()
 	img := image.NewNRGBA(image.Rect(0, 0, sm.W, sm.H))
@@ -336,7 +344,7 @@ type pixel interface{ ~uint16 | ~uint32 }
 // fillPx fills rows [y0,y1) of columns [x0,x1) of a w×h page of pixels px,
 // clipped: the sheets, panes and the F-key column fill most of the screen,
 // which pixel by pixel cost most of a frame.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fillPx[P pixel](px []P, w, h, x0, y0, x1, y1 int, c P) {
 	x0, x1 = max(x0, 0), min(x1, w)
 	y0, y1 = max(y0, 0), min(y1, h)
@@ -356,7 +364,7 @@ func fillPx[P pixel](px []P, w, h, x0, y0, x1, y1 int, c P) {
 // already clipped to it: x in [0,w), 0 <= y0, y1 < h. Walking a slice of
 // exactly the column's extent lets the compiler drop the per-pixel bounds
 // check.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func vlinePx[P pixel](px []P, w, x, y0, y1 int, c P) {
 	if y0 > y1 {
 		return
@@ -369,7 +377,7 @@ func vlinePx[P pixel](px []P, w, x, y0, y1 int, c P) {
 
 // fillSpan fills rows [y0,y1) of columns [x0,x1), clipped, straight into a
 // memory canvas's pixels, and reports whether sf was one.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func fillSpan(sf Canvas, x0, y0, x1, y1 int, c Color) bool {
 	switch m := sf.(type) {
 	case *Image565:
@@ -385,7 +393,7 @@ func fillSpan(sf Canvas, x0, y0, x1, y1 int, c Color) bool {
 // vline draws column x from y0 to y1 inclusive: straight into a memory
 // canvas's pixels (a dense trace fills most of the screen height every
 // frame), else pixel by pixel.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func vline(sf Canvas, x, y0, y1 int, c Color) {
 	switch m := sf.(type) {
 	case *Image565:
@@ -400,7 +408,7 @@ func vline(sf Canvas, x, y0, y1 int, c Color) {
 }
 
 // vlineClip is vlinePx clipped to a w×h page.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func vlineClip[P pixel](px []P, w, h, x, y0, y1 int, c P) {
 	if x < 0 || x >= w {
 		return
@@ -414,7 +422,7 @@ func vlineClip[P pixel](px []P, w, h, x, y0, y1 int, c P) {
 
 // atPrecision is c as a canvas of format f holds it, its low bits clear: the
 // shades and dimmed colours are worked out from what the pixels can show.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func atPrecision(f hal.PixelFormat, c Color) Color {
 	if f == hal.RGB565 {
 		return c &^ 0x070307

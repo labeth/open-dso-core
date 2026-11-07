@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-MEASURE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_measure.js — the MEASURE workspace: every measurement parameter on both
 // channels with running statistics (now, mean, min, max, standard deviation,
 // count), a reset, and the all-values view (MEASURE again). As on the scope's
@@ -23,7 +23,7 @@ const MEAS_WINDOW = [["edge_shape", new Set(["Rise", "Fall", "Overshoot", "Presh
 
 // measValue returns a parameter's raw value from a frame's measurement block
 // (NaN when the capture cannot give it), the numbers fmtMeas formats.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 function measValue(key, m) {
   if (!m) return NaN;
   const t = !!m.has_timing;
@@ -41,20 +41,20 @@ function measValue(key, m) {
   return NaN;
 }
 
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 function measReset() { measStats.clear(); measRenderT = 0; measRender(true); }
 
 // MEAS_IDS are the readouts' statistics keys ("1:Vpp"), per channel number,
 // made once a channel.
 const MEAS_IDS = {};
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 function measIds(ch) { return MEAS_IDS[ch] || (MEAS_IDS[ch] = MEAS_ALL.map((k) => ch + ":" + k)); }
 
 // measAccumulate adds a new reading's values once: by the frame measured
 // (meas_seq: the server reuses a reading for the frames of the next 100 ms
 // while running), and the edge shape by its edge-window read (edge_read:
 // carried to the frames between reads).
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 function measAccumulate() {
   if (!frame || frame.sr_view || ws.cur !== "measure") return;
   const seq = frame.meas_seq || frame.seq;
@@ -63,6 +63,7 @@ function measAccumulate() {
   const freshEdge = !frame.edge_read || frame.edge_read !== measEdge;
   measEdge = frame.edge_read || 0;
   // the scope's statKey: what changes the measured picture
+  // TRLC-LINKS: REQ-DSO-217
   const per = (k) => chanNums().map((n) => st[k.replace("#", n)]);
   const cfg = st ? [st.tdiv_s, ...per("vdiv#"), ...per("off#_v"), ...per("probe#"), ...per("cpl#"),
     st.trig_source, st.trig_rising, st.trig_type, capsControl("triglevel") ? st.trig_volts : st.trig_code, st.acq_mode, st.avg_count, st.eres_len, ...per("inv#")].join("|") : "";
@@ -85,7 +86,7 @@ function measAccumulate() {
 // One unit per row (picked from the row's largest value), so the columns hold
 // bare numbers that line up: "C1 Freq kHz | 25.20 24.61 24.02 25.33 0.362 120".
 const MEAS_PFX = [[1e9, "G"], [1e6, "M"], [1e3, "k"], [1, ""], [1e-3, "m"], [1e-6, "µ"], [1e-9, "n"], [1e-12, "p"]];
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 function measRowUnit(vals, unit) {
   if (unit === "%") return { k: 1, u: "%" };
   let ref = 0;
@@ -93,7 +94,7 @@ function measRowUnit(vals, unit) {
   const p = ref > 0 ? (MEAS_PFX.find(([f]) => ref >= f * 0.9995) || MEAS_PFX[MEAS_PFX.length - 1]) : [1, ""];
   return { k: p[0], u: p[1] + unit };
 }
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 function measBare(v, k, digits) {
   if (!Number.isFinite(v)) return "—";
   const x = v / k;
@@ -102,7 +103,7 @@ function measBare(v, k, digits) {
 
 // measRender draws the statistics table (rows grouped by channel) — only while
 // MEASURE shows it, and at most four times a second.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 function measRender(force) {
   if (ws.cur !== "measure" || ws.measView !== "stats") return;
   const now = performance.now();
@@ -119,7 +120,7 @@ function measRender(force) {
       total = Math.max(total, n);
       const vals = s ? [s.last, s.mean, s.min, s.max] : [];
       const U = measRowUnit(vals, MEAS_UNIT[k]);
-      // TRLC-LINKS: REQ-SDS-217
+      // TRLC-LINKS: REQ-DSO-217
       const cell = (v, d) => `<td>${n ? measBare(v, U.k, d) : "—"}</td>`;
       html += `<tr data-stat="${ch}:${k}"><th class="l">${k}<span class="unit">${U.u}</span></th>` +
         `<td>${s ? measBare(s.last, U.k) : "—"}</td>` + cell(s && s.mean) + cell(s && s.min) + cell(s && s.max) +
@@ -134,7 +135,7 @@ function measRender(force) {
 
 // measSetView switches the measurements pane between statistics and all values
 // (MEASURE again).
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 function measSetView(v) {
   ws.measView = v;
   $("measView").value = v;
@@ -146,15 +147,15 @@ function measSetView(v) {
   if (v === "values") { $("measSub").textContent = "this capture"; updateMeas(); }
   else measRender(true);
 }
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 $("measView").onchange = () => { if (ws.cur !== "measure") setWs("measure"); measSetView($("measView").value); };
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 $("measCh").onchange = () => measRender(true);
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 $("statsReset").onclick = () => { measReset(); toast("Statistics restarted"); };
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 $("quickMore").onclick = () => { setWs("measure"); if (ws.measView !== "stats") measSetView("stats"); };
 
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 WS_HOOKS.push({ enter(id) { if (id === "measure") measSetView(ws.measView); } });
 WS_TICKS.push(() => { measAccumulate(); measRender(false); });

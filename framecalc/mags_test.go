@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-FRAMECALC
 
 package framecalc
 
@@ -10,7 +10,7 @@ import (
 
 // Mags' half-length real transform gives the full complex transform's
 // magnitudes: same bins, same peak.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func TestMagsMatchesTheComplexTransform(t *testing.T) {
 	rng := rand.New(rand.NewSource(3))
 	for _, n := range []int{16, 1024, 8192} {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // The page's parts that follow a scope of more channels than two, run over
 // a four-channel scope: SOUND names its lanes from the stream's scales, BUS
 // Visual reads a record of any channels, a reference holds every channel it
@@ -6,13 +6,13 @@
 // FFT keeps a peak list per channel. Run by TestCapsNJS (caps_n_node_test.go).
 "use strict";
 const assert = require("node:assert/strict"), fs = require("node:fs"), vm = require("node:vm");
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 const src = (f) => fs.readFileSync(f, "utf8");
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 const fn = (text, name) => { const i = text.indexOf("function " + name + "("); return text.slice(text.lastIndexOf("\n", i - 7), text.indexOf("\n}\n", i) + 3); };
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 const json = (v) => JSON.parse(JSON.stringify(v));
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function ctx(extra) {
   const c = Object.assign({ view: { c1: true, c2: true, c3: true, c4: true }, st: null, document: undefined, TextDecoder, Uint8Array, Float32Array }, extra);
   vm.createContext(c);
@@ -35,6 +35,7 @@ function ctx(extra) {
   const as = src("app_sound.js");
   const lanes = as.slice(as.indexOf("// sndLanes is the channel index"), as.indexOf("let sndChansSig"));
   c.snd = { lanes: [3, 0] };
+  // TRLC-LINKS: REQ-DSO-1004
   c.chanColor = (n) => "col" + n;
   vm.runInContext(lanes, c);
   assert.equal(c.sndLaneOf(3), 0, "C4 is on lane 0");
@@ -48,7 +49,7 @@ function ctx(extra) {
 // BUS Visual: a record names its channels (chans), else C1 and C2
 {
   const va = src("app_visual_audio.js");
-  // TRLC-LINKS: REQ-SDS-280
+  // TRLC-LINKS: REQ-DSO-280
   const rec = (h, n) => {
     const hj = Buffer.from(JSON.stringify(h)), b = Buffer.alloc(4 + hj.length + n);
     b.writeUInt32LE(hj.length, 0); hj.copy(b, 4);
@@ -56,7 +57,14 @@ function ctx(extra) {
     return b.buffer.slice(b.byteOffset, b.byteOffset + b.length);
   };
   for (const [h, want] of [[{ n: 2, sample_s: 1e-6 }, { c1: [0, 1], c2: [2, 3] }], [{ n: 2, sample_s: 1e-6, chans: [0, 2, 3] }, { c1: [0, 1], c3: [2, 3], c4: [4, 5] }]]) {
-    const c = ctx({ fetch: async () => ({ ok: true, arrayBuffer: async () => rec(h, 6) }) });
+    const c = ctx({
+      // TRLC-LINKS: REQ-DSO-1004
+      fetch: async () => ({
+        ok: true,
+        // TRLC-LINKS: REQ-DSO-1004
+        arrayBuffer: async () => rec(h, 6),
+      }),
+    });
     vm.runInContext(fn(va, "visFetchRecord"), c);
     c.visFetchRecord(1e-6).then((r) => {
       for (const [k, v] of Object.entries(want)) assert.deepEqual(json(r[k]), v, "record " + k);
@@ -67,7 +75,13 @@ function ctx(extra) {
 // references: every channel the export holds, each with its own scale
 {
   const cmp = src("app_compare.js");
-  const c = ctx({ refs: { A: null, B: null }, updateRefRows() {}, redraw() {} });
+  const c = ctx({
+    refs: { A: null, B: null },
+    // TRLC-LINKS: REQ-DSO-1004
+    updateRefRows() {},
+    // TRLC-LINKS: REQ-DSO-1004
+    redraw() {},
+  });
   vm.runInContext(fn(cmp, "refKeys") + fn(cmp, "refChans") + fn(cmp, "loadScopeRef"), c);
   c.loadScopeRef("A", { has: true, gen: 1, cols: 2, c1: [100, 101], c3: [120, 121], c4: [130, 131], vdiv: [1, 1, 0.5, 2], off: [0, 0, 0.1, 0], probe: [1, 1, 1, 1], tdiv_s: 1e-6, pos_frac: 0.5 });
   const r = c.refs.A;
@@ -104,7 +118,22 @@ function ctx(extra) {
 // trigger level: volts by the source's channel where caps list the control
 {
   const sent = [];
-  const c = ctx({ fetch: async (u, o) => { sent.push(o.body); return { json: async () => ({ ok: true }) }; }, autosetBusy: false, kickStatus() {}, toast() {}, st: { trig_source: 2 } });
+  const c = ctx({
+    // TRLC-LINKS: REQ-DSO-1004
+    fetch: async (u, o) => {
+      sent.push(o.body);
+      return {
+        // TRLC-LINKS: REQ-DSO-1004
+        json: async () => ({ ok: true }),
+      };
+    },
+    autosetBusy: false,
+    // TRLC-LINKS: REQ-DSO-1004
+    kickStatus() {},
+    // TRLC-LINKS: REQ-DSO-1004
+    toast() {},
+    st: { trig_source: 2 },
+  });
   const ctl = src("app_controls.js");
   vm.runInContext(fn(ctl, "sendBody") + fn(ctl, "sendTrigLevel"), c);
   vm.runInContext('caps = capsNormalize({ channels: caps.channels, trigger: { sources: ["C1", "C2", "C3", "C4"] }, controls: [{ name: "triglevel", unit: "V" }] });', c);

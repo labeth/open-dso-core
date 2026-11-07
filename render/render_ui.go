@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -19,11 +19,11 @@ import (
 // with the F-key text column when a menu is open. Flat 1 px lines and
 // fills, the 5x7 font and the palette only.
 
-// Rail geometry (REQ-SDS-211): one 28x34 tab per F-key row.
+// Rail geometry (REQ-DSO-211): one 28x34 tab per F-key row.
 const railW = 30
 
 // drawUI draws the UI over the base render.
-// TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
 func drawUI(sf Canvas, f *sample.Frame, hud HUD, p plotArea) {
 	ui := &hud.UI
 	if ui.Sheet != nil {
@@ -71,7 +71,7 @@ func drawUI(sf Canvas, f *sample.Frame, hud HUD, p plotArea) {
 // strip (BUS), falling spectral lines (SPECTRUM), two cursors and the
 // distance between them (MEASURE), a wave inside a dotted mask band
 // (COMPARE).
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func drawPicto(sf Canvas, ws wsview.WS, x, y int, fg, fg2 Color) {
 	wave := func(y0 int, amp float64, col Color, dotted bool) {
 		px, py := x, y0
@@ -119,7 +119,7 @@ func drawPicto(sf Canvas, ws wsview.WS, x, y int, fg, fg2 Color) {
 
 // drawRail draws the five workspace tabs beside F1..F5, the active one
 // inverted in amber.
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func drawRail(sf Canvas, active wsview.WS) {
 	sm := metricsOf(sf)
 	railX := sm.W - railW
@@ -141,7 +141,7 @@ func drawRail(sf Canvas, active wsview.WS) {
 
 // drawRailNote is the short label beside the rail after a workspace key:
 // "F3 SPECTRUM   again: FFT / Spectrogram / Bode".
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func drawRailNote(sf Canvas, n *wsview.Note) {
 	sm := metricsOf(sf)
 	w := TextWidth(n.Head, 1) + TextWidth(n.Text, 1) + 26
@@ -153,7 +153,7 @@ func drawRailNote(sf Canvas, n *wsview.Note) {
 }
 
 // clampI clamps v into [lo, hi].
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func clampI(v, lo, hi int) int { return min(max(v, lo), hi) }
 
 // ---- the F-key text column (a menu is open) ----
@@ -161,7 +161,7 @@ func clampI(v, lo, hi int) int { return min(max(v, lo), hi) }
 // drawKeys draws today's softkey column with the menu's choices: the title,
 // then each choice on its key's row (label over value), the current one
 // filled amber.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawKeys(sf Canvas, k *wsview.Keys) {
 	sm := metricsOf(sf)
 	const mw = 116
@@ -201,7 +201,7 @@ func drawKeys(sf Canvas, k *wsview.Keys) {
 // drawPaneFrame clears the pane (rows 12 .. plotTop-1) and draws its header:
 // the amber title, the caption, a right-aligned hint; and the axis rule
 // above the plot.
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func drawPaneFrame(sf Canvas, p plotArea, pn *wsview.Pane) {
 	fillRect(sf, 0, 12, p.w, p.y0-12, colBG)
 	fillRect(sf, 0, 12, p.w, 12, colMenuBg)
@@ -222,7 +222,7 @@ func drawPaneFrame(sf Canvas, p plotArea, pn *wsview.Pane) {
 // drawToolLine is "Adjust: packet  push: pick bytes ...   F2 again: Eye
 // diagram": the knob names in text, their jobs dim, the key-again view in
 // amber at the right end.
-// TRLC-LINKS: REQ-SDS-213
+// TRLC-LINKS: REQ-DSO-213
 func drawToolLine(sf Canvas, p plotArea, pn *wsview.Pane) {
 	y := p.y0 - 12
 	x := 4
@@ -238,7 +238,7 @@ func drawToolLine(sf Canvas, p plotArea, pn *wsview.Pane) {
 }
 
 // cutText shortens s to n characters with "..".
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func cutText(s string, n int) string {
 	if n < 3 || len(s) <= n {
 		return s
@@ -250,7 +250,7 @@ func cutText(s string, n int) string {
 
 // drawScopeChrome draws SCOPE's name in the top bar (clear of the trigger
 // pointer) and the Adjust tag in the bottom row.
-// TRLC-LINKS: REQ-SDS-211, REQ-SDS-213
+// TRLC-LINKS: REQ-DSO-211, REQ-DSO-213
 func drawScopeChrome(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	tx := trigX(p, f, hud)
 	x0 := topBarTimeX(p.m, hud) + 210 // clear of the timebase, its zoom tag and the math legend
@@ -296,7 +296,7 @@ const (
 	busToolY = 124
 )
 
-// TRLC-LINKS: REQ-SDS-211, REQ-SDS-213
+// TRLC-LINKS: REQ-DSO-211, REQ-DSO-213
 func cellX(k int) int {
 	if k >= 8 {
 		return hexIn + k*cellW + midGap
@@ -314,7 +314,7 @@ var (
 )
 
 // drawBusPane draws the packet list: a hex dump with a separate string box.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func drawBusPane(sf Canvas, p plotArea, b *wsview.BusPane) {
 	drawPaneFrame(sf, p, &b.Pane)
 	if b.Off {
@@ -405,7 +405,7 @@ func drawBusPane(sf Canvas, p plotArea, b *wsview.BusPane) {
 
 // drawBusLineMatch writes a packet line's MATCH column from x up to right:
 // its fault first, in red as the web marks it, then the match (or the cut).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func drawBusLineMatch(sf Canvas, x, y, right int, fault, match, cut string) {
 	if fault != "" {
 		DrawText(sf, x, y, fault, colStale, 1)
@@ -419,7 +419,7 @@ func drawBusLineMatch(sf Canvas, x, y, right int, fault, match, cut string) {
 }
 
 // itoa formats a small integer.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func itoa(n int) string {
 	if n == 0 {
 		return "0"
@@ -444,7 +444,7 @@ func itoa(n int) string {
 // drawTokens draws picker tokens at scale 2 in a window around cur: the
 // current one filled amber, the next three underlined, a bar before each
 // message start.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func drawTokens(sf Canvas, x, y, xmax int, toks []wsview.PickTok, cur int) {
 	const per = 11
 	n := len(toks)
@@ -481,7 +481,7 @@ func drawTokens(sf Canvas, x, y, xmax int, toks []wsview.PickTok, cur int) {
 }
 
 // drawPickerPane draws the BUS pane turned into the amber-framed byte picker.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func drawPickerPane(sf Canvas, p plotArea, pk *wsview.Picker) {
 	pn := wsview.Pane{Title: "PICK BYTES", Caption: pk.Caption, Right: "Menu On/Off: back"}
 	fillRect(sf, 0, 12, p.w, p.y0-12, colBG)
@@ -501,7 +501,7 @@ func drawPickerPane(sf Canvas, p plotArea, pk *wsview.Picker) {
 
 // eyeShades are four density shades of a channel colour over the screen
 // colour, dim to full (flat fills only).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func eyeShades(f hal.PixelFormat, ch int) [4]Color {
 	c := colC1
 	if ch == 1 {
@@ -518,7 +518,7 @@ func eyeShades(f hal.PixelFormat, ch int) [4]Color {
 
 // drawEyePlot draws the eye in the plot: two UI around the bit centre, the
 // fold's density in four shades, the opening and the two cursors.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func drawEyePlot(sf Canvas, p plotArea, e *wsview.EyePane) {
 	cols := e.Cols
 	if cols <= 0 {
@@ -607,7 +607,7 @@ func drawEyePlot(sf Canvas, p plotArea, e *wsview.EyePane) {
 // eyeCells draws the eye's density as 2x2 cells from (x0, y1) in four
 // shades sh, the counts' thresholds i1..i3: straight into a w×h page of
 // pixels px (n the shades in its format), else through sf.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func eyeCells[P pixel](sf Canvas, px []P, w, h int, e *wsview.EyePane, x0, y1 int, sh [4]Color, n [4]P, i1, i2, i3 uint64) {
 	for r := range e.Rows {
 		y := y1 + 2*r
@@ -642,7 +642,7 @@ func eyeCells[P pixel](sf Canvas, px []P, w, h int, e *wsview.EyePane, x0, y1 in
 }
 
 // dashRect draws a dashed rectangle (3 on, 2 off).
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func dashRect(sf Canvas, x, y, w, h int, c Color) {
 	for i := range w {
 		if i%5 < 3 {
@@ -659,7 +659,7 @@ func dashRect(sf Canvas, x, y, w, h int, c Color) {
 }
 
 // drawEyePane draws the eye's figures beside a live time trace.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 func drawEyePane(sf Canvas, p plotArea, f *sample.Frame, hud HUD, e *wsview.EyePane) {
 	drawPaneFrame(sf, p, &e.Pane)
 	drawMiniScope(sf, f, hud, 4, 27, 230, 96)
@@ -686,7 +686,7 @@ func drawEyePane(sf Canvas, p plotArea, f *sample.Frame, hud HUD, e *wsview.EyeP
 // ---- SPECTRUM ----
 
 // drawSpecPane draws the peak table beside a small time trace.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func drawSpecPane(sf Canvas, p plotArea, f *sample.Frame, hud HUD, s *wsview.SpecPane) {
 	drawPaneFrame(sf, p, &s.Pane)
 	drawMiniScope(sf, f, hud, 4, 27, 230, p.y0-44)
@@ -744,7 +744,7 @@ func drawSpecPane(sf Canvas, p plotArea, f *sample.Frame, hud HUD, s *wsview.Spe
 
 // drawMeasPane draws the statistics table (or all values) and the cursor
 // block.
-// TRLC-LINKS: REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-217
 func drawMeasPane(sf Canvas, p plotArea, m *wsview.MeasPane) {
 	drawPaneFrame(sf, p, &m.Pane)
 	switch {
@@ -811,7 +811,7 @@ func drawMeasPane(sf Canvas, p plotArea, m *wsview.MeasPane) {
 // ---- COMPARE ----
 
 // drawCmpPane draws the MASTER, REF A, REF B, MASK and MATH rows.
-// TRLC-LINKS: REQ-SDS-218
+// TRLC-LINKS: REQ-DSO-218
 func drawCmpPane(sf Canvas, p plotArea, c *wsview.CmpPane) {
 	drawPaneFrame(sf, p, &c.Pane)
 	for i, r := range c.Rows {
@@ -846,7 +846,7 @@ func drawCmpPane(sf Canvas, p plotArea, c *wsview.CmpPane) {
 
 // drawMiniScope draws a small live view of the frame in a rectangle: its
 // graticule, the shown channels as column extremes, the trigger pointer.
-// TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
 func drawMiniScope(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 	fillRect(sf, x0, y0, w, h, colBG)
 	sm := metricsOf(sf)
@@ -888,7 +888,7 @@ func drawMiniScope(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 // miniScopeChan draws one channel (ch 0 = C1) of the mini scope over
 // columns x0..x0+w-1, yOf placing a code: an envelope's bands, else each
 // column's extremes joined to the previous column.
-// TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
 func miniScopeChan(sf Canvas, f *sample.Frame, hud HUD, ch, x0, w int, yOf func(uint8) int) {
 	col := chanColor(ch)
 	if f.Flags.Has(sample.Envelope) {
@@ -942,7 +942,7 @@ const (
 )
 
 // drawSheet draws a full-screen settings sheet.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawSheet(sf Canvas, f *sample.Frame, hud HUD) {
 	sm := metricsOf(sf)
 	hintY := sm.H - 11
@@ -981,7 +981,7 @@ func drawSheet(sf Canvas, f *sample.Frame, hud HUD) {
 
 // drawTabs draws the tab strip: the workspace's name, its own tabs, a double
 // bar, the other tabs dim; the open tab filled amber.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawTabs(sf Canvas, sh *wsview.Sheet) {
 	sm := metricsOf(sf)
 	fillRect(sf, 0, tabY, sm.W, tabH, colMenuBg)
@@ -1018,7 +1018,7 @@ func drawTabs(sf Canvas, sh *wsview.Sheet) {
 
 // drawRows draws the rows; it returns the row area's bottom and the y of the
 // Match bytes row (-1 when the tab has none).
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawRows(sf Canvas, sh *wsview.Sheet) (bottom, matchY int) {
 	sm := metricsOf(sf)
 	xEnd := sm.W - 116 - 4 - sideW - 8
@@ -1041,7 +1041,7 @@ func drawRows(sf Canvas, sh *wsview.Sheet) (bottom, matchY int) {
 }
 
 // drawRow draws one row at y.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawRow(sf Canvas, r wsview.Row, y int) {
 	sm := metricsOf(sf)
 	xEnd := sm.W - 116 - 4 - sideW - 8
@@ -1143,7 +1143,7 @@ func drawRow(sf Canvas, r wsview.Row, y int) {
 // drawOptions writes an enum row's options inline, the current one filled
 // (amber when active, grey for "Off" or a row not in use); a list too long
 // for the row shows a window around the current option.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawOptions(sf Canvas, opts []wsview.Opt, x, y int, rel bool, xmax int) int {
 	ws := make([]int, len(opts))
 	cur := 0
@@ -1209,7 +1209,7 @@ func drawOptions(sf Canvas, opts []wsview.Opt, x, y int, rel bool, xmax int) int
 }
 
 // drawGauge draws a number row's range gauge with its value's knob.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawGauge(sf Canvas, x0, x1, y int, pos float64, rel bool) {
 	yy := y + 8
 	hline(sf, x0, x1-1, yy, colAxis)
@@ -1224,7 +1224,7 @@ func drawGauge(sf Canvas, x0, x1, y int, pos float64, rel bool) {
 }
 
 // drawSheetSub draws the sheet's byte picker under the Match bytes row.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func drawSheetSub(sf Canvas, s *wsview.Sub, rowY int) {
 	sm := metricsOf(sf)
 	xEnd := sm.W - 116 - 4 - sideW - 8
@@ -1244,7 +1244,7 @@ func drawSheetSub(sf Canvas, s *wsview.Sub, rowY int) {
 }
 
 // drawSide draws the panel explaining the highlighted row.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawSide(sf Canvas, sh *wsview.Sheet) {
 	sm := metricsOf(sf)
 	sideX := sm.W - 116 - 4 - sideW
@@ -1289,7 +1289,7 @@ func drawSide(sf Canvas, sh *wsview.Sheet) {
 // drawThumb draws the sheet's live mini view: the trace with its cursors,
 // or the FFT, X-Y, Bode or spectrogram being shown, tagged LIVE, WAIT or
 // STOP.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawThumb(sf Canvas, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
 	sm := metricsOf(sf)
 	sideX := sm.W - 116 - 4 - sideW
@@ -1365,7 +1365,7 @@ func drawThumb(sf Canvas, f *sample.Frame, hud HUD, sh *wsview.Sheet) {
 }
 
 // drawThumbXY is the X-Y mini view.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawThumbXY(sf Canvas, f *sample.Frame, x0, y0, w, h int) {
 	if f == nil || f.Flags.Has(sample.Envelope) || len(f.Codes8(0)) == 0 {
 		return
@@ -1388,7 +1388,7 @@ func drawThumbXY(sf Canvas, f *sample.Frame, x0, y0, w, h int) {
 }
 
 // drawThumbFFT is the FFT mini view (column maxima, -80 dB at the bottom).
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawThumbFFT(sf Canvas, f *sample.Frame, hud HUD, ch, x0, y0, w, h int) {
 	if f == nil || f.Flags.Has(sample.Envelope) || len(f.Codes8(0)) == 0 {
 		return
@@ -1426,7 +1426,7 @@ func drawThumbFFT(sf Canvas, f *sample.Frame, hud HUD, ch, x0, y0, w, h int) {
 }
 
 // drawThumbBode is the Bode mini view: gain (C1 colour) and phase (C2).
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawThumbBode(sf Canvas, hud HUD, x0, y0, w, h int) {
 	n := len(hud.BodeFreq)
 	if n < 2 || hud.BodeFreq[0] <= 0 {
@@ -1454,7 +1454,7 @@ func drawThumbBode(sf Canvas, hud HUD, x0, y0, w, h int) {
 // busErrorHint is the advice under a decode error the pane names none for: a
 // frame that came whole and failed its checksum or CRC is a corrupt bus or
 // wrong settings, not a timebase too slow to read it.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func busErrorHint(err string) string {
 	if strings.Contains(err, "checksum") || strings.Contains(err, "CRC") {
 		return "Its frames come but fail their check: a corrupt line, or the BUS sheet's settings (Utility)."

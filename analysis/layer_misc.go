@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-// The 1-Wire, MDIO and USB layers (REQ-SDS-245, REQ-SDS-246).
+// The 1-Wire, MDIO and USB layers (REQ-DSO-245, REQ-DSO-246).
 
 // ---- 1-Wire network layer and devices ----
 
@@ -33,7 +33,7 @@ type owTxn struct {
 }
 
 // owRead reads a reset-opened packet's bytes as a transaction.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func owRead(p Packet) owTxn {
 	b := p.Bytes
 	if len(b) == 0 {
@@ -59,7 +59,7 @@ func owRead(p Packet) owTxn {
 
 // owROMText writes a ROM code as family-serial, the serial most
 // significant byte first ("28-0000056A1B2C").
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func owROMText(r []byte) string {
 	if len(r) < 8 {
 		return "(cut ROM)"
@@ -69,7 +69,7 @@ func owROMText(r []byte) string {
 }
 
 // owHead writes a transaction's ROM command and code.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func owHead(t owTxn) string {
 	s := t.cmd
 	if t.rom != nil {
@@ -83,7 +83,7 @@ func owHead(t owTxn) string {
 
 // owNotes writes each 1-Wire transaction with dev, the device layer's
 // reading of its function bytes ("" leaves them as hex).
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func owNotes(ps []Packet, dev func(fn []byte) (string, bool)) {
 	for i := range ps {
 		p := &ps[i]
@@ -112,11 +112,11 @@ func owNotes(ps []Packet, dev func(fn []byte) (string, bool)) {
 }
 
 // owNetNotes is the network layer alone.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func owNetNotes(ps []Packet) { owNotes(ps, nil) }
 
 // owFamilies returns the family codes the record's ROM codes name.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func owFamilies(ps []Packet) map[int]bool {
 	f := map[int]bool{}
 	for _, p := range ps {
@@ -128,7 +128,7 @@ func owFamilies(ps []Packet) map[int]bool {
 }
 
 // owNetDetect: a ROM command after a reset with a presence pulse.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func owNetDetect(ps []Packet) string {
 	for _, p := range ps {
 		if t := owRead(p); t.ok && p.Complete {
@@ -139,7 +139,7 @@ func owNetDetect(ps []Packet) string {
 }
 
 // owFamilyDetect detects a device layer by the family code in a ROM code.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func owFamilyDetect(ps []Packet, name string, codes ...int) string {
 	f := owFamilies(ps)
 	for _, c := range codes {
@@ -151,7 +151,7 @@ func owFamilyDetect(ps []Packet, name string, codes ...int) string {
 }
 
 // owMatch: the ROM command (and the ROM code) that opens the transaction.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func owMatch(p Packet) ([]string, int) {
 	t := owRead(p)
 	if !t.ok {
@@ -165,7 +165,7 @@ func owMatch(p Packet) ([]string, int) {
 }
 
 // crc8Maxim is the 1-Wire CRC-8 (polynomial x^8+x^5+x^4+1, reflected).
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func crc8Maxim(b []byte) int {
 	crc := 0
 	for _, v := range b {
@@ -182,7 +182,7 @@ func crc8Maxim(b []byte) int {
 }
 
 // crc16Maxim is the 1-Wire CRC-16 (polynomial 0x8005 reflected, inverted).
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func crc16Maxim(b []byte) int {
 	crc := 0
 	for _, v := range b {
@@ -203,7 +203,7 @@ func crc16Maxim(b []byte) int {
 // with its scratchpad: Convert T, the scratchpad read with the temperature
 // in sixteenths of a degree and its CRC-8, the scratchpad write, and the
 // rest.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func ds28ea00Fn(fn []byte) (string, bool) {
 	names := map[int]string{
 		0x4e: "Write scratchpad", 0xbe: "Read scratchpad", 0x48: "Copy scratchpad",
@@ -246,7 +246,7 @@ func ds28ea00Fn(fn []byte) (string, bool) {
 // address and data), channel access read and write (the data and its
 // complement, AA for done), the conditional search register write, the
 // activity latch reset.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func ds2408Fn(fn []byte) (string, bool) {
 	d := fn[1:]
 	switch fn[0] {
@@ -290,7 +290,7 @@ func ds2408Fn(fn []byte) (string, bool) {
 // ds243xFn reads DS2431/DS2432/DS2433 function commands: the scratchpad
 // write and read (target address, data and CRC-16), copy, memory read and
 // the DS2432's secret commands.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func ds243xFn(fn []byte) (string, bool) {
 	d := fn[1:]
 	ta := func() string {
@@ -352,7 +352,7 @@ func ds243xFn(fn []byte) (string, bool) {
 // ---- CFP module management over MDIO (clause 45) ----
 
 // cfpRegion names the CFP register region an MDIO address falls in.
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func cfpRegion(a int) string {
 	switch {
 	case a >= 0x8000 && a <= 0x807f:
@@ -387,7 +387,7 @@ var cfpModules = map[int]string{
 
 // mdioFrame reads an MDIO packet: the header word (start, opcode, port and
 // device address) and the data word.
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func mdioFrame(p Packet) (st, op, port, dev, data int, ok bool) {
 	if len(p.Bytes) < 4 {
 		return 0, 0, 0, 0, 0, false
@@ -399,7 +399,7 @@ func mdioFrame(p Packet) (st, op, port, dev, data int, ok bool) {
 // cfpNotes reads clause 45 frames as CFP register accesses: the address
 // frame sets a port and device's register address, a read (or a read that
 // increments it) and a write use it.
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func cfpNotes(ps []Packet) {
 	addr := map[int]int{}
 	for i := range ps {
@@ -447,7 +447,7 @@ func cfpNotes(ps []Packet) {
 }
 
 // cfpDetect: two or more clause 45 address frames into CFP register regions.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func cfpDetect(ps []Packet) string {
 	n := 0
 	for _, p := range ps {
@@ -476,7 +476,7 @@ var usbDescs = map[int]string{
 }
 
 // usbSetup reads a SETUP stage's eight bytes.
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func usbSetup(d []byte) string {
 	rt, req := int(d[0]), int(d[1])
 	val, idx, n := le(d[2:4]), le(d[4:6]), le(d[6:8])
@@ -520,7 +520,7 @@ type usbState struct {
 // note reads one USB packet in its transaction: a token names the address
 // and endpoint, a SETUP's data the standard request, an IN or OUT's data
 // its bytes (a device descriptor's IDs), a handshake the outcome.
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func (st *usbState) note(p Packet) (string, bool) {
 	pid := p.Addr
 	b := p.Bytes
@@ -581,7 +581,7 @@ func (st *usbState) note(p Packet) (string, bool) {
 }
 
 // usbNotes reads a record's USB packets in order.
-// TRLC-LINKS: REQ-SDS-246
+// TRLC-LINKS: REQ-DSO-246
 func usbNotes(ps []Packet) {
 	st := &usbState{setup: map[int][]byte{}}
 	for i := range ps {
@@ -594,7 +594,7 @@ func usbNotes(ps []Packet) {
 
 // usbDetect: a SETUP token followed by a DATA0 packet of eight bytes whose
 // CRC checks.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func usbDetect(ps []Packet) string {
 	for i := 0; i+1 < len(ps); i++ {
 		if ps[i].Addr == 0xd && ps[i].HasAddr && ps[i].Err == "" && ps[i+1].Addr == 0x3 && len(ps[i+1].Bytes) == 10 && ps[i+1].Err == "" {
@@ -606,7 +606,7 @@ func usbDetect(ps []Packet) string {
 
 // usbMatch: a SETUP stage's request bytes (after the DATA0 start), or the
 // packet's own first bytes.
-// TRLC-LINKS: REQ-SDS-248
+// TRLC-LINKS: REQ-DSO-248
 func usbMatch(p Packet) ([]string, int) {
 	if len(p.Bytes) == 0 {
 		return nil, -1
@@ -615,7 +615,7 @@ func usbMatch(p Packet) ([]string, int) {
 }
 
 // owDevNotes returns a 1-Wire device layer's note writer.
-// TRLC-LINKS: REQ-SDS-245
+// TRLC-LINKS: REQ-DSO-245
 func owDevNotes(dev func(fn []byte) (string, bool)) func(ps []Packet) {
 	return func(ps []Packet) { owNotes(ps, dev) }
 }

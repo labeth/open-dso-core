@@ -7,7 +7,7 @@
 // The fan-out is generic over the frame type only so that a scope whose
 // engine still publishes its own frame type can use it; the family's frame
 // is sample.Frame (NewFrames).
-// ENGMODEL-OWNER-UNIT: FU-APP-FRAMES
+// ENGMODEL-OWNER-UNIT: FU-DSO-ENGINE
 package fanout
 
 import (
@@ -18,14 +18,14 @@ import (
 )
 
 // Source is the single-consumer frame producer (the engine).
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 type Source[F any] interface {
 	Consume() (*F, bool)
 }
 
 // Fanout holds the newest engine frame for every reader (display, web) and
 // wakes those waiting for a fresh one.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 type Fanout[F any] struct {
 	mu     sync.RWMutex
 	latest F
@@ -38,20 +38,20 @@ type Fanout[F any] struct {
 // New returns an empty fan-out. copyFrame deep-copies a frame into another
 // reusing the destination's buffers; seq returns a frame's publish sequence
 // (0: nothing published).
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func New[F any](copyFrame func(dst, src *F), seq func(*F) uint64) *Fanout[F] {
 	return &Fanout[F]{wake: make(chan struct{}), copyFn: copyFrame, seqFn: seq}
 }
 
 // NewFrames returns an empty fan-out of sample.Frame.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func NewFrames() *Fanout[sample.Frame] {
 	return New((*sample.Frame).CopyFrom, func(f *sample.Frame) uint64 { return f.Seq })
 }
 
 // Run snapshots fresh frames at up to 100 Hz so the live preview is not
 // limited by the display cadence. Blocks; run as a goroutine.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func (fo *Fanout[F]) Run(src Source[F], stop <-chan struct{}) {
 	t := time.NewTicker(10 * time.Millisecond)
 	defer t.Stop()
@@ -79,7 +79,7 @@ func (fo *Fanout[F]) Run(src Source[F], stop <-chan struct{}) {
 // current (possibly last, possibly 0 if nothing has been published). No lock
 // is held while parked, and Run can never block on a parker (it only closes
 // the wake channel). The timer is created once, not per wake iteration.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func (fo *Fanout[F]) WaitNext(last uint64, timeout time.Duration) uint64 {
 	// A newer frame already there needs no timer.
 	fo.mu.RLock()
@@ -116,7 +116,7 @@ func (fo *Fanout[F]) WaitNext(last uint64, timeout time.Duration) uint64 {
 // waits, and every reader after it (the display, the web page's status)
 // waits on that. Long work copies the frame and runs outside. fn receives
 // nil when nothing has been published yet.
-// TRLC-LINKS: REQ-SDS-020
+// TRLC-LINKS: REQ-DSO-020
 func (fo *Fanout[F]) WithFrame(fn func(*F)) {
 	fo.mu.RLock()
 	defer fo.mu.RUnlock()

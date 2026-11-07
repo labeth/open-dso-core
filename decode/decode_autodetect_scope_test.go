@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -68,7 +68,7 @@ var scopeCaptures = []scopeCapture{
 // in a search's decimated record span the samples a checked find needs
 // there (six, panel decimatedStands): their shortest feature is a gap of
 // field clocks, not the field's cycle.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestScopeRFIDStandsDecimated(t *testing.T) {
 	for _, f := range []string{"scope_em4305_search_5ms.json.gz", "scope_t55xx_search_5ms.json.gz"} {
 		c1, c2, sampleS := loadGzJSON(t, "testdata/"+f)
@@ -83,7 +83,7 @@ func TestScopeRFIDStandsDecimated(t *testing.T) {
 // TestAutodetectNamesScopeCaptures: each record the scope read of a bench
 // bus is named as that bus, on its line, with a frame whose checks pass (the
 // detection the search runs, AutodetectFast).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectNamesScopeCaptures(t *testing.T) {
 	for _, sc := range scopeCaptures {
 		c1, c2, sampleS := loadGzJSON(t, "testdata/"+sc.file)
@@ -100,7 +100,7 @@ func TestAutodetectNamesScopeCaptures(t *testing.T) {
 // burst of bytes every 7 us) holds one START, address and bytes among 200
 // bare START STOP pairs - data edges while the averaged clock rests high: no
 // I2C bus, where AUTO in BUS named one now and then.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectNoI2COnADecimatedFlash(t *testing.T) {
 	c1, c2, sampleS := loadGzJSON(t, "testdata/scope_flash104_samples_200us.json.gz")
 	if r, _ := AutodetectFast(c1, c2, sampleS, "hex"); r.Proto == "i2c" {
@@ -112,7 +112,7 @@ func TestAutodetectNoI2COnADecimatedFlash(t *testing.T) {
 // a sample now and then: the quiet line stays quiet (quietFlat) however the
 // record is cut and strided, and no SPI bus is read off the pair (the scope
 // named one at 200us/div, its "data" the picked spikes).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectQuietLineBesideOneWire(t *testing.T) {
 	w := newTimeline(500e6)
 	w.idle(100e-6)
@@ -145,7 +145,7 @@ func TestAutodetectQuietLineBesideOneWire(t *testing.T) {
 // record low, those samples spread over the codes of the pulses' levels and
 // edges - finds both rails (rails takes the tails by their sum), as a line
 // pulsed often does.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestRailsOfASparselyPulsedLine(t *testing.T) {
 	codes := make([]uint8, 10000)
 	for i := range codes {
@@ -170,7 +170,7 @@ func TestRailsOfASparselyPulsedLine(t *testing.T) {
 // wrong): a WS281x frame's middle at
 // 10us/div (its two pulse widths are no PWM output) and a cJTAG escape cut
 // from its scan (its TMSC edges while TCKC is high are no I2C STARTs).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestScopePartialFramesNotStolen(t *testing.T) {
 	for _, c := range []struct{ file, not string }{
 		{"scope_ws281x_samples_10us.json.gz", "pwm"},
@@ -191,7 +191,7 @@ func TestScopePartialFramesNotStolen(t *testing.T) {
 // holds no whole frame: AUTO's search read it as "I2C START 01 R ACK 79 ACK
 // STOP", one search in a hundred, where a controller reading NAKs the last
 // byte it takes. It is no I2C.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectCutMDIOIsNoI2C(t *testing.T) {
 	c1, c2, s := loadGzJSON(t, "testdata/scope_mdio_cut_10us_full.json.gz")
 	if r, _ := AutodetectFast(c1, c2, s, "hex"); r.Proto == "i2c" {

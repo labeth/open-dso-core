@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -17,7 +17,7 @@ import (
 // requests encoded exactly as the otactl transport encodes them (the shared
 // rpcproto envelope + newline framing), and decodes responses the same way —
 // the agent<->otactl protocol-drift canary.
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func TestHandleConnSpeaksOtactlWire(t *testing.T) {
 	a := testAgent(t)
 	srv, cli := net.Pipe()
@@ -91,7 +91,7 @@ func TestHandleConnSpeaksOtactlWire(t *testing.T) {
 
 // A request line over the limit is answered with an error and the connection
 // closed, rather than buffered until the peer stops sending.
-// TRLC-LINKS: REQ-SDS-107
+// TRLC-LINKS: REQ-DSO-107
 func TestHandleConnRefusesAnOverlongLine(t *testing.T) {
 	a := testAgent(t)
 	srv, cli := net.Pipe()

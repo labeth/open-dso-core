@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -39,7 +39,7 @@ var (
 	}
 )
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func measFor(ch int, sig []uint8, q []uint16, guard int, seq, content uint64, vpc, off, ss, probe float64, cpl int) *measure.Result {
 	if seq == 0 || ch < 0 || ch >= MaxChans {
 		return measure.ComputeAcquisition(sig, q, vpc, off, ss, cpl, guard)
@@ -72,7 +72,7 @@ var timedSlots [MaxChans]struct {
 }
 
 // timedFor is take(base), or the one taken on the same base and scale.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func timedFor(ch int, base *measure.Result, cache bool, vpc, off, ss float64, take func(*measure.Result) *measure.Result) *measure.Result {
 	if !cache || base == nil || ch < 0 || ch >= MaxChans {
 		return take(base)
@@ -89,7 +89,7 @@ func timedFor(ch int, base *measure.Result, cache bool, vpc, off, ss float64, ta
 // chanMeasure is one channel's calibrated measurement of the frame, as the
 // readouts show it (the probe-scaled V/div, the software coupling, the
 // display invert); nil without the channel.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func chanMeasure(f *sample.Frame, hud HUD, ch int) *measure.Result {
 	valid := frameValid(f)
 	if ch < 0 || ch >= MaxChans || len(f.Codes8(ch)) < valid {
@@ -136,7 +136,7 @@ type measRow struct{ name, value string }
 // ok false when the measurement has none. The names, the order and the
 // percent figures are the MEASURE pane's and the web's, so one parameter reads
 // the same everywhere.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-217
 func measParamRow(m *measure.Result, id string) (measRow, bool) {
 	pct := func(v float64) string { return strconv.FormatFloat(v, 'g', 3, 64) + "%" }
 	switch id {
@@ -189,7 +189,7 @@ var allMeasParams = []string{
 // drawMeasPanel draws the MEASURE readout boxes: per shown channel, a box of
 // its chosen parameters (every parameter when nothing is chosen), via the
 // shared measure package so the values match the web exactly.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-217
 func drawMeasPanel(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	if f == nil || f.Len() == 0 {
 		return
@@ -218,7 +218,7 @@ func drawMeasPanel(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 }
 
 // measBox renders one channel's readouts at left edge x.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func measBox(sf Canvas, p plotArea, f *sample.Frame, hud HUD, ch, x int, params []string) bool {
 	m := chanMeasure(f, hud, ch)
 	if m == nil {
@@ -252,7 +252,7 @@ func measBox(sf Canvas, p plotArea, f *sample.Frame, hud HUD, ch, x int, params 
 
 // edgeArrow draws a small filled arrow with its tip at (x, y), pointing
 // along (dx, dy): one of left, right, up, down.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-217
 func edgeArrow(sf Canvas, x, y, dx, dy int, c Color) {
 	for d := range 7 {
 		for w := -d / 2; w <= d/2; w++ {
@@ -264,7 +264,7 @@ func edgeArrow(sf Canvas, x, y, dx, dy int, c Color) {
 // drawCursors draws the on-screen X (time) or Y (volts) cursor pair and a Δ
 // readout. Time Δ uses the labelled t/div × 10 divisions; volts Δ uses each
 // shown channel's probe-scaled V/div × 8 divisions.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawCursors(sf Canvas, p plotArea, hud HUD) {
 	if !hud.CurOn {
 		return
@@ -349,7 +349,7 @@ func drawCursors(sf Canvas, p plotArea, hud HUD) {
 
 // timeCursorLabel is the X cursors' readout: their time apart, and its
 // frequency.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func timeCursorLabel(hud HUD, divs int) string {
 	span := hud.TdivS * float64(divs)
 	if hud.Zoom > 1 {
@@ -365,7 +365,7 @@ func timeCursorLabel(hud HUD, divs int) string {
 
 // voltCursorLabel is the Y cursors' readout: their voltage apart on each
 // shown channel (web parity).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func voltCursorLabel(hud HUD, divs int) string {
 	var label string
 	frac := math.Abs(hud.CurY[0] - hud.CurY[1])
@@ -384,7 +384,7 @@ func voltCursorLabel(hud HUD, divs int) string {
 
 // drawAutosetBanner overlays a centred "AUTOSET…" progress banner while the
 // sweep runs, with the cancel hint (a second AUTO press stops it).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawAutosetBanner(sf Canvas, p plotArea, msg string) {
 	if msg == "" {
 		msg = "AUTOSET..."
@@ -405,7 +405,7 @@ func drawAutosetBanner(sf Canvas, p plotArea, msg string) {
 
 // drawNotice is a short notice over the plot: what a tool just did (a
 // workspace's entry behaviour, a zoom, PRINT's saved file name).
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
 func drawNotice(sf Canvas, p plotArea, msg string) {
 	maxC := (p.w - 40) / 6
 	if len(msg) > maxC {
@@ -420,7 +420,7 @@ func drawNotice(sf Canvas, p plotArea, msg string) {
 
 // drawRemote is the one-line note of a change made from the phone remote,
 // at the top of the plot so it does not cover the trace's middle.
-// TRLC-LINKS: REQ-SDS-212
+// TRLC-LINKS: REQ-DSO-212
 func drawRemote(sf Canvas, p plotArea, msg string) {
 	maxC := (p.w - 40) / 6
 	if len(msg) > maxC {
@@ -436,7 +436,7 @@ func drawRemote(sf Canvas, p plotArea, msg string) {
 // drawMarkers overlays the trigger level (horizontal line + right handle), the
 // trigger position (top pointer), and the per-channel ground/offset arrows on
 // the left edge — the same references the web canvas shows (spec 07 §6).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawMarkers(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	px := func(x, y int, c Color) {
 		if x >= 0 && x < p.w && y >= p.y0 && y < p.m.H {
@@ -484,7 +484,7 @@ func drawMarkers(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 
 // trigX is the trigger position's column, -1 when the screen does not show
 // it (trigFrac).
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func trigX(p plotArea, f *sample.Frame, hud HUD) int {
 	frac, ok := trigFrac(f, hud)
 	if !ok {
@@ -496,7 +496,7 @@ func trigX(p plotArea, f *sample.Frame, hud HUD) int {
 // trigFrac is where across the screen the trigger shows: the trigger
 // position, or zoomed, where the trace's window (traceWindow, centred on the
 // trigger plus the pan) puts it; false when that is off the screen.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func trigFrac(f *sample.Frame, hud HUD) (float64, bool) {
 	frac := hud.TrigPosFrac
 	if !(frac >= 0 && frac <= 1) {
@@ -514,7 +514,7 @@ func trigFrac(f *sample.Frame, hud HUD) (float64, bool) {
 	return frac, frac >= 0 && frac <= 1
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	sm := metricsOf(sf)
 	// The top bar: the channels' labels a ChanLabelDX apart (room for two at
@@ -602,12 +602,12 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 
 // topBarTimeX is where the top bar's timebase starts: after the channels'
 // labels, room for two at least.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func topBarTimeX(sm *Metrics, hud HUD) int { return 4 + max(hud.numChans(), 2)*sm.ChanLabelDX + 12 }
 
 // trigReadout is the top bar's trigger readout: source, edge, level (or the
 // qualified trigger's tag) and the acquisition state.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func trigReadout(hud HUD) string {
 	edge := "^"
 	if !hud.TrigRising {
@@ -640,12 +640,12 @@ func trigReadout(hud HUD) string {
 	return readout
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func frameQ(f *sample.Frame, ch int) []uint16 { return f.Precision(ch) }
 
 // zoomOf is a channel's display zoom: codes sit on the analog range, a
 // zoomed detent's volts per code is VdivV·zoom over its codes a division.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func zoomOf(hud HUD, ch int) int { return max(hud.Ch[ch].Zoom, 1) }
 
 // clipCache holds the last published frame's rail state: scanning a stopped
@@ -659,7 +659,7 @@ var clipCache struct {
 }
 
 // frameClipped reports whether each channel's codes touch a rail.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func frameClipped(f *sample.Frame) [MaxChans]bool {
 	valid := frameValid(f) // clamp to len(C1) — f.Valid can exceed the slice
 	clipCache.Lock()
@@ -678,7 +678,7 @@ func frameClipped(f *sample.Frame) [MaxChans]bool {
 // DrawStatusSlot draws the top bar's status slot (between the math legend and
 // the trigger readout): the loading indicator while a frame is being read or
 // processed, else the device URL.
-// TRLC-LINKS: REQ-SDS-168
+// TRLC-LINKS: REQ-DSO-168
 func DrawStatusSlot(sf Canvas, hud HUD) {
 	if txt := statusSlotText(hud); txt != "" {
 		c := colDim
@@ -692,7 +692,7 @@ func DrawStatusSlot(sf Canvas, hud HUD) {
 // RedrawStatusSlot clears the slot (as wide as its widest text) and draws it
 // again, so the LCD loop can turn the spinner without re-rendering a deep
 // frame — which would steal the CPU from the very readout being shown.
-// TRLC-LINKS: REQ-SDS-168
+// TRLC-LINKS: REQ-DSO-168
 func RedrawStatusSlot(sf Canvas, hud HUD) {
 	idle := hud
 	idle.Busy = ""
@@ -703,7 +703,7 @@ func RedrawStatusSlot(sf Canvas, hud HUD) {
 	DrawStatusSlot(sf, hud)
 }
 
-// TRLC-LINKS: REQ-SDS-168
+// TRLC-LINKS: REQ-DSO-168
 func statusSlotText(hud HUD) string {
 	if hud.Busy == "" {
 		return hud.URL
@@ -716,7 +716,7 @@ func statusSlotText(hud HUD) string {
 }
 
 // colorOf maps a wsview colour to the palette.
-// TRLC-LINKS: REQ-SDS-211
+// TRLC-LINKS: REQ-DSO-211
 func colorOf(c wsview.Col) Color {
 	switch c {
 	case wsview.Dim:
@@ -752,7 +752,7 @@ func colorOf(c wsview.Col) Color {
 // match, the pulse or slope condition, the video line, a zone trigger ("" for
 // an edge). Without it the readout said "T C1 ^ 1.37V" on the owner's serial
 // trigger on AA, as for any edge.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func trigTag(hud HUD) string {
 	cond := func(c int, minNs, maxNs float64) string {
 		switch c {

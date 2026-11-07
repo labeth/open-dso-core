@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-REMOTE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // remote_sound.js — the phone remote's Sound tab (ADR-SOUND): the tuner
 // (note, cents needle, Hz), the two meters and Listen, so the phone in a
 // pocket is a wireless signal tracer: probe with one hand, listen on
@@ -17,7 +17,7 @@
     held: { pitchKey: "", pitch: null, meterKey: ["", ""], meter: [null, null] } };
   const E = {};
 
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   function build(root) {
     root.textContent = "";
     E.note = h("div", { class: "snd-note", text: "--" });
@@ -27,7 +27,7 @@
     const scale = h("div", { class: "snd-scale", "aria-hidden": "true" }, E.needle, h("b", { class: "snd-zero" }));
     E.chSeg = h("div", { class: "snd-seg", role: "radiogroup", "aria-label": "Tuned channel" });
     for (const [v, t] of [[0, "C1"], [1, "C2"]]) {
-      // TRLC-LINKS: REQ-SDS-274
+      // TRLC-LINKS: REQ-DSO-274
       const b = button({ label: t, cls: "seg-b c" + (v + 1), onTap: () => setCh(v) });
       b.dataset.v = String(v);
       E.chSeg.appendChild(b);
@@ -39,11 +39,11 @@
       return { el, bar, pk, val, clip };
     });
     const meters = h("section", { class: "snd-card", "aria-label": "Meters" }, ...E.meters.map((m) => m.el));
-    // TRLC-LINKS: REQ-SDS-265
+    // TRLC-LINKS: REQ-DSO-265
     E.listen = button({ label: "Listen", sub: "tap to play", cls: "primary snd-listen", aria: "Listen", onTap: () => listen(!c.audio.on) });
     E.src = h("div", { class: "snd-seg", role: "radiogroup", "aria-label": "Listen source" });
     for (const [v, t] of [["c1", "C1"], ["c2", "C2"], ["st", "Stereo"]]) {
-      // TRLC-LINKS: REQ-SDS-265
+      // TRLC-LINKS: REQ-DSO-265
       const b = button({ label: t, cls: "seg-b", onTap: () => { c.audio.src = v; c.audio.filt = null; paintSeg(); } });
       b.dataset.v = v;
       E.src.appendChild(b);
@@ -51,13 +51,13 @@
     E.vol = h("input", { type: "range", min: "0", max: "1", step: "0.01", value: "0.7", "aria-label": "Volume", class: "snd-vol" });
     E.vol.addEventListener("input", () => { c.audio.vol = +E.vol.value; });
     E.status = h("div", { class: "snd-status", text: "" });
-    // TRLC-LINKS: REQ-SDS-277
+    // TRLC-LINKS: REQ-DSO-277
     E.takeScope = button({ label: "Take the scope", sub: "its keys took it back", cls: "snd-takescope", aria: "Take the scope", onTap: takeScope });
     E.takeScope.hidden = true;
     const listenCard = h("section", { class: "snd-card", "aria-label": "Listen" }, E.listen, E.src, E.vol, E.status, E.takeScope);
-    // TRLC-LINKS: REQ-SDS-275
+    // TRLC-LINKS: REQ-DSO-275
     E.run = button({ label: "STOP", sub: "freeze a take", cls: "snd-run", aria: "Run or stop", onTap: () => ctl("runtoggle", 0) });
-    // TRLC-LINKS: REQ-SDS-275
+    // TRLC-LINKS: REQ-DSO-275
     E.single = button({ label: "SINGLE", sub: "on the trigger", cls: "snd-single", aria: "Single", onTap: () => ctl("single", 1) });
     E.take = h("div", { class: "snd-status", text: "" });
     const takeCard = h("section", { class: "snd-card snd-takecard", "aria-label": "Take" }, h("div", { class: "snd-row" }, E.run, E.single), E.take);
@@ -66,13 +66,13 @@
     S.built = true;
   }
 
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   function paintSeg() {
     for (const b of E.chSeg.children) b.setAttribute("aria-checked", String(+b.dataset.v === S.settings.ch));
     for (const b of E.src.children) b.setAttribute("aria-checked", String(b.dataset.v === c.audio.src));
   }
 
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   async function setCh(v) {
     S.settings.ch = v;
     S.tuner = sndTuner(false);
@@ -80,7 +80,7 @@
     try { await fetch("/api/sound?who=phone", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ settings: { ch: v } }) }); } catch (e) { /* shown by the stream's status */ }
   }
 
-  // TRLC-LINKS: REQ-SDS-265
+  // TRLC-LINKS: REQ-DSO-265
   async function listen(on) {
     try { await sndClientListen(c, on); } catch (e) { toast("Listen: " + e.message, "err"); c.audio.on = false; }
     E.listen.classList.toggle("on", c.audio.on);
@@ -88,20 +88,20 @@
   }
 
   // takeScope streams SOUND again after the scope's keys took it back.
-  // TRLC-LINKS: REQ-SDS-277
+  // TRLC-LINKS: REQ-DSO-277
   async function takeScope() {
     try { await sndTakeScope(c); } catch (e) { toast("SOUND: " + e.message, "err"); }
   }
 
   // ctl sends RUN/STOP or SINGLE to the scope.
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   async function ctl(control, value) {
     try { await fetch("/api/set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ control, value }) }); } catch (e) { toast("SOUND: " + e.message, "err"); }
     S.pollAt = 0;
   }
 
   // poll follows the scope: its run state, the stream's mode and the take.
-  // TRLC-LINKS: REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-275
   async function poll() {
     try {
       const [snd, stj] = await Promise.all([fetch("/api/sound?who=phone", { cache: "no-store" }).then((r) => r.json()), fetch("/api/status", { cache: "no-store" }).then((r) => r.json())]);
@@ -117,7 +117,7 @@
   // newest of the stream, or the take's around its focus. Stopped, paused or
   // on a take they hold still between ticks, and the pitch and the meters
   // (the tick's cost) are not worked out again.
-  // TRLC-LINKS: REQ-SDS-266, REQ-SDS-267
+  // TRLC-LINKS: REQ-DSO-266, REQ-DSO-267
   function heldKey(n, ch) {
     let where = `l${c.next}:${c.validFrom}`;
     if (c.takeOn && c.take) {
@@ -127,7 +127,7 @@
     return where + ":" + n + ":" + ch;
   }
 
-  // TRLC-LINKS: REQ-SDS-266, REQ-SDS-267, REQ-SDS-275
+  // TRLC-LINKS: REQ-DSO-266, REQ-DSO-267, REQ-DSO-275
   function tick() {
     if (!S.el || S.el.hidden) return;
     const fs = c.rate, set = S.settings, now = performance.now();
@@ -167,7 +167,7 @@
         if (S.held.meterKey[ch] !== mk) { S.held.meterKey[ch] = mk; S.held.meter[ch] = sndMeasure(sndClientLatest(c, ch, mn)); }
         const m = S.held.meter[ch];
         const db = sndDB(m.rms, ref.vrms), pk = sndDB(m.peak / Math.SQRT2, ref.vrms);
-        // TRLC-LINKS: REQ-SDS-266
+        // TRLC-LINKS: REQ-DSO-266
         const frac = (v) => Math.max(0, Math.min(1, (v + 60) / 66));
         mt.bar.style.width = (100 * frac(db)).toFixed(1) + "%";
         mt.pk.style.left = (100 * frac(pk)).toFixed(1) + "%";
@@ -184,7 +184,7 @@
 
   // show starts the tab: the scope (opening the tab is acting on it, as on
   // the web page), the scope's SOUND settings, the stream, the tick.
-  // TRLC-LINKS: REQ-SDS-274, REQ-SDS-277
+  // TRLC-LINKS: REQ-DSO-274, REQ-DSO-277
   async function show(root) {
     S.el = root;
     if (!S.built) build(root);
@@ -199,7 +199,7 @@
   }
 
   // hide stops the stream and Listen.
-  // TRLC-LINKS: REQ-SDS-274
+  // TRLC-LINKS: REQ-DSO-274
   function hide() {
     clearInterval(S.timer);
     const was = c.audio.on;

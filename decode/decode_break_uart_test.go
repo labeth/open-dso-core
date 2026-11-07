@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -22,7 +22,7 @@ import (
 // ----------------------------------------------------------------------------
 
 // buExpParity mirrors decode_uart.go parityOf(): the expected parity BIT value.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func buExpParity(val, bits int, parity string) int {
 	m := val & ((1 << uint(bits)) - 1)
 	p := 0
@@ -39,7 +39,7 @@ func buExpParity(val, bits int, parity string) int {
 // buBuildSeq builds the ordered bit sequence of a UART capture in BIT-TIME
 // units: lead idle-high bits, then for each byte { start(0), data LSB-first,
 // optional parity, stop(1) } separated by `gap` idle bits, then trail idle.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func buBuildSeq(bytes []int, bits int, parity string, lead, trail, gap int) []int {
 	var seq []int
 	for range lead {
@@ -69,7 +69,7 @@ func buBuildSeq(bytes []int, bits int, parity string, lead, trail, gap int) []in
 // buRasterize samples the bit sequence at (possibly fractional) spb samples/bit,
 // with `frontPad` extra idle-high samples up front (a capture rarely starts on
 // a bit boundary). High level -> 210, low -> 40 (matches the repo synthesizer).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func buRasterize(seq []int, spb float64, frontPad int) []uint8 {
 	const lo, hi = 40, 210
 	total := max(frontPad+int(math.Round(float64(len(seq))*spb)), 0)
@@ -92,7 +92,7 @@ func buRasterize(seq []int, spb float64, frontPad int) []uint8 {
 	return w
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func buEq(a, b []int) bool {
 	if len(a) != len(b) {
 		return false
@@ -105,7 +105,7 @@ func buEq(a, b []int) bool {
 	return true
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func buCountKinds(spans []Span) (frameErr, parityErr, gap int) {
 	for _, s := range spans {
 		switch s.Kind {
@@ -125,7 +125,7 @@ func buCountKinds(spans []Span) (frameErr, parityErr, gap int) {
 // after the edge (full-rail, so it crosses the slicer's hysteresis band) — the
 // documented auto-baud killer shape (1-3-sample spurious toggles near
 // transitions). Reads the clean wave, writes a ringing copy.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func buInjectRing(w []uint8, rng *rand.Rand, maxW int) []uint8 {
 	out := append([]uint8{}, w...)
 	for i := 1; i < len(w); i++ {
@@ -147,7 +147,7 @@ func buInjectRing(w []uint8, rng *rand.Rand, maxW int) []uint8 {
 // round-trip clean payloads through heavy ringing, while GENUINELY ambiguous
 // input (pulse widths that fit no single bit period) must still be refused
 // with the explicit "set it explicitly" error — honesty is not negotiable.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakUartRingyEdges(t *testing.T) {
 	const ct = 1e-6
 	rng := rand.New(rand.NewSource(0x51C4))
@@ -220,7 +220,7 @@ func TestBreakUartRingyEdges(t *testing.T) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakUart(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xBEEF))
 	const ct = 1e-6

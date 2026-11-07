@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-UIMODEL
 
 // Package wsview is the render snapshot of the task-workspace UI
 // (ADR-TASK-WORKSPACES): everything the panel controller shows on the LCD,
@@ -11,7 +11,7 @@ import "github.com/labeth/open-dso-core/uimodel"
 // WS identifies a workspace; F1..F5 select them in this order.
 type WS int
 
-// The five workspaces (REQ-SDS-211).
+// The five workspaces (REQ-DSO-211).
 const (
 	Scope WS = iota
 	Bus

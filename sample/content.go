@@ -40,6 +40,7 @@ const (
 var contentNames = [...]string{"", "raw-full-rate", "raw-decimated", "peak-pairs", "resampled", "display-domain"}
 
 // String returns the kind's profile name, or "unknown".
+// TRLC-LINKS: REQ-DSO-1003
 func (c Content) String() string {
 	if int(c) < len(contentNames) && c != 0 {
 		return contentNames[c]
@@ -48,6 +49,7 @@ func (c Content) String() string {
 }
 
 // MarshalText returns the kind's profile name.
+// TRLC-LINKS: REQ-DSO-1003
 func (c Content) MarshalText() ([]byte, error) {
 	if c == 0 || int(c) >= len(contentNames) {
 		return nil, fmt.Errorf("sample: content %d has no name", c)
@@ -56,6 +58,7 @@ func (c Content) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText parses a profile name such as "peak-pairs".
+// TRLC-LINKS: REQ-DSO-1003
 func (c *Content) UnmarshalText(b []byte) error {
 	for i, n := range contentNames {
 		if i > 0 && n == string(b) {
@@ -70,6 +73,7 @@ func (c *Content) UnmarshalText(b []byte) error {
 type ContentSet uint8
 
 // ContentSetOf returns the set holding cs.
+// TRLC-LINKS: REQ-DSO-1003
 func ContentSetOf(cs ...Content) ContentSet {
 	var s ContentSet
 	for _, c := range cs {
@@ -79,9 +83,11 @@ func ContentSetOf(cs ...Content) ContentSet {
 }
 
 // Has reports whether c is in s.
+// TRLC-LINKS: REQ-DSO-1003
 func (s ContentSet) Has(c Content) bool { return c != 0 && s&(1<<c) != 0 }
 
 // String lists the set's names, comma separated.
+// TRLC-LINKS: REQ-DSO-1003
 func (s ContentSet) String() string {
 	var names []string
 	for c := RawFullRate; c <= DisplayDomain; c++ {
@@ -93,9 +99,11 @@ func (s ContentSet) String() string {
 }
 
 // MarshalText lists the set's names, comma separated.
+// TRLC-LINKS: REQ-DSO-1003
 func (s ContentSet) MarshalText() ([]byte, error) { return []byte(s.String()), nil }
 
 // UnmarshalText parses comma-separated names; empty text is the empty set.
+// TRLC-LINKS: REQ-DSO-1003
 func (s *ContentSet) UnmarshalText(b []byte) error {
 	var out ContentSet
 	for f := range strings.SplitSeq(string(b), ",") {
@@ -135,9 +143,11 @@ const (
 )
 
 // Has reports whether every flag in x is set.
+// TRLC-LINKS: REQ-DSO-1003
 func (f ContentFlag) Has(x ContentFlag) bool { return f&x == x }
 
 // Set sets the flags in x when on, else clears them.
+// TRLC-LINKS: REQ-DSO-1003
 func (f *ContentFlag) Set(x ContentFlag, on bool) {
 	if on {
 		*f |= x
@@ -157,6 +167,7 @@ const (
 )
 
 // Bits returns the storage word's width, or 0 for an unknown storage.
+// TRLC-LINKS: REQ-DSO-1003
 func (s StorageKind) Bits() uint8 {
 	switch s {
 	case U8:
@@ -168,6 +179,7 @@ func (s StorageKind) Bits() uint8 {
 }
 
 // MarshalText returns "u8" or "u16".
+// TRLC-LINKS: REQ-DSO-1003
 func (s StorageKind) MarshalText() ([]byte, error) {
 	switch s {
 	case U8:
@@ -179,6 +191,7 @@ func (s StorageKind) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText parses "u8" or "u16".
+// TRLC-LINKS: REQ-DSO-1003
 func (s *StorageKind) UnmarshalText(b []byte) error {
 	switch string(b) {
 	case "u8":
@@ -206,6 +219,7 @@ type CodeFormat struct {
 }
 
 // Validate reports a format whose fields cannot describe stored codes.
+// TRLC-LINKS: REQ-DSO-1003
 func (f CodeFormat) Validate() error {
 	sb := f.Storage.Bits()
 	switch {
@@ -234,6 +248,7 @@ type Scale struct {
 }
 
 // Volts converts one word.
+// TRLC-LINKS: REQ-DSO-1003
 func (s Scale) Volts(word float64) float64 { return (word-s.Zero)*s.PerCode - s.OffsetV }
 
 // The 8-bit view: every format's words mapped onto the scale of an 8-bit
@@ -245,14 +260,17 @@ func (s Scale) Volts(word float64) float64 { return (word-s.Zero)*s.PerCode - s.
 const Mid8 = 128
 
 // q88Shift is how far a word's code moves left to land on the Q8.8 scale.
+// TRLC-LINKS: REQ-DSO-1003
 func (f CodeFormat) q88Shift() int { return 16 - int(f.Bits) - int(f.Shift) - int(f.Frac) }
 
 // Unit8 is how many words make one step of the 8-bit view: 1 for 8-bit
 // codes, 256 for 12-bit codes left-aligned in 16-bit words.
+// TRLC-LINKS: REQ-DSO-1003
 func (f CodeFormat) Unit8() float64 { return math.Ldexp(1, 8-f.q88Shift()) }
 
 // Q88 maps word w onto the 8-bit view in Q8.8: the format's mid is 0x8000,
 // clamped to the 16-bit range.
+// TRLC-LINKS: REQ-DSO-1003
 func (f CodeFormat) Q88(w uint32) uint16 {
 	d := int64(w) - int64(f.Mid)
 	if s := f.q88Shift(); s >= 0 {
@@ -264,6 +282,7 @@ func (f CodeFormat) Q88(w uint32) uint16 {
 }
 
 // Code8 maps word w onto the 8-bit view, rounded: the format's mid is 128.
+// TRLC-LINKS: REQ-DSO-1003
 func (f CodeFormat) Code8(w uint32) uint8 {
 	return uint8(min((uint32(f.Q88(w))+0x80)>>8, 255)) //nolint:gosec // G115: at most 255
 }

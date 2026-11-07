@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the COMPARE workspace (argv[2]):
 //   * the difference readout: the scope's REF A (stored from the page) against
 //     the live channels (max |Δ|, RMS, % within 0.5 div), following Show/Clear;
@@ -15,7 +15,7 @@ import { openScope, run } from "./scope_po.mjs";
 run(async (t) => {
   const { page, po, browser, pageErrors } = await openScope(process.argv[2], { viewport: { width: 1600, height: 1000 } });
   t.browser = browser;
-  // TRLC-LINKS: REQ-SDS-218
+  // TRLC-LINKS: REQ-DSO-218
   const diff = (p) => p.evaluate(() => [...document.querySelectorAll("#diffBody tr")].map((r) => ({
     ref: r.dataset.ref || "", head: r.querySelector("th") ? r.querySelector("th").textContent : "", cells: [...r.querySelectorAll("td")].map((c) => c.textContent),
   })));

@@ -57,6 +57,7 @@ type match struct {
 }
 
 // Load parses data and resolves it for id.
+// TRLC-LINKS: REQ-DSO-1002
 func Load(data []byte, id hal.Identity) (hal.Profile, error) {
 	d, err := Parse(data)
 	if err != nil {
@@ -68,6 +69,7 @@ func Load(data []byte, id hal.Identity) (hal.Profile, error) {
 // Parse reads a profile file and checks every part of it against the
 // schema, so that a mistake in a variant shows on any unit, not only on
 // the one it matches.
+// TRLC-LINKS: REQ-DSO-1002
 func Parse(data []byte) (*Doc, error) {
 	root, err := parseYAML(data)
 	if err != nil {
@@ -110,6 +112,7 @@ func Parse(data []byte) (*Doc, error) {
 }
 
 // Variants returns the variant names in file order.
+// TRLC-LINKS: REQ-DSO-1002
 func (d *Doc) Variants() []string {
 	out := make([]string, len(d.variants))
 	for i, v := range d.variants {
@@ -120,6 +123,7 @@ func (d *Doc) Variants() []string {
 
 // Resolve returns the profile for id: the base overlaid by every matching
 // variant, in order, with Identity set to id.
+// TRLC-LINKS: REQ-DSO-1002
 func (d *Doc) Resolve(id hal.Identity) (hal.Profile, error) {
 	var applied []variant
 	for _, v := range d.variants {
@@ -151,6 +155,7 @@ func (d *Doc) Resolve(id hal.Identity) (hal.Profile, error) {
 	return p, nil
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func names(vs []variant) string {
 	n := make([]string, len(vs))
 	for i, v := range vs {
@@ -160,6 +165,7 @@ func names(vs []variant) string {
 }
 
 // Validate reports a resolved profile the core cannot run on.
+// TRLC-LINKS: REQ-DSO-1002
 func Validate(p hal.Profile) error {
 	switch {
 	case p.Channels < 1:
@@ -196,6 +202,7 @@ func Validate(p hal.Profile) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func parseVariant(n *node, i int) (variant, error) {
 	where := fmt.Sprintf("variants[%d]", i)
 	if n.kind != mapNode {
@@ -239,6 +246,7 @@ func parseVariant(n *node, i int) (variant, error) {
 
 var matchFields = []string{"vendor", "model", "serial", "hw_revision", "adc_part", "vendor_firmware"}
 
+// TRLC-LINKS: REQ-DSO-1002
 func parseMatch(n *node, where string) (match, error) {
 	if n.kind != mapNode {
 		return match{}, mismatch(n, where, "a mapping")
@@ -270,6 +278,7 @@ func parseMatch(n *node, where string) (match, error) {
 	return m, nil
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func (m match) holds(id hal.Identity) bool {
 	got := map[string]string{
 		"vendor": id.Vendor, "model": id.Model, "serial": id.Serial,
@@ -300,6 +309,7 @@ type leaf struct {
 	n    *node
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func flatten(n *node, prefix []string, out []leaf) []leaf {
 	if n.kind != mapNode || len(n.keys) == 0 {
 		return append(out, leaf{path: slices.Clone(prefix), n: n})
@@ -312,6 +322,7 @@ func flatten(n *node, prefix []string, out []leaf) []leaf {
 
 // checkConflicts refuses two applied variants that set one setting to
 // different values, or one as a mapping and the other inside it.
+// TRLC-LINKS: REQ-DSO-1002
 func checkConflicts(vs []variant) error {
 	sets := make([][]leaf, len(vs))
 	for i, v := range vs {
@@ -333,6 +344,7 @@ func checkConflicts(vs []variant) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1002
 func conflict(an, bn string, a, b leaf) error {
 	short, long := a.path, b.path
 	if len(short) > len(long) {
@@ -350,6 +362,7 @@ func conflict(an, bn string, a, b leaf) error {
 
 // mergeNodes returns base overlaid with over: mappings merge key by key,
 // anything else in over replaces what base has. Neither input is changed.
+// TRLC-LINKS: REQ-DSO-1002
 func mergeNodes(base, over *node) *node {
 	if base.kind != mapNode || over.kind != mapNode {
 		return over

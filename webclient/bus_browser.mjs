@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the BUS workspace (argv[2]=URL of a scope serving a
 // 115200-baud UART on C1: "Hi" twice, then a third "Hi" cut by the record end).
 // Entering BUS with decoding off finds the UART and turns decoding on with a
@@ -12,7 +12,7 @@ import { openScope, run } from "./scope_po.mjs";
 run(async (t) => {
   const { page, po, browser, pageErrors } = await openScope(process.argv[2], { viewport: { width: 1600, height: 1000 } });
   t.browser = browser;
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   const rows = () => page.evaluate(() => [...document.querySelectorAll("#pkBody tr[data-i]")].map((r) => [...r.querySelectorAll("td")].map((c) => c.textContent)));
 
   // ---- entry: detection turns decoding on ---------------------------------------
@@ -93,7 +93,7 @@ run(async (t) => {
   await page.keyboard.press("Alt+2");
   t.ok(await po.isVisible("ejEye") && await po.hasClass("ejArm", "on"), "BUS again shows the eye diagram, analyzer armed");
   t.ok(await po.value("ejCh") === "1", "…on the decoded line, C1");
-  // TRLC-LINKS: REQ-SDS-215
+  // TRLC-LINKS: REQ-DSO-215
   const figs = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#ejBody tr")].filter((r) => r.querySelector("th") && r.querySelector("td"))
     .map((r) => [r.querySelector("th").textContent, r.querySelector("td").textContent])));
   await t.until(async () => { const f = await figs(); return /bit\/s/.test(f["bit rate"] || "") && /s$/.test(f["TIE rms"] || ""); }, "the eye locks and measures", 15000);
@@ -120,9 +120,9 @@ run(async (t) => {
   t.ok(await po.isVisible("pktable"), "BUS again: back to the packets");
   // the page's Stream view is the scope's: choosing it puts the scope on its
   // Stream view, another view takes it back to its packets
-  // TRLC-LINKS: REQ-SDS-228
+  // TRLC-LINKS: REQ-DSO-228
   const scopeView = () => page.evaluate(() => fetch("/api/status").then((r) => r.json()).then((s) => s.panel.View));
-  // TRLC-LINKS: REQ-SDS-228
+  // TRLC-LINKS: REQ-DSO-228
   const scopeStream = (on) => page.evaluate((v) => fetch("/api/sheets/set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ row: "bus.stream", value: v }) }), on ? 1 : 0);
   await page.evaluate(() => { const b = document.querySelector('#busView button[data-value="stream"]'); b.click(); });
   await t.until(async () => await scopeView() === "Stream", "the page's Stream view puts the scope on its Stream view", 4000);

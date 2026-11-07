@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-EYEJITTER-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // eyejitter_analysis.js — edge/UI/jitter analysis + FFT helpers (dual-mode).
 
 // ejEdges extracts all mid-level crossings with hysteresis (±15% of swing) and
@@ -6,7 +6,7 @@
 // or null when the record has no usable swing.
 "use strict";
 
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function ejEdges(sig, n) {
   // Base/top levels by DUAL HISTOGRAM MODE (IEEE pulse-measurement style): the
   // two dominant population levels, regardless of duty. Percentile levels (the
@@ -60,7 +60,7 @@ function ejEdges(sig, n) {
 // NRZ intervals are k·UI (k = run lengths); seed with a low percentile, then
 // refine by dividing each interval by its nearest integer multiple. Returns
 // UI in samples, or 0 when the intervals don't cluster on a common grid.
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function ejEstimateUI(t) {
   const d = [];
   for (let i = 1; i < t.length; i++) d.push(t[i] - t[i - 1]);
@@ -69,7 +69,7 @@ function ejEstimateUI(t) {
 
 // ejEstimateUIFromIntervals: the estimator core over a bag of intervals (used
 // per-record and over the cross-record pool for edge-starved signals).
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function ejEstimateUIFromIntervals(d) {
   if (d.length < 8) return 0;
   const s = Float64Array.from(d).sort(); // numeric without a comparator call
@@ -98,7 +98,7 @@ function ejEstimateUIFromIntervals(d) {
 // ejFitGrid: 2-pass least-squares fit of edge times to t = t0 + n·UI, n
 // re-derived after the first pass. Returns {t0, ui, tie:[...samples], nIdx:[...]}
 // or null if the fit does not lock (residual too large = not one bit grid).
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function ejFitGrid(t, ui0) {
   let t0 = t[0], ui = ui0;
   let nIdx = null;
@@ -134,7 +134,7 @@ function ejFitGrid(t, ui0) {
 }
 
 // ---------- FFT (compact radix-2, self-contained for node + browser) ----------
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function ejFFT(re, im) {
   const n = re.length;
   for (let i = 1, j = 0; i < n; i++) { // bit-reverse permute
@@ -159,10 +159,10 @@ function ejFFT(re, im) {
   }
 }
 
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function ejPushCapped(arr, v, cap) { if (arr.length < cap) arr.push(v); }
 
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function ejMedian(a) {
   if (!a.length) return 0;
   const s = Float64Array.from(a).sort(); // numeric without a comparator call
@@ -175,7 +175,7 @@ function ejMedian(a) {
 // the side modes is nearly empty, for a gaussian it holds ~26% of the samples.
 // Unimodal → DJ = 0, RJ = global MAD·1.4826. Bimodal → DJ = mode separation,
 // RJ = the per-mode spread (each side about its own mode).
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function ejRjDj(tie) {
   if (tie.length < 200) return { rj: 0, dj: 0, ok: false };
   const s = Float64Array.from(tie).sort(); // numeric without a comparator call
@@ -200,7 +200,7 @@ function ejRjDj(tie) {
   return { rj: 1.4826 * ((madL + madR) / 2), dj: sep, ok: true };
 }
 
-// TRLC-LINKS: REQ-SDS-199
+// TRLC-LINKS: REQ-DSO-199
 function rmsOf(a) {
   if (!a.length) return 0;
   let ss = 0;
@@ -214,12 +214,12 @@ function rmsOf(a) {
 // inner gap (0.1% trimmed); width = the contiguous gap at the mid level around
 // the centre. box is the opening in the window: left/right in UI from its left
 // edge (0..2) and lo/hi in codes.
-// TRLC-LINKS: REQ-SDS-199, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-199, REQ-DSO-215
 function ejEyeMetrics(st) {
   const W = st.eyeW, H = st.eyeH;
-  // TRLC-LINKS: REQ-SDS-199
+  // TRLC-LINKS: REQ-DSO-199
   const colAt = f => Math.min(W - 1, Math.floor(f * W));
-  // TRLC-LINKS: REQ-SDS-199
+  // TRLC-LINKS: REQ-DSO-199
   const codeOf = y => st.eyeY0 + y * (st.eyeY1 - st.eyeY0) / (H - 1);
   // the centre column ± a few: the rails above and below the mid level
   const c = colAt(0.5), span = 3;
@@ -277,14 +277,14 @@ function ejEyeMetrics(st) {
 // far one, interpolating both crossings. The walk is bounded by maxSpan samples
 // either side (half a UI), so a sluggish edge never reaches into the next bit.
 // Returns {rise:[samples], fall:[samples]}.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 function ejEdgeTimes(sig, n, e, maxSpan) {
   const out = { rise: [], fall: [] };
   if (!e || !(e.hi > e.lo)) return out;
   const p10 = e.lo + 0.1 * (e.hi - e.lo), p90 = e.lo + 0.9 * (e.hi - e.lo);
   const span = Math.max(2, Math.floor(maxSpan || 8));
   // cross: the fractional index where sig crosses level between i and i+1
-  // TRLC-LINKS: REQ-SDS-215
+  // TRLC-LINKS: REQ-DSO-215
   const cross = (i, level) => { const a = sig[i], b = sig[i + 1]; return b === a ? i : i + (level - a) / (b - a); };
   for (let k = 0; k < e.t.length; k++) {
     const t = e.t[k], up = e.pol[k] > 0, c = Math.floor(t);
@@ -313,7 +313,7 @@ function ejEdgeTimes(sig, n, e, maxSpan) {
 // grid, with 10-90 % times rise / fall (all in samples): they intersect at
 // 0.5 + 0.8 · (tieFall − tieRise) / (rise + fall). Late falling edges (wider
 // ones) lift the crossing; NaN without both edge kinds.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 function ejCrossing(tieRise, tieFall, rise, fall) {
   if (![tieRise, tieFall, rise, fall].every(Number.isFinite) || !(rise + fall > 0)) return NaN;
   return Math.max(0, Math.min(1, 0.5 + 0.8 * (tieFall - tieRise) / (rise + fall)));

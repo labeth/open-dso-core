@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBSERVER
 
 package wire
 
@@ -12,7 +12,7 @@ import (
 
 // cmlLike is a two-channel 8-bit frame with Q8.8 precision words beside
 // its codes, 25 codes a division about 128.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func cmlLike(precision bool) *sample.Frame {
 	f := &sample.Frame{Content: sample.RawFullRate, Seq: 9, TriggerAt: 1.5, TrigKind: sample.HardwareNode}
 	if precision {
@@ -30,7 +30,7 @@ func cmlLike(precision bool) *sample.Frame {
 
 // A precision frame serves its words with the scale in their units: the
 // same volts and divisions as the codes.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestFromSamplePrecision(t *testing.T) {
 	var f Frame
 	f.FromSample(cmlLike(true))
@@ -56,7 +56,7 @@ func TestFromSamplePrecision(t *testing.T) {
 
 // The encoder pads the header to 8 bytes, places every segment at an
 // 8-byte offset and refuses words that contradict their format.
-// TRLC-LINKS: REQ-SDS-163
+// TRLC-LINKS: REQ-DSO-163
 func TestEncodeFrame2Layout(t *testing.T) {
 	var f Frame
 	f.FromSample(cmlLike(false))

@@ -1,5 +1,5 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
-// TRLC-LINKS: REQ-SDS-202
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
+// TRLC-LINKS: REQ-DSO-202
 // The page's zoom into a live envelope: the poll leases the shown stretch at
 // full detail (view=a,b,cols, screen widths from the trigger), the frame
 // carries it after its payload, and the trace is drawn from it while it
@@ -8,7 +8,7 @@
 const assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
 const { decodeBinFrame, BIN_MAGIC } = require('./binframe.js');
 
-// TRLC-LINKS: REQ-SDS-202
+// TRLC-LINKS: REQ-DSO-202
 function msg(flags, hdrObj, payload) {
   const hdr = new TextEncoder().encode(JSON.stringify(hdrObj));
   const buf = new Uint8Array(8 + hdr.length + payload.length);
@@ -38,7 +38,7 @@ function msg(flags, hdrObj, payload) {
   const code = src.slice(src.indexOf('// viewCovers is whether'), src.indexOf('// drawTraceHeld draws a trace'));
   const calls = [];
   const c = { view: { win: { a: 0.49, b: 0.51 } } };
-  // TRLC-LINKS: REQ-SDS-202
+  // TRLC-LINKS: REQ-DSO-202
   c.drawTrace = (g, vals, color) => calls.push({ n: vals.length, a: c.view.win.a, b: c.view.win.b, color });
   vm.createContext(c); vm.runInContext(code, c);
   const f = { vc1: new Int16Array(770), vc2: new Int16Array(770), view_a: 0.488, view_b: 0.512 };
@@ -54,7 +54,7 @@ function msg(flags, hdrObj, payload) {
 // poll: the lease while zoomed into a running envelope, view=off once after
 {
   const src = fs.readFileSync('app_core.js', 'utf8');
-  const code = src.slice(src.indexOf('let viewLeased'), src.indexOf('// TRLC-LINKS: REQ-SDS-023\nasync function pollFrameBin'));
+  const code = src.slice(src.indexOf('let viewLeased'), src.indexOf('// TRLC-LINKS: REQ-DSO-023\nasync function pollFrameBin'));
   const c = { view: { mode: "YT", win: { a: 0.45, b: 0.55 } }, userZoomed: true, st: { running: true }, CW: 1200,
     frame: { peak_detect: true, win_frac: 4065 / 4096, edge_frac: 0.5, c1: { length: 4096 } } };
   vm.createContext(c); vm.runInContext(code + '\nthis.viewParam = viewParam;', c);

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -14,7 +14,7 @@ import (
 
 // Exercise the real seek/warmup controller and DDR transport against the
 // two-stage sequential-counter SRAM model, rather than a random-read stub.
-// TRLC-LINKS: REQ-SDS-141, REQ-SDS-043, REQ-SDS-044
+// TRLC-LINKS: REQ-DSO-141, REQ-DSO-043, REQ-DSO-044
 func TestStackRecordCacheRTL(t *testing.T) {
 	for _, cfg := range []struct {
 		name                   string

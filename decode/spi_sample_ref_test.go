@@ -1,10 +1,10 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
 // SPIWideWords pairs SRAM record words ({C2,C1,C2,C1} bytes, the earlier
 // pair low) into the receiver's 64-bit words, four samples a channel.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func SPIWideWords(words []uint32) []uint64 {
 	out := make([]uint64, len(words)/2)
 	for i := range out {
@@ -14,12 +14,12 @@ func SPIWideWords(words []uint32) []uint64 {
 }
 
 // sampleOf returns sample j (0..3) of channel ch from a receiver word.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func sampleOf(w uint64, ch, j int) uint8 { return uint8(w >> (16*j + 8*ch)) }
 
 // SampleSPI runs the receiver over the receiver words and returns its events
 // and its sampling edges.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func SampleSPI(wide []uint64, c SampleSPIConfig) ([]SampleSPIEvent, []SampleSPIEdge) {
 	n := len(wide)
 	rising := (c.CPOL == c.CPHA) != c.Inverted
@@ -119,7 +119,7 @@ func SampleSPI(wide []uint64, c SampleSPIConfig) ([]SampleSPIEvent, []SampleSPIE
 	return events, edges
 }
 
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func b2u8(b bool) uint8 {
 	if b {
 		return 1

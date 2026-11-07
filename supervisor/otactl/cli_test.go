@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-OTACTL
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-OTACTL
 
 package otactl
 
@@ -18,7 +18,7 @@ import (
 
 // The usage names the scope's default staging directory, and the version
 // line its build.
-// TRLC-LINKS: REQ-SDS-175
+// TRLC-LINKS: REQ-DSO-175
 func TestRunOptions(t *testing.T) {
 	opts := Options{Version: "v9 (abc, now)", StageDir: "/stick/staging", StageDoc: "the stick's\n                    /stick/staging"}
 	var out, errOut bytes.Buffer
@@ -38,7 +38,7 @@ func TestRunOptions(t *testing.T) {
 }
 
 // otactl watch prints each event and heartbeat compacted.
-// TRLC-LINKS: REQ-SDS-175
+// TRLC-LINKS: REQ-DSO-175
 func BenchmarkCompact(b *testing.B) {
 	msg := []byte(`{"app": {"running": true, "pid": 812, "slot": "B", "health": {"healthy_once": true, "since_change_ms": 400}},
   "device": "sds1102", "seq": 123, "time_unix": 1700000000, "ips": ["eth0 192.168.1.209/24"], "watchdog": {"armed": true}}`)
@@ -49,7 +49,7 @@ func BenchmarkCompact(b *testing.B) {
 
 // fakeLink is a VXI-11 instrument whose device_write fails; it reports each
 // procedure it is called with on procs.
-// TRLC-LINKS: REQ-SDS-175
+// TRLC-LINKS: REQ-DSO-175
 func fakeLink(t *testing.T) (pmAddr string, procs chan uint32) {
 	t.Helper()
 	lc := net.ListenConfig{}
@@ -108,7 +108,7 @@ func fakeLink(t *testing.T) (pmAddr string, procs chan uint32) {
 
 // A failed scpi command still destroys its link: the instrument serves one,
 // and a link left open locks out the next client until it times out.
-// TRLC-LINKS: REQ-SDS-175
+// TRLC-LINKS: REQ-DSO-175
 func TestScpiDestroysTheLinkOnFailure(t *testing.T) {
 	pmAddr, procs := fakeLink(t)
 	var out bytes.Buffer
@@ -127,7 +127,7 @@ func TestScpiDestroysTheLinkOnFailure(t *testing.T) {
 }
 
 // Usage mistakes exit 2 and failures 1, with the reason on stderr.
-// TRLC-LINKS: REQ-SDS-175
+// TRLC-LINKS: REQ-DSO-175
 func TestRunExitCodes(t *testing.T) {
 	t.Setenv("OTA_TCP", "")
 	t.Setenv("OTA_NATS", "")

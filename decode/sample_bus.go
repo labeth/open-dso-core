@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -88,7 +88,7 @@ type SampleUARTConfig struct {
 const SampleUARTMinPeriod16 = 256
 
 // UARTPeriod16 is the bit time of baud in sixteenths of a nanosecond.
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func UARTPeriod16(baud float64) int {
 	if !(baud > 0) {
 		return 0

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -16,7 +16,7 @@ import (
 
 // lrun is one run of a level: from crossing x0 to crossing x1 (samples);
 // the record's first and last runs are open at the record's ends.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 type lrun struct {
 	lvl    int
 	x0, x1 float64
@@ -24,7 +24,7 @@ type lrun struct {
 }
 
 // levelRuns is the sliced line as its runs.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func levelRuns(sl sliced) []lrun {
 	E := sl.edges
 	if len(E) == 0 {
@@ -55,7 +55,7 @@ func levelRuns(sl sliced) []lrun {
 type runBound struct{ under, over int }
 
 // runBoundOf is the runBound of us at colTimeS seconds a sample.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func runBoundOf(us, colTimeS float64) runBound {
 	d := us / (colTimeS * 1e6) // the samples us lasts
 	if !(d > 0 && d < 1<<30) {
@@ -65,17 +65,17 @@ func runBoundOf(us, colTimeS float64) runBound {
 }
 
 // us is a run's length in microseconds.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func (r lrun) us(colTimeS float64) float64 { return (r.x1 - r.x0) * colTimeS * 1e6 }
 
 // pspan is a span between two sample positions, clamped into the record.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func pspan(x0, x1 float64, n int, text, kind string, val int) Span {
 	return Span{ui(x0, n), ui(x1, n), text, kind, val}
 }
 
 // crc8Maxim is the 1-Wire ROM CRC-8 (x^8+x^5+x^4+1, reflected 0x8C, from 0).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func crc8Maxim(b []int) int {
 	c := 0
 	for _, v := range b {
@@ -94,7 +94,7 @@ func crc8Maxim(b []int) int {
 // OneWireCfg configures the 1-Wire decode; Overdrive starts in overdrive
 // speed (the decode enters it on an Overdrive Skip or Match ROM and leaves
 // it on a standard reset).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 type OneWireCfg struct {
 	Overdrive bool
 	Threshold float64
@@ -123,19 +123,19 @@ type owBit struct {
 // slots come in threes (the bit, its complement, the direction) whose
 // directions make the ROM bytes. OK needs a reset with a presence pulse and
 // a byte after it.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func OneWire(codes []uint8, colTimeS float64, cfg OneWireCfg) Result {
 	return decodeOneWire(samplesIn(codes), colTimeS, cfg)
 }
 
 // OneWireEdges is OneWire over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func OneWireEdges(codes *EdgeLine, colTimeS float64, cfg OneWireCfg) Result {
 	return decodeOneWire(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeOneWire is OneWire over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func decodeOneWire(codes lineIn, colTimeS float64, cfg OneWireCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -283,7 +283,7 @@ func decodeOneWire(codes lineIn, colTimeS float64, cfg OneWireCfg) Result {
 }
 
 // WS281xCfg configures the WS281x LED-strip decode.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 type WS281xCfg struct {
 	Threshold float64
 	HaveThr   bool
@@ -303,19 +303,19 @@ const wsEdgeLatchUs = 20
 // latches: 10us/div held 44 us of each); each frame opens with a zero-width
 // "sof".
 // OK needs a frame of whole LEDs at a steady bit rate.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func WS281x(codes []uint8, colTimeS float64, cfg WS281xCfg) Result {
 	return decodeWS281x(samplesIn(codes), colTimeS, cfg)
 }
 
 // WS281xEdges is WS281x over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func WS281xEdges(codes *EdgeLine, colTimeS float64, cfg WS281xCfg) Result {
 	return decodeWS281x(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeWS281x is WS281x over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func decodeWS281x(codes lineIn, colTimeS float64, cfg WS281xCfg) Result { //nolint:gocyclo,funlen // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -505,7 +505,7 @@ func decodeWS281x(codes lineIn, colTimeS float64, cfg WS281xCfg) Result { //noli
 }
 
 // DHTCfg configures the DHT11/DHT22/AM230x decode.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 type DHTCfg struct {
 	Threshold float64
 	HaveThr   bool
@@ -519,19 +519,19 @@ type DHTCfg struct {
 // (2 bytes), temperature (2) and the checksum, the low byte of the sum of
 // the four (flagged when it does not check). OK needs a reading whose
 // checksum checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func DHT(codes []uint8, colTimeS float64, cfg DHTCfg) Result {
 	return decodeDHT(samplesIn(codes), colTimeS, cfg)
 }
 
 // DHTEdges is DHT over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func DHTEdges(codes *EdgeLine, colTimeS float64, cfg DHTCfg) Result {
 	return decodeDHT(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeDHT is DHT over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func decodeDHT(codes lineIn, colTimeS float64, cfg DHTCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -618,7 +618,7 @@ func decodeDHT(codes lineIn, colTimeS float64, cfg DHTCfg) Result {
 }
 
 // CECCfg configures the HDMI-CEC decode.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 type CECCfg struct {
 	Threshold float64
 	HaveThr   bool
@@ -633,19 +633,19 @@ type CECCfg struct {
 // operands. A directly addressed block is acknowledged by the follower
 // holding the bit low ("ack" A, else "nak" N); a broadcast one the other way.
 // OK needs a message whose bits all keep their timing.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func CEC(codes []uint8, colTimeS float64, cfg CECCfg) Result {
 	return decodeCEC(samplesIn(codes), colTimeS, cfg)
 }
 
 // CECEdges is CEC over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func CECEdges(codes *EdgeLine, colTimeS float64, cfg CECCfg) Result {
 	return decodeCEC(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeCEC is CEC over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func decodeCEC(codes lineIn, colTimeS float64, cfg CECCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -767,7 +767,7 @@ func decodeCEC(codes lineIn, colTimeS float64, cfg CECCfg) Result {
 }
 
 // J1850Cfg configures the SAE J1850 VPW decode.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 type J1850Cfg struct {
 	Threshold float64
 	HaveThr   bool
@@ -775,7 +775,7 @@ type J1850Cfg struct {
 }
 
 // j1850CRC is the SAE J1850 CRC-8: polynomial 0x1D from all ones, inverted.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func j1850CRC(b []int) int {
 	c := 0xff
 	for _, v := range b {
@@ -799,19 +799,19 @@ func j1850CRC(b []int) int {
 // ends the data (EOD), the last byte the CRC-8 (flagged when it does not
 // check). An in-frame response after the EOD (a normalization bit, then
 // bytes) is read on into the same frame. OK needs a frame whose CRC checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func J1850(codes []uint8, colTimeS float64, cfg J1850Cfg) Result {
 	return decodeJ1850(samplesIn(codes), colTimeS, cfg)
 }
 
 // J1850Edges is J1850 over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func J1850Edges(codes *EdgeLine, colTimeS float64, cfg J1850Cfg) Result {
 	return decodeJ1850(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeJ1850 is J1850 over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-233
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-233
 func decodeJ1850(codes lineIn, colTimeS float64, cfg J1850Cfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {

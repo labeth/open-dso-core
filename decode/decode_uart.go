@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -9,7 +9,7 @@ import (
 )
 
 // UARTCfg configures the UART decode. Baud=0 auto-infers; Bits default 8.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 type UARTCfg struct {
 	Inverted  bool // electrical low represents logical one (idle low)
 	Baud      int
@@ -41,7 +41,7 @@ type UARTCfg struct {
 // so does the true bit — and the true bit is the wide one. If nothing
 // validates the input is genuinely ambiguous and the caller must set the baud
 // — that honesty is preserved. Mirrors decode.js inferUARTspb step for step.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func inferUARTspb(sl sliced) (float64, string) {
 	var gaps []float64
 	for k := 1; k < len(sl.edges); k++ {
@@ -133,7 +133,7 @@ func inferUARTspb(sl sliced) (float64, string) {
 }
 
 // UART decodes 8N1-style UART on one channel's codes (decode.js decodeUART).
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func UART(codes []uint8, colTimeS float64, cfg UARTCfg) Result {
 	if cfg.Inverted {
 		logical := make([]uint8, len(codes))
@@ -306,7 +306,7 @@ func UART(codes []uint8, colTimeS float64, cfg UARTCfg) Result {
 // no idle to frame by: the owner's AA match at 20 us/div read A5 and four
 // ER characters where the line carried 20 55 AA 0F. nil without an anchor or when the
 // matched frame does not read clean. dataBits counts the parity bit.
-// TRLC-LINKS: REQ-SDS-013, REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func uartAnchorChain(sl sliced, cfg UARTCfg, spb float64, dataBits, guard int, frameAt func(int) (Span, int, bool)) []Span {
 	if !cfg.HasAnchor || !(cfg.Anchor >= 0) || !(spb > 0) {
 		return nil
@@ -368,7 +368,7 @@ const uartSyncFrames = 8
 // a quarter of the bench line's captures still begin so, or with a byte made
 // of a cut one's last bits ("F8" for its 0A). Reports whether it changed
 // anything.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func syncIn(spans []Span, sl sliced, spb float64, frameBits int, confirm float64) bool {
 	if len(spans) == 0 {
 		return false
@@ -419,7 +419,7 @@ var standardBauds = []float64{
 // rate when one lies within 1.5%: an estimate from a short record is a
 // fraction of a sample off per bit, and the rate on the wire is almost always
 // a standard one. Otherwise the estimate stands.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func snapStandardBaud(spb, colTimeS float64) float64 {
 	if !(spb > 0) || !(colTimeS > 0) {
 		return spb

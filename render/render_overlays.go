@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-LCD
+// ENGMODEL-OWNER-UNIT: FU-DSO-RENDER
 
 package render
 
@@ -15,7 +15,7 @@ import (
 // drawXY plots C1 (x) against C2 (y) — the Lissajous view (parity with the web
 // X-Y mode). Codes 0..255 map across the graticule (x) and up it (y); a stride
 // keeps dense records cheap.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawXY(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	valid := frameValid(f)
 	captions := !hud.UI.Layout.HideViewCaptions
@@ -53,7 +53,7 @@ func drawXY(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 
 // mathScale is the math trace's displayed units per division. Products use
 // four times the product of the channel scales, in V²/div; sums use C1 V/div.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func mathScale(hud HUD) float64 {
 	a := hud.Ch[0].VdivV * math.Max(hud.Ch[0].Probe, 1)
 	b := hud.Ch[1].VdivV * math.Max(hud.Ch[1].Probe, 1)
@@ -71,7 +71,7 @@ func mathScale(hud HUD) float64 {
 
 // mathCodes combines calibrated input voltages, not offset display codes.
 // The math trace has its own zero at screen centre.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func mathCodes(c1, c2 []uint8, hud HUD, cpd float64) []uint8 {
 	scale := mathScale(hud) / cpd
 	v1 := hud.Ch[0].VdivV * float64(max(hud.Ch[0].Zoom, 1)) / cpd * math.Max(hud.Ch[0].Probe, 1)
@@ -124,7 +124,7 @@ func mathCodes(c1, c2 []uint8, hud HUD, cpd float64) []uint8 {
 	return m
 }
 
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawMath(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
 	valid := frameValid(f)
 	if len(f.Codes8(1)) < valid {
@@ -147,7 +147,7 @@ func drawMath(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posF
 // plot and aligns while the timebase is unchanged. Its codes are re-read at
 // the live V/div and offset, so it keeps the volts it was saved at. A is the
 // info tint and B dim, distinct from the live channels and the purple math.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-138
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-138
 func drawRefs(sf Canvas, p plotArea, hud HUD) {
 	cols := [2]Color{colInfo, colDim}
 	live := [2][2]float64{ // per channel: analog V/div, offset volts
@@ -178,7 +178,7 @@ func drawRefs(sf Canvas, p plotArea, hud HUD) {
 
 // rescaleRef re-expresses codes saved at one analog V/div and offset at
 // another: a code reads (code-Mid8)*vdiv/cpd - off volts. Off-range clips.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func rescaleRef(r []uint8, vdiv, off, toVdiv, toOff, cpd float64) []uint8 {
 	k, b := vdiv/toVdiv, (toOff-off)*cpd/toVdiv
 	out := make([]uint8, len(r))
@@ -189,7 +189,7 @@ func rescaleRef(r []uint8, vdiv, off, toVdiv, toOff, cpd float64) []uint8 {
 }
 
 // decodeColor maps a decode span kind to a display colour.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func decodeColor(kind string) Color {
 	switch kind {
 	case "start", "stop", "ack":
@@ -219,7 +219,7 @@ var protoNames = []string{
 // the web's decode lane). Only in Y-T; the span sample indices map to screen x through the
 // same trace window. In BUS the selected packet is boxed with its list
 // number and the packets holding the match bytes are ticked.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
 func drawDecode(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
 	if hud.DecProto == 0 || f == nil {
 		return
@@ -335,7 +335,7 @@ func drawDecode(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, po
 }
 
 // layerNotes reports packets a bus layer has noted.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func layerNotes(ms []wsview.PacketMark) bool {
 	for _, m := range ms {
 		if m.Text != "" {
@@ -348,7 +348,7 @@ func layerNotes(ms []wsview.PacketMark) bool {
 // drawLayerCaptions writes each packet's layer note in the strip's byte row
 // from the packet's start to the next packet's (or the screen's end), cut to
 // fit; a note with fewer than four characters of room is left out.
-// TRLC-LINKS: REQ-SDS-241
+// TRLC-LINKS: REQ-DSO-241
 func drawLayerCaptions(sf Canvas, p plotArea, ms []wsview.PacketMark, sx func(float64) int, y int) {
 	for i, m := range ms {
 		if m.Text == "" {
@@ -372,7 +372,7 @@ func drawLayerCaptions(sf Canvas, p plotArea, ms []wsview.PacketMark, sx func(fl
 }
 
 // fillTri draws a small filled triangle pointing down, its base at row y.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 func fillTri(sf Canvas, x, y, h int, c Color) {
 	for dy := 0; dy <= h; dy++ {
 		hline(sf, x-(h-dy), x+(h-dy), y+dy, c)
@@ -389,7 +389,7 @@ var colMask = rgb(90, 120, 160)
 // lease's full-rate record, the envelope after one, a zoom) of the mask's
 // timebase reads the mask through trigger-relative time, as the engine tests
 // it and the web draws it.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawZoneMask(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
 	if !(posFrac >= 0 && posFrac <= 1) {
 		posFrac = 0.5
@@ -425,7 +425,7 @@ func drawZoneMask(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, 
 // drawMaskBounds draws the mask envelope's boundary lines over the record
 // window (win samples from left): column by column when the mask is the
 // window, else through trigger-relative time.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawMaskBounds(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, left float64) {
 	mw := hud.MaskWin
 	if hud.MaskMode <= 0 || mw <= 0 || len(hud.MaskLo) != mw || len(hud.MaskHi) != mw {
@@ -458,7 +458,7 @@ func drawMaskBounds(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, le
 // drawMaskHUD paints the mask pass/fail meter (top edge, under the liveness
 // strip) whenever mask testing or the zone trigger is on, plus the panel's
 // build/status line.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func drawMaskHUD(sf Canvas, hud HUD) {
 	if hud.MaskMode == 0 && hud.MaskMsg == "" && hud.ZoneMode == 0 {
 		return
@@ -507,7 +507,7 @@ func drawMaskHUD(sf Canvas, hud HUD) {
 // covering it): a reading or a length over the fields it sums up. Spans come
 // in time order with an enclosing one among its parts' neighbours, so the 64
 // each side are looked at.
-// TRLC-LINKS: REQ-SDS-021
+// TRLC-LINKS: REQ-DSO-021
 func enclosingSpans(sp []decode.Span) []bool {
 	out := make([]bool, len(sp))
 	for i, a := range sp {
@@ -528,14 +528,14 @@ func enclosingSpans(sp []decode.Span) []bool {
 // cache (framecalc.Decode), so the strip and the BUS packet list decode a
 // frame once, all of its record: the strip's spans are the list's, in record
 // sample indices, and the screen shows those it reaches.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func decodeFrame(f *sample.Frame, hud HUD) decode.Result {
 	return framecalc.Decode(f, decodeParams(hud))
 }
 
 // decodeParams are the HUD's decode settings: the panel's (framecalc.Params),
 // so the strip shares the packet list's decode of the record and its bytes.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func decodeParams(hud HUD) framecalc.DecodeParams {
 	return framecalc.Params(hud.DecProto, hud.DecBaud, hud.DecChA, hud.DecChB, hud.DecCPOL, hud.DecCPHA, hud.DecLSB, hud.DecFormat, hud.DecDelayNs, hud.DecParity)
 }

@@ -55,6 +55,7 @@ func cycle(t *testing.T, b hal.Board, c0 hal.Channel, req hal.Request, win hal.W
 	return f
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestOwnerCycle8Bit(t *testing.T) {
 	b := New(Config{})
 	if _, err := b.Platform().BringUp(context.Background()); err != nil {
@@ -83,6 +84,7 @@ func TestOwnerCycle8Bit(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestOwnerCycle16BitPeakPairs(t *testing.T) {
 	b := New(Config{Channels: 4, Format: sample.CodeFormat{Bits: 12, Storage: sample.U16, Shift: 4, Min: 0x0800, Max: 0xF7F0, Mid: 0x8000}})
 	f := cycle(t, b, hal.Channel{On: true, VoltsDiv: 1},
@@ -101,6 +103,7 @@ func TestOwnerCycle16BitPeakPairs(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestRefusals(t *testing.T) {
 	b := New(Config{})
 	ctx := context.Background()
@@ -131,6 +134,7 @@ func TestRefusals(t *testing.T) {
 	refused("budget", b.Storage().Settings().Put("settings", make([]byte, 5000)))
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestArmKindsAndStop(t *testing.T) {
 	b := New(Config{})
 	ctx := context.Background()
@@ -169,6 +173,7 @@ func TestArmKindsAndStop(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestNotTaken(t *testing.T) {
 	b := New(Config{NotTaken: true})
 	if _, err := b.Platform().BringUp(context.Background()); !errors.Is(err, hal.ErrNotTaken) {
@@ -176,6 +181,7 @@ func TestNotTaken(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestDevices(t *testing.T) {
 	b := New(Config{})
 	fb := b.Display().Framebuffer()
@@ -236,6 +242,7 @@ func TestDevices(t *testing.T) {
 
 func second[T any](_ T, ok bool) bool { return ok }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestExport(t *testing.T) {
 	b := New(Config{})
 	plan, _ := b.Planner().Plan(hal.Request{TimePerDivS: 1e-6, Depth: 2000})
@@ -251,6 +258,7 @@ func TestExport(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestTriggerDefault(t *testing.T) {
 	b := New(Config{})
 	st, err := b.Trigger().Default(hal.NodeEdge, hal.Source{Kind: hal.Analog, Index: 1})
@@ -262,6 +270,7 @@ func TestTriggerDefault(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestSelfCal(t *testing.T) {
 	b := New(Config{})
 	var steps []float64
@@ -283,6 +292,7 @@ func TestSelfCal(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func TestBeeperAndTouch(t *testing.T) {
 	b := New(Config{})
 	in := b.Input()

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -28,7 +28,7 @@ type seqEvent struct {
 
 // seqReference is the event-sequence trigger's contract
 // (ADR-PROTOCOL-SEQUENCE-TRIGGER): the events after which a match fires.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func seqReference(events []seqEvent, pattern []seqElem, qualify, endBad bool) []int {
 	state := make([]bool, len(pattern))
 	pending := false
@@ -63,7 +63,7 @@ func seqReference(events []seqEvent, pattern []seqElem, qualify, endBad bool) []
 }
 
 // Compare the event-sequence RTL with its reference on random streams.
-// TRLC-LINKS: REQ-SDS-013
+// TRLC-LINKS: REQ-DSO-013
 func TestEventSequenceRTL(t *testing.T) {
 	for _, tool := range []string{"iverilog", "vvp"} {
 		if _, err := exec.LookPath(tool); err != nil {

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-SPECTRUM
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_spectrum.js — the SPECTRUM workspace: a large FFT (the scope canvas in FFT
 // view), a small time trace beside it, the peak table with harmonic numbers and
 // THD (app_fft.js + peaks.js harmonics), and a readout. SPECTRUM again cycles
@@ -10,7 +10,7 @@ let specTraceT = 0, specSideT = 0, specArmedSpg = false;
 
 // The spectrogram runs while SPECTRUM shows it (as on the scope); leaving the
 // view stops it again (keeping the rows) unless the user armed it themselves.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 function specViewChanged(v) {
   anaTools(v);
   if (v === "SPG" && !spg.armed) { $("spgArm").click(); specArmedSpg = true; }
@@ -32,21 +32,21 @@ function specViewChanged(v) {
 }
 
 WS_HOOKS.push({
-  // TRLC-LINKS: REQ-SDS-216
+  // TRLC-LINKS: REQ-DSO-216
   enter(id) { if (id === "spectrum") specViewChanged(WSV.spectrum); },
-  // TRLC-LINKS: REQ-SDS-216
+  // TRLC-LINKS: REQ-DSO-216
   leave(prev) {
     if (prev !== "spectrum") return;
     if (spg.armed && specArmedSpg) { $("spgArm").click(); specArmedSpg = false; }
     $("tPersist").hidden = false;
   },
-  // TRLC-LINKS: REQ-SDS-216
+  // TRLC-LINKS: REQ-DSO-216
   view(id, v) { if (id === "spectrum") specViewChanged(v); },
 });
 
 // drawMiniTrace paints SPECTRUM's small time trace: both shown channels over the
 // home window (the hardware timebase), with a light graticule.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 function drawMiniTrace() {
   const cv = $("tracecv");
   if (!fitCanvas(cv)) return;
@@ -59,7 +59,7 @@ function drawMiniTrace() {
   const f = frame;
   if (f) {
     const h = homeWindow(f);
-    // TRLC-LINKS: REQ-SDS-216
+    // TRLC-LINKS: REQ-DSO-216
     const yOf = (code, zoom) => H * (1 - (0.5 + (code - 128) * zoom / 200));
     const chans = chanNums().reverse().map((n) => [n, chanShown(n), chanColor(n), (st && st["zoom" + n]) || 1]);
     for (const [ch, on, col, zoom] of chans) {
@@ -102,7 +102,7 @@ function drawMiniTrace() {
 }
 
 // specReadout fills the readout: what the spectrum covers and what it found.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 function specReadout() {
   const rows = [];
   const v = view.mode;
@@ -149,7 +149,7 @@ function specReadout() {
 
 // specOnBode lists the Bode points (newest sweep order: by frequency) in the
 // peaks pane while the Bode view is shown, and the readout counts them with it.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 function specOnBode(p) {
   if ($("bodeTable").hidden) return;
   const n = p && p.freq ? p.freq.length : 0;

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-AGENT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-AGENT
 
 package agent
 
@@ -20,7 +20,7 @@ import (
 // stops the vendor app for good (the descriptors it held stay with the
 // supervisor), recording what it did on the TakeoverResult that ResultOf
 // finds in its context.
-// TRLC-LINKS: REQ-SDS-122, REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-122, REQ-DSO-027
 type Board interface {
 	hal.SupervisorBoard
 
@@ -61,14 +61,14 @@ type Attacher interface {
 type resultKey struct{}
 
 // WithResult is ctx carrying res for the board's Takeover to record on.
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func WithResult(ctx context.Context, res *TakeoverResult) context.Context {
 	return context.WithValue(ctx, resultKey{}, res)
 }
 
 // ResultOf is the takeover result ctx carries, or a throwaway one: a board's
 // Takeover records its steps without checking who asked.
-// TRLC-LINKS: REQ-SDS-027
+// TRLC-LINKS: REQ-DSO-027
 func ResultOf(ctx context.Context) *TakeoverResult {
 	if r, ok := ctx.Value(resultKey{}).(*TakeoverResult); ok && r != nil {
 		return r

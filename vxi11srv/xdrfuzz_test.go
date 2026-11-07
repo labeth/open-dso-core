@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-VXI11SRV
+// ENGMODEL-OWNER-UNIT: FU-DSO-VXI11SRV
 
 package vxi11srv
 
@@ -13,7 +13,7 @@ import (
 // ARM target `int` is 32-bit, so a naive `off+n > len` bound check wraps for a
 // length near 0x7fffffff and slips into a panicking slice. This drives the
 // exact call-parse + dispatch path serve() runs.
-// TRLC-LINKS: REQ-SDS-024
+// TRLC-LINKS: REQ-DSO-024
 func TestXDRParseFuzz(t *testing.T) {
 	srv := &Server{h: func(line []byte) []byte { return append([]byte("echo:"), line...) }}
 	rng := rand.New(rand.NewSource(0x11223344))

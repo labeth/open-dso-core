@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-VISUAL
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // visual.js — what a decoded bus means, as state the BUS Visual view draws
 // (app_visual.js): a MIDI keyboard's notes, a DMX universe's levels, a PS/2
 // keyboard's keys and a mouse's moves, an LED strip's colours, an IR remote's
@@ -16,7 +16,7 @@
 const VIS_GAP = " \u22ef ";
 
 // visHex2 writes a byte as two upper-case hex digits.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visHex2(v) { return (v & 0xff).toString(16).toUpperCase().padStart(2, "0"); }
 
 // VIS_KINDS are the buses the Visual view draws: for each, by its decoder's
@@ -34,152 +34,152 @@ const VIS_KINDS = {};
 
 // visKind enters a bus in VIS_KINDS under its name and its aliases; key is
 // the name, the one VIS_VIEWS knows it by.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visKind(names, def) {
   def.key = names[0];
   for (const n of names) VIS_KINDS[n] = def;
 }
 
 visKind(["midi"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "MIDI keyboard", make: () => midiNew(), bytewise: true,
   // a capture: its own pushes and releases kept, and its span from its start
   // (tOf(0)) to its end (its last byte here; the view sets the record's end)
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => {
     s.cap = []; s.capT0 = tOf(0); s.capT1 = tOf(spans[spans.length - 1].i1);
     if (s.rec) s.recGaps = true; // a recording from captures misses what fell between them
     for (const sp of spans) if (sp.kind === "data" || sp.kind === "frame-error") midiByte(s, sp.kind === "data" ? sp.val : -1, tOf(sp.i0));
   },
   // the stream, gap-free: every note's whole length is seen
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t) => { s.cap = null; for (const u of units) midiByte(s, u & 0xff, t); },
 });
 visKind(["dmx512"], {
   title: "DMX512 levels",
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   make: () => ({ levels: new Uint8Array(512), changed: new Float64Array(512), slots: 0, sc: -1, frames: 0, times: [], lastT: -Infinity }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => dmxSpans(s, spans, tOf),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t) => dmxPacket(s, units, t, true), // a whole packet: its start code, its slots
 });
 visKind(["ps2"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "PS/2 keyboard and mouse", make: () => ps2New(), bytewise: true,
   // a capture: its own presses and releases (a key held across its gaps is
   // not known), a mouse's moves from the capture's start; its text after a gap mark
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => {
     s.cap = []; s.x = 0; s.y = 0; s.trail = [];
     if (s.typed && !s.typed.endsWith(VIS_GAP)) s.typed += VIS_GAP;
     for (const sp of spans) if (sp.kind === "data") ps2Byte(s, sp.val, sp.text.startsWith("H"), tOf(sp.i0));
   },
   // the stream, gap-free: every key's press and release, every move
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t) => { s.cap = null; for (const u of units) ps2Byte(s, u & 0xff, false, t); },
 });
 visKind(["ws281x"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "LED strip", make: () => ({ leds: [], cur: null, order: "GRB", frames: 0 }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans) => wsSpans(s, spans),
 });
 visKind(["irnec", "irsirc", "irrc5", "irrc6", "irmp"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "IR remote", make: () => ({ lastBtn: null, buttons: new Map(), cur: null }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => irSpans(s, spans, tOf),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t, note) => irUnits(s, units, t, note),
   streamed: ["irnec", "irsirc", "irrc5"],
 });
 visKind(["pwm"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "PWM duty", make: () => ({ duty: NaN, freq: NaN, periodS: NaN, hist: [], min: NaN, max: NaN }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf, r, dt) => pwmSpans(s, spans, r, dt, tOf),
 });
 visKind(["quad"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "Encoder position", make: () => ({ pos: 0, fwd: true, speed: 0, hist: [], lastCount: 0, gapless: false }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => stepSpans(s, spans, tOf),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t) => stepUnits(s, units, t, 4), // a cycle of the two lines: four counts
 });
 visKind(["stepper"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "Stepper position", make: () => ({ pos: 0, fwd: true, speed: 0, hist: [], lastCount: 0, gapless: false }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => stepSpans(s, spans, tOf),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t) => stepUnits(s, units, t, 1),
 });
 visKind(["caliper"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "Caliper reading", make: () => ({ text: "", value: NaN, unit: "", hist: [] }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => caliperSpans(s, spans, tOf),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t) => { if (units.length >= 3) caliperReading(s, units[0] | (units[1] << 8), units[2], t); },
 });
 visKind(["dcf77"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "DCF77 clock", make: () => ({ fields: {}, time: "", bad: false, secS: 0 }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf, r) => { dcfSpans(s, spans); if (r.meta && r.meta.baud > 0) s.secS = 1 / r.meta.baud; },
 });
 visKind(["uart"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "Terminal", make: () => ({ text: "", esc: "", cr: false }), bytewise: true,
   // a capture's text after a gap mark (what came between captures was not read)
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans) => {
     if (s.text && !s.text.endsWith(VIS_GAP) && spans.some((sp) => sp.kind === "data")) { s.text += VIS_GAP; s.esc = ""; }
     for (const sp of spans) if (sp.kind === "data") termByte(s, sp.val);
   },
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units) => { for (const u of units) termByte(s, u & 0xff); },
 });
 visKind(["lin"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "LIN frames", make: () => ({ frames: new Map(), errs: 0, capN: 0 }),
-  // TRLC-LINKS: REQ-SDS-278
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => { s.capN = (s.capN | 0) + 1; linSpans(s, spans, tOf); },
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t) => { s.capN = -1; linUnits(s, units, t); },
 });
 visKind(["usbpd"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "USB PD contract", make: () => ({ caps: [], request: null, contract: "", msgs: [] }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => pdSpans(s, spans, tOf),
 });
 visKind(["wiegand"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "Wiegand cards", make: () => ({ lastCard: null, cards: new Map() }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => wiegandSpans(s, spans, tOf),
   // the stream carries the facility and the card, not the frame's length (the newest capture's kept)
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t) => { if (units.length >= 2) wiegandCard(s, { bits: s.lastCard ? s.lastCard.bits : 0, fac: units[0], card: units[1], t }); },
 });
 visKind(["can", "canfd"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "CAN signals", make: () => ({ dbc: null, sigs: new Map(), frames: new Map(), capN: 0 }),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: (s, spans, tOf) => { s.capN++; canSpans(s, spans, tOf); },
   // the scope's stream: its end notes a frame's line with its identity (the FPGA's decode)
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   units: (s, units, t, note) => { s.capN = -1; canUnits(s, units, t, note); },
   streamed: ["can"], noteAtEnd: true,
 });
 visKind(["spdif"], {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   title: "S/PDIF audio", make: () => ({}),
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   spans: () => {}, // its audio is read from a whole record (Digital audio)
 });
 
@@ -187,7 +187,7 @@ visKind(["spdif"], {
 const VIS_PROTOS = Object.fromEntries(Object.entries(VIS_KINDS).map(([n, k]) => [n, k.title]));
 
 // visStreamed reports a bus the view reads gap-free from the scope's stream.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visStreamed(proto) { const k = VIS_KINDS[proto]; return !!(k && k.units && (!k.streamed || k.streamed.includes(proto))); }
 
 // VIS_KEEP is the most entries a table of what a bus sent keeps (its ids,
@@ -196,7 +196,7 @@ function visStreamed(proto) { const k = VIS_KINDS[proto]; return !!(k && k.units
 const VIS_KEEP = 512;
 
 // visKeep sets a table's entry as its newest, the oldest dropped past VIS_KEEP.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visKeep(m, key, v) {
   m.delete(key);
   m.set(key, v);
@@ -205,7 +205,7 @@ function visKeep(m, key, v) {
 
 // visNew is a protocol's empty state: what the view draws, before any data;
 // a bus the view has no picture of keeps a protocol layer's values.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visNew(proto) {
   const k = VIS_KINDS[proto];
   return Object.assign({ proto, updates: 0, last: 0 }, k ? k.make() : { notes: new Map() });
@@ -213,11 +213,11 @@ function visNew(proto) {
 
 // visIngest takes a frame's decode r into s: t0 the seconds the record began
 // at, dt a sample's seconds. The spans are the decode's, in time order.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visIngest(s, r, t0, dt) {
   const k = VIS_KINDS[s.proto];
   if (!k || !r || !r.spans || !r.spans.length) return;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const tOf = (i) => t0 + i * (dt > 0 ? dt : 0);
   k.spans(s, r.spans, tOf, r, dt);
   s.updates++;
@@ -226,7 +226,7 @@ function visIngest(s, r, t0, dt) {
 
 // visIngestUnits takes one frame of the scope's stream (its units, the first
 // at t seconds, its start's note) into a bus read gap-free.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visIngestUnits(s, units, t, note) {
   const k = VIS_KINDS[s.proto];
   if (!k || !visStreamed(s.proto) || !units || (!units.length && !note)) return;
@@ -245,7 +245,7 @@ const VIS_ANCHOR_S = 30;
 // start again): each read at page time now of the newest ordinal ord at hz
 // gives now - ord/hz, its delivery delay in it; the least of the last
 // VIS_ANCHOR_S seconds, kept per second, is the anchor.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visAnchor(A, now, ord, hz) {
   const off = now - ord / hz, sec = Math.floor(now);
   if (!A.b) A.b = [];
@@ -268,7 +268,7 @@ const VIS_LINE_UNITS = 16;
 // frame of its own (noteAtEnd: a bus noting a frame at its end, its last line
 // noted, goes on too). The frame before goes to out once the next starts. A
 // byte stream's (bytewise: its frames do not matter) lines go to out at once.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visStreamLine(S, l, t, out, bytewise, noteAtEnd) {
   const f = S.frame, units = l.v || [];
   if (bytewise) { out.push({ units, note: l.n || "", t }); return; } // a byte stream: each line at once
@@ -286,7 +286,7 @@ function visStreamLine(S, l, t, out, bytewise, noteAtEnd) {
 
 // visStreamFlush gives out the frame being gathered: always (all), or once
 // it is surely whole (its last line not full: a full one may go on).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visStreamFlush(S, all, out) {
   const f = S.frame;
   if (!f || (!all && f.full)) return;
@@ -305,17 +305,17 @@ const MIDI_FAMILIES = ["Piano", "Chromatic perc", "Organ", "Guitar", "Bass", "St
 
 // midiInstrument names a channel's instrument: its program's family, drums
 // on channel 10.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function midiInstrument(ch, prog) { return ch === 9 ? "Drums" : MIDI_FAMILIES[(prog >> 3) & 15]; }
 
 // midiNoteName names a MIDI note number ("C4" is 60).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function midiNoteName(n) { return MIDI_NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1); }
 
 // midiNew is a MIDI parser's state: running status, the notes held (key
 // channel*128+note), the piano roll, each channel's program, controllers and
 // pitch bend, the newest messages, and the synth's queue of events.
-// TRLC-LINKS: REQ-SDS-278, REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-278, REQ-DSO-279
 function midiNew() {
   return {
     run: 0, need: 0, data: [], sysex: null, sysexN: 0,
@@ -337,18 +337,18 @@ const MIDI_PPQ = 480, MIDI_TEMPO = 500000;
 // midiRecNew is an empty recording: each message's time (seconds) and its
 // bytes packed in one number (status, two data bytes, their count): a
 // sixteenth of the memory of an object a message, for an hour of playing.
-// TRLC-LINKS: REQ-SDS-282
+// TRLC-LINKS: REQ-DSO-282
 function midiRecNew() { return { t: [], m: [] }; }
 
 // midiSMF writes a recording (midiRecNew) as a Standard MIDI File, format 0:
 // one track, the tempo, each message at its time from the first, its end.
-// TRLC-LINKS: REQ-SDS-282
+// TRLC-LINKS: REQ-DSO-282
 function midiSMF(rec) {
   const order = rec.t.map((_, i) => i).sort((a, b) => rec.t[a] - rec.t[b] || a - b), trk = [];
-  // TRLC-LINKS: REQ-SDS-282
+  // TRLC-LINKS: REQ-DSO-282
   const bytes = (p) => [p & 0xff, (p >> 8) & 0xff, (p >> 16) & 0xff].slice(0, 1 + ((p >> 24) & 3));
   const ev = order.map((i) => ({ t: rec.t[i], b: bytes(rec.m[i]) }));
-  // TRLC-LINKS: REQ-SDS-282
+  // TRLC-LINKS: REQ-DSO-282
   const vlq = (n) => { const out = [n & 0x7f]; n = Math.floor(n / 128); while (n > 0) { out.unshift((n & 0x7f) | 0x80); n = Math.floor(n / 128); } return out; };
   trk.push(0, 0xff, 0x51, 0x03, (MIDI_TEMPO >> 16) & 0xff, (MIDI_TEMPO >> 8) & 0xff, MIDI_TEMPO & 0xff);
   const t0 = ev.length ? ev[0].t : 0, perS = MIDI_PPQ * 1e6 / MIDI_TEMPO;
@@ -359,7 +359,7 @@ function midiSMF(rec) {
     last = tick;
   }
   trk.push(0, 0xff, 0x2f, 0x00);
-  // TRLC-LINKS: REQ-SDS-282
+  // TRLC-LINKS: REQ-DSO-282
   const be32 = (n) => [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
   return Uint8Array.from([0x4d, 0x54, 0x68, 0x64, ...be32(6), 0, 0, 0, 1, (MIDI_PPQ >> 8) & 0xff, MIDI_PPQ & 0xff,
     0x4d, 0x54, 0x72, 0x6b, ...be32(trk.length), ...trk]);
@@ -373,7 +373,7 @@ const MIDI_CAP = 512;
 const MIDI_OUT = 2048;
 
 // midiOut queues an event for the synth, the oldest dropped past MIDI_OUT.
-// TRLC-LINKS: REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-279
 function midiOut(m, e) {
   m.out.push(e);
   if (m.out.length > MIDI_OUT) m.out.splice(0, m.out.length - MIDI_OUT);
@@ -384,7 +384,7 @@ const MIDI_ROLL = 600;
 const MIDI_LOG = 60;
 
 // midiDataLen is the data bytes a status byte takes (-1: sysex, to F7).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function midiLen(st) {
   switch (st >> 4) {
     case 0x8: case 0x9: case 0xA: case 0xB: case 0xE: return 2;
@@ -398,7 +398,7 @@ function midiLen(st) {
 
 // midiByte takes one byte of the stream at t seconds (b < 0: a framing
 // error, which ends running status).
-// TRLC-LINKS: REQ-SDS-278, REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-278, REQ-DSO-279
 function midiByte(m, b, t) {
   if (b < 0) { m.run = 0; m.need = 0; m.data = []; m.sysex = null; m.errs++; return; }
   if (b >= 0xF8) { // real time: between any two bytes
@@ -424,7 +424,7 @@ function midiByte(m, b, t) {
 }
 
 // midiLog keeps a message for the view's list.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function midiLog(m, t, text) {
   m.log.push({ t, text });
   if (m.log.length > MIDI_LOG) m.log.splice(0, m.log.length - MIDI_LOG);
@@ -432,7 +432,7 @@ function midiLog(m, t, text) {
 
 // midiMsg acts on a whole message: notes held and their roll, controllers,
 // programs and bends, and an event for the synth.
-// TRLC-LINKS: REQ-SDS-278, REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-278, REQ-DSO-279
 function midiMsg(m, st, d, t) {
   m.msgs++;
   if (m.rec && st < 0xF0) { // recording: every channel message, as it came (packed: its time, its bytes)
@@ -476,7 +476,7 @@ function midiMsg(m, st, d, t) {
 const MIDI_CC_NAMES = { 1: "mod", 7: "volume", 10: "pan", 11: "expression", 64: "sustain", 91: "reverb", 93: "chorus", 120: "sound off", 121: "reset", 123: "notes off" };
 
 // midiNoteOff ends a note held on a channel.
-// TRLC-LINKS: REQ-SDS-278, REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-278, REQ-DSO-279
 function midiNoteOff(m, ch, note, t) {
   const k = ch * 128 + note, n = m.held.get(k);
   if (!n) return;
@@ -486,7 +486,7 @@ function midiNoteOff(m, ch, note, t) {
 }
 
 // midiAllOff ends every note held (on one channel, or all).
-// TRLC-LINKS: REQ-SDS-278, REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-278, REQ-DSO-279
 function midiAllOff(m, t, ch) {
   for (const n of [...m.held.values()]) if (ch === undefined || n.ch === ch) midiNoteOff(m, n.ch, n.note, t);
 }
@@ -496,7 +496,7 @@ function midiAllOff(m, t, ch) {
 const MIDI_HELD_MAX = 6;
 
 // midiExpire ends the notes held longer than MIDI_HELD_MAX at t.
-// TRLC-LINKS: REQ-SDS-278, REQ-SDS-279
+// TRLC-LINKS: REQ-DSO-278, REQ-DSO-279
 function midiExpire(m, t) {
   for (const n of [...m.held.values()]) if (t - n.t0 > MIDI_HELD_MAX) midiNoteOff(m, n.ch, n.note, t);
 }
@@ -505,11 +505,11 @@ function midiExpire(m, t) {
 
 // dmxSpans takes a frame's DMX packets: after each break the start code, then
 // the slots in order (a slot read wrong keeps its last level).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function dmxSpans(s, spans, tOf) {
   let slot = -1, t = 0, vals = null, run = false;
   // a frame's first packet follows a gap (the capture's); the next ones it holds follow it at once
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const done = () => { if (vals) { dmxPacket(s, vals, t, run); run = true; } vals = null; };
   for (const sp of spans) {
     if (sp.kind === "sof") { done(); slot = 0; vals = []; t = tOf(sp.i0); continue; }
@@ -524,7 +524,7 @@ function dmxSpans(s, spans, tOf) {
 // at t; next: it came right after the one before (the same capture, or the
 // stream), so their interval is the bus's. Only a start code of 0 carries
 // levels; another (RDM, text) is counted.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function dmxPacket(s, vals, t, next) {
   if (!vals.length) return;
   s.sc = vals[0];
@@ -542,7 +542,7 @@ function dmxPacket(s, vals, t, next) {
 
 // dmxRate is the bus's packets a second: one over the median interval of
 // packets that came one right after the other (0: none yet).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function dmxRate(s) {
   if (!s.times.length) return 0;
   const m = Float64Array.from(s.times).sort()[s.times.length >> 1];
@@ -554,7 +554,7 @@ function dmxRate(s) {
 // ps2New is the state of a PS/2 line: a keyboard's keys held and text typed,
 // a mouse's buttons, position and trail, which of the two the device is
 // (votes, or the host's commands), and the parse of each.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function ps2New() {
   return {
     kind: "", forced: false, kbdVotes: 0, mouseVotes: 0, lastHost: -1, idNext: false, wheel: false,
@@ -565,7 +565,7 @@ function ps2New() {
 
 // ps2Byte takes one byte: from the host (a command: the keyboard's LEDs, the
 // mouse's ID, sample rate) or from the device (scan codes or mouse packets).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function ps2Byte(s, b, host, t) {
   if (host) {
     if (b === 0xED) s.kbdVotes += 4;
@@ -599,7 +599,7 @@ function ps2Byte(s, b, host, t) {
 
 // ps2Key reads a scan code (set 2): E0 an extended key's prefix, F0 a
 // release's, E1 Pause's sequence of eight.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function ps2Key(s, b, t) {
   if (s.skip > 0) { s.skip--; return; }
   if (b === 0xE1) { s.skip = 7; ps2Press(s, "E1", true, t); s.keys.delete("E1"); return; }
@@ -612,7 +612,7 @@ function ps2Key(s, b, t) {
 }
 
 // ps2Press marks a key down or up, and types what it types.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function ps2Press(s, code, down, t) {
   const k = PS2_KEYS.get(code);
   if (s.cap && s.cap.length < 512) s.cap.push({ code, down, t });
@@ -635,7 +635,7 @@ function ps2Press(s, code, down, t) {
 
 // ps2Mouse reads mouse packets: three bytes (four with a wheel), the first
 // with bit 3 set; a byte that cannot start one is dropped until one can.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function ps2Mouse(s, b, t) {
   if (!s.pkt.length && !(b & 0x08)) { s.mouseVotes = Math.max(0, s.mouseVotes - 1); return; }
   s.pkt.push(b);
@@ -654,10 +654,10 @@ function ps2Mouse(s, b, t) {
 
 // PS2_LAYOUT is a keyboard's keys as [set-2 code, label, x, y, width, chars]:
 // the main block, the cursor block and the number pad, in key units.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 const PS2_LAYOUT = (() => {
   const out = [];
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const row = (y, x0, keys) => {
     let x = x0;
     for (const k of keys) {
@@ -676,7 +676,7 @@ const PS2_LAYOUT = (() => {
   row(1.25, 0, [["0E", "`", 1, "`~"], ...dcodes.map((c, i) => [c, digits[i], 1, digits[i] + shifted[i]]), ["4E", "-", 1, "-_"], ["55", "=", 1, "=+"], ["66", "Bksp", 2]]);
   row(1.25, 15.5, [["E070", "Ins"], ["E06C", "Home"], ["E07D", "PgUp"]]);
   row(1.25, 19, [["77", "Num"], ["E04A", "/", 1, "//"], ["7C", "*", 1, "**"], ["7B", "-", 1, "--"]]);
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const letters = (s, codes) => s.split("").map((c, i) => [codes[i], c.toUpperCase(), 1, c + c.toUpperCase()]);
   row(2.25, 0, [["0D", "Tab", 1.5, "\t\t"], ...letters("qwertyuiop", ["15", "1D", "24", "2D", "2C", "35", "3C", "43", "44", "4D"]), ["54", "[", 1, "[{"], ["5B", "]", 1, "]}"], ["5D", "\\", 1.5, "\\|"]]);
   row(2.25, 15.5, [["E071", "Del"], ["E069", "End"], ["E07A", "PgDn"]]);
@@ -699,7 +699,7 @@ const PS2_KEYS = new Map(PS2_LAYOUT.map((k) => [k.code, k]));
 
 // wsSpans takes a frame's LED frames: the bytes from each frame start to its
 // reset latch, three a LED; the strip shown is the newest frame latched.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function wsSpans(s, spans) {
   for (const sp of spans) {
     if (sp.kind === "sof") { s.cur = []; continue; }
@@ -710,7 +710,7 @@ function wsSpans(s, spans) {
 
 // wsColours are the LEDs' colours, [r, g, b] each, of bytes in order (GRB,
 // RGB or BRG; GRBW and RGBW take four bytes a LED and fold the white in).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function wsColours(bytes, order) {
   const n = order.length, out = [];
   for (let i = 0; i + n <= bytes.length; i += n) {
@@ -725,12 +725,12 @@ function wsColours(bytes, order) {
 
 // irSpans takes a frame's remote codes: each frame's address and command
 // (spans "A.." and "C.."), a repeat code counting on the last button.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function irSpans(s, spans, tOf) {
   // a frame's address and command come in either order (Sony's command first):
   // the button counts once both are in, or with its command alone at the next
   // frame or the record's end (a protocol without an address)
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const flush = () => { if (s.cur && s.cur.cmd >= 0) irButton(s, s.cur); s.cur = null; };
   for (const sp of spans) {
     if (sp.kind === "sof") {
@@ -754,7 +754,7 @@ function irSpans(s, spans, tOf) {
 // command, its inverse; an address not followed by its inverse is NEC's
 // extended 16-bit one; REP: the button held), Sony's (SIRC: command, then
 // address) or RC-5's (address, command).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function irUnits(s, u, t, note) {
   if (note === "REP") { if (s.lastBtn) { s.lastBtn.repeats++; s.lastBtn.t = t; } return; }
   let addr = -1, cmd = -1;
@@ -765,7 +765,7 @@ function irUnits(s, u, t, note) {
 }
 
 // irButton counts a button pressed: the newest, and the table of all seen.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function irButton(s, f) {
   const key = f.addr + "/" + f.cmd;
   const b = s.buttons.get(key) || { addr: f.addr, cmd: f.cmd, count: 0, t: 0, repeats: 0, name: f.name };
@@ -778,7 +778,7 @@ function irButton(s, f) {
 
 // pwmSpans takes a frame's periods: the duty cycle (mean, least, most), the
 // period from the decode, and a servo's angle where the period is a servo's.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function pwmSpans(s, spans, r, dt, tOf) {
   let sum = 0, n = 0, lo = Infinity, hi = -Infinity;
   for (const sp of spans) {
@@ -797,7 +797,7 @@ function pwmSpans(s, spans, r, dt, tOf) {
 // pwmServo is a servo's angle in degrees for a PWM state (NaN: no servo): a
 // period of 10 to 30 ms whose pulse is 0.5 to 2.5 ms, 1.5 ms the centre and
 // 90 degrees a millisecond either way.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function pwmServo(s) {
   if (!(s.periodS >= 0.01 && s.periodS <= 0.03)) return NaN;
   const pw = s.duty / 100 * s.periodS * 1000;
@@ -808,7 +808,7 @@ function pwmServo(s) {
 // stepSpans takes a frame's steps: each frame's count runs from its start,
 // so the steps it adds are its last count; the speed is the steps over the
 // time they took.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function stepSpans(s, spans, tOf) {
   let last = 0, first = NaN, end = NaN, n = 0;
   for (const sp of spans) {
@@ -829,7 +829,7 @@ function stepSpans(s, spans, tOf) {
 
 // stepUnits takes a frame of the stream's steps (each unit one: 1 forward, 0
 // back; per counts a step): every step counted, so the position is the shaft's.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function stepUnits(s, units, t, per) {
   let d = 0;
   for (const u of units) d += u ? per : -per;
@@ -844,7 +844,7 @@ function stepUnits(s, units, t, per) {
 // ---- caliper, DCF77, terminal ----------------------------------------------------
 
 // caliperSpans takes a frame's readings ("12.34mm", "0.4860in").
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function caliperSpans(s, spans, tOf) {
   for (const sp of spans) {
     if (sp.kind !== "rw") continue;
@@ -857,7 +857,7 @@ function caliperSpans(s, spans, tOf) {
 // caliperReading reads a frame's count and flags as the decoder does: a
 // hundredth of a millimetre a count (an inch flag: half a thousandth), the
 // sign flag negative.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function caliperReading(s, num, flags, t) {
   const v = ((flags >> 4) & 1) === 1 && num !== 0 ? -num : num;
   if (((flags >> 7) & 1) === 1) caliperShow(s, v / 2000, "in", t);
@@ -865,7 +865,7 @@ function caliperReading(s, num, flags, t) {
 }
 
 // caliperShow takes one reading: its text, value, unit and history.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function caliperShow(s, v, unit, t) {
   s.text = String(v) + unit; s.value = v; s.unit = unit;
   s.hist.push({ t, v });
@@ -877,7 +877,7 @@ const DCF77_DOW = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // dcfSpans takes a frame's minute fields (BCD) and writes the time they
 // carry: "14:05 Tue 27.10.2026".
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function dcfSpans(s, spans) {
   let got = false;
   for (const sp of spans) {
@@ -889,7 +889,7 @@ function dcfSpans(s, spans) {
   }
   if (!got) return;
   const f = s.fields;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const two = (k) => f[k] ? String(f[k].v).padStart(2, "0") : "--";
   s.time = two("HR") + ":" + two("MIN") + (f.DOW ? " " + (DCF77_DOW[f.DOW.v] || "?") : "") +
     (f.DAY ? " " + two("DAY") + "." + two("MON") + ".20" + two("YR") : "");
@@ -897,7 +897,7 @@ function dcfSpans(s, spans) {
 }
 
 // dcfBCD is a binary-coded decimal's value.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function dcfBCD(v) { return (v >> 4) * 10 + (v & 0xf); }
 
 // TERM_MAX is the characters the terminal keeps.
@@ -906,7 +906,7 @@ const TERM_MAX = 20000;
 // termByte writes a byte to the terminal: CR LF, LF and a lone CR end a
 // line, backspace takes one back, an ANSI escape sequence is dropped, a
 // byte that does not print shows as a middle dot.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function termByte(s, b) {
   if (s.esc) { // ESC [ parameters, then a final byte 0x40-0x7E; ESC and one other byte
     s.esc += String.fromCharCode(b);
@@ -929,10 +929,10 @@ function termByte(s, b) {
 
 // pdSpans takes a frame's PD messages: a source's capabilities, a sink's
 // request, and the contract the source's Accept and PS_RDY settle.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function pdSpans(s, spans, tOf) {
   let msg = null;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const done = () => { if (msg) pdMessage(s, msg); msg = null; };
   for (const sp of spans) {
     if (sp.kind === "sof") { done(); msg = { sop: sp.text, name: "", bytes: [], bad: false, t: tOf(sp.i0) }; continue; }
@@ -947,7 +947,7 @@ function pdSpans(s, spans, tOf) {
 }
 
 // pdMessage acts on a whole message (its header, data objects and CRC).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function pdMessage(s, m) {
   if (m.bytes.length < 6 || m.bad) return;
   const head = m.bytes[0] | (m.bytes[1] << 8), count = (head >> 12) & 7;
@@ -966,7 +966,7 @@ function pdMessage(s, m) {
 
 // pdPDO reads a source's power data object: fixed, battery, variable or an
 // augmented (PPS) one, as {type, text, mv, mvMin, ma, mw}.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function pdPDO(p) {
   const kind = p >>> 30;
   if (kind === 0) {
@@ -987,7 +987,7 @@ function pdPDO(p) {
 
 // pdRDO reads a sink's request against the capabilities it answers: the
 // object it asks for (1-based) and its current, or a PPS one's voltage.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function pdRDO(r, caps) {
   const pos = (r >>> 28) & 7, cap = caps[pos - 1];
   if (cap && cap.type === "PPS") {
@@ -1002,7 +1002,7 @@ function pdRDO(r, caps) {
 // ---- Wiegand ----------------------------------------------------------------------
 
 // wiegandSpans takes a frame's cards: the bits, facility code and card number.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function wiegandSpans(s, spans, tOf) {
   let cur = null;
   for (const sp of spans) {
@@ -1020,7 +1020,7 @@ function wiegandSpans(s, spans, tOf) {
 
 // wiegandCard counts a card read (by its facility and number; its length the
 // newest read's, 0 not known).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function wiegandCard(s, f) {
   const key = f.fac + "/" + f.card, c = s.cards.get(key) || { fac: f.fac, card: f.card, bits: 0, count: 0, t: 0 };
   c.count++; c.t = f.t;
@@ -1034,7 +1034,7 @@ function wiegandCard(s, f) {
 // dbcParse reads a DBC file's messages and their signals: {id -> {name, dlc,
 // signals: [{name, start, len, intel, signed, factor, offset, unit, mux}]}}
 // (an extended id carries bit 31 in the file, cleared here).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function dbcParse(text) {
   const msgs = new Map();
   let cur = null;
@@ -1059,9 +1059,9 @@ function dbcParse(text) {
 // dbcRaw extracts a signal's raw value from a frame's bytes: Intel order from
 // its least significant bit up, Motorola from its most significant bit
 // (DBC's numbering) down through the bytes.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function dbcRaw(sig, bytes) {
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const bit = (p) => (bytes[p >> 3] >> (p & 7)) & 1;
   let v = 0;
   if (sig.intel) {
@@ -1079,10 +1079,10 @@ function dbcRaw(sig, bytes) {
 
 // canSpans takes a frame's CAN frames: with a DBC file, each signal's newest
 // value and its history; without one, each id's newest bytes.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function canSpans(s, spans, tOf) {
   let cur = null;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const done = () => {
     if (cur && !cur.bad && cur.id >= 0) canFrame(s, cur.id, cur.bytes, cur.t);
     cur = null;
@@ -1099,7 +1099,7 @@ function canSpans(s, spans, tOf) {
 
 // canFrame takes one CAN frame: its identifier's newest bytes, count and
 // period, and (a DBC file loaded) its message's signals.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function canFrame(s, id, bytes, t) {
   visFrameSeen(s, id, bytes, t);
   const msg = s.dbc && s.dbc.get(id);
@@ -1120,7 +1120,7 @@ function canFrame(s, id, bytes, t) {
 // canUnits takes a frame of the stream: its bytes, its identity in the
 // note its end gave the line (hex, X before an extended one, " FD" after an
 // FD frame's, " RTR" a remote frame's: no bytes).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function canUnits(s, units, t, note) {
   const m = /^(X?)([0-9A-F]+)( FD)?( RTR)?$/.exec(note || "");
   if (!m) return;
@@ -1130,10 +1130,10 @@ function canUnits(s, units, t, note) {
 // linSpans takes a frame's LIN frames: each identifier's newest response, its
 // count, and the frames whose checksum or identifier parity failed (not the
 // record's last: the record's end can cut its response short).
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function linSpans(s, spans, tOf) {
   let cur = null;
-  // TRLC-LINKS: REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-278
   const done = (last) => {
     if (cur && cur.id >= 0 && cur.ck) {
       if (cur.bad) { if (!last) s.errs++; }
@@ -1156,7 +1156,7 @@ function linSpans(s, spans, tOf) {
 // linUnits takes a frame of the stream: its protected identifier, its
 // response and its checksum (enhanced, or classic for the diagnostic frames
 // and LIN 1.x), the identifier's parity and the checksum checked.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function linUnits(s, units, t) {
   if (units.length < 2) return;
   const pid = units[0], id = pid & 0x3f, data = units.slice(1, -1), ck = units[units.length - 1];
@@ -1169,7 +1169,7 @@ function linUnits(s, units, t) {
 // count, and its period, timed between two of its frames one right after the
 // other (in one capture: s.capN numbers them; the stream: -1, gap-free) as
 // the median of its last eight.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function visFrameSeen(s, id, bytes, t) {
   const old = s.frames.get(id), capN = s.capN === undefined ? -1 : s.capN;
   const f = { bytes, t, count: (old ? old.count : 0) + 1, capN, ivs: old ? old.ivs : [], period: old ? old.period : NaN };
@@ -1186,7 +1186,7 @@ function visFrameSeen(s, id, bytes, t) {
 // layerNotes takes packets' layer notes ("LM75 48 read Temperature 25.5 C"):
 // each note's text without its numbers is its key, its numbers the values,
 // so a sensor's readings keep one row that updates and a history to graph.
-// TRLC-LINKS: REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-278
 function layerNotes(s, packets, t) {
   for (const p of packets) {
     if (!p.note) continue;

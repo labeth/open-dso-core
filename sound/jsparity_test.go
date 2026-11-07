@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -36,7 +36,7 @@ type pvec struct {
 }
 
 // num writes a float as the JS side's JSON does (non-finite as strings).
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func num(v float64) any {
 	switch {
 	case math.IsNaN(v):
@@ -50,7 +50,7 @@ func num(v float64) any {
 }
 
 // nums maps num over a slice.
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func nums(x []float64) []any {
 	out := make([]any, len(x))
 	for i, v := range x {
@@ -60,7 +60,7 @@ func nums(x []float64) []any {
 }
 
 // goReading is the Go side of a vector in the JS result's shape.
-// TRLC-LINKS: REQ-SDS-266, REQ-SDS-267, REQ-SDS-268, REQ-SDS-269, REQ-SDS-270, REQ-SDS-271, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-266, REQ-DSO-267, REQ-DSO-268, REQ-DSO-269, REQ-DSO-270, REQ-DSO-271, REQ-DSO-272
 func goReading(v pvec) any {
 	switch v.Kind {
 	case "measure":
@@ -177,7 +177,7 @@ func goReading(v pvec) any {
 
 // same compares a Go reading with the JS one: every Go key must be there,
 // numbers to 1e-6 relative (or 1e-9 absolute), strings and booleans exactly.
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func same(path string, g, j any) error {
 	switch gv := g.(type) {
 	case map[string]any:
@@ -224,7 +224,7 @@ func same(path string, g, j any) error {
 // audio: tones, chords, tremolo, vibrato, FM, envelopes, CV steps, LFOs, a
 // circuit's input and output. Skips without node (fails under
 // CI_REQUIRE_BROWSER=1).
-// TRLC-LINKS: REQ-SDS-266, REQ-SDS-267, REQ-SDS-268, REQ-SDS-269, REQ-SDS-270, REQ-SDS-271, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-266, REQ-DSO-267, REQ-DSO-268, REQ-DSO-269, REQ-DSO-270, REQ-DSO-271, REQ-DSO-272
 func TestSoundJSParity(t *testing.T) {
 	testenv.NeedNode(t)
 	node, _ := exec.LookPath("node")

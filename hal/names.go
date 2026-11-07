@@ -25,6 +25,7 @@ var (
 	optNames        = []string{"logic-probe", "awg", "counter", "segments", "stacker"}
 )
 
+// TRLC-LINKS: REQ-DSO-1001
 func nameOf(names []string, i int, what string) ([]byte, error) {
 	if i < 0 || i >= len(names) || names[i] == "" {
 		return nil, fmt.Errorf("hal: %s %d has no name", what, i)
@@ -32,6 +33,7 @@ func nameOf(names []string, i int, what string) ([]byte, error) {
 	return []byte(names[i]), nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func indexOf(names []string, b []byte, what string) (int, error) {
 	for i, n := range names {
 		if n != "" && n == string(b) {
@@ -42,6 +44,7 @@ func indexOf(names []string, b []byte, what string) (int, error) {
 }
 
 // String returns the node's profile name.
+// TRLC-LINKS: REQ-DSO-1001
 func (n TrigNode) String() string {
 	if s, ok := trigNodeNames[n]; ok {
 		return s
@@ -50,6 +53,7 @@ func (n TrigNode) String() string {
 }
 
 // MarshalText returns the node's profile name.
+// TRLC-LINKS: REQ-DSO-1001
 func (n TrigNode) MarshalText() ([]byte, error) {
 	if s, ok := trigNodeNames[n]; ok {
 		return []byte(s), nil
@@ -58,6 +62,7 @@ func (n TrigNode) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText parses a node name such as "frame-start".
+// TRLC-LINKS: REQ-DSO-1001
 func (n *TrigNode) UnmarshalText(b []byte) error {
 	for k, s := range trigNodeNames {
 		if s == string(b) {
@@ -69,11 +74,13 @@ func (n *TrigNode) UnmarshalText(b []byte) error {
 }
 
 // MarshalText returns the kind's profile name.
+// TRLC-LINKS: REQ-DSO-1001
 func (k SourceKind) MarshalText() ([]byte, error) {
 	return nameOf(sourceKindNames, int(k), "source kind")
 }
 
 // UnmarshalText parses a source kind name.
+// TRLC-LINKS: REQ-DSO-1001
 func (k *SourceKind) UnmarshalText(b []byte) error {
 	i, err := indexOf(sourceKindNames, b, "source kind")
 	*k = SourceKind(i)
@@ -81,9 +88,11 @@ func (k *SourceKind) UnmarshalText(b []byte) error {
 }
 
 // MarshalText returns the slope's profile name.
+// TRLC-LINKS: REQ-DSO-1001
 func (s Slope) MarshalText() ([]byte, error) { return nameOf(slopeNames, int(s), "slope") }
 
 // UnmarshalText parses a slope name.
+// TRLC-LINKS: REQ-DSO-1001
 func (s *Slope) UnmarshalText(b []byte) error {
 	i, err := indexOf(slopeNames, b, "slope")
 	*s = Slope(i)
@@ -91,9 +100,11 @@ func (s *Slope) UnmarshalText(b []byte) error {
 }
 
 // MarshalText returns the operator's profile name.
+// TRLC-LINKS: REQ-DSO-1001
 func (q QualOp) MarshalText() ([]byte, error) { return nameOf(qualOpNames, int(q), "qualifier") }
 
 // UnmarshalText parses a qualifier operator name.
+// TRLC-LINKS: REQ-DSO-1001
 func (q *QualOp) UnmarshalText(b []byte) error {
 	i, err := indexOf(qualOpNames, b, "qualifier")
 	*q = QualOp(i)
@@ -101,11 +112,13 @@ func (q *QualOp) UnmarshalText(b []byte) error {
 }
 
 // MarshalText returns the format's profile name.
+// TRLC-LINKS: REQ-DSO-1001
 func (p PixelFormat) MarshalText() ([]byte, error) {
 	return nameOf(pixelNames, int(p), "pixel format")
 }
 
 // UnmarshalText parses a pixel format name.
+// TRLC-LINKS: REQ-DSO-1001
 func (p *PixelFormat) UnmarshalText(b []byte) error {
 	i, err := indexOf(pixelNames, b, "pixel format")
 	*p = PixelFormat(i)
@@ -113,11 +126,13 @@ func (p *PixelFormat) UnmarshalText(b []byte) error {
 }
 
 // MarshalText returns the watchdog kind's profile name.
+// TRLC-LINKS: REQ-DSO-1001
 func (w WatchdogKind) MarshalText() ([]byte, error) {
 	return nameOf(watchdogNames, int(w), "watchdog")
 }
 
 // UnmarshalText parses a watchdog kind name.
+// TRLC-LINKS: REQ-DSO-1001
 func (w *WatchdogKind) UnmarshalText(b []byte) error {
 	i, err := indexOf(watchdogNames, b, "watchdog")
 	*w = WatchdogKind(i)
@@ -125,6 +140,7 @@ func (w *WatchdogKind) UnmarshalText(b []byte) error {
 }
 
 // MarshalText lists the options' names, comma separated.
+// TRLC-LINKS: REQ-DSO-1001
 func (o OptSet) MarshalText() ([]byte, error) {
 	var names []string
 	for i, n := range optNames {
@@ -136,6 +152,7 @@ func (o OptSet) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText parses comma-separated option names.
+// TRLC-LINKS: REQ-DSO-1001
 func (o *OptSet) UnmarshalText(b []byte) error {
 	var out OptSet
 	for f := range strings.SplitSeq(string(b), ",") {

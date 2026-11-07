@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -16,7 +16,7 @@ import (
 // jsOpts is a PARTIAL options object for the JS side: omitempty drops zero
 // fields so Object.assign({}, SRCOMP_DEFAULT, opts) fills them — mirroring
 // CompOpts' zero-means-default semantics exactly.
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 type jsOpts struct {
 	Fbw   float64 `json:"fbw,omitempty"`
 	Eps   float64 `json:"eps,omitempty"`
@@ -24,7 +24,7 @@ type jsOpts struct {
 	Order int     `json:"order,omitempty"`
 }
 
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 func (o *jsOpts) goOpts() CompOpts {
 	if o == nil {
 		return CompOpts{}
@@ -32,14 +32,14 @@ func (o *jsOpts) goOpts() CompOpts {
 	return CompOpts{Fbw: o.Fbw, Eps: o.Eps, Gmax: o.Gmax, Order: o.Order}
 }
 
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 type autoCase struct {
 	BitsGained float64 `json:"bitsGained"`
 	RawNyqHz   float64 `json:"rawNyqHz"`
 	Spend      float64 `json:"spend"`
 }
 
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 type compCase struct {
 	Mean   []float32 `json:"mean"`
 	DtFine float64   `json:"dtFine"`
@@ -55,7 +55,7 @@ type compCase struct {
 // end-to-end compensated arrays to one float32 ULP (both engines round the
 // same ~1e-10-agreeing float64 stream to float32 independently). Skips when
 // node is unavailable (a hard failure under CI_REQUIRE_BROWSER=1).
-// TRLC-LINKS: REQ-SDS-142
+// TRLC-LINKS: REQ-DSO-142
 func TestCompParityJS(t *testing.T) {
 	testenv.NeedNode(t)
 	node, _ := exec.LookPath("node")

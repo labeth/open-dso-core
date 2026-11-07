@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -27,7 +27,7 @@ import (
 // which engine/soft_client_test.go checks against the page's reader): a
 // word k < 2^31 then k words, or 2^31|k then a quiet word that comes k
 // times.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func webdecRLE(raw []byte, mask uint32) []byte {
 	n := len(raw) / 4
 	var out []byte
@@ -75,7 +75,7 @@ type webdecBenchCase struct {
 
 // webdecBenchInfo is the stream header the engine sends for a case
 // (engine ClientStreamInfo) with the settings its registry would use.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func webdecBenchInfo(tc streamCPUCase, ss float64, session int) map[string]any {
 	p := map[string]any{"chA": 0, "threshold": 128, "haveThr": true, "thresholdB": 128, "haveThrB": true}
 	switch tc.c.name {
@@ -108,7 +108,7 @@ func webdecBenchInfo(tc streamCPUCase, ss float64, session int) map[string]any {
 // SDS_WEBDEC_SECS sets each stream's signal time (1 s; 0.2 s with -short),
 // SDS_WEBDEC_ONLY the protocols.
 // mapValue is m[key] as a T; the test fails when it holds another type.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func mapValue[T any](t *testing.T, m map[string]any, key string) T {
 	t.Helper()
 	v, ok := m[key].(T)
@@ -118,7 +118,7 @@ func mapValue[T any](t *testing.T, m map[string]any, key string) T {
 	return v
 }
 
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-240
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func TestWebDecBrowserThroughput(t *testing.T) {
 	testenv.NeedNode(t)
 	names := []string{"maple", "mdio", "swd", "ws281x", "swim", "spdif", "sdcard", "pdi", "dmx512", "onewire", "usbpd", "lin"}

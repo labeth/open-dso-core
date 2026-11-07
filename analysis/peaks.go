@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -28,7 +28,7 @@ const (
 // reads within 0.06 dB (the parabola's own vertex would read up to 0.32 dB
 // high). The spectrum must therefore be Hann-windowed, as both surfaces' FFTs
 // are. peaks.js shows the bin level, which is db[Bin].
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 type Peak struct {
 	Freq  float64 // Hz, parabola-refined: (Bin + offset) * binHz
 	DB    float64 // the tone's level
@@ -39,7 +39,7 @@ type Peak struct {
 
 // hannGain is a Hann window's response to a tone d bins (|d| <= 0.5) from a
 // bin, relative to a tone on the bin: sinc(d) / (1 - d^2).
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func hannGain(d float64) float64 {
 	if d == 0 {
 		return 1
@@ -53,7 +53,7 @@ func hannGain(d float64) float64 {
 // frequency refined by a parabola through the bin and its neighbours. The
 // strongest maxPeaks are kept and returned in frequency order, which holds
 // still frame to frame where a magnitude ranking would jitter.
-// TRLC-LINKS: REQ-SDS-216, REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-216, REQ-DSO-070
 func Peaks(db []float64, binHz float64, maxPeaks int) []Peak {
 	if maxPeaks <= 0 || len(db) < 5 {
 		return nil
@@ -101,7 +101,7 @@ func Peaks(db []float64, binHz float64, maxPeaks int) []Peak {
 }
 
 // THD is the harmonic distortion of a peak list.
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 type THD struct {
 	F0   float64 // the fundamental (Hz) the harmonics were counted against
 	Fund int     // the fundamental's index in the peak list, -1 when no peak sits on F0
@@ -117,7 +117,7 @@ type THD struct {
 // 1.5 bins (or 1 % of n*f0, if wider) of n*f0; of several, the strongest. It
 // sets ps[i].Harm in place (0 for the others). The bin width is recovered
 // from the peaks themselves (Freq/Bin of the highest bin).
-// TRLC-LINKS: REQ-SDS-216
+// TRLC-LINKS: REQ-DSO-216
 func Harmonics(ps []Peak, f0 float64) THD {
 	t := THD{F0: f0, Fund: -1, Pct: math.NaN(), DB: math.NaN()}
 	for i := range ps {

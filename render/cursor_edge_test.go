@@ -9,7 +9,7 @@ import (
 // A cursor whose signal time or level is off the screen keeps its value and
 // is drawn as an arrow at the side it is beyond, not as a line pinned to the
 // edge; one on the screen is its dashed line.
-// TRLC-LINKS: REQ-SDS-021, REQ-SDS-217
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-217
 func TestCursorOffScreenArrows(t *testing.T) {
 	h := defaultHUD()
 	h.UI.Layout = wsview.Layout{MenuW: 30, PlotTop: 142}

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Browser chaos monkey (argv[2]=URL, argv[3]=seed, argv[4]=actions).
 // Randomly pokes the interactive controls on screen — the workspace tabs and
 // keys bring every workspace's panes in turn — drags/wheels/keys the scope
@@ -25,13 +25,13 @@ catch (e) { console.log("SKIP: cannot launch chromium:", e.message); process.exi
 
 // mulberry32: reproducible chaos — the failing seed is the repro recipe
 let s = SEED >>> 0;
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 const rnd = () => (s = (s + 0x6d2b79f5) | 0, ((Math.imul(s ^ (s >>> 15), 1 | s) + 0x6d2b79f5) >>> 0) / 4294967296);
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 const pick = (a) => a[Math.floor(rnd() * a.length)];
 
 let fails = 0;
-// TRLC-LINKS: REQ-SDS-180
+// TRLC-LINKS: REQ-DSO-180
 const ok = (c, m) => { console.log((c ? "ok  - " : "FAIL- ") + m); if (!c) fails++; };
 try {
   const page = await browser.newPage({ viewport: { width: 1500, height: 950 } });
@@ -41,7 +41,7 @@ try {
   await page.waitForFunction(() => typeof frame !== "undefined" && frame && frame.c1 && frame.c1.length > 0, null, { timeout: 15000 });
 
   // the scope moves between workspaces: measure it where it is now
-  // TRLC-LINKS: REQ-SDS-180
+  // TRLC-LINKS: REQ-DSO-180
   const scopeBox = async () => (await (await page.$("#scope")).boundingBox()) || { x: 0, y: 0, width: 1, height: 1 };
   // Alt+1..4 switch workspaces (COMPARE again would stack a master)
   const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "-", "Escape", "Home", "f", "z", " ", "Alt+1", "Alt+2", "Alt+3", "Alt+4"];

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SOUND
+// ENGMODEL-OWNER-UNIT: FU-DSO-SOUND
 
 package sound
 
@@ -12,7 +12,7 @@ import (
 // fuzzSignal builds a stretch of volts from the fuzzer's bytes: a tone,
 // silence, DC, a clipped square or noise, laced with the hostile values a
 // broken scale brings (NaN, infinities, huge and tiny numbers).
-// TRLC-LINKS: REQ-SDS-266
+// TRLC-LINKS: REQ-DSO-266
 func fuzzSignal(kind uint8, n int, f0 float64, raw []byte) []float64 {
 	x := make([]float64, n)
 	for i := range x {
@@ -46,7 +46,7 @@ func fuzzSignal(kind uint8, n int, f0 float64, raw []byte) []float64 {
 
 // FuzzSoundAnalysis runs every SOUND analysis on hostile stretches and
 // settings: none may panic or hang.
-// TRLC-LINKS: REQ-SDS-266, REQ-SDS-267, REQ-SDS-268, REQ-SDS-269, REQ-SDS-270, REQ-SDS-271, REQ-SDS-272
+// TRLC-LINKS: REQ-DSO-266, REQ-DSO-267, REQ-DSO-268, REQ-DSO-269, REQ-DSO-270, REQ-DSO-271, REQ-DSO-272
 func FuzzSoundAnalysis(f *testing.F) {
 	for k := range uint8(6) {
 		f.Add(k, uint16(4096), 440.0, fsTest, 3.0, []byte{})

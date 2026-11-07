@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // caps.js — the scope's capabilities (GET /api/caps) as the page reads them,
 // and the per-channel helpers every part of the page draws and lists
 // channels with (classic script; loaded after app.js and app_ui.js).
@@ -32,11 +32,11 @@ let capsGenSeen;           // the caps_gen last read
 let capsBusy = false;
 
 // chanNums is the channels as the page numbers them (1-based, as c1, vpc1, tC1).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanNums() { return caps.channels.map((c) => c.ch + 1); }
 
 // chanName is channel n's name ("C3").
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanName(n) {
   const c = caps.channels[n - 1];
   return (c && c.name) || "C" + n;
@@ -47,7 +47,7 @@ const chanColorCache = {};
 // CHAN_COLOR_FALLBACK colours a channel past the tokens a stylesheet defines.
 const CHAN_COLOR_FALLBACK = ["#f5d90a", "#f06cc4", "#4fa8ff", "#5fd35f", "#ff9f1c", "#b98cff", "#35c8e8", "#e8604c"];
 // chanColor is channel n's colour: its design token (c1..cN).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanColor(n) {
   if (n === 1 && typeof C1COL !== "undefined") return C1COL;
   if (n === 2 && typeof C2COL !== "undefined") return C2COL;
@@ -58,25 +58,25 @@ function chanColor(n) {
 }
 
 // chanArr is frame f's display-domain trace of channel n (c<n>).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanArr(f, n) { return f ? f["c" + n] : undefined; }
 
 // chanVpc and chanOff are frame f's volts per display unit and offset of
 // channel n, so (unit − 128)·vpc − off reads the tip's volts.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanVpc(f, n) { return (f && f["vpc" + n]) || 1 / 25; }
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanOff(f, n) { return (f && f["off" + n + "_v"]) || 0; }
 
 // chanShown is whether channel n is drawn.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanShown(n) { return !!view["c" + n]; }
 
 // rawFrame reads one reply of the raw feed (/api/frame.bin?raw=1&…): in
 // frame wire v2 when the scope lists it, so an analyzer reads every channel
 // in the page's display domain whatever the scope's code format; else v1,
 // the request as it always was. null when the reply does not decode.
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 async function rawFrame(query) {
   const r = await fetch("/api/frame.bin?" + query + frameWireQuery());
   if (!r.ok) throw new Error("http " + r.status);
@@ -85,7 +85,7 @@ async function rawFrame(query) {
 
 // trigSourceChan is the channel number of trigger source index src (0-based
 // as the status's trig_source), or 0 for a source that is no channel.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function trigSourceChan(src) {
   const name = (caps.trigger.sources || [])[src | 0];
   const i = caps.channels.findIndex((c) => c.name === name);
@@ -93,7 +93,7 @@ function trigSourceChan(src) {
 }
 
 // trigChan is the trigger source's channel number now (1 when unknown).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function trigChan() {
   if (!capsServed) return st && st.trig_source === 1 ? 2 : 1;
   return trigSourceChan(st ? st.trig_source : 0) || 1;
@@ -101,34 +101,34 @@ function trigChan() {
 
 // frameWireQuery is the frame request's wire choice: "&v=2" when the scope
 // lists frame wire v2, else nothing (v1, the request as it always was).
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function frameWireQuery() {
   return capsServed && caps.wire && Array.isArray(caps.wire.frame) && caps.wire.frame.includes(2) ? "&v=2" : "";
 }
 
 // decodeFrameReply decodes a frame reply of either wire.
-// TRLC-LINKS: REQ-SDS-023
+// TRLC-LINKS: REQ-DSO-023
 function decodeFrameReply(buf) {
   return capsServed ? decodeAnyFrame(buf) : decodeBinFrame(buf);
 }
 
 // capsControl is caps' entry for an /api/set control, or null when the
 // scope does not list it (a scope without caps lists none).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function capsControl(name) {
   return (capsServed && Array.isArray(caps.controls) && caps.controls.find((c) => c && c.name === name)) || null;
 }
 
 // feature is caps' entry for a feature: {ok, why}; a scope without caps,
 // or one that does not list it, has it.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function feature(name) {
   const f = caps.features && caps.features[name];
   return f || { ok: true };
 }
 
 // capsNormalize fills what a served document leaves out from the fallback.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function capsNormalize(c) {
   const out = Object.assign({}, CAPS_FALLBACK, c);
   if (!Array.isArray(out.channels) || !out.channels.length) out.channels = CAPS_FALLBACK.channels;
@@ -142,7 +142,7 @@ function capsNormalize(c) {
 
 // capsFollow reads the scope's caps when its status names a generation the
 // page has not read (a scope without caps names none: nothing is asked).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 async function capsFollow() {
   if (!st || st.caps_gen === undefined || st.caps_gen === capsGenSeen || capsBusy) return;
   capsBusy = true;
@@ -171,7 +171,7 @@ const chanBuilt = new Set();
 // capsApply makes the page's channel lists, channel controls and trigger
 // choices those of the caps: channels the caps add get their controls, and
 // channels a new caps document no longer lists lose theirs.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function capsApply() {
   for (const k of Object.keys(chanColorCache)) delete chanColorCache[k];
   chanStyles();
@@ -194,7 +194,7 @@ function capsApply() {
 
 // chanStyles defines the cc<n> colour classes of channels past the two the
 // stylesheet has.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanStyles() {
   let el = document.getElementById("chanStyles");
   if (!el) { el = document.createElement("style"); el.id = "chanStyles"; document.head.appendChild(el); }
@@ -212,7 +212,7 @@ const CHAN_LISTS = [
 
 // chanLists gives every channel chooser one option per channel, keeping
 // the options that are no channel ("both").
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanLists() {
   for (const l of CHAN_LISTS) setChanOptions($(l.id), l.base, !!l.seg);
   for (const sel of document.querySelectorAll(".rolesel")) setChanOptions(sel, 1, false);
@@ -220,10 +220,11 @@ function chanLists() {
 
 // setChanOptions rewrites el's channel options (values base..base+N-1),
 // leaving its other options where they are.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function setChanOptions(el, base, seg) {
   if (!el) return;
   const nums = chanNums(), tag = seg ? "button" : "option";
+  // TRLC-LINKS: REQ-DSO-1004
   const isChan = (o) => /^C\d+$/.test(o.textContent.trim());
   const have = [...el.querySelectorAll(":scope > " + tag)].filter(isChan);
   if (have.length === nums.length && have.every((o, i) => o.textContent.trim() === chanName(nums[i]))) return;
@@ -242,7 +243,7 @@ function setChanOptions(el, base, seg) {
 }
 
 // trigLists offers the trigger sources and types the scope has.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function trigLists() {
   const src = $("source");
   if (src) {
@@ -274,7 +275,7 @@ function trigLists() {
 
 // mirrorRebuild makes the mirrors of a segmented control again (their
 // options are copies of the source's, taken when they were made).
-// TRLC-LINKS: REQ-SDS-219
+// TRLC-LINKS: REQ-DSO-219
 function mirrorRebuild(src) {
   if (typeof MIRRORS === "undefined") return;
   for (let i = MIRRORS.length - 1; i >= 0; i--) {
@@ -290,9 +291,10 @@ function mirrorRebuild(src) {
 // chanRename rewrites channel 2's names in a copied subtree for channel n:
 // element ids and mirror sources (tC2, vdiv2Dn, off2v…), labels and titles
 // ("CH2", "C2") and colour classes (cc2).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanRename(root, n) {
   const idRe = /^(tC|vdiv|off|zero|cpl|probe|bwl|inv)2(Dn|Up|v)?$/;
+  // TRLC-LINKS: REQ-DSO-1004
   const txt = (s) => s.replace(/\bCH2\b/g, "CH" + n).replace(/\bC2\b/g, "C" + n).replace(/◂2\b/g, "◂" + n);
   const els = [root, ...root.querySelectorAll("*")];
   for (const el of els) {
@@ -316,7 +318,7 @@ function chanRename(root, n) {
 // chanControls adds channel n's controls (n > 2), made from channel 2's:
 // its group in the strip and its column in the Vertical pane, wired as
 // channels 1 and 2 are.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanControls(n) {
   if ($("tC" + n)) return;
   const strip = document.querySelector('.sg[aria-label="CH2"]');
@@ -346,7 +348,7 @@ function chanControls(n) {
   // its key shows and hides it, as 1 and 2 do channels 1 and 2
   if (n <= 9 && typeof KEYMAP !== "undefined" && !KEYMAP.some((k) => k.key === String(n))) {
     const at = KEYMAP.findIndex((k) => k.key === String(n - 1));
-    // TRLC-LINKS: REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-204
     KEYMAP.splice(at + 1, 0, { key: String(n), label: String(n), desc: "Show / hide channel " + n, run: () => $("tC" + n).click() });
   }
   for (const el of document.querySelectorAll(`[id$="${n}"].seg`)) segInit(el);
@@ -357,7 +359,7 @@ function chanControls(n) {
 // chanControlsRemove takes channel n's controls away (a caps document that
 // no longer lists it): its strip group, its Vertical column, its key, its
 // mirrors and its display state.
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanControlsRemove(n) {
   const gone = [];
   const strip = document.querySelector(`.sg[aria-label="CH${n}"]`);
@@ -368,7 +370,7 @@ function chanControlsRemove(n) {
     if (cells.length) { gone.push(...cells); vg._cols = (vg._cols || 3) - 1; }
   }
   // the mirrors of its controls (in All settings too) and the mirrors in it go
-  // TRLC-LINKS: REQ-SDS-204
+  // TRLC-LINKS: REQ-DSO-204
   const inGone = (el) => gone.some((g) => g.contains(el));
   if (typeof MIRRORS !== "undefined") {
     for (let i = MIRRORS.length - 1; i >= 0; i--) {
@@ -389,7 +391,7 @@ function chanControlsRemove(n) {
 // column and one equal column each. Past two channels the grid is marked
 // "vg-n", whose segmented controls wrap in their cell instead of overflowing
 // it (design/base.css).
-// TRLC-LINKS: REQ-SDS-204
+// TRLC-LINKS: REQ-DSO-204
 function chanLayout() {
   const vg = document.querySelector("#p-vert .vg") || document.querySelector(".vg");
   if (!vg) return;
@@ -399,5 +401,6 @@ function chanLayout() {
 }
 
 if (typeof module !== "undefined") {
+  // TRLC-LINKS: REQ-DSO-1004
   module.exports = { CAPS_FALLBACK, TRIG_TYPES, capsNormalize, setCaps: (c, served) => { caps = c; capsServed = served; } };
 }

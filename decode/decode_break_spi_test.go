@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -37,7 +37,7 @@ import (
 // For each data bit we emit [inactive h][active h] on CLK with DATA held
 // stable across the whole bit; the inactive->active transition is the sample
 // edge and lands h samples after DATA settled, so recovery is unambiguous.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func spiSynth(frames [][]int, h int, msb, sampleRising bool, lead, mid, trail int) (clk, data []uint8, want []int) {
 	lo, hi := uint8(40), uint8(210)
 	var inact, act uint8
@@ -79,7 +79,7 @@ func spiSynth(frames [][]int, h int, msb, sampleRising bool, lead, mid, trail in
 
 // modeCfg maps a desired sampleRising to a random legal (CPOL,CPHA) pair so we
 // exercise all four SPI modes, and stitches in bit order + format.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func modeCfg(rnd *rand.Rand, sampleRising, msb bool) SPICfg {
 	var cpol, cpha bool
 	if sampleRising { // cpol == cpha
@@ -98,7 +98,7 @@ func modeCfg(rnd *rand.Rand, sampleRising, msb bool) SPICfg {
 	return SPICfg{CPOL: cpol, CPHA: cpha, MSB: msb, Format: "hex"}
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func safeDecodeSPI(t *testing.T, tag string, clk, data []uint8, ct float64, cfg SPICfg) (r Result) {
 	t.Helper()
 	defer func() {
@@ -109,7 +109,7 @@ func safeDecodeSPI(t *testing.T, tag string, clk, data []uint8, ct float64, cfg 
 	return SPI(clk, data, ct, cfg)
 }
 
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakSpi(t *testing.T) {
 	// ===================================================================
 	// CLASS 1 — FALSE NEGATIVES: >=50 fully valid frames must round-trip.
@@ -431,7 +431,7 @@ func TestBreakSpi(t *testing.T) {
 // reset from the typical SAMPLING-edge cadence, so this exact shape must now
 // round-trip. Also covers heavy duty-cycle asymmetry (setup 2 / active 12),
 // which mis-fired the old min-gap reset the same way.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func TestBreakSpiSamplingCadence(t *testing.T) {
 	lo, hi := uint8(40), uint8(210)
 	t.Run("PartialFirstCycle374vs372", func(t *testing.T) {
@@ -496,7 +496,7 @@ func TestBreakSpiSamplingCadence(t *testing.T) {
 
 // spiSynthBits synthesizes CLK/DATA for exactly `bits` sample-cells drawn MSB or
 // LSB from the byte slice, used to build TRUNCATED (non-whole-byte) captures.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func spiSynthBits(bytes []int, bits, h int, msb, sampleRising bool, lead int) (clk, data []uint8, emitted int) {
 	lo, hi := uint8(40), uint8(210)
 	var inact, act uint8
@@ -539,7 +539,7 @@ func spiSynthBits(bytes []int, bits, h int, msb, sampleRising bool, lead int) (c
 // spiWaveAsym builds a Mode-0 MSB-first capture with an asymmetric clock duty:
 // `setup` samples low (data set up) then `active` samples high (sampled on the
 // rising edge). Used only by the informational duty probe.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func spiWaveAsym(bytes []int, setup, active int) (clk, data []uint8) {
 	lo, hi := uint8(40), uint8(210)
 	seg := func(c, d uint8, n int) {

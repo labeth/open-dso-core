@@ -26,6 +26,7 @@ const (
 )
 
 // RoleView is the n-th magnified view's detail window.
+// TRLC-LINKS: REQ-DSO-1001
 func RoleView(n int) Role { return sample.RoleView(n) }
 
 // The content kinds, as in package sample.

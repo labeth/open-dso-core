@@ -97,6 +97,7 @@ type command struct {
 
 // New is an engine speaking d to inst (which may be nil for a dialect whose
 // handlers keep their own state).
+// TRLC-LINKS: REQ-DSO-024
 func New(d Dialect, inst Instrument) *Engine {
 	e := &Engine{d: d, inst: inst, digits: d.Digits}
 	if e.digits <= 0 {
@@ -112,6 +113,7 @@ func New(d Dialect, inst Instrument) *Engine {
 
 // Register adds commands; a pattern registered again replaces the earlier
 // handler, so a dialect can override a shared command.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) Register(cs ...Command) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -130,6 +132,7 @@ func (e *Engine) Register(cs ...Command) {
 	e.index()
 }
 
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) index() {
 	e.byRoot = map[string][]*command{}
 	e.common = map[string]*command{}
@@ -166,13 +169,16 @@ func (e *Engine) index() {
 }
 
 // Dialect is the engine's dialect.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) Dialect() *Dialect { return &e.d }
 
 // Instrument is the instrument the engine binds to.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) Instrument() Instrument { return e.inst }
 
 // Do runs fn with the engine's lock held, so state the handlers keep can be
 // changed between messages.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) Do(fn func()) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -180,6 +186,7 @@ func (e *Engine) Do(fn func()) {
 }
 
 // STB is the status byte (a VXI-11 readstb or a USB-TMC status request).
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) STB() uint8 {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -187,6 +194,7 @@ func (e *Engine) STB() uint8 {
 }
 
 // lookup finds the IEEE command for a complete header.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) lookup(header string) (*command, []int) {
 	if strings.HasPrefix(header, "*") {
 		return e.common[strings.ToUpper(header)], nil
@@ -211,6 +219,7 @@ func (e *Engine) lookup(header string) (*command, []int) {
 }
 
 // pushError queues an error and sets the ESR bit of its class.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) pushError(code int, info string) {
 	e.pushes++
 	if e.st.rule == NoStatus {
@@ -222,6 +231,7 @@ func (e *Engine) pushError(code int, info string) {
 
 // Exec runs one program message (without its transport terminator) and
 // returns the reply bytes, possibly none.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) Exec(msg []byte) []byte {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -239,6 +249,7 @@ func (e *Engine) Exec(msg []byte) []byte {
 // query that follows a unit with output, one LF after a message whose last
 // executed unit wrote output; an unknown header leaves the output state as
 // it was.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) execIEEE(msg []byte) []byte {
 	var out bytes.Buffer
 	path := ""
@@ -290,6 +301,7 @@ func (e *Engine) execIEEE(msg []byte) []byte {
 
 // execLine runs each ';'-separated unit on its own (no quoting: the legacy
 // grammar has none) and concatenates the replies.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) execLine(msg []byte) []byte {
 	var out bytes.Buffer
 	c := &Call{e: e, out: &out}
@@ -305,6 +317,7 @@ func (e *Engine) execLine(msg []byte) []byte {
 }
 
 // lineFail answers code in place.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) lineFail(out *bytes.Buffer, code int) {
 	out.WriteString(errorText(e.d.Errors, code))
 	out.WriteByte('\n')
@@ -312,6 +325,7 @@ func (e *Engine) lineFail(out *bytes.Buffer, code int) {
 
 // lineUnit runs one legacy unit, [source prefix]HEADER[ argument], on the
 // message's call c.
+// TRLC-LINKS: REQ-DSO-024
 func (e *Engine) lineUnit(c *Call, unit string) {
 	up := strings.ToUpper(unit)
 	key, rest, nsuf, pair := "", up, 0, false

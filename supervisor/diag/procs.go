@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-DIAG
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-DIAG
 
 package diag
 
@@ -24,7 +24,7 @@ type Proc struct {
 // CollectProcs stores every process's identity, open files and memory map:
 // the vendor app's maps show the device windows it maps from /dev/mem and
 // its descriptors the devices it drives.
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func CollectProcs(a *Archive) []Proc {
 	ents, err := os.ReadDir("/proc")
 	if err != nil {
@@ -64,7 +64,7 @@ func CollectProcs(a *Archive) []Proc {
 }
 
 // ReadStr is a small file's text (/proc, /sys, the stick), or "".
-// TRLC-LINKS: REQ-SDS-284
+// TRLC-LINKS: REQ-DSO-284
 func ReadStr(path string) string {
 	b, err := os.ReadFile(path) //nolint:gosec // G304: a /proc file of a listed process
 	if err != nil {

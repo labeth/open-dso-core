@@ -1,10 +1,10 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-FDINHERIT
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-FDINHERIT
 
 package fdinherit
 
 import "testing"
 
-// TRLC-LINKS: REQ-SDS-085
+// TRLC-LINKS: REQ-DSO-085
 func BenchmarkHoldersOf(b *testing.B) {
 	for b.Loop() {
 		HoldersOf("/dev/null")

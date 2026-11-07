@@ -1,0 +1,345 @@
+schemaVersion: 2
+architecture:
+  functionalGroups:
+  - id: FG-DSO-ACQUISITION
+    name: Acquisition and frames
+    description: The board interface, the engine's hardware-free acquisition policy and the published frame.
+    prose: The board interface, the engine's hardware-free acquisition policy and the published frame.
+  - id: FG-DSO-ANALYSIS
+    name: Signal processing and analysis
+    description: Protocol decode, sample kernels, measurements, analysis, super-resolution and sound.
+    prose: Protocol decode, sample kernels, measurements, analysis, super-resolution and sound.
+  - id: FG-DSO-UI
+    name: User interface
+    description: The UI model, display rendering, the shared look, the web server and the browser client.
+    prose: The UI model, display rendering, the shared look, the web server and the browser client.
+  - id: FG-DSO-REMOTE
+    name: Remote programming
+    description: The SCPI engine and the VXI-11 server.
+    prose: The SCPI engine and the VXI-11 server.
+  - id: FG-DSO-OPERATIONS
+    name: Supervision and update
+    description: The on-device update supervisor, its watchdog keeper, the host controller and the diagnostics framework.
+    prose: The on-device update supervisor, its watchdog keeper, the host controller and the diagnostics framework.
+  - id: FG-DSO-VERIFICATION
+    name: Test environment
+    description: Test helpers shared by the core and every scope.
+    prose: Test helpers shared by the core and every scope.
+  functionalUnits:
+  - id: FU-DSO-HAL
+    name: Board interface
+    group: FG-DSO-ACQUISITION
+    prose: The board interface a scope implements so the core runs on it (acquisition, front end, display, panel,
+      supervisor board); hal/halfake is a fake board for tests.
+    tags:
+    - package:hal
+  - id: FU-DSO-SAMPLE
+    name: Published frame
+    group: FG-DSO-ACQUISITION
+    prose: 'The published frame: traces of 8- or 16-bit codes with their code format, content kind and scale.'
+    tags:
+    - package:sample
+  - id: FU-DSO-PROFILE
+    name: Scope profile
+    group: FG-DSO-ACQUISITION
+    prose: Reads a scope's profile.yaml into a hal.Profile, variant by unit identity.
+    tags:
+    - package:profile
+  - id: FU-DSO-ENGINE
+    name: Core engine
+    group: FG-DSO-ACQUISITION
+    prose: 'The engine''s hardware-free code: the fanout that hands the newest frame to every reader.'
+    tags:
+    - package:engine
+  - id: FU-DSO-FRAMECALC
+    name: Frame arithmetic
+    group: FG-DSO-ACQUISITION
+    prose: 'Frame arithmetic shared by the engine, the display and the web: windows, envelopes and limits.'
+    tags:
+    - package:framecalc
+  - id: FU-DSO-STREAMWIRE
+    name: Decoded stream transcript
+    group: FG-DSO-ACQUISITION
+    prose: 'The decoded stream''s transcript as served: the list window and the lines as data.'
+    tags:
+    - package:streamwire
+  - id: FU-DSO-DECODE
+    name: Protocol decoders
+    group: FG-DSO-ANALYSIS
+    prose: The protocol decoders and their autodetect.
+    tags:
+    - package:decode
+  - id: FU-DSO-DSP
+    name: Sample kernels
+    group: FG-DSO-ANALYSIS
+    prose: 'Sample kernels: min/max, the precision FIR that conditions decimated records, rounding (ARM assembly
+      with Go fallbacks).'
+    tags:
+    - package:dsp
+  - id: FU-DSO-MEASURE
+    name: Measurements
+    group: FG-DSO-ANALYSIS
+    prose: The automatic measurements.
+    tags:
+    - package:measure
+  - id: FU-DSO-ANALYSIS
+    name: Analysis
+    group: FG-DSO-ANALYSIS
+    prose: Eye and jitter, bus layers, compare and masks.
+    tags:
+    - package:analysis
+  - id: FU-DSO-SUPERRES
+    name: Super-resolution
+    group: FG-DSO-ANALYSIS
+    prose: Super-resolution stacking.
+    tags:
+    - package:superres
+  - id: FU-DSO-SOUND
+    name: Sound analysis
+    group: FG-DSO-ANALYSIS
+    prose: The sound analysis.
+    tags:
+    - package:sound
+  - id: FU-DSO-UIMODEL
+    name: UI model
+    group: FG-DSO-UI
+    prose: 'The UI model''s contract shared by a scope''s display, the web page and the phone remote: panel snapshot,
+      settings sheets and rows, set results, references, workspace views.'
+    tags:
+    - package:uimodel
+  - id: FU-DSO-RENDER
+    name: Display rendering
+    group: FG-DSO-UI
+    prose: Display rendering of the HUD, the waveform views and the menus onto a scope's display surface.
+    tags:
+    - package:render
+  - id: FU-DSO-DESIGN
+    name: Design system
+    group: FG-DSO-UI
+    prose: 'The shared look: colour tokens (one source for web and displays), the web stylesheets, the 5x7 display
+      font.'
+    tags:
+    - package:design
+  - id: FU-DSO-WEBSERVER
+    name: Web server
+    group: FG-DSO-UI
+    prose: 'The web server every scope mounts: the client''s pages and assets and every route of the API over webserver.Scope,
+      the wire types and encoders, frame shaping and the conformance suite.'
+    tags:
+    - package:webserver
+  - id: FU-DSO-WEBCLIENT
+    name: Web client
+    group: FG-DSO-UI
+    prose: 'The browser client: WebGL views, controls, client-side decode, eye and jitter, super-resolution and
+      the phone remote, with its node and browser tests.'
+    tags:
+    - package:webclient
+  - id: FU-DSO-SCPI
+    name: SCPI engine
+    group: FG-DSO-REMOTE
+    prose: 'The SCPI engine: parser, command tree and the shape of commands and queries a scope''s dialect fills.'
+    tags:
+    - package:scpi
+  - id: FU-DSO-VXI11SRV
+    name: VXI-11 server
+    group: FG-DSO-REMOTE
+    prose: The VXI-11 server (portmapper and DEVICE_CORE).
+    tags:
+    - package:vxi11srv
+  - id: FU-DSO-SUPERVISOR-AGENT
+    name: Update supervisor
+    group: FG-DSO-OPERATIONS
+    prose: 'The on-device update supervisor: A/B slots, health rollback, the RPC on TCP and NATS and the takeover''s
+      crash-safe order, over a scope''s agent.Board.'
+    tags:
+    - package:supervisor/agent
+  - id: FU-DSO-SUPERVISOR-WATCHDOG
+    name: Watchdog keeper
+    group: FG-DSO-OPERATIONS
+    prose: Keeps the hardware watchdog fed while the supervisor runs.
+    tags:
+    - package:supervisor/watchdog
+  - id: FU-DSO-SUPERVISOR-OTACTL
+    name: Host controller
+    group: FG-DSO-OPERATIONS
+    prose: The host controller, library and cmd/otactl.
+    tags:
+    - package:supervisor/otactl
+  - id: FU-DSO-SUPERVISOR-DIAG
+    name: Diagnostics framework
+    group: FG-DSO-OPERATIONS
+    prose: The diagnostics stick's framework over a scope's diag.Board.
+    tags:
+    - package:supervisor/diag
+  - id: FU-DSO-SUPERVISOR-CONFIG
+    name: Supervisor configuration
+    group: FG-DSO-OPERATIONS
+    prose: The supervisor's configuration.
+    tags:
+    - package:supervisor/config
+  - id: FU-DSO-SUPERVISOR-SLOTS
+    name: A/B slots
+    group: FG-DSO-OPERATIONS
+    prose: The A/B slot layout and selection.
+    tags:
+    - package:supervisor/slots
+  - id: FU-DSO-SUPERVISOR-RPCPROTO
+    name: Supervisor RPC protocol
+    group: FG-DSO-OPERATIONS
+    prose: The supervisor's RPC message protocol.
+    tags:
+    - package:supervisor/rpcproto
+  - id: FU-DSO-SUPERVISOR-FDINHERIT
+    name: Inherited descriptors
+    group: FG-DSO-OPERATIONS
+    prose: Hands inherited boot descriptors to the app.
+    tags:
+    - package:supervisor/fdinherit
+  - id: FU-DSO-SUPERVISOR-SYSINFO
+    name: System information
+    group: FG-DSO-OPERATIONS
+    prose: System information for health and diagnostics.
+    tags:
+    - package:supervisor/sysinfo
+  - id: FU-DSO-SUPERVISOR-VXI11
+    name: Supervisor VXI-11 client
+    group: FG-DSO-OPERATIONS
+    prose: The VXI-11 client the supervisor and host tools use.
+    tags:
+    - package:supervisor/vxi11
+  - id: FU-DSO-TESTENV
+    name: Test environment
+    group: FG-DSO-VERIFICATION
+    prose: 'Test helpers: toolchain gates, and the scope checkout the parity and RTL tests run against.'
+    tags:
+    - package:testenv
+  contract:
+    provides:
+    - id: CAP-DSO-ACQUISITION
+      kind: capability
+      note: Acquire both channels through the acquisition FPGA at the requested timebase and acquisition mode, as
+        a live stream or a finite pre- and post-trigger record held for recall, with every published frame carrying
+        the metadata needed to interpret it and every lost or stale sample reported rather than hidden.
+    - id: CAP-DSO-TRIGGER
+      kind: capability
+      note: Trigger on edges and levels, on zones and golden masks, and in the FPGA on the frame start and content
+        of a decoded serial bus.
+    - id: CAP-DSO-ANALOG-FRONT-END
+      kind: capability
+      note: Set each channel's vertical scale, offset, coupling, bandwidth limit and probe factor, and report the
+        signal in absolute volts at the probe tip, corrected with the unit's own calibration and with a safe default
+        when that calibration is missing or invalid.
+    - id: CAP-DSO-ENHANCED-RESOLUTION
+      kind: capability
+      note: Raise the effective resolution of a capture beyond the converters' eight bits, by precision-rate reduction
+        of the sample stream and by reference-locked reconstruction of a repetitive waveform, with the gain and
+        bandwidth cost of each setting stated.
+    - id: CAP-DSO-MEASUREMENT
+      kind: capability
+      note: Measure voltage and timing parameters of a trace, with running statistics and time and voltage cursors.
+    - id: CAP-DSO-AUTOSET
+      kind: capability
+      note: Frame an unknown signal automatically for the task of the active workspace, from the front panel or
+        the web page, leaving no trace clipped.
+    - id: CAP-DSO-SIGNAL-ANALYSIS
+      kind: capability
+      note: 'Analyse a signal in the frequency and timing domains: spectrum with peaks and distortion, spectrogram,
+        Bode transfer sweeps, and the eye diagram and jitter of a serial line.'
+    - id: CAP-DSO-COMPARE
+      kind: capability
+      note: Compare the live trace against stored references, golden masks and math traces, and average a repeating
+        signal into a master reference.
+    - id: CAP-DSO-PROTOCOL-DECODE
+      kind: capability
+      note: Decode serial, remote-control, sensor and debug protocols from the captured channels, detect an unknown
+        bus and fill in its settings, and stream the decoded transcript, with the device and the browser decoding
+        a capture alike.
+    - id: CAP-DSO-BUS-ANALYSIS
+      kind: capability
+      note: 'Read a decoded bus as the transactions of the chip or protocol layer it carries, and present it as
+        what it carries: MIDI notes and files, light levels, key presses and digital audio.'
+    - id: CAP-DSO-SOUND
+      kind: capability
+      note: 'Listen to and measure audio and synthesizer signals: hear the probe, meter levels, tune pitch, and
+        read envelopes, modulation, harmonics and a circuit''s input against its output.'
+    - id: CAP-DSO-FRONT-PANEL
+      kind: capability
+      note: 'Operate the instrument from its own front panel and LCD: task workspaces, settings sheets, knob tools,
+        indicators, the screen saver and screen images.'
+    - id: CAP-DSO-WEB-UI
+      kind: capability
+      note: Operate and observe the instrument from a web browser and a phone on the network, with the same workspaces
+        and settings as the front panel, and export calibrated waveforms.
+    - id: CAP-DSO-REMOTE-PROGRAMMING
+      kind: capability
+      note: Control the instrument and transfer waveforms from a host program with SCPI commands over VXI-11.
+    - id: CAP-DSO-SETTINGS
+      kind: capability
+      note: Keep the instrument's setup across power cycles, applying only valid values and falling back to defaults
+        when a saved setup cannot be read.
+    - id: CAP-DSO-SUPERVISED-OPERATION
+      kind: capability
+      note: Start the one application the same way every time under the OTA agent, take the scope over from the
+        factory firmware, keep the application healthy and recover it through the application slots, and hand the
+        scope back to the factory firmware on request.
+    - id: CAP-DSO-FIRMWARE-UPDATE
+      kind: capability
+      note: Install, update and roll back the application and the agent from a host, with every payload checked
+        against its digest, and maintain the instrument remotely through the agent's commands, file transfer and
+        logs.
+    - id: CAP-DSO-DIAGNOSTICS
+      kind: capability
+      note: 'Diagnose an SDS1000-family board from a USB stick: record the factory firmware and hardware, test the
+        front end, memory, panel and processor, run this firmware''s app, and leave one archive with the results.'
+    - id: CAP-DSO-OFFLINE-VERIFICATION
+      kind: capability
+      note: Let the maintainer check the firmware's behaviour without the instrument, with browser and numerical
+        regression harnesses on synthetic fixtures and the web page's content-security budgets.
+    - id: CAP-DSO-BOARD-SUPPORT
+      kind: capability
+      note: Run on any scope whose board-support package implements the board interface, described by its profile,
+        with every feature the board lacks refused rather than faked.
+  actors:
+  - id: ACT-OPERATOR
+    name: Instrument operator
+    description: Controls the local LCD/panel or browser; observes acquired signals.
+  - id: ACT-HOST
+    name: Remote instrument client
+    description: Uses VXI-11/SCPI to control and retrieve waveforms.
+  - id: ACT-MAINTAINER
+    name: Firmware maintainer
+    description: Builds, qualifies and updates application and FPGA images using host tooling.
+  interfaces:
+  - id: IF-HAL
+    name: Board interface
+    protocol: Go interfaces
+    endpoint: package hal
+    owner: FU-DSO-HAL
+  - id: IF-HTTP
+    name: Browser control API
+    protocol: HTTP
+    endpoint: webserver routes
+    owner: FU-DSO-WEBSERVER
+  - id: IF-SCPI
+    name: Remote instrument commands
+    protocol: VXI-11 ONC-RPC
+    endpoint: portmapper and DEVICE_CORE
+    owner: FU-DSO-VXI11SRV
+  - id: IF-OTA
+    name: Operations control
+    protocol: TCP and NATS
+    endpoint: supervisor RPC
+    owner: FU-DSO-SUPERVISOR-AGENT
+  dataObjects:
+  - id: DO-FRAME
+    name: Display and measurement frame
+    termRef: TERM-FRAME
+  - id: DO-SETTINGS
+    name: Instrument settings
+    termRef: TERM-SETTINGS
+  - id: DO-HEALTH
+    name: Health token
+    termRef: TERM-HEALTH
+  - id: DO-UPDATE
+    name: Update payload
+    termRef: TERM-UPDATE

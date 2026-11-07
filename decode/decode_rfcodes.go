@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -21,7 +21,7 @@ type mark struct{ x0, x1, gap float64 }
 // activeMarks finds a line's marks: the active level is the one its longest
 // run is not (the idle between frames, a sync gap, a minute marker). It
 // reports whether the marks are the high level.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func activeMarks(sl sliced) ([]mark, bool) {
 	runs := levelRuns(sl)
 	longest, idle := -1.0, 0
@@ -44,7 +44,7 @@ func activeMarks(sl sliced) ([]mark, bool) {
 }
 
 // lead is the idle before mark i: from the last mark, or the record's start.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func lead(m []mark, i int) float64 {
 	if i == 0 {
 		return m[0].x0
@@ -53,7 +53,7 @@ func lead(m []mark, i int) float64 {
 }
 
 // quantile is the value at fraction q of a sorted copy of v (0 for none).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func quantile(v []float64, q float64) float64 {
 	if len(v) == 0 {
 		return 0
@@ -65,7 +65,7 @@ func quantile(v []float64, q float64) float64 {
 // sigrok's rc_encode does: 0 short-long short-long, 1 long-short long-short,
 // F short-long long-short (a long pulse two to five times the short, equal
 // ones within half and one and a half); -1 none of these.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func rcTrit(e [4]float64) int {
 	long := func(l, s float64) bool { return l >= 2*s && l <= 5*s }
 	eq := func(a, b float64) bool { return a >= 0.5*b && a <= 1.5*b }
@@ -82,7 +82,7 @@ func rcTrit(e [4]float64) int {
 
 // rcBit reads an EV1527 bit from one pulse: 0 short high and a long low, 1
 // a long high and a short low (one and a half to five times); -1 neither.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func rcBit(h, l float64) int {
 	switch {
 	case l >= 1.5*h && l <= 5*h:
@@ -101,19 +101,19 @@ func rcBit(h, l float64) int {
 // 24: three bytes, each least significant bit first), then the sync pulse.
 // A pulse that reads as neither is flagged. Baud is the short pulse's rate,
 // FrameBits 12 or 24. OK needs a whole frame.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func RCEncode(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeRCEncode(samplesIn(codes), colTimeS, cfg)
 }
 
 // RCEncodeEdges is RCEncode over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func RCEncodeEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeRCEncode(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeRCEncode is RCEncode over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func decodeRCEncode(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -227,7 +227,7 @@ func decodeRCEncode(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 // manchesterHalves cuts a line's runs into half bits of hp samples: each
 // run one or two halves (rounded), its level each; a run of another length
 // ends the list. It returns the levels and each half's start, from run k on.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func manchesterHalves(runs []lrun, k int, hp float64) ([]int, []float64) {
 	var lv []int
 	var xs []float64
@@ -250,7 +250,7 @@ func manchesterHalves(runs []lrun, k int, hp float64) ([]int, []float64) {
 
 // shortestRunCluster is the mean of a line's closed runs within 1.5 times
 // the shortest one: a Manchester line's half bit.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func shortestRunCluster(runs []lrun) float64 {
 	minR := math.Inf(1)
 	for _, r := range runs {
@@ -283,19 +283,19 @@ func shortestRunCluster(runs []lrun) float64 {
 // Variant is 21 or 3, the version read first. Cover is 1 when a burst
 // after its sync ran past the record's end (its checksum cut off). OK needs
 // a burst whose checksum checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func OOK(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeOOK(samplesIn(codes), colTimeS, cfg)
 }
 
 // OOKEdges is OOK over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func OOKEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeOOK(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeOOK is OOK over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func decodeOOK(codes lineIn, colTimeS float64, cfg LineCfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -447,7 +447,7 @@ func decodeOOK(codes lineIn, colTimeS float64, cfg LineCfg) Result { //nolint:go
 // oregonChecksum finds where an Oregon burst's checksum sits: the nibble
 // index of its low nibble (the last two nibbles, or the two before a
 // two-nibble CRC), -1 when neither checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func oregonChecksum(nib []int, ver int) int {
 	for _, at := range []int{len(nib) - 2, len(nib) - 4} {
 		if at < 8 {
@@ -476,19 +476,19 @@ func oregonChecksum(nib []int, ver int) int {
 // share of the spacings inside messages that are a bit and a half (none on
 // a Manchester or NRZ line). OK needs a message of a byte or more without a
 // coding error.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func Miller(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeMiller(samplesIn(codes), colTimeS, cfg)
 }
 
 // MillerEdges is Miller over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func MillerEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeMiller(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeMiller is Miller over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func decodeMiller(codes lineIn, colTimeS float64, cfg LineCfg) Result { //nolint:gocyclo // a protocol state machine kept step for step with its decode_*.js twin (parity tests)
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -690,7 +690,7 @@ var morseCode = map[string]byte{
 }
 
 // MorseOf is a character's Morse code ("" for none).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func MorseOf(c byte) string { return morseOf[c] }
 
 // morseOf is morseCode turned round: each character's code (each has one).
@@ -709,19 +709,19 @@ var morseOf = func() (t [256]string) {
 // a code outside the alphabet is "?" and flagged. Baud is units a second,
 // Cover the share of the marks within a quarter of a dot or a dash (three
 // units). OK needs two letters.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func Morse(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeMorse(samplesIn(codes), colTimeS, cfg)
 }
 
 // MorseEdges is Morse over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func MorseEdges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeMorse(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeMorse is Morse over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func decodeMorse(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {
@@ -816,7 +816,7 @@ var dcf77Fields = []struct {
 // dcf77Second is the second of a time code sent faster than the
 // broadcast's (a test source's): the median spacing of the pulses' starts,
 // from 1 ms to 2 s; 0 for the broadcast's own (within 10 % of 1 s) or none.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func dcf77Second(m []mark, colTimeS float64) float64 {
 	var sp []float64
 	for i := 1; i < len(m); i++ {
@@ -839,19 +839,19 @@ func dcf77Second(m []mark, colTimeS float64) float64 {
 // date's parity all four date fields). Baud scales the code (its bits a
 // second); 0 reads the second off the pulses' spacing (dcf77Second), the
 // broadcast's 1 s near it. OK needs a field whose parity checks.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func DCF77(codes []uint8, colTimeS float64, cfg LineCfg) Result {
 	return decodeDCF77(samplesIn(codes), colTimeS, cfg)
 }
 
 // DCF77Edges is DCF77 over digital lines' edges (EdgeLine).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func DCF77Edges(codes *EdgeLine, colTimeS float64, cfg LineCfg) Result {
 	return decodeDCF77(edgesIn(codes), colTimeS, cfg)
 }
 
 // decodeDCF77 is DCF77 over samples or edges.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-251
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-251
 func decodeDCF77(codes lineIn, colTimeS float64, cfg LineCfg) Result {
 	S := codes.slice(cfg.Threshold, cfg.HaveThr)
 	if !S.ok {

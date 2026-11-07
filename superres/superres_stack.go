@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-SUPERRES
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERRES
 
 package superres
 
@@ -11,7 +11,7 @@ import (
 // p + b/K, linearly interpolated. Every fine bin gets a contribution from every
 // hit — gap-free and staircase-free. odd routes it into the A half-stack. Mirrors
 // srDrizzleHit (interp/linear branch — the device kernel).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func (st *Stack) drizzleHit(ch int, sig []float32, p float64, odd bool) {
 	K, G, n := st.K, st.Nbins, st.N
 	C := &st.C[ch]
@@ -45,7 +45,7 @@ func (st *Stack) drizzleHit(ch int, sig []float32, p float64, odd bool) {
 // SeedRefGate locks the frozen frame as the reference and installs the gate. A
 // gateLo<gateHi with gateLo>=0 is a manual gate; otherwise the gate is
 // auto-derived. Returns false if the frame is unusable (flat/clipped/no feature).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func (st *Stack) SeedRefGate(sig1, sig2 []uint8, edgeX float64, gateLo, gateHi int) bool {
 	sigs := [2][]uint8{sig1, sig2}
 	alignSig := sigs[st.Align]
@@ -99,7 +99,7 @@ func (st *Stack) SeedRefGate(sig1, sig2 []uint8, edgeX float64, gateLo, gateHi i
 // autoGate is the default gate on the locked reference: the active region,
 // narrowed to ONE period when clearly periodic — a fast, sensible default
 // (multi-hit, cheap search). ok false when the reference has no feature.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func (st *Stack) autoGate() (gLo, gHi int, ok bool) {
 	active := buildTemplate(st.C[st.Align].ref, st.N, st.RefEdgeX, st.N)
 	if active == nil {
@@ -116,7 +116,7 @@ func (st *Stack) autoGate() (gLo, gHi int, ok bool) {
 // shift 0 — a "start the stack over" that keeps the same match reference/template
 // (the Reset softkey). Must be called on the stacker goroutine (mutates the
 // accumulators), never concurrently with Feed.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func (st *Stack) ResetKeepRef() {
 	for ch := range st.C {
 		C := &st.C[ch]
@@ -138,7 +138,7 @@ func (st *Stack) ResetKeepRef() {
 }
 
 // gainOffset fits g,b minimizing |ref − (g·sig[·+lag] + b)|² over [wLo,wHi).
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func gainOffset(ref []float32, sig []uint8, lag, wLo, wHi int) (g, b float64) {
 	lo := max(-lag, wLo)
 	hi := min(len(ref), wHi, len(sig)-lag)
@@ -173,7 +173,7 @@ func gainOffset(ref []float32, sig []uint8, lag, wLo, wHi int) (g, b float64) {
 // the L·K grid (both channels at the align channel's positions). Zero occurrences
 // → the frame is rejected. Returns "stacked:<n>" | "rejected:<why>". SeedRefGate must
 // have run first. Mirrors srGateFeed.
-// TRLC-LINKS: REQ-SDS-141
+// TRLC-LINKS: REQ-DSO-141
 func (st *Stack) Feed(sig1, sig2 []uint8, edgeX float64) string {
 	sigs := [2][]uint8{sig1, sig2}
 	alignSig := sigs[st.Align]

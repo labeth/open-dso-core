@@ -48,6 +48,7 @@ type Edge struct {
 }
 
 // Clone is s with its own Channels.
+// TRLC-LINKS: REQ-DSO-024
 func (s State) Clone() State {
 	s.Channels = append([]hal.Channel(nil), s.Channels...)
 	return s
@@ -67,6 +68,7 @@ const (
 )
 
 // String is the state as SCPI spells it.
+// TRLC-LINKS: REQ-DSO-024
 func (r RunState) String() string {
 	switch r {
 	case Armed:

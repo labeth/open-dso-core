@@ -1,12 +1,12 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // A roll view's held ranges (no capture behind them) draw dimmed: the trace is
 // drawn twice, the held samples at a low alpha and the captured ones in full,
 // each with the other's samples as gaps; the split is kept per frame array.
 const assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
 const src = fs.readFileSync('app_draw.js', 'utf8');
-const code = src.slice(src.indexOf('// drawTraceHeld draws a trace'), src.indexOf('// TRLC-LINKS: REQ-SDS-071\nfunction drawEnv('));
+const code = src.slice(src.indexOf('// drawTraceHeld draws a trace'), src.indexOf('// TRLC-LINKS: REQ-DSO-071\nfunction drawEnv('));
 const calls = [];
-// TRLC-LINKS: REQ-SDS-071
+// TRLC-LINKS: REQ-DSO-071
 const c = { drawTrace: (g, cols, color, zoom, inv) => calls.push({ cols: Array.from(cols), alpha: g.globalAlpha }) };
 vm.createContext(c); vm.runInContext(code, c);
 const g = { globalAlpha: 1 };

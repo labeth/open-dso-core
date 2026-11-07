@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-PANEL
+// ENGMODEL-OWNER-UNIT: FU-DSO-FRAMECALC
 
 package framecalc
 
@@ -11,7 +11,7 @@ import "math"
 // transform. A positive normal x splits into 2^e*m, m within 1/256 above
 // a table point c, and ln(m/c) is a short series in m/c-1. Zero, negative,
 // subnormal, infinite and NaN x take math.Log10.
-// TRLC-LINKS: REQ-SDS-070
+// TRLC-LINKS: REQ-DSO-070
 func Log10(x float64) float64 {
 	b := math.Float64bits(x)
 	e := int(b>>52) - 1023

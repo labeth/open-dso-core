@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -11,7 +11,7 @@ import (
 // physDetectCases are captures of every sigrok protocol beyond the first
 // thirty, as a scope would record them at a timebase that shows a few
 // frames, on either channel (or in either channel order).
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func physDetectCases() []detectCase {
 	var cs []detectCase
 	one := func(name, proto string, sr float64, w *timeline) {
@@ -257,7 +257,7 @@ func physDetectCases() []detectCase {
 // TestAutodetectNamesPhysProtocols: each protocol's capture is named as
 // itself, on its channel, by the detection the scope runs (AutodetectFast),
 // and by no other protocol.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestAutodetectNamesPhysProtocols(t *testing.T) {
 	for _, tc := range physDetectCases() {
 		t0 := time.Now()
@@ -275,7 +275,7 @@ func TestAutodetectNamesPhysProtocols(t *testing.T) {
 
 // TestAutodetectPhysStableUnderNoise: the captures with converter noise and
 // a slow edge are still named right.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestAutodetectPhysStableUnderNoise(t *testing.T) {
 	rng := rand.New(rand.NewSource(13))
 	noisy := func(c []uint8) []uint8 {
@@ -299,7 +299,7 @@ func TestAutodetectPhysStableUnderNoise(t *testing.T) {
 // TestAutodetectPhysStealsNothing: the captures of the first thirty
 // protocols are named as they were (protoDetectCases), plain clocks are no
 // PWM or encoder, a Manchester line is no Miller.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-256
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-256
 func TestAutodetectPhysStealsNothing(t *testing.T) {
 	phys := map[string]bool{}
 	for _, c := range physDetectCases() {

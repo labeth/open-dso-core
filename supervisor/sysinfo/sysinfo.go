@@ -1,6 +1,6 @@
 // Package sysinfo collects read-only platform facts for heartbeats and the
 // first-session probe (kernel, IPs, memory, mounts, disk).
-// ENGMODEL-OWNER-UNIT: FU-OTA-SYSINFO
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-SYSINFO
 package sysinfo
 
 import (
@@ -13,7 +13,7 @@ import (
 )
 
 // Info is the platform summary a status or probe reports.
-// TRLC-LINKS: REQ-SDS-102
+// TRLC-LINKS: REQ-DSO-102
 type Info struct {
 	Uname   string   `json:"uname"`
 	IPs     []string `json:"ips"`
@@ -23,7 +23,7 @@ type Info struct {
 	DiskB   int64    `json:"usb_free_bytes"`    // free bytes on the OTA dir fs
 }
 
-// TRLC-LINKS: REQ-SDS-102
+// TRLC-LINKS: REQ-DSO-102
 func cstr(b []byte) string {
 	if before, _, ok := bytes.Cut(b, []byte{0}); ok {
 		return string(before)
@@ -32,7 +32,7 @@ func cstr(b []byte) string {
 }
 
 // Uname is the kernel's uname fields on one line, or why they are missing.
-// TRLC-LINKS: REQ-SDS-102
+// TRLC-LINKS: REQ-DSO-102
 func Uname() string {
 	var u unix.Utsname
 	if err := unix.Uname(&u); err != nil {
@@ -45,7 +45,7 @@ func Uname() string {
 }
 
 // IPv4s returns "ifname ip/mask" for every non-loopback interface.
-// TRLC-LINKS: REQ-SDS-102
+// TRLC-LINKS: REQ-DSO-102
 func IPv4s() []string {
 	var out []string
 	ifs, err := net.Interfaces()
@@ -69,7 +69,7 @@ func IPv4s() []string {
 	return out
 }
 
-// TRLC-LINKS: REQ-SDS-102
+// TRLC-LINKS: REQ-DSO-102
 func firstLine(path string) string {
 	b, err := os.ReadFile(path) //nolint:gosec // callers pass fixed /proc files
 	if err != nil {
@@ -82,7 +82,7 @@ func firstLine(path string) string {
 	return strings.TrimSpace(s)
 }
 
-// TRLC-LINKS: REQ-SDS-102
+// TRLC-LINKS: REQ-DSO-102
 func mem() string {
 	b, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
@@ -104,7 +104,7 @@ func mem() string {
 
 // FreeBytes is the space available to the agent on path's file system, or
 // -1 when it cannot be read.
-// TRLC-LINKS: REQ-SDS-102
+// TRLC-LINKS: REQ-DSO-102
 func FreeBytes(path string) int64 {
 	var st unix.Statfs_t
 	if err := unix.Statfs(path, &st); err != nil {
@@ -114,7 +114,7 @@ func FreeBytes(path string) int64 {
 }
 
 // Collect gathers the summary, with the free space of otaDir's file system.
-// TRLC-LINKS: REQ-SDS-102
+// TRLC-LINKS: REQ-DSO-102
 func Collect(otaDir string) Info {
 	return Info{
 		Uname:   Uname(),

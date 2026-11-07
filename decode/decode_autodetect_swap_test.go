@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -14,7 +14,7 @@ import (
 // mirrored (a clock found on C2 is found on C1) and the same bytes decoded.
 // A quadrature encoder's A and B swapped turn it the other way: named the
 // same.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-238
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectEitherChannel(t *testing.T) {
 	type capture struct {
 		name   string
@@ -66,5 +66,5 @@ func TestAutodetectEitherChannel(t *testing.T) {
 }
 
 // firstUnits is a slice's first values, for a message.
-// TRLC-LINKS: REQ-SDS-018
+// TRLC-LINKS: REQ-DSO-018
 func firstUnits(v []int) []int { return v[:min(len(v), 12)] }

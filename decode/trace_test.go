@@ -8,6 +8,7 @@ import (
 )
 
 // A bus read as 12-bit words decodes as the same bus read as 8-bit codes.
+// TRLC-LINKS: REQ-DSO-018
 func TestAutodetectTracesFormats(t *testing.T) {
 	const n = 20000
 	c1 := make([]uint8, n)

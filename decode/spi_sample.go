@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -59,7 +59,7 @@ const SampleSPILatency = 8
 // SampleSPIGap is the idle gap, in receiver clocks, that frames an SPI bus
 // clocked at rateHz: one and a half clock periods, and at least two receiver
 // clocks more than one period (an edge's clock is quantised to 8 ns).
-// TRLC-LINKS: REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-229
 func SampleSPIGap(rateHz float64) int {
 	period := 125e6 / rateHz
 	return max(int(math.Round(1.5*period)), int(math.Ceil(period))+2)
@@ -73,7 +73,7 @@ const ChannelPhase16 = 23
 // SPIDataLag is SPI's DataLag for a clock on clockCh (0 C1, 1 C2) in
 // samples of sampleS: the data line's samples sit that far before the clock
 // line's.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-229
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-229
 func SPIDataLag(clockCh int, sampleS float64) float64 {
 	if !(sampleS > 0) {
 		return 0

@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DECODE
+// ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
 package decode
 
@@ -7,7 +7,7 @@ import "testing"
 // A record that opens amid a transaction (a trigger on a byte of it) reads
 // its bytes as bytes, not as commands whose parity fails, and the unit an
 // end of the record cuts as cut ("?"), not as a framing error.
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-253
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func TestDecodeSWIMMidway(t *testing.T) {
 	sr, T := 25e6, 1/363636.0
 	w := newTimeline(sr)

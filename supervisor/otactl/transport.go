@@ -1,5 +1,5 @@
 // Package otactl is the host-side controller for the OTA agents.
-// ENGMODEL-OWNER-UNIT: FU-OTA-OTACTL
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-OTACTL
 package otactl
 
 import (
@@ -16,7 +16,7 @@ import (
 )
 
 // Transport delivers one RPC request to a device and returns its response.
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 type Transport interface {
 	Call(cmd string, args any, timeout time.Duration) (*rpcproto.Response, error)
 	Close()
@@ -24,16 +24,16 @@ type Transport interface {
 
 // ---- TCP transport (direct to OTA_LISTEN) ---------------------------------
 
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 type tcpTransport struct{ addr string }
 
 // NewTCP dials on each call (the agent handles one request per line but keeps
 // the connection open; a fresh connection per call keeps the client simple
 // and robust to a mid-transfer drop).
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func NewTCP(addr string) Transport { return &tcpTransport{addr: addr} }
 
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func (t *tcpTransport) Call(cmd string, args any, timeout time.Duration) (*rpcproto.Response, error) {
 	d := net.Dialer{Timeout: 5 * time.Second}
 	conn, err := d.DialContext(context.Background(), "tcp", t.addr)
@@ -60,12 +60,12 @@ func (t *tcpTransport) Call(cmd string, args any, timeout time.Duration) (*rpcpr
 	return &resp, nil
 }
 
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func (t *tcpTransport) Close() {}
 
 // ---- NATS transport --------------------------------------------------------
 
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 type natsTransport struct {
 	nc     *nats.Conn
 	device string
@@ -73,7 +73,7 @@ type natsTransport struct {
 
 // NewNATS connects to the broker at url and addresses the device by id;
 // opts are added to the client's defaults.
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func NewNATS(url, device string, opts ...nats.Option) (Transport, error) {
 	base := []nats.Option{nats.Name("otactl"), nats.Timeout(5 * time.Second)}
 	nc, err := nats.Connect(url, append(base, opts...)...)
@@ -83,7 +83,7 @@ func NewNATS(url, device string, opts ...nats.Option) (Transport, error) {
 	return &natsTransport{nc: nc, device: device}, nil
 }
 
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func (t *natsTransport) Call(cmd string, args any, timeout time.Duration) (*rpcproto.Response, error) {
 	req, _ := json.Marshal(rpcproto.Request{Cmd: cmd, Args: args})
 	msg, err := t.nc.Request("ota."+t.device+".rpc", req, timeout)
@@ -97,10 +97,10 @@ func (t *natsTransport) Call(cmd string, args any, timeout time.Duration) (*rpcp
 	return &resp, nil
 }
 
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func (t *natsTransport) Close() { _ = t.nc.Drain() } // no reply is pending once the CLI closes
 
-// TRLC-LINKS: REQ-SDS-109
+// TRLC-LINKS: REQ-DSO-109
 func truncate(b []byte, n int) string {
 	if len(b) > n {
 		return string(b[:n]) + "…"

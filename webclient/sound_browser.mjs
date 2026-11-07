@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // Real-browser e2e for the SOUND workspace, driven by headless Chromium via
 // Playwright. Launched by sound_browser_test.go against an httptest server
 // whose /api/sound.bin streams A4 + 3 cents on C1 and its half-amplitude,

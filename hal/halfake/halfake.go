@@ -75,11 +75,13 @@ type setup struct {
 	trigger  hal.TriggerSpec
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (s setup) clone() setup {
 	s.channels = slices.Clone(s.channels)
 	return s
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (s setup) equal(o setup) bool {
 	return slices.Equal(s.channels, o.channels) && fmt.Sprint(s.plan) == fmt.Sprint(o.plan) && fmt.Sprint(s.trigger) == fmt.Sprint(o.trigger)
 }
@@ -95,6 +97,7 @@ var absent = map[string]string{
 var ladder = []float64{0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10}
 
 // New returns a fake board.
+// TRLC-LINKS: REQ-DSO-1001
 func New(cfg Config) *Board {
 	if cfg.Channels == 0 {
 		cfg.Channels = 2
@@ -143,11 +146,13 @@ func New(cfg Config) *Board {
 	return b
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) log(call string) {
 	b.calls = append(b.calls, call)
 }
 
 // Calls returns the OWNER and COMMIT calls made so far, in order.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Calls() []string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -155,6 +160,7 @@ func (b *Board) Calls() []string {
 }
 
 // ResetCalls clears the call log.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) ResetCalls() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -162,6 +168,7 @@ func (b *Board) ResetCalls() {
 }
 
 // ArmKinds returns "commit" or "rearm" for every Arm so far.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) ArmKinds() []string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -170,6 +177,7 @@ func (b *Board) ArmKinds() []string {
 
 // SetWaitError makes every Wait return err (hal.ErrTimeout, a fault) until
 // it is set back to nil.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) SetWaitError(err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -177,9 +185,11 @@ func (b *Board) SetWaitError(err error) {
 }
 
 // Inject queues an input event, as a board's panel would.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Inject(ev hal.InputEvent) { b.events <- ev }
 
 // Lamps returns the lamps last lit.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Lamps() []string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -187,6 +197,7 @@ func (b *Board) Lamps() []string {
 }
 
 // Services returns how often Platform.Service ran.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Services() int {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -194,72 +205,93 @@ func (b *Board) Services() int {
 }
 
 // Profile implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Profile() hal.Profile { return b.profile }
 
 // Platform implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Platform() hal.Platform { return platform{b} }
 
 // Planner implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Planner() hal.Planner { return planner{b} }
 
 // Acquirer implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Acquirer() hal.Acquirer { return acquirer{b} }
 
 // Readout implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Readout() hal.Readout { return readout{b} }
 
 // Trigger implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Trigger() hal.Trigger { return trigger{b} }
 
 // FrontEnd implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) FrontEnd() hal.FrontEnd { return frontEnd{b} }
 
 // Display implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Display() hal.Display { return display{b} }
 
 // Input implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Input() hal.Input { return input{b} }
 
 // Storage implements hal.Board.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Storage() hal.Storage { return storage{b} }
 
 var _ hal.CensusBoard = (*Board)(nil)
 
 // Census implements hal.CensusBoard.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Census() hal.Census { return census{} }
 
 // Streamer implements hal.Board: absent.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Streamer() (hal.Streamer, bool) { return nil, false }
 
 // Images implements hal.Board: absent.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Images() (hal.Images, bool) { return nil, false }
 
 // Stacker implements hal.Board: absent.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Stacker() (hal.Stacker, bool) { return nil, false }
 
 // Segments implements hal.Board: absent.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Segments() (hal.Segments, bool) { return nil, false }
 
 // Counter implements hal.Board: absent.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Counter() (hal.Counter, bool) { return nil, false }
 
 // LogicProbe implements hal.Board: absent.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) LogicProbe() (hal.LogicProbe, bool) { return nil, false }
 
 // Generator implements hal.Board: absent.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Generator() (hal.Generator, bool) { return nil, false }
 
 // Extensions implements hal.Board: none.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Extensions() []hal.Extension { return nil }
 
 // codesPerDiv is the fake's vertical scale: the format's span over ten
 // divisions, so a full-scale trace has a division of headroom each side.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) codesPerDiv() float64 {
 	return float64(b.cfg.Format.Max-b.cfg.Format.Min) / 10
 }
 
 type platform struct{ b *Board }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (p platform) BringUp(ctx context.Context) (hal.Identity, error) {
 	p.b.mu.Lock()
 	defer p.b.mu.Unlock()
@@ -270,8 +302,10 @@ func (p platform) BringUp(ctx context.Context) (hal.Identity, error) {
 	return p.b.cfg.Identity, ctx.Err()
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (p platform) Handover() hal.Handover { return hal.Handover{FDs: map[string]int{}} }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (p platform) Service() {
 	p.b.mu.Lock()
 	defer p.b.mu.Unlock()
@@ -279,8 +313,10 @@ func (p platform) Service() {
 	p.b.services++
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (p platform) Worker() func() int { return nil }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (p platform) Reboot(reason string) error {
 	p.b.mu.Lock()
 	defer p.b.mu.Unlock()
@@ -289,6 +325,7 @@ func (p platform) Reboot(reason string) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (p platform) Diag() json.RawMessage {
 	p.b.mu.Lock()
 	defer p.b.mu.Unlock()
@@ -298,6 +335,7 @@ func (p platform) Diag() json.RawMessage {
 
 type planner struct{ b *Board }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (p planner) Plan(r hal.Request) (hal.Plan, error) {
 	prof := p.b.profile
 	switch {
@@ -333,6 +371,7 @@ func (p planner) Plan(r hal.Request) (hal.Plan, error) {
 
 type acquirer struct{ b *Board }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (a acquirer) Configure(p hal.Plan) error {
 	a.b.mu.Lock()
 	defer a.b.mu.Unlock()
@@ -344,6 +383,7 @@ func (a acquirer) Configure(p hal.Plan) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (a acquirer) Arm() error {
 	a.b.mu.Lock()
 	defer a.b.mu.Unlock()
@@ -362,6 +402,7 @@ func (a acquirer) Arm() error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (a acquirer) Wait(ctx context.Context, _ time.Duration) (hal.Status, error) {
 	a.b.mu.Lock()
 	defer a.b.mu.Unlock()
@@ -382,6 +423,7 @@ func (a acquirer) Wait(ctx context.Context, _ time.Duration) (hal.Status, error)
 	return a.b.lastStatus, nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (a acquirer) Force() error {
 	a.b.mu.Lock()
 	defer a.b.mu.Unlock()
@@ -390,6 +432,7 @@ func (a acquirer) Force() error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (a acquirer) Stop() error {
 	a.b.mu.Lock()
 	defer a.b.mu.Unlock()
@@ -401,6 +444,7 @@ func (a acquirer) Stop() error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (a acquirer) State() hal.AcqState {
 	a.b.mu.Lock()
 	defer a.b.mu.Unlock()
@@ -409,10 +453,12 @@ func (a acquirer) State() hal.AcqState {
 
 type readout struct{ b *Board }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (r readout) Limits() hal.ReadLimits {
 	return hal.ReadLimits{MaxPoints: r.b.profile.MaxDepth, MaxWindows: 8, MaxSegments: 1, ChannelsPerWindow: r.b.cfg.Channels}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (r readout) Read(req hal.ReadRequest, dst []*sample.Frame, yield func()) error {
 	r.b.mu.Lock()
 	r.b.log("Read")
@@ -450,6 +496,7 @@ func (r readout) Read(req hal.ReadRequest, dst []*sample.Frame, yield func()) er
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (r readout) fill(w hal.Window, app setup, status sample.Status, f *sample.Frame, yield func()) error {
 	want := w.Want
 	if want == 0 {
@@ -516,6 +563,7 @@ func (r readout) fill(w hal.Window, app setup, status sample.Status, f *sample.F
 
 // trace fills t with channel ch's square wave: ±2 divisions, period
 // PeriodSamples, rising at the trigger.
+// TRLC-LINKS: REQ-DSO-1001
 func (r readout) trace(t *sample.Trace, ch int, c hal.Channel, start int64, bucket float64, points int, want sample.Content) {
 	fm := r.b.cfg.Format
 	cpd := r.b.codesPerDiv()
@@ -560,6 +608,7 @@ func (r readout) trace(t *sample.Trace, ch int, c hal.Channel, start int64, buck
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (r readout) Export(ctx context.Context, rec hal.RecordID, ch int, dst *sample.Trace) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -580,6 +629,7 @@ func (r readout) Export(ctx context.Context, rec hal.RecordID, ch int, dst *samp
 
 type trigger struct{ b *Board }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (t trigger) Program(s hal.TriggerSpec) error {
 	t.b.mu.Lock()
 	defer t.b.mu.Unlock()
@@ -600,8 +650,10 @@ func (t trigger) Program(s hal.TriggerSpec) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (t trigger) Caps() hal.TrigCaps { return t.b.profile.Triggers }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (t trigger) LevelGrid(src hal.Source) hal.Grid {
 	t.b.mu.Lock()
 	defer t.b.mu.Unlock()
@@ -615,6 +667,7 @@ func (t trigger) LevelGrid(src hal.Source) hal.Grid {
 
 // Default is a rising stage at 0 V on an analog channel for the fake's
 // nodes.
+// TRLC-LINKS: REQ-DSO-1001
 func (t trigger) Default(node hal.TrigNode, src hal.Source) (hal.TrigStage, error) {
 	if !t.b.profile.Triggers.Has(node) {
 		return hal.TrigStage{}, hal.Refuse("trigger "+node.String(), "this board has no such trigger node")
@@ -625,12 +678,15 @@ func (t trigger) Default(node hal.TrigNode, src hal.Source) (hal.TrigStage, erro
 	return hal.TrigStage{Node: node, Source: src, Levels: hal.Levels{Slope: hal.Rising}}, nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (t trigger) Events(_ []hal.Event) (int, error) { return 0, nil }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (t trigger) Matches() (hal.MatchStats, bool) { return hal.MatchStats{}, false }
 
 type frontEnd struct{ b *Board }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (fe frontEnd) Set(ch int, c hal.Channel) (hal.Channel, error) {
 	fe.b.mu.Lock()
 	defer fe.b.mu.Unlock()
@@ -661,6 +717,7 @@ func (fe frontEnd) Set(ch int, c hal.Channel) (hal.Channel, error) {
 	return c, nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (fe frontEnd) Get(ch int) hal.Channel {
 	fe.b.mu.Lock()
 	defer fe.b.mu.Unlock()
@@ -670,6 +727,7 @@ func (fe frontEnd) Get(ch int) hal.Channel {
 	return fe.b.applied.channels[ch]
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (fe frontEnd) Ladder(ch int) []hal.Step {
 	p := fe.Get(ch).Probe
 	if p == 0 {
@@ -682,21 +740,25 @@ func (fe frontEnd) Ladder(ch int) []hal.Step {
 	return out
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (fe frontEnd) OffsetGrid(ch int) hal.Grid {
 	c := fe.Get(ch)
 	return hal.Grid{Step: c.VoltsDiv / fe.b.codesPerDiv(), Min: -10 * c.VoltsDiv, Max: 10 * c.VoltsDiv}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (fe frontEnd) Couplings(int) []hal.CouplingOption {
 	return []hal.CouplingOption{{Coupling: hal.DC}, {Coupling: hal.AC, Software: true}, {Coupling: hal.GND}}
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (fe frontEnd) Calibration() hal.CalSource {
 	fe.b.mu.Lock()
 	defer fe.b.mu.Unlock()
 	return fe.b.calSource()
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) calSource() hal.CalSource {
 	if b.selfCals > 0 {
 		return hal.CalSource{Source: "fake-selfcal", Author: "open", Valid: true}
@@ -706,6 +768,7 @@ func (b *Board) calSource() hal.CalSource {
 
 // SelfCal reports progress in quarters and changes nothing but the
 // calibration source. It refuses while armed, as a board must.
+// TRLC-LINKS: REQ-DSO-1001
 func (fe frontEnd) SelfCal(ctx context.Context, progress func(float64)) (hal.CalReport, error) {
 	fe.b.mu.Lock()
 	fe.b.log("SelfCal")
@@ -731,10 +794,16 @@ func (fe frontEnd) SelfCal(ctx context.Context, progress func(float64)) (hal.Cal
 
 type display struct{ b *Board }
 
-func (d display) Spec() hal.DisplaySpec          { return d.b.profile.Display }
-func (d display) Framebuffer() hal.Framebuffer   { return framebuffer(d) }
+// TRLC-LINKS: REQ-DSO-1001
+func (d display) Spec() hal.DisplaySpec { return d.b.profile.Display }
+
+// TRLC-LINKS: REQ-DSO-1001
+func (d display) Framebuffer() hal.Framebuffer { return framebuffer(d) }
+
+// TRLC-LINKS: REQ-DSO-1001
 func (d display) Renderer() (hal.Renderer, bool) { return nil, false }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (d display) Capture(dst *image.RGBA) error {
 	spec := d.b.profile.Display
 	if dst.Rect.Dx() < spec.W || dst.Rect.Dy() < spec.H {
@@ -753,6 +822,7 @@ func (d display) Capture(dst *image.RGBA) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (d display) Backlight(level float64) error {
 	d.b.mu.Lock()
 	defer d.b.mu.Unlock()
@@ -766,9 +836,13 @@ func (d display) Backlight(level float64) error {
 
 type framebuffer struct{ b *Board }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (f framebuffer) Back() []byte { return f.b.fb }
-func (f framebuffer) Stride() int  { return f.b.profile.Display.W * 2 }
 
+// TRLC-LINKS: REQ-DSO-1001
+func (f framebuffer) Stride() int { return f.b.profile.Display.W * 2 }
+
+// TRLC-LINKS: REQ-DSO-1001
 func (f framebuffer) Present() error {
 	f.b.mu.Lock()
 	defer f.b.mu.Unlock()
@@ -778,10 +852,16 @@ func (f framebuffer) Present() error {
 
 type input struct{ b *Board }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (in input) Events() <-chan hal.InputEvent { return in.b.events }
-func (in input) Keys() []string                { return in.b.profile.Inputs.Keys }
-func (in input) Knobs() []string               { return in.b.profile.Inputs.Knobs }
 
+// TRLC-LINKS: REQ-DSO-1001
+func (in input) Keys() []string { return in.b.profile.Inputs.Keys }
+
+// TRLC-LINKS: REQ-DSO-1001
+func (in input) Knobs() []string { return in.b.profile.Inputs.Knobs }
+
+// TRLC-LINKS: REQ-DSO-1001
 func (in input) SetLamps(on []string) error {
 	in.b.mu.Lock()
 	defer in.b.mu.Unlock()
@@ -795,6 +875,7 @@ func (in input) SetLamps(on []string) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (in input) SetSound(on bool) error {
 	in.b.mu.Lock()
 	defer in.b.mu.Unlock()
@@ -802,6 +883,7 @@ func (in input) SetSound(on bool) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (in input) Beep(d time.Duration) error {
 	in.b.mu.Lock()
 	defer in.b.mu.Unlock()
@@ -809,11 +891,13 @@ func (in input) Beep(d time.Duration) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-1001
 func (in input) SetTouch(bool) error {
 	return hal.Refuse("touch", "this board has no touch screen")
 }
 
 // Beeps returns the beeps sounded so far and whether key clicks are on.
+// TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Beeps() (beeps []time.Duration, sound bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -822,13 +906,21 @@ func (b *Board) Beeps() (beeps []time.Duration, sound bool) {
 
 type storage struct{ b *Board }
 
-func (s storage) Settings() hal.KV           { return s.b.settings }
-func (s storage) Setups() (hal.KV, bool)     { return s.b.setups, true }
-func (s storage) Captures() (string, error)  { return "", nil }
+// TRLC-LINKS: REQ-DSO-1001
+func (s storage) Settings() hal.KV { return s.b.settings }
+
+// TRLC-LINKS: REQ-DSO-1001
+func (s storage) Setups() (hal.KV, bool) { return s.b.setups, true }
+
+// TRLC-LINKS: REQ-DSO-1001
+func (s storage) Captures() (string, error) { return "", nil }
+
+// TRLC-LINKS: REQ-DSO-1001
 func (s storage) Calibration() hal.CalSource { return frontEnd(s).Calibration() }
 
 type census struct{}
 
+// TRLC-LINKS: REQ-DSO-1001
 func (census) Run(ctx context.Context, _ bool) ([]hal.Verdict, error) {
 	return []hal.Verdict{{Part: "fake", Verdict: "present"}}, ctx.Err()
 }
@@ -841,9 +933,11 @@ type KV struct {
 }
 
 // NewKV returns an empty store; budget 0 is unbounded.
+// TRLC-LINKS: REQ-DSO-1001
 func NewKV(budget int) *KV { return &KV{m: map[string][]byte{}, budget: budget} }
 
 // Get implements hal.KV.
+// TRLC-LINKS: REQ-DSO-1001
 func (k *KV) Get(key string) ([]byte, bool) {
 	k.mu.Lock()
 	defer k.mu.Unlock()
@@ -852,6 +946,7 @@ func (k *KV) Get(key string) ([]byte, bool) {
 }
 
 // Put implements hal.KV.
+// TRLC-LINKS: REQ-DSO-1001
 func (k *KV) Put(key string, val []byte) error {
 	k.mu.Lock()
 	defer k.mu.Unlock()
@@ -871,4 +966,5 @@ func (k *KV) Put(key string, val []byte) error {
 }
 
 // Budget implements hal.KV.
+// TRLC-LINKS: REQ-DSO-1001
 func (k *KV) Budget() int { return k.budget }

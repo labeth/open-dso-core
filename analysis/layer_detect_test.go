@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-ANALYSIS
+// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS
 
 package analysis
 
@@ -10,7 +10,7 @@ import (
 // TestDetectLayerNamesItsOwn: each layer with evidence is named on its own
 // records, and the stronger proof wins where packets satisfy two (an EDID
 // at 0x50 is no EEPROM, an XFP's identifier no EEPROM either).
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func TestDetectLayerNamesItsOwn(t *testing.T) {
 	want := map[string]string{
 		"flash session": "spiflash", "sd card init": "sdcard", "avr isp": "avrisp",
@@ -69,7 +69,7 @@ func TestDetectLayerNamesItsOwn(t *testing.T) {
 // to other addresses, text and random bytes on a UART, 1-Wire
 // transactions without a ROM command and USB traffic without a control
 // request name no layer.
-// TRLC-LINKS: REQ-SDS-247
+// TRLC-LINKS: REQ-DSO-247
 func TestDetectLayerClaimsNothingUnproven(t *testing.T) {
 	r := rand.New(rand.NewSource(7))
 	rnd := func(n int) []byte {

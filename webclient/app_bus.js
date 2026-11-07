@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-APP-BUS
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // app_bus.js — the BUS workspace: entering it with decoding off auto-detects the
 // bus and turns decoding on (decoding then stays on); the packet table lists
 // complete packets as hex plus a separate string column and holds still while
@@ -22,7 +22,7 @@ let busListKey = "";
 
 // busOnDecode runs after every decode (updateDecodeResults): group the result
 // into packets and refresh the table when its content changed.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function busOnDecode() {
   const key = [decKey(), dcfg.baud, dcfg.cpol, dcfg.cpha, dcfg.msb, frame && frame.tdiv_s, dcfg.layer, dcfg.layerAddr, dcfg.layerDir, dcfg.parity].join("|");
   if (key !== busListKey) {
@@ -49,7 +49,7 @@ function busOnDecode() {
 // when there are none, the capture's packets cut by the record edges (partial),
 // as the scope's list does - a serial trigger at a fast timebase holds no
 // whole message, and an empty list hid the bytes the strip shows.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function busShownRows(kept, live) {
   if (kept.length) return { rows: kept, partial: false };
   return { rows: (live || []).filter((p) => p.bytes && p.bytes.length), partial: true };
@@ -57,12 +57,12 @@ function busShownRows(kept, live) {
 // End of busShownRows.
 
 // busTokens: the serial-trigger pattern as match tokens (rows holding it are marked).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function busTokens() { return ($("stBytes").value || "").trim().split(/[\s,]+/).filter(Boolean).map((t) => t.replace(/^0x/i, "")); }
 
 // busRenderTable rebuilds the rows only when the list changed (new content or
 // the match pattern): while traffic repeats nothing in the table moves.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function busRenderTable() {
   const off = dcfg.proto === "off";
   // this runs after every decode: the frame around the rows is written only
@@ -77,7 +77,7 @@ function busRenderTable() {
   const layer = dcfg.layer && typeof LAYERS !== "undefined" ? (LAYERS.find((l) => l[0] === dcfg.layer) || [])[1] : "";
   const strHead = $("pkStrHead");
   if (strHead.textContent !== (layer || "String")) strHead.textContent = layer || "String";
-  // TRLC-LINKS: REQ-SDS-214, REQ-SDS-241
+  // TRLC-LINKS: REQ-DSO-214, REQ-DSO-241
   const cell = (p, str) => (layer ? `<td class="str${p.noteErr ? " bad" : ""}" title="${escHTML(p.note || "")}">${escHTML(p.note || "")}</td>` : `<td class="str" title="${escHTML(str)}">${escHTML(str)}</td>`);
   const sig = busPk.version + "|" + toks.join(" ") + "|" + layer + "|" + (r && !r.ok ? r.error : "") +
     (shown.partial ? "|" + shown.rows.map((p) => pkHex(p)).join("/") : "");
@@ -120,13 +120,13 @@ function busRenderTable() {
     (toks.length ? " ◆ marks packets holding the trigger pattern." : "") : "";
 }
 
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function escHTML(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 
 // busZoom zooms the scope onto a packet: the display freezes first (a running
 // scope moves its packets with every trigger), the frozen capture is decoded
 // again and the packet with the same content nearest the row is framed.
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function busZoom(i) {
   const row = busPk.select(i);
   if (!row || !frame || !frame.c1) return;
@@ -148,7 +148,7 @@ function busZoom(i) {
 }
 
 // busDrawSel outlines the zoomed packet on the decode strip (called by drawDecode).
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function busDrawSel(g, bandY, bandH) {
   if (!busSel || !frame || !frame.c1 || frame.c1.length !== busSel.n) return;
   const x0 = xForCol(busSel.i0, busSel.n), x1 = xForCol(busSel.i1, busSel.n);
@@ -179,7 +179,7 @@ $("freeze").addEventListener("click", () => { if (!frozen) { busSel = null; busR
 // Stream view (the BUS sheet's Stream row), which streams the bus, and another
 // view here takes the scope back to its packets. byScope: the scope's view
 // changed and the page follows it (nothing is sent back).
-// TRLC-LINKS: REQ-SDS-214, REQ-SDS-215, REQ-SDS-228
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-215, REQ-DSO-228
 function busSetView(v, byScope) {
   const was = ws.busView;
   ws.busView = v;
@@ -199,7 +199,7 @@ function busSetView(v, byScope) {
   if (!byScope && v === "stream") busAskStream(true);
   // the Stream view and the Visual view of a bus it reads byte for byte follow
   // the scope's stream: going between them keeps it, leaving them ends it
-  // TRLC-LINKS: REQ-SDS-228, REQ-SDS-278
+  // TRLC-LINKS: REQ-DSO-228, REQ-DSO-278
   const follows = (x) => x === "stream" || (x === "visual" && typeof visStreamed === "function" && visStreamed(dcfg.proto));
   if (!byScope && follows(was) && !follows(v) && (was === "stream" || busScopeStreaming())) busAskStream(false);
   busScopeStream();
@@ -208,7 +208,7 @@ function busSetView(v, byScope) {
 // busAskStream puts the scope on its Stream view or back on its packets. Until
 // the status shows the scope there (or 5 s pass), a status from before is
 // not the scope's view changing.
-// TRLC-LINKS: REQ-SDS-228
+// TRLC-LINKS: REQ-DSO-228
 function busAskStream(on) {
   busStreamAsk = { on, until: Date.now() + 5000 };
   busScopeWas = on;
@@ -216,17 +216,17 @@ function busAskStream(on) {
 }
 
 // busScopeStreaming reports the scope's BUS on its Stream view.
-// TRLC-LINKS: REQ-SDS-228
+// TRLC-LINKS: REQ-DSO-228
 function busScopeStreaming() {
   const p = st && st.panel;
   return !!(p && p.WorkspaceID === "bus" && p.View === "Stream");
 }
-// TRLC-LINKS: REQ-SDS-214, REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-215
 $("busView").onchange = () => { if (ws.cur !== "bus") setWs("bus"); busSetView($("busView").value); };
 
 // busRoom gives the eye and the Visual view room: the lower pane grows to at
 // least half the column while one is shown and returns to its size after.
-// TRLC-LINKS: REQ-SDS-215, REQ-SDS-278
+// TRLC-LINKS: REQ-DSO-215, REQ-DSO-278
 function busRoom(room) {
   const n = paneNode($("p-packets"));
   if (!n || !n.parent) return;
@@ -241,7 +241,7 @@ function busRoom(room) {
 // The eye folds the decoded data line: arm it on that channel when the eye view
 // opens (as BUS again does on the scope) and stop it when the view closes, so the
 // raw feed it leases is released.
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 function busEyeOn() {
   const p = dcfg.proto;
   const ch = p === "spi" || DEC_CLOCKED.includes(p) ? dcfg.data : p === "i2c" ? dcfg.sda : p !== "off" ? dcfg.line : +$("ejCh").value;
@@ -250,7 +250,7 @@ function busEyeOn() {
   if (!ej.armed) $("ejArm").click();
   setTimeout(() => ejRender(true), 60);
 }
-// TRLC-LINKS: REQ-SDS-215
+// TRLC-LINKS: REQ-DSO-215
 function busEyeOff() { if (ej.armed) ejStop("eye view closed"); }
 
 // ---- detection on entry ---------------------------------------------------------
@@ -258,7 +258,7 @@ function busEyeOff() { if (ej.armed) ejStop("eye view closed"); }
 // settings: decFollowScope). With the scope's decode off, entering BUS asks
 // the scope's Auto to find the bus and fill in its settings, as F2 on the
 // scope does; the scope steps its timebase to one that reads the bus.
-// TRLC-LINKS: REQ-SDS-214, REQ-SDS-222
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-222
 async function busDetect(onEntry) {
   if (busDetecting) return;
   busDetecting = true;
@@ -276,14 +276,14 @@ async function busDetect(onEntry) {
   else toast("BUS: " + (note || "no bus detected — choose a protocol in the Decoder pane"), "warn");
   busRenderTable();
 }
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 $("pkDetect").onclick = () => busDetect(false);
 
 // busResume is the BUS view to show again, its stream asked for, when the
 // page comes back to BUS ("" none).
 let busResume = "";
 WS_HOOKS.push({
-  // TRLC-LINKS: REQ-SDS-214
+  // TRLC-LINKS: REQ-DSO-214
   enter(id) {
     if (id !== "bus") return;
     // the bus decoded, when one is, is kept (and a scope streaming is not
@@ -294,7 +294,7 @@ WS_HOOKS.push({
     // back on BUS: the view that followed the scope's stream asks for it again
     if (busResume) { const v = busResume; busResume = ""; busSetView(v); }
   },
-  // TRLC-LINKS: REQ-SDS-214, REQ-SDS-228
+  // TRLC-LINKS: REQ-DSO-214, REQ-DSO-228
   leave(prev) {
     if (prev !== "bus") return;
     busEyeOff();
@@ -316,7 +316,7 @@ WS_HOOKS.push({
 // transcript lines as the LCD's list writes them. The page follows the scope:
 // the scope entering its Stream view shows this one, leaving it the packets.
 let busStreamBusy = false, busScopeWas = false, busStreamAsk = null;
-// TRLC-LINKS: REQ-SDS-018, REQ-SDS-228
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-228
 async function busScopeStream() {
   const on = busScopeStreaming();
   if (busStreamAsk && (on === busStreamAsk.on || Date.now() > busStreamAsk.until)) busStreamAsk = null;
@@ -345,24 +345,24 @@ async function busScopeStream() {
   } catch (e) { /* the next tick reads again */ } finally { busStreamBusy = false; }
 }
 setInterval(busScopeStream, 500);
-// TRLC-LINKS: REQ-SDS-228
+// TRLC-LINKS: REQ-DSO-228
 $("streamStops").onchange = () => sheetSet("bus.stream_trigger", +$("streamStops").value);
-// TRLC-LINKS: REQ-SDS-228
+// TRLC-LINKS: REQ-DSO-228
 $("streamDetect").onclick = () => busDetect(false);
 
 // ---- trigger on bytes --------------------------------------------------------------
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function busInsert(tok) {
   const el = $("stBytes"), v = el.value.trim();
   el.value = (v ? v + " " : "") + tok;
   el.dispatchEvent(new Event("change", { bubbles: true }));
   busRenderedV = -1; busRenderTable();
 }
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 $("stInsAny").onclick = () => busInsert("??");
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 $("stInsErr").onclick = () => busInsert("ERR");
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 $("stClear").onclick = () => { $("stBytes").value = ""; $("stBytes").dispatchEvent(new Event("change", { bubbles: true })); busRenderedV = -1; busRenderTable(); };
 // Enter in the match field arms the trigger (detecting the bus first when decoding is off).
 $("stBytes").addEventListener("keydown", (ev) => {
@@ -373,7 +373,7 @@ $("stBytes").addEventListener("keydown", (ev) => {
 $("stBytes").addEventListener("input", () => { busRenderedV = -1; busRenderTable(); });
 
 // busSummary: one line saying what the serial trigger does now (and why it cannot fire).
-// TRLC-LINKS: REQ-SDS-206
+// TRLC-LINKS: REQ-DSO-206
 function busSummary() {
   const el = $("stSum");
   const armed = stArmed(), pat = $("stBytes").value.trim() || "any unit";
@@ -396,7 +396,7 @@ function busSummary() {
   if (armed) note.textContent = "Serial trigger armed on " + pat + " — edit it in BUS (Alt+2).";
 }
 
-// TRLC-LINKS: REQ-SDS-214
+// TRLC-LINKS: REQ-DSO-214
 function busStatusLine() {
   const p = dcfg.proto, r = dcfg.result;
   let t = "decode off";

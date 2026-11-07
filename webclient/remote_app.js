@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-WEB-REMOTE
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 // remote_app.js — the phone remote, "Tiles & Search" (the design the owner
 // chose): Home is a grid of big tiles, each one setting with its value and
 // two quick buttons that name the value they reach; the workspace chips sit on
@@ -40,22 +40,22 @@
     measure: ["curs.mode", "curs.a", "curs.b", "tool"],
     compare: ["tool", "cmp.mask", "cmp.math", "trig.edge"],
   };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const defaultTiles = (ws) => COMMON.concat(OWN[ws] || []);
   const SHORT = { "Stop on fail": "Stop", "Hex+String": "Both", "Cursor A": "A", "Cursor B": "B", Positive: "Pos", Negative: "Neg" };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const short = (t) => SHORT[t] || t;
   const JOB = { peak: "Peak marker", point: "Bode point", row: "Compare row", threshold: "Eye threshold", packet: "Packet" };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const jobName = (j) => JOB[j] || cap(j || "");
   // the menu keys printed on the panel: each opens its tab here, never on the scope
   const MENU_KEYS = [["menu", "Menu On/Off", "", ""], ["trigmenu", "Trig Menu", "trig", ""], ["horizmenu", "Hori Menu", "time", ""],
     ["ch1", "1", "ch1", ""], ["ch2", "2", "ch2", ""], ["math", "Math", "cmp", "cmp.math"], ["ref", "Ref", "cmp", "cmp.store_a"],
     ["acquire", "Acquire", "acq", ""], ["display", "Display", "view", ""], ["measure", "Measure", "meas", ""], ["cursors", "Cursors", "curs", ""],
     ["utility", "Utility", "bus", ""], ["saverecall", "Save/Recall", "file", ""], ["help", "Help", "sys", "sys.help"]];
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function accent(id) {
     return /^ch1\./.test(id) ? "c1" : /^ch2\./.test(id) ? "c2" : /^(trig\.|bus\.match|bus\.trigger_on|bus\.i2c)/.test(id) ? "trigger"
       : /^time\./.test(id) ? "focus" : /^cmp\./.test(id) ? "math" : "on-fg";
@@ -63,31 +63,31 @@
 
   // ---- reads ----------------------------------------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const row = (id) => RN.row(id);
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const panel = () => RN.S.panel || {};
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const wsNow = () => panel().WorkspaceID || "scope";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const wsName = () => WS_BY[wsNow()].name;
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const tabs = () => RN.S.model.tabs;
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const tabInfo = (id) => tabs().find((t) => t.id === id) || null;
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const tabName = (id) => { const t = tabInfo(id); return t ? t.name : String(id || "").toUpperCase(); };
   // the LCD has a menu (sheet, picker, editor) open: the Adjust and Position knobs drive it there
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const scopeMenu = () => !!panel().Mode && panel().Mode !== "workspace";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const tools = () => RC.tools(panel().Tool);
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const lit = (name) => (panel().LampsLit || []).indexOf(name) >= 0;
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const disp = (t) => RC.pretty(t);
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function labelFor(id) {
     if (id === "tool") return wsName() + " tools";
     const r = row(id);
@@ -97,15 +97,15 @@
   // ---- binders: run on every change while their element is shown --------------------------
 
   const binds = new Set();
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function bind(el, fn) {
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const f = () => { if (!el.isConnected) { binds.delete(f); return; } fn(); };
     binds.add(f);
     fn();
     return f;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function refreshAll() {
     for (const f of Array.from(binds)) f();
     renderHome(false);
@@ -117,30 +117,30 @@
   // ---- state and the phone's own settings -------------------------------------------------
 
   const S = { tab: "home", page: null, query: "", edit: false, sheet: null, menuWs: "" };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function tilesOf(ws) {
     const v = load("tiles:" + ws, null), ids = Array.isArray(v) ? v : defaultTiles(ws);
     const have = RN.S.model.rows;
     return ids.filter((id, i) => typeof id === "string" && ids.indexOf(id) === i && (id === "tool" || !have.size || have.has(id)));
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const saveTiles = (ws, ids) => store("tiles:" + ws, ids);
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const isPinned = (id) => tilesOf(wsNow()).indexOf(id) >= 0;
 
   // ---- changing the scope: through RN only; the answers speak ---------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function answer(res, okText) {
     if (res && res.ok) { if (okText) toast(okText, "ok"); return res; }
     if (res && !res.end) { haptic("warn"); toast((res && res.error) || "The scope refused that", "err"); }
     return res || { ok: false };
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const setRow = (id, input, okText) => RN.set(id, input).then((r) => answer(r, okText && r.ok ? okText(r) : ""));
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const stepRow = (id, cw) => RN.step(id, cw).then((r) => answer(r));
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function actRow(id, act, okText) {
     const r = row(id), a = r && (r.Actions || []).find((x) => x.ID === act);
     const label = (r ? tabName(r.tab) + " " + DOT + " " + RC.label(r) : id) + (a ? ": " + a.Text : "");
@@ -153,7 +153,7 @@
   // once the key has run: its notice, else the setting it changed as read
   // back, confirms it; never a text of the phone's own (Force changes
   // nothing to read back: the tick says it ran).
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function pressKey(button, label, nomenu) {
     return RN.press(button, label ? { label } : {}, nomenu).then(async (r) => {
       if (!answer(r).ok) return r;
@@ -167,7 +167,7 @@
       return r;
     });
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function turnKnob(name, dir) { return RN.knob(name, dir).then((r) => answer(r)); }
 
   // ---- the skeleton: bar, banner, views, run dock, tab bar, one sheet --------------------------
@@ -184,7 +184,7 @@
   const dock = h("div", { class: "dock", role: "group", "aria-label": "Run control" });
   const tabbar = h("nav", { class: "tabbar", role: "tablist", "aria-label": "Sections" });
   app.append(bar, banner, views, h("div", { class: "bottom" }, dock, tabbar));
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const sh = RU.sheet({ inert: app, onClose: () => { S.sheet = null; sh.body.textContent = ""; KP.active = null; syncBack(); } });
 
   // ---- the phone's back gesture: it closes what is open here before it leaves the remote ----------
@@ -197,9 +197,9 @@
   // the task that opened or closed something, so closing one thing and
   // opening another moves no history.
   const Back = { pushed: false, skip: 0, timer: 0 };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function openDepth() { return (sh.isOpen() ? 1 : 0) + (S.edit ? 1 : 0) + (S.tab === "menus" && (S.page || S.query.trim()) ? 1 : 0); }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function syncBack() {
     clearTimeout(Back.timer);
     Back.timer = setTimeout(() => {
@@ -224,7 +224,7 @@
   if (history.state && history.state.sdsRemote) { try { history.replaceState(null, ""); } catch (e) { /* none */ } }
 
   // the connection banner
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderBanner() {
     const s = RN.S;
     banner.hidden = s.online;
@@ -238,19 +238,19 @@
   // ---- the bar ------------------------------------------------------------------------------
 
   const ttlH = h("h1"), ttlP = h("p"), ttl = h("div", { class: "ttl" }, ttlH, ttlP);
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const awakeB = button({ icon: "eye", cls: "ghost sq ib", aria: "Keep the phone awake", onTap: () => toggleAwake() });
   awakeB.id = "awake";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const fsB = button({ icon: "expand", cls: "ghost sq ib", aria: "Fullscreen", onTap: () => toggleFs() });
   fsB.id = "fs";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const backB = button({ icon: "back", label: "Menus", cls: "ghost back", aria: "Back to Menus", onTap: () => goBack() });
   backB.id = "back";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const doneB = button({ label: "Done", cls: "primary", onTap: () => exitEdit() });
   doneB.id = "edit-done";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const resetB = button({ label: "Reset", cls: "ghost", aria: "Back to the default tiles", onTap: () => resetTiles() });
   const wsSeg = h("div", { class: "wss", role: "group", "aria-label": "Workspaces (tap the active one again: its next view)" });
   const wsAgainT = h("span", { id: "again" }), wsAgain = h("div", { class: "wsa", "aria-hidden": "true" }, wsAgainT);
@@ -260,12 +260,12 @@
     const b = h("button", { type: "button", class: "wsb", "aria-pressed": "false", "aria-label": w.name, data: { ws: w.id } });
     b.innerHTML = icon(w.icon, 20);
     b.appendChild(h("span", { class: "wst", text: w.tag }));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(b, { onTap: () => goWs(w.id) });
     wsBtns[w.id] = b;
     wsSeg.appendChild(b);
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderChips() {
     const P = panel(), cur = wsNow(), next = P.AgainNext || "";
     for (const w of WS) {
@@ -278,7 +278,7 @@
     wsAgainT.style.gridColumn = (i <= 2 ? i + 1 : i - 1) + " / span 3";
     wsAgainT.style.textAlign = i <= 2 ? "left" : "right";
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderPhoneButtons() {
     const wk = Wake.state(), fs = Full.state();
     awakeB.classList.toggle("on", wk.on);
@@ -290,10 +290,10 @@
     fsB.setAttribute("aria-pressed", fs.on ? "true" : "false");
     fsB.setAttribute("aria-label", "Fullscreen: " + fs.text);
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function setTitle(a, b) { if (ttlH.textContent !== a) ttlH.textContent = a; if (ttlP.textContent !== (b || "")) ttlP.textContent = b || ""; }
   let barSig = "";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderBar() {
     renderChips();
     renderPhoneButtons();
@@ -324,19 +324,19 @@
 
   // ---- the run dock ---------------------------------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const runB = button({ label: "Run/Stop", sub: "running", cls: "dk", aria: "Run/Stop", onTap: () => pressKey("runstop") });
   runB.id = "runstop";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const singleB = button({ label: "Single", sub: "one shot", cls: "dk", aria: "Single", onTap: () => { singleSeen = false; pressKey("single"); } });
   singleB.id = "single";
   // while Autoset sweeps the scope takes no other change; a second press cancels it, as on the panel
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const autoB = button({ label: "Auto", sub: "autoset", cls: "dk primary", aria: "Auto (autoset)", onTap: () => actRow("sys.autoset", "autoset", panel().AutosetBusy ? "Autoset cancelled" : "Autoset") });
   autoB.id = "auto";
   dock.append(runB, singleB, autoB);
   let singleSeen = false;
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderDock() {
     const run = lit("RUN"), stop = lit("STOP"), armed = lit("SINGLE");
     runB.classList.toggle("run", run && !stop);
@@ -357,14 +357,14 @@
       "aria-controls": "view-" + id, data: { tabbar: id } });
     b.innerHTML = icon(ic, 24);
     b.appendChild(h("span", { text: label }));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(b, { onTap: () => goTab(id) });
     tabBtns[id] = b;
     tabbar.appendChild(b);
   }
   const histBadge = h("span", { class: "tbadge", id: "hist-badge", "aria-hidden": "true", hidden: true });
   tabBtns.hist.appendChild(histBadge);
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function goTab(id) {
     syncBack();
     if (S.edit) { S.edit = false; renderHome(true); }
@@ -391,13 +391,13 @@
   // =================================================================================================
 
   let homeSig = "";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const editLink = button({ icon: "pencil", label: "Edit tiles", cls: "ghost", aria: "Edit the tiles (or long press a tile)", onTap: () => enterEdit() });
   editLink.id = "edit-tiles";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const addTileB = button({ icon: "plus", label: "Add a tile", onTap: () => openAdd() });
   addTileB.id = "add-tile";
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderHome(force) {
     if (!RN.S.model.rows.size) return;
     const ws = wsNow(), ids = tilesOf(ws), sig = ws + "|" + ids.join(",") + "|" + (S.edit ? 1 : 0);
@@ -409,18 +409,18 @@
     V.home.append(grid, h("div", { class: "more" }, S.edit ? addTileB : editLink));
     for (const f of Array.from(binds)) f();   // the quick buttons fit their labels now that they are laid out
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function tile(id, i, n) {
     const el = h("div", { class: "tile", role: "listitem", data: { tile: id }, style: "--acc:var(--" + (id === "tool" ? "on-fg" : accent(id)) + ")" });
     const lbl = h("span", { class: "tl" }), val = h("span", { class: "tv" });
     const main = h("button", { type: "button", class: "tmain" }, lbl, val);
     press(main, {
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       onTap: () => {
         if (S.edit) { toast("Editing the tiles: " + LQ + " " + RQ + " move, " + TIMES + " remove; Done to finish"); return; }
         if (id === "tool") openTools(); else openEditor(id);
       },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       onLong: () => { if (!S.edit) enterEdit(); },
     });
     el.appendChild(main);
@@ -446,7 +446,7 @@
     return el;
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function qbLabel(b, text, side) {
     const t = text === null ? "end" : RC.compact(text);
     // the chevron sits on the button's side: a clockwise button ends with it
@@ -476,10 +476,10 @@
     }
     b.disabled = text === null;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const squeeze = (t) => t.replace(/(\d) (?=[^\d\s])/, "$1");
   // a tile's two quick buttons share one form: both squeezed, both without chevrons
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function pairTight(a, b) {
     const t = a.dataset.tight === "1" || b.dataset.tight === "1", s = t || a.dataset.squeeze === "1" || b.dataset.squeeze === "1";
     for (const x of [a, b]) {
@@ -490,10 +490,10 @@
   }
 
   // the two quick buttons under a tile's value
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function quick(id) {
     const r0 = row(id), q = h("div", { class: "q" });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const qb = (data, cls) => h("button", { type: "button", class: "qb" + (cls ? " " + cls : ""), data });
     if (!r0) return q;
     if (r0.Kind === "number") {
@@ -510,13 +510,13 @@
     } else if (id === "trig.edge") {
       // the two things people flip: the source (C1/C2) and the slope (rise/fall)
       const a = qb({ q: "src" }, "sans"), b = qb({ q: "slope" }, "sans");
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(a, { onTap: () => setRow(id, { value: row(id).Value ^ 2 }) });
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(b, { onTap: () => setRow(id, { value: row(id).Value ^ 1 }) });
       q.append(a, b);
       bind(q, () => {
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         const r = row(id), lab = (v) => ((r.Options || []).find((o) => o.Value === v) || { Text: String(v) }).Text;
         a.textContent = lab(r.Value ^ 2); b.textContent = lab(r.Value ^ 1);
         a.setAttribute("aria-label", "Trigger source: " + a.textContent); b.setAttribute("aria-label", "Trigger slope: " + b.textContent);
@@ -528,7 +528,7 @@
         const b = qb({ value: String(o.Value) }, "sans");
         b.setAttribute("role", "radio");
         b.textContent = short(o.Text);
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         press(b, { onTap: () => setRow(id, { value: o.Value }) });
         q.appendChild(b);
         return [b, o.Value];
@@ -536,9 +536,9 @@
       bind(q, () => { const v = row(id).Value; for (const [b, ov] of bs) b.setAttribute("aria-checked", ov === v ? "true" : "false"); });
     } else if (r0.Kind === "enum") {
       const a = qb({ q: "ccw" }, "sans"), b = qb({ q: "cw" }, "sans");
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(a, { onTap: () => { const o = RC.neighbour(row(id), -1); if (o) setRow(id, { value: o.value }); } });
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(b, { onTap: () => { const o = RC.neighbour(row(id), 1); if (o) setRow(id, { value: o.value }); } });
       q.append(a, b);
       bind(q, () => {
@@ -551,20 +551,20 @@
     } else if (r0.Kind === "bytes") {
       const a = qb({ q: "any" }, "sans"), b = qb({ q: "arm" }, "sans");
       a.textContent = "Any byte";
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(a, { onTap: () => setRow(id, { text: "any" }, () => "Match: any byte") });
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(b, { onTap: () => { const on = armed(); setRow("bus.trigger_on", { value: on ? 0 : 1 }, () => (on ? "Serial trigger off" : "Serial trigger on")); } });
       q.append(a, b);
       bind(q, () => { const on = armed(); b.textContent = on ? "Disarm" : "Arm"; b.classList.toggle("arm", on); b.setAttribute("aria-label", on ? "Serial trigger off" : "Serial trigger on"); });
     } else {
       const acts = (r0.Actions || []).slice(0, 2);
       acts.forEach((a) => {
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         if (id === "sys.default") { q.appendChild(holdButton({ label: "Hold: " + a.Text, ms: 1000, onConfirm: () => actRow(id, a.ID, "Default setup restored") })); return; }
         const b = qb({ act: a.ID }, "sans");
         b.textContent = a.Text;
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         press(b, { onTap: () => actRow(id, a.ID, labelFor(id) + ": " + a.Text) });
         q.appendChild(b);
         bind(b, () => { const x = (row(id).Actions || []).find((y) => y.ID === a.ID); b.classList.toggle("dimmed", !!x && !x.Available); });
@@ -573,10 +573,10 @@
     }
     return q;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const armed = () => { const r = row("bus.trigger_on"); return !!r && r.Value === 1; };
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function toolQuick() {
     const q = h("div", { class: "q" });
     const a = h("button", { type: "button", class: "qb sans", data: { q: "ccw" } }), b = h("button", { type: "button", class: "qb sans", data: { q: "cw" } });
@@ -592,16 +592,16 @@
     });
     return q;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function editBar(id, i, n) {
     const q = h("div", { class: "q edq" }), lab = labelFor(id);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const mk = (ic, aria, fn, dis) => { const b = button({ icon: ic, aria, cls: "sq", onTap: fn }); b.disabled = !!dis; return b; };
     q.append(mk("back", "Move " + lab + " earlier", () => moveTile(id, -1), i === 0), mk("close", "Remove " + lab, () => removeTile(id)),
       mk("chev", "Move " + lab + " later", () => moveTile(id, 1), i === n - 1));
     return q;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function enterEdit() {
     if (S.tab !== "home" || S.edit) return;
     S.edit = true;
@@ -610,9 +610,9 @@
     renderBar();
     syncBack();
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function exitEdit() { S.edit = false; renderHome(true); renderBar(); syncBack(); }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function moveTile(id, d) {
     const ws = wsNow(), ids = tilesOf(ws), i = ids.indexOf(id), j = i + d;
     if (i < 0 || j < 0 || j >= ids.length) return;
@@ -620,20 +620,20 @@
     saveTiles(ws, ids);
     renderHome(true);
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function removeTile(id) {
     const ws = wsNow();
     saveTiles(ws, tilesOf(ws).filter((x) => x !== id));
     toast("Removed " + labelFor(id) + " (Add a tile brings it back)");
     renderHome(true);
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function resetTiles() {
     store("tiles:" + wsNow(), undefined);
     toast("Default tiles for " + wsName(), "ok");
     renderHome(true);
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function togglePin(id) {
     const ws = wsNow(), ids = tilesOf(ws), i = ids.indexOf(id);
     if (i >= 0) ids.splice(i, 1); else ids.push(id);
@@ -645,12 +645,12 @@
 
   // ---- workspaces ------------------------------------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function goWs(id) {
     if (wsNow() === id) { doAgain(); return; }
     RN.workspace(id).then((res) => answer(res, res.ok ? WS_BY[id].name + (res.notice ? ": " + res.notice : "") : ""));
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function doAgain() {
     const name = wsName();
     RN.again().then((res) => answer(res, res.ok ? name + ": " + res.view : ""));
@@ -659,7 +659,7 @@
   // what the Adjust push does here: on the scope, or, where it would open a
   // menu on the LCD (SCOPE: the Adjust row; BUS packets: the byte picker),
   // the same job on the phone
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function adjustPush() {
     const t = tools();
     if (/pick/i.test(t.adjust.push)) { openEditor("bus.match"); toast("Pick bytes here: type the match bytes", "ok"); return; }
@@ -676,7 +676,7 @@
   // =================================================================================================
 
   const pinB = h("button", { type: "button", class: "btn ghost sq pin", "aria-label": "Pin to Home", "aria-pressed": "false", html: icon("pin") });
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   press(pinB, { onTap: () => { if (S.sheet && S.sheet.pin) togglePin(S.sheet.pin); } });
   sh.tools.appendChild(pinB);
   bind(pinB, () => {
@@ -687,7 +687,7 @@
     pinB.setAttribute("aria-pressed", on ? "true" : "false");
     pinB.setAttribute("aria-label", (on ? "Unpin from " : "Pin to ") + wsName() + " Home");
   });
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function sheetOpen(kind, title, pin, acc) {
     S.sheet = { kind, pin: pin || null };
     KP.active = null;
@@ -701,14 +701,14 @@
     syncBack();
     return box;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   // finish confirms a change; from: the sheet it was made in (S.sheet then). A
   // late answer closes only that sheet: closed by hand meanwhile and another
   // opened (a slow link), the answer must not shut the new one.
   function finish(text, from) { haptic("confirm"); if (from === undefined || S.sheet === from) sh.close(); if (text) toast(text, "ok"); }
 
   // openEditor opens one setting's sheet.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function openEditor(id) {
     const r = row(id);
     if (!r) return;
@@ -728,7 +728,7 @@
     else actionEditor(id, box);
     const why = h("p", { class: "why" }), help = h("p", { class: "sub", text: r.Help || "" });
     bind(why, () => { const x = row(id); why.textContent = x.Available ? "" : "Not in use now: needs " + (x.Why || "another setting") + "."; why.hidden = x.Available; });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const all = button({ label: "All " + tabName(r.tab) + " settings", cls: "ghost", onTap: () => { sh.close(); goTab("menus"); openPage(r.tab, id); } });
     all.insertAdjacentHTML("beforeend", icon("chev", 18));
     all.dataset.all = r.tab;
@@ -737,10 +737,10 @@
 
   // ---- numbers: steppers (hold repeats), a drag strip, presets, a keypad with units ----------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function numberEditor(id, box) {
     const r0 = row(id);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const side = (q) => {
       const b = h("button", { type: "button", class: "btn sb", data: { q } }, h("span", { class: "ch", text: q === "ccw" ? LQ : RQ }), h("span", { class: "sbv" }));
       return repeat(b, () => { stepRow(id, q === "ccw" ? -1 : 1); KP.reset(); });
@@ -763,7 +763,7 @@
     left.appendChild(dragStrip(id));
     const pre = h("div", { class: "pre" });
     for (const p of r0.Presets || []) {
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const pb = button({ label: p, onTap: () => { const from = S.sheet; RN.preset(id, p).then((res) => { if (answer(res).ok) finish(labelFor(id) + ": " + disp(res.text), from); }); } });
       pb.dataset.preset = p;
       pre.appendChild(pb);
@@ -771,13 +771,13 @@
     }
     // the knob's printed push, where it belongs to this row
     if (id === "time.tdiv") {
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const zb = button({ label: "Zoom", onTap: () => pressKey("tdivpush") });
       zb.dataset.extra = "zoom";
       pre.appendChild(zb);
       bind(zb, () => { const z = row("time.zoom"); const on = !!z && z.Value !== 1; zb.classList.toggle("on", on); zb.setLabel(on ? "Zoom: " + z.Text : "Zoom: off"); });
     } else if (id === "trig.level") {
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const fb = button({ label: "Force", onTap: () => pressKey("force") });
       fb.dataset.extra = "force";
       pre.appendChild(fb);
@@ -787,26 +787,26 @@
   }
 
   // the drag strip: 16 px per detent, right = clockwise; a tap on a half steps once
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function dragStrip(id) {
     const lt = h("span"), rt = h("span");
     const el = h("div", { class: "strip", role: "slider", tabindex: "0", data: { strip: id }, "aria-label": "Drag to change " + labelFor(id) + " (right = clockwise)" },
       lt, h("span", { class: "smid", text: "drag" }), rt);
     const STEP = 16;
     let did = 0, dragged = false;
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const turn = (n) => { for (let k = 0; k < Math.abs(n); k++) haptic("detent"); RN.step(id, Math.sign(n), Math.abs(n)).then((r) => answer(r)); KP.reset(); };
     drag(el, {
       buttons: true,
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       onStart() { did = 0; dragged = true; el.classList.add("drag"); },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       onMove(d) {
         el.style.setProperty("--off", Math.round(d.dx) + "px");
         const n = Math.trunc(d.dx / STEP) - did;
         if (n) { did += n; turn(n); }
       },
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       onEnd() { el.classList.remove("drag"); },
     });
     el.addEventListener("click", (e) => {
@@ -830,24 +830,24 @@
 
   // ---- keypads (numbers with units; hex bytes) ------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const KP = { active: null, reset() { if (KP.active && KP.active.reset) KP.active.reset(); } };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function keyBtn(k, label, cls, place, onKey) {
     const b = h("button", { type: "button", class: "key" + (cls ? " " + cls : ""), data: { key: k }, "aria-label": label === k ? null : label, style: place }, label);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(b, { onTap: () => onKey(k) });
     return b;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const at = (col, rw, cs, rs) => "grid-column:" + col + " / span " + (cs || 1) + ";grid-row:" + rw + " / span " + (rs || 1);
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function numPad(id, dv, msg) {
     const units = RC.unitKeys(row(id)), hex = RC.isHex(row(id));
     let buf = "";
     const keys = h("div", { class: "keys" });
     const el = h("div", { class: "keypad", data: { keypad: id } }, keys);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const add = (k, label, cls, place) => keys.appendChild(keyBtn(k, label, cls, place, key));
     if (hex) {
       // a row the scope writes in hex: the digits, A-F and 0x
@@ -875,7 +875,7 @@
         add("enter", "Set", "enter", at(1, 5, 4));
       }
     }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     function show() {
       const r = row(id);
       if (!buf) {
@@ -890,13 +890,13 @@
       msg.className = "msg " + (p.ok ? "ok" : "err");
       msg.textContent = p.ok ? "= " + disp(p.text) + (p.note ? " (" + p.note + ")" : "") : p.error;
     }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     function key(k) {
       if (k === "enter") { apply(); return; }
       buf = hex ? RC.hexNumKey(buf, k) : RC.numKey(buf, k, units);
       show();
     }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     function apply() {
       if (!buf) { haptic("warn"); msg.className = "msg err"; msg.textContent = "Type a value first"; return; }
       const typed = buf, from = S.sheet;
@@ -907,7 +907,7 @@
         toast(res.error || "The scope refused " + typed, "err");
       });
     }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     KP.active = { el, key, hexnum: hex, reset() { buf = ""; show(); } };
     bind(el, () => { if (!buf) show(); });
     return el;
@@ -936,14 +936,14 @@
 
   // ---- options: big buttons; a pick sets it and closes ---------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function enumEditor(id, box) {
     const r0 = row(id);
     const grid = h("div", { class: "opts", role: "radiogroup", "aria-label": labelFor(id) });
     const bs = (r0.Options || []).map((o) => {
       const b = h("button", { type: "button", class: "opt", role: "radio", "aria-checked": "false", data: { value: String(o.Value) }, html: icon("check", 20) });
       b.appendChild(h("span", { text: o.Text }));
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(b, { onTap: () => { const from = S.sheet; RN.set(id, { value: o.Value }).then((res) => { if (answer(res).ok) finish(labelFor(id) + ": " + disp(res.text), from); }); } });
       grid.appendChild(b);
       return [b, o.Value];
@@ -954,10 +954,10 @@
     if (id === "bus.baud") {
       const inp = h("input", { class: "field-input", type: "text", inputmode: "decimal", enterkeyhint: "done", autocomplete: "off", spellcheck: "false",
         placeholder: "Other rate, e.g. 250000", "aria-label": "Type another baud rate", id: "baud-typed" });
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const setB = button({ label: "Set", onTap: () => typedBaud() });
       const msg = h("div", { class: "msg", "aria-live": "polite" });
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const typedBaud = () => {
         const t = inp.value.trim(), from = S.sheet;
         if (!t) { inp.focus(); return; }
@@ -973,16 +973,16 @@
 
   // ---- actions and setup slots: labelled buttons; only an explicit tap runs one -----------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function actionButtons(id) {
     const wrap = h("div", { class: "acts" });
     for (const a of row(id).Actions || []) {
       let b;
       if (id === "sys.default") {
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         b = holdButton({ label: a.Text, sub: "hold 1 s", ms: 1000, icon: "power", onConfirm: () => { const from = S.sheet; actRow(id, a.ID).then((res) => { if (res.ok) finish("Default setup restored", from); }); } });
       } else {
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         b = button({ label: a.Text, sub: slotHint(id, a), cls: "primary", onTap: () => { const from = S.sheet; actRow(id, a.ID).then((res) => { if (res.ok) finish(labelFor(id) + ": " + a.Text, from); }); } });
       }
       b.dataset.action = a.ID;
@@ -991,13 +991,13 @@
     }
     return wrap;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function slotHint(id, a) {
     if (!RC.isSlot(row(id))) return undefined;
     const used = row(id).Text !== "empty";
     return a.ID === "save" ? (used ? "overwrite" : "store here") : used ? "restore" : "empty";
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function actionEditor(id, box) {
     const st = h("p", { class: "sub" });
     bind(st, () => {
@@ -1010,7 +1010,7 @@
 
   // ---- match bytes: a hex keypad or text, then Set or Trigger on it -----------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function bytesEditor(id, box) {
     let mode = "hex", buf = "", err = "";   // err: the scope's last refusal, shown until the next key
     const modeSeg = h("div", { class: "seg", role: "radiogroup", "aria-label": "Type the bytes as" });
@@ -1024,7 +1024,7 @@
       autocorrect: "off", spellcheck: "false", placeholder: "Hi", "aria-label": "Match text", id: "match-text" });
     const txtBox = h("div", { class: "field", hidden: true }, h("label", { class: "field-label", for: "match-text", text: "Text, sent byte for byte (\\r \\n \\xNN escapes)" }), txt);
     const entry = h("div", { class: "bybox" }, pad, txtBox);   // one height in both modes: nothing moves under the finger
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const add = (k, label, cls, place) => keys.appendChild(keyBtn(k, label, cls, place, key));
     [["7", "8", "9", "F"], ["4", "5", "6", "E"], ["1", "2", "3", "D"], ["0", "A", "B", "C"]].forEach((rw, ri) =>
       rw.forEach((k, ci) => add(k, k, /[A-F]/.test(k) ? "unit" : "", at(ci + 1, ri + 1))));
@@ -1032,9 +1032,9 @@
     add(" ", "Space", "op", at(2, 5));
     add("back", "Del", "op", at(3, 5));
     add("clear", "Clear", "op", at(4, 5));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const typed = () => (mode === "hex" ? buf.trim() : RC.quoteText(txt.value));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     function show() {
       const r = row(id), now = disp(r.Text);
       if (mode === "hex") { dv.textContent = buf || now; dv.classList.toggle("typed", !!buf); dv.classList.toggle("long", (buf || now).length > 11); }
@@ -1046,34 +1046,34 @@
       msg.className = "msg " + (p.ok ? "ok" : "err");
       msg.textContent = p.ok ? "= " + (p.tokens.join(" ") || "any byte") + " (" + p.tokens.length + (p.tokens.length === 1 ? " byte)" : " bytes)") : p.error;
     }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     function key(k) {
       err = "";
       if (k === "enter") { setOnly(); return; }
       buf = RC.hexKey(buf, k);
       show();
     }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     KP.active = { el: pad, key, hex: true, reset() { show(); } };
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const setMode = (m) => {
       mode = m; err = "";
       mHex.setAttribute("aria-checked", m === "hex" ? "true" : "false"); mTxt.setAttribute("aria-checked", m === "text" ? "true" : "false");
       pad.hidden = m !== "hex"; txtBox.hidden = m !== "text";
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       KP.active = m === "hex" ? { el: pad, key, hex: true, reset() { show(); } } : null;
       show();
     };
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(mHex, { onTap: () => setMode("hex") });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(mTxt, { onTap: () => { setMode("text"); txt.focus({ preventScroll: true }); } });
     // keep the focus in the text field (a tapped button would take it)
     for (const b of [mHex, mTxt]) b.addEventListener("mousedown", (e) => e.preventDefault());
     txt.addEventListener("input", () => { err = ""; show(); });
     // the keyboard's Done key sets the bytes, as Set does; only "Trigger on it" arms the trigger
     txt.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); setOnly(); } });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     async function setMatch() {
       const t = typed();
       if (!t) return { ok: true, text: row(id).Text };
@@ -1081,9 +1081,9 @@
       if (!res.ok) { haptic("warn"); err = res.error; show(); toast(res.error, "err"); }
       return res;
     }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     async function setOnly() { const from = S.sheet, res = await setMatch(); if (res.ok) finish("Match bytes: " + disp(res.text), from); }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     async function arm() {
       const from = S.sheet, res = await setMatch();
       if (!res.ok) return;
@@ -1091,13 +1091,13 @@
       if (a.ok) { finish("Serial trigger on " + disp(row(id).Text), from); return; }
       haptic("warn"); err = a.error; show(); toast(a.error, "err");
     }
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const anyB = button({ label: "Any byte", onTap: () => { const from = S.sheet; buf = ""; txt.value = ""; setRow(id, { text: "any" }).then((res) => { if (res.ok) finish("Match: any byte", from); }); } });
     anyB.dataset.act = "any";
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const setB = button({ label: "Set", onTap: () => setOnly() });
     setB.dataset.act = "set";
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const armB = button({ label: "Trigger on it", cls: "primary", onTap: () => arm() });
     armB.dataset.act = "arm";
     const st = h("p", { class: "sub bst" });
@@ -1111,7 +1111,7 @@
 
   // ---- the workspace's tools: Adjust and Position jobs with their pushes, Zoom, again ------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function openTools() {
     const box = sheetOpen("tools", wsName() + " tools", "tool", "on-fg");
     const sub = h("p", { class: "sub" });
@@ -1122,17 +1122,17 @@
         : "The knob jobs of " + (P.Workspace || "") + " (" + (P.View || "") + "), as the scope's tool line says.";
     });
     box.appendChild(knobRows("tools"));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const zb = button({ label: "Zoom", sub: "S/DIV push", onTap: () => pressKey("tdivpush") });
     zb.dataset.tool = "zoom";
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const ab = button({ label: "Again", sub: "", cls: "primary", onTap: () => doAgain() });
     ab.dataset.tool = "again";
     box.appendChild(h("div", { class: "k2" }, zb, ab));
     bind(zb, () => { const t = tools(); zb.setLabel(cap(t.zoom || "zoom")); ab.setLabel(wsName() + " again"); ab.setSub(panel().AgainNext || ""); });
   }
   // Adjust and Position as rows of [< prev] [push: job] [next >] (the tools sheet and Keys)
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function knobRows(cls) {
     const wrap = h("div", { class: "col " + (cls || "") });
     for (const [knob, name, pushBtn] of [["adjust", "Adjust", "adjustpush"], ["horizpos", "Position", "horizpospush"]]) {
@@ -1140,7 +1140,7 @@
       const a = h("button", { type: "button", class: "btn", data: { knob, q: "ccw" } }), b = h("button", { type: "button", class: "btn", data: { knob, q: "cw" } });
       repeat(a, () => turnKnob(knob, -1));
       repeat(b, () => turnKnob(knob, 1));
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const p = button({ label: "push", sub: "", onTap: () => (knob === "adjust" ? adjustPush() : pressKey(pushBtn, "", true)) });
       p.dataset.knob = knob;
       p.dataset.push = "1";
@@ -1163,14 +1163,14 @@
 
   // ---- add a tile (edit mode) -------------------------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function openAdd() {
     const ws = wsNow(), box = sheetOpen("add", "Add a tile to " + WS_BY[ws].name, null, "on-fg");
     const inp = h("input", { class: "field-input", type: "search", inputmode: "search", enterkeyhint: "search", placeholder: "Find a setting",
       autocomplete: "off", autocapitalize: "off", autocorrect: "off", spellcheck: "false", "aria-label": "Find a setting to add", id: "add-find" });
     const list = h("div", { class: "list" });
     box.append(h("div", { class: "sbox" }, h("span", { html: icon("search", 20) }), inp), list);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const draw = () => {
       list.textContent = "";
       const have = tilesOf(ws), q = inp.value.trim();
@@ -1184,7 +1184,7 @@
           h("span", { class: "cl" }, h("b", { text: labelFor(id) }), h("small", { text: r ? tabName(r.tab) + " " + DOT + " " + r.Label.replace(/\s+/g, " ") : "Adjust and Position jobs of " + WS_BY[ws].name })),
           h("span", { class: "cv", text: r ? disp(r.Text) : "" }));
         b.insertAdjacentHTML("beforeend", icon("plus", 18));
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         press(b, { onTap: () => { const now = tilesOf(ws); now.push(id); saveTiles(ws, now); finish("Added " + labelFor(id)); renderHome(true); } });
         list.appendChild(b);
       }
@@ -1196,10 +1196,10 @@
 
   // ---- help -----------------------------------------------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function openHelp() {
     const box = sheetOpen("help", "How this remote works", null, "on-fg");
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const P = (t) => h("p", { text: t });
     box.append(
       h("h3", { text: "Home" }),
@@ -1215,7 +1215,7 @@
       P("Force, Set to 50 %, Print, the knob pushes (Zero, Zoom, Variable), the Adjust and Position jobs, the menu keys (they open the menu here) and Default Setup (hold it for 1 s)."),
       h("h3", { text: "The phone" }),
       P("The eye keeps the screen on: with a wake lock where the browser has one, else (the scope serves plain HTTP, where browsers have none) with a muted video behind the remote, or, on an iPhone or with Stronger keep-awake in Keys, a video with a silent sound track. The corner button goes fullscreen on Android. An iPhone has no fullscreen for pages: Share, Add to Home Screen opens the remote without browser bars."));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const sys = button({ label: "The scope's own help pages (SYS)", cls: "ghost", onTap: () => { sh.close(); goTab("menus"); openPage("sys"); } });
     sys.dataset.sys = "1";
     box.appendChild(sys);
@@ -1227,7 +1227,7 @@
 
   const searchIn = h("input", { class: "field-input", type: "search", inputmode: "search", enterkeyhint: "search", placeholder: "Search settings",
     autocomplete: "off", autocapitalize: "off", autocorrect: "off", spellcheck: "false", "aria-label": "Search settings", id: "search" });
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const clearQ = button({ icon: "close", cls: "ghost sq", aria: "Clear the search", onTap: () => { searchIn.value = ""; S.query = ""; renderMenus(); } });
   const srow = h("div", { class: "srch" }, h("div", { class: "sbox" }, h("span", { html: icon("search", 20) }), searchIn), clearQ);
   const mBody = h("div", { class: "mbody" });
@@ -1237,13 +1237,13 @@
   // the phone's keyboard covers the lower half: keep the results above it
   if (window.visualViewport) {
     const vv = window.visualViewport;
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const fit = () => document.documentElement.style.setProperty("--kb", Math.max(0, window.innerHeight - vv.height - vv.offsetTop) + "px");
     vv.addEventListener("resize", fit);
     vv.addEventListener("scroll", fit);
   }
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderMenus() {
     syncBack();
     S.menuWs = wsNow();
@@ -1255,16 +1255,16 @@
     else if (S.query.trim()) renderResults(S.query);
     else renderRoot();
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderRoot() {
     const own = (OWN_TABS[wsNow()] || []).filter((t) => tabInfo(t)), rest = tabs().map((t) => t.id).filter((t) => own.indexOf(t) < 0);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const grid = (ids, mine) => {
       const g = h("div", { class: "tabs" });
       for (const tid of ids) {
         const t = tabInfo(tid);
         const b = h("button", { type: "button", class: "tabc" + (mine ? " own" : ""), data: { tab: tid }, "aria-label": t.name + ": " + t.title }, h("b", { text: t.name }), h("span", { text: t.title }));
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         press(b, { onTap: () => openPage(tid) });
         g.appendChild(b);
       }
@@ -1272,7 +1272,7 @@
     };
     mBody.append(h("div", { class: "sec", text: wsName() + " menus" }), grid(own, true), h("div", { class: "sec", text: "More menus" }), grid(rest, false));
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function openPage(tid, focusRow) {
     S.page = tid;
     if (S.tab !== "menus") goTab("menus");
@@ -1288,9 +1288,9 @@
       }
     }
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function goBack() { S.page = null; renderMenus(); renderBar(); V.menus.scrollTop = 0; }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderPage(tid) {
     const t = tabInfo(tid);
     if (!t) { S.page = null; renderRoot(); return; }
@@ -1307,24 +1307,24 @@
 
   // ---- search: settings (with everyday words), then places --------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const PLACES = WS.map((w) => ({ id: "ws:" + w.id, icon: w.icon, label: w.name + " workspace", sub: w.what, words: w.words, run: () => goWs(w.id) })).concat([
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     { id: "key:set50", icon: "zero", label: "Set to 50 %", sub: "Trigger key: the level to the middle of the signal", words: "set 50 % percent level middle half", run: () => pressKey("set50", "Set to 50 %") },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     { id: "key:zoom", icon: "expand", label: "Zoom (S/DIV push)", sub: "Zoom on or off around the trigger", words: "zoom push s/div magnify", run: () => pressKey("tdivpush") },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     { id: "key:tools", icon: "dial", label: "Workspace tools", sub: "Adjust and Position jobs and their pushes", words: "adjust position knob tools push statistics zero peak packet cursor row", run: () => openTools() },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     { id: "history", icon: "clock", label: "History", sub: "Every change, newest first, with undo", words: "history undo changes changed log recent back", run: () => goTab("hist") },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     { id: "help", icon: "hand", label: "Help: how this remote works", sub: "Tiles, sheets, search, pins", words: "help guide how tiles pin search remote", run: () => openHelp() },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     { id: "awake", icon: "eye", label: "Keep the phone awake", sub: "Wake lock, or a video behind the remote on plain HTTP", words: "awake wake lock sleep screen dim", run: () => toggleAwake() },
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     { id: "fs", icon: "expand", label: "Fullscreen", sub: "Hide the browser bars", words: "fullscreen full screen browser bars home", run: () => toggleFs() },
   ]);
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderResults(q) {
     const places = PLACES.filter((p) => RC.matchPlace(p, q));
     const found = RC.search(RN.S.model, q, 40);
@@ -1340,7 +1340,7 @@
       const b = h("button", { type: "button", class: "cell drill place", data: { place: p.id } },
         h("span", { class: "pi", html: icon(p.icon, 22) }), h("span", { class: "cl" }, h("b", { text: p.label }), h("small", { text: p.sub })));
       b.insertAdjacentHTML("beforeend", icon("chev", 18));
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(b, { onTap: () => p.run() });
       list.appendChild(b);
     }
@@ -1349,14 +1349,14 @@
 
   // ---- one row as a Settings cell: switch, segmented options, stepper, drill-in or buttons ------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const textW = (s, px) => String(s).length * px * 0.6;
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const segW = (opts, pad, min) => opts.reduce((a, o) => a + Math.max(min, textW(o.Text, 15) + pad), 0) + 4 * (opts.length - 1);
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function cellLabel(id, badge) {
     const b = h("b"), s = h("small");
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     return { el: h("span", { class: "cl" }, b, s), b, s, upd(r, extra) {
       const t = badge ? labelFor(id) : r.Label.replace(/\s+/g, " ");
       if (b.textContent !== t) b.textContent = t;
@@ -1369,16 +1369,16 @@
       if (s.textContent !== sub) s.textContent = sub;
     } };
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function cell(id, opts) {
     opts = opts || {};
     const r0 = row(id), lab = cellLabel(id, !!opts.badge), avail = (window.innerWidth || 360) - 28;
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const longPin = () => togglePin(id);
     let el;
     if (RC.isSwitch(r0)) {
       el = h("button", { type: "button", class: "cell", role: "switch", "aria-checked": "false", data: { row: id } }, lab.el, h("span", { class: "swt", "aria-hidden": "true" }));
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(el, { onTap: () => { const r = row(id); setRow(id, { value: r.Value ? 0 : 1 }); }, onLong: longPin });
       bind(el, () => { const r = row(id); lab.upd(r); el.setAttribute("aria-checked", r.Value ? "true" : "false"); el.classList.toggle("off", !r.Available); el.setAttribute("aria-label", labelFor(id) + ": " + r.Text); });
       return el;
@@ -1390,7 +1390,7 @@
       const seg = h("div", { class: "seg", role: "radiogroup", "aria-label": labelFor(id) });
       const bs = r0.Options.map((o) => {
         const b = h("button", { type: "button", role: "radio", "aria-checked": "false", data: { value: String(o.Value) } }, o.Text);
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         press(b, { onTap: () => setRow(id, { value: o.Value }), onLong: longPin });
         seg.appendChild(b);
         return [b, o.Value];
@@ -1404,7 +1404,7 @@
       el = h("div", { class: "cell", data: { row: id } });
       const cm = h("button", { type: "button", class: "cm", data: { open: id } }, lab.el, val);
       cm.insertAdjacentHTML("beforeend", icon("chev", 18));
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(cm, { onTap: () => openEditor(id), onLong: longPin });
       const a = repeat(h("button", { type: "button", class: "btn sq st", data: { q: "ccw" }, html: icon("back", 22) }), () => stepRow(id, -1));
       const b = repeat(h("button", { type: "button", class: "btn sq st", data: { q: "cw" }, html: icon("chev", 22) }), () => stepRow(id, 1));
@@ -1424,14 +1424,14 @@
     if (inline.length) {
       el = h("div", { class: "cell", data: { row: id } });
       const cm = h("button", { type: "button", class: "cm", data: { open: id } }, lab.el);
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       press(cm, { onTap: () => openEditor(id), onLong: longPin });
       el.appendChild(cm);
       const btns = inline.map((a) => {
         const b = id === "sys.default"
-          // TRLC-LINKS: REQ-SDS-220
+          // TRLC-LINKS: REQ-DSO-220
           ? holdButton({ label: a.Text, sub: "hold 1 s", ms: 1000, onConfirm: () => actRow(id, a.ID, "Default setup restored") })
-          // TRLC-LINKS: REQ-SDS-220
+          // TRLC-LINKS: REQ-DSO-220
           : button({ label: a.Text, cls: RC.isSlot(r0) ? "" : "primary", onTap: () => actRow(id, a.ID, labelFor(id) + ": " + a.Text) });
         b.dataset.act = a.ID;
         el.appendChild(b);
@@ -1448,7 +1448,7 @@
     }
     el = h("button", { type: "button", class: "cell drill", data: { row: id, open: id } }, lab.el, val);
     el.insertAdjacentHTML("beforeend", icon("chev", 18));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(el, { onTap: () => openEditor(id), onLong: longPin });
     bind(el, () => { const r = row(id); lab.upd(r); val.textContent = disp(r.Text); el.classList.toggle("off", !r.Available); el.setAttribute("aria-label", labelFor(id) + ": " + disp(r.Text) + " (open)"); });
     return el;
@@ -1462,21 +1462,21 @@
   V.hist.appendChild(histList);
   let histMeta = [];
   const SRC = { phone: "phone", scope: "scope", remote: "other remote" };
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function entryTitle(e) {
     if (e.label) return e.label;
     if (e.ws) return "Workspace";
     if (e.rows.length === 1 || e.primary) return e.rows[0].tab + " " + DOT + " " + e.rows[0].label;
     return e.src === "phone" ? "Settings" : e.src === "remote" ? "On another remote" : "On the scope";
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   const nd = (t) => RC.pretty(String(t == null ? "" : t)).replace(/\s*\/div$/, "");
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function valuesLine(e) {
     const v = h("span", { class: "hv" });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const pair = (a, b) => v.append(nd(a) + " " + ARROW + " ", h("em", { text: nd(b) }));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const more = (n) => (n ? " " + DOT + " " + n + (n === 1 ? " setting" : " settings") : "");
     if (e.ws) { pair(WS_BY[e.ws.from] ? WS_BY[e.ws.from].name : e.ws.from, WS_BY[e.ws.to] ? WS_BY[e.ws.to].name : e.ws.to); v.append(more(e.rows.length)); }
     else if (e.rows.length === 1 || e.primary) { pair(e.rows[0].old.text, e.rows[0].neu.text); if (e.rows.length > 1) v.append(" " + DOT + " +" + (e.rows.length - 1)); }
@@ -1487,7 +1487,7 @@
   // the badge counts the entries added since History was last shown (the
   // newest entry seen then is kept on the phone, with History)
   let seenId = Number(load(RN.HIST_KEY + "-seen", 0)) || 0;
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function badge() {
     const L = RN.S.history.list;
     if (S.tab === "hist" && L.length && L[0].id > seenId) { seenId = L[0].id; store(RN.HIST_KEY + "-seen", seenId); }
@@ -1496,7 +1496,7 @@
     histBadge.textContent = n > 99 ? "99+" : String(n);
     tabBtns.hist.setAttribute("aria-label", "History" + (n ? ", " + n + (n === 1 ? " new change" : " new changes") : ""));
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function renderHist() {
     histList.textContent = "";
     histMeta = [];
@@ -1507,34 +1507,34 @@
     }
     for (const e of L) histList.appendChild(entryEl(e));
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function entryEl(e) {
     const meta = h("small"), title = entryTitle(e);
     const main = h("button", { type: "button", class: "hmain", data: { hopen: String(e.id) }, "aria-label": title + " (details)" },
       h("span", { class: "hl" }, h("b", { text: title }), meta), valuesLine(e));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(main, { onTap: () => openEntry(e) });
     const el = h("div", { class: "hent " + e.src + (e.undone ? " undone" : ""), role: "listitem", data: { hist: String(e.id) } }, main);
     if (e.undoable && !e.undone) {
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       const u = button({ label: "Undo", aria: undoTitle(e), onTap: () => undoEntries([e], undoTitle(e)) });
       u.classList.add("hundo");
       u.dataset.hundo = String(e.id);
       el.appendChild(u);
     } else if (e.undone) el.appendChild(h("span", { class: "badge", text: "undone" }));
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const upd = () => { meta.textContent = (SRC[e.src] || e.src) + " " + DOT + " " + RC.ago(Date.now() - e.t); };
     upd();
     histMeta.push(upd);
     return el;
   }
   // undoTitle names an undo of e: undoing an undo is a redo.
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function undoTitle(e) {
     const t = entryTitle(e), m = e.kind === "undo" ? /^(Undo|Redo): (.*)$/.exec(t) : null;
     return m ? (m[1] === "Undo" ? "Redo: " : "Undo: ") + m[2] : "Undo: " + t;
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function undoEntries(list, title) {
     RN.undo(list, title).then((res) => {
       haptic(res.ok ? "confirm" : "warn");
@@ -1544,18 +1544,18 @@
       if (S.tab === "hist") renderHist();
     });
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function openEntry(e) {
     const title = entryTitle(e), box = sheetOpen("hist", title, null, "on-fg");
     box.dataset.entry = String(e.id);
     box.appendChild(h("p", { class: "sub", text: (e.src === "phone" ? "Made on this phone" : e.src === "remote" ? "Made on another remote" : "Made on the scope") + " " + DOT + " " +
       RC.ago(Date.now() - e.t) + (e.n > 1 ? " " + DOT + " " + e.n + " steps in a row" : "") + (e.undone ? " " + DOT + " undone" : "") }));
     const list = h("div", { class: "list" });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const line = (name, a, b, id) => {
       const el = h(id ? "button" : "div", { type: id ? "button" : null, class: "cell hrow" + (id ? " drill" : "") },
         h("span", { class: "cl" }, h("b", { text: name }), h("small", { text: nd(a) + " " + ARROW + " " + nd(b) })));
-      // TRLC-LINKS: REQ-SDS-220
+      // TRLC-LINKS: REQ-DSO-220
       if (id) { el.insertAdjacentHTML("beforeend", icon("chev", 18)); press(el, { onTap: () => openEditor(id) }); }
       return el;
     };
@@ -1566,7 +1566,7 @@
     const acts = h("div", { class: "k1" });
     if (e.undoable && !e.undone) {
       const u = button({ label: e.kind === "undo" && /^Redo: /.test(undoTitle(e)) ? "Redo this" : "Undo this", cls: "primary",
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         onTap: () => { sh.close(); undoEntries([e], undoTitle(e)); } });
       u.dataset.hundoOne = String(e.id);
       acts.appendChild(u);
@@ -1574,7 +1574,7 @@
     const span = RN.S.history.since(e);
     if (RN.S.history.list.indexOf(e) > 0 && span.length >= 2) {
       const all = holdButton({ label: "Back to before this", sub: "undoes " + span.length + " changes since: hold 1 s", ms: 1000,
-        // TRLC-LINKS: REQ-SDS-220
+        // TRLC-LINKS: REQ-DSO-220
         onConfirm: () => { sh.close(); undoEntries(span, "Back to before: " + title); } });
       all.dataset.hundoAll = String(e.id);
       acts.appendChild(all);
@@ -1588,12 +1588,12 @@
   // Keys: pushes and keys the tiles do not cover, the knob jobs, the menu keys, the phone
   // =================================================================================================
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   (function buildKeys() {
     const wrap = h("div", { class: "keyst" });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const group = (title, cls, items) => { wrap.append(h("div", { class: "sec", text: title }), h("div", { class: cls }, items)); };
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const key = (k, label, sub, fn) => { const b = button({ label, sub, onTap: fn }); b.dataset.k = k; return b; };
     const v1 = key("ch1vdivpush", "CH1 V/DIV", "Variable", () => pressKey("ch1vdivpush"));
     const v2 = key("ch2vdivpush", "CH2 V/DIV", "Variable", () => pressKey("ch2vdivpush"));
@@ -1605,11 +1605,11 @@
     group("Vertical", "k2", [v1, v2, key("ch1pospush", "CH1 Position", "Zero: 0 V", () => pressKey("ch1pospush", "CH1 Position push: 0 V")),
       key("ch2pospush", "CH2 Position", "Zero: 0 V", () => pressKey("ch2pospush", "CH2 Position push: 0 V"))]);
     group("Horizontal", "k2", [zoomB, hposB]);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const helpB = button({ label: "Help", sub: "this remote", onTap: () => openHelp() });
     helpB.dataset.k = "help";
     group("System", "k2", [key("print", "Print", "screenshot", () => pressKey("print")), helpB]);
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const defB = holdButton({ label: "Default Setup", sub: "factory settings: hold 1 s", ms: 1000, onConfirm: () => actRow("sys.default", "default", "Default setup restored") });
     defB.id = "default-setup";
     wrap.appendChild(h("div", { class: "k1" }, defB));
@@ -1619,15 +1619,15 @@
       () => { if (tab) openPage(tab, focus); else { S.page = null; goTab("menus"); renderMenus(); renderBar(); } }));
     group("Menu keys (they open the menu here, not on the scope)", "k3", mk);
     // the phone: keep awake (and its stronger way) and fullscreen, with their real state
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     const sw = (id, name) => h("button", { type: "button", class: "cell", role: "switch", "aria-checked": "false", id },
       h("span", { class: "cl" }, h("b", { text: name }), h("small")), h("span", { class: "swt", "aria-hidden": "true" }));
     const awk = sw("keep-awake", "Keep the phone awake"), strong = sw("wake-strong", "Stronger keep-awake (silent sound)"), fsc = sw("fullscreen", "Fullscreen");
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(awk, { onTap: () => toggleAwake() });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(strong, { onTap: () => Wake.setStrong(!Wake.strong()).then((w) => { if (!w.on && w.note) toast(w.note, "err", 4200); }) });
-    // TRLC-LINKS: REQ-SDS-220
+    // TRLC-LINKS: REQ-DSO-220
     press(fsc, { onTap: () => toggleFs() });
     strong.hidden = RU.isWebKit();   // an iPhone always uses the sound track
     wrap.append(h("div", { class: "sec", text: "This phone" }), awk, strong, fsc,
@@ -1652,12 +1652,12 @@
 
   // ---- the phone: keep awake and fullscreen ------------------------------------------------
 
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function toggleAwake() {
     if (Wake.state().on) { Wake.disable(); toast("Keep awake: off", "ok"); return; }
     Wake.enable().then((w) => { if (!w.told) toast(w.on ? w.text : w.note || w.text, w.on ? "ok" : "err", w.on ? 2200 : 4200); });
   }
-  // TRLC-LINKS: REQ-SDS-220
+  // TRLC-LINKS: REQ-DSO-220
   function toggleFs() {
     const before = Full.state();
     if (!before.can && !before.on) { toast("Fullscreen " + before.text, "err", 4600); return; }

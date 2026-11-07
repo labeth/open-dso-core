@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-OTA-OTACTL
+// ENGMODEL-OWNER-UNIT: FU-DSO-SUPERVISOR-OTACTL
 
 package otactl
 
@@ -14,7 +14,7 @@ import (
 // is the simplest zero-dependency broker for the lab: run `otactl serve` on
 // the host, point OTA_NATS at it (nats://<host>:4222), and every device that
 // boots the stick shows up. It blocks until interrupted.
-// TRLC-LINKS: REQ-SDS-111
+// TRLC-LINKS: REQ-DSO-111
 func RunServer(host string, port int, printBanner func(string)) error {
 	opts := &natsserver.Options{
 		Host:      host,

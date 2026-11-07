@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-DSP
+// ENGMODEL-OWNER-UNIT: FU-DSO-DSP
 
 package dsp
 
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TRLC-LINKS: REQ-SDS-099
+// TRLC-LINKS: REQ-DSO-099
 func TestPrecisionNoiseAgainstImpulse(t *testing.T) {
 	for _, r := range []int{16, 32, 64, 256} {
 		h := []float64{1}

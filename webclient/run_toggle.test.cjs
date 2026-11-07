@@ -1,4 +1,4 @@
-// ENGMODEL-OWNER-UNIT: FU-APP-WEB
+// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
@@ -8,11 +8,11 @@ const code = source.slice(source.indexOf('$("run").onclick'), source.indexOf('$(
   const button = {};
   let running = false;
   const context = {
-    // TRLC-LINKS: REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-204
     $: () => button, autosetBusy: false,
-    // TRLC-LINKS: REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-204
     st: {running:true, single:true}, applyStatus() {},
-    // TRLC-LINKS: REQ-SDS-204
+    // TRLC-LINKS: REQ-DSO-204
     send: async (control, value) => {
       if (control === 'runtoggle') running = !running;
       else if (control === 'run') running = !!value;
