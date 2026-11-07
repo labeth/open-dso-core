@@ -82,7 +82,11 @@ type Acquirer interface {
 	// Wait blocks until a record is ready (nil), the timeout passes
 	// (ErrTimeout) or ctx ends. A ready record is already halted and valid:
 	// a board whose hardware needs a stop request before readout makes it
-	// inside Wait, so Readout may run as soon as Wait returns. OWNER.
+	// inside Wait, so Readout may run as soon as Wait returns. A zero
+	// timeout polls once, so an owner can serve its commit points and
+	// AUTO's forced trigger between polls; on ErrTimeout the Status still
+	// says whether the hardware has triggered (a triggered record only
+	// fills its post-trigger part, which AUTO must not force). OWNER.
 	Wait(ctx context.Context, timeout time.Duration) (Status, error)
 	Force() error // OWNER: the AUTO sweep's forced trigger
 	// Stop is the user's STOP: no further acquisition until the next Arm,
