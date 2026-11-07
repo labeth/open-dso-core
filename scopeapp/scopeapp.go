@@ -69,7 +69,8 @@ type Options struct {
 
 	// SCPI builds the SCPI engine with the scope's dialect; nil: none.
 	SCPI func(env *Env) (SCPI, error)
-	// SCPIHost names the LAN transports it is served on.
+	// SCPIHost names the LAN transports it is served on; a telnet
+	// interface without a banner greets with the unit's vendor and model.
 	SCPIHost scpihost.Config
 
 	// Listen is the web server's address; "" serves none.
@@ -260,7 +261,11 @@ func Run(ctx context.Context, b hal.Board, o Options) error { //nolint:gocyclo /
 			env.Model.OnRefused(s.Report)
 		}
 		if s.Exec != nil {
-			if _, err := scpihost.Serve(ctx, s.Exec, o.SCPIHost, logf); err != nil {
+			cfg := o.SCPIHost
+			if cfg.Telnet != "" && cfg.Banner == "" {
+				cfg.Banner = "Welcome to the SCPI instrument '" + id.Vendor + " " + id.Model + "'"
+			}
+			if _, err := scpihost.Serve(ctx, s.Exec, cfg, logf); err != nil {
 				logf("scpi: %v", err)
 			}
 		}
