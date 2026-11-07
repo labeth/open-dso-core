@@ -354,7 +354,7 @@ func sheetSig(s *sv) uint64 {
 		if !tabShown(ti, s.nch) {
 			continue
 		}
-		for _, r := range tabRows(ti, s.nch) {
+		for _, r := range tabRows(ti, s.shape()) {
 			h.str(r.id)
 			h.u64(uint64(b2ic(r.relevant(s)))) //nolint:gosec // G115: 0 or 1
 			if r.kind == wsview.Enum {
@@ -431,7 +431,7 @@ func rowKeys(s *sv) []uint64 {
 		if !tabShown(ti, s.nch) {
 			continue
 		}
-		for _, r := range tabRows(ti, s.nch) {
+		for _, r := range tabRows(ti, s.shape()) {
 			h := newSig()
 			hashValue(&h, s, r)
 			keys = append(keys, uint64(h))
@@ -483,7 +483,7 @@ func (c *Controller) changesSince(m changeMark) ([]string, string) {
 		if !tabShown(ti, s.nch) {
 			continue
 		}
-		for _, r := range tabRows(ti, s.nch) {
+		for _, r := range tabRows(ti, s.shape()) {
 			if keys[i] != m.keys[i] {
 				out = append(out, r.id)
 			}
@@ -607,7 +607,7 @@ func (c *Controller) Sheets() SheetsModel {
 			continue
 		}
 		tm := TabModel{ID: t.id, Name: t.name, Title: t.title, Key: t.key}
-		for _, r := range tabRows(ti, s.nch) {
+		for _, r := range tabRows(ti, s.shape()) {
 			rm := rowModel(s, r)
 			rm.Live = liveMeas(s, r, allVals, allOK)
 			tm.Rows = append(tm.Rows, rm)
@@ -942,7 +942,7 @@ func (c *Controller) TypeText(text string) SetResult {
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) setRow(id string, value any, text string, remote bool) SetResult {
 	r := rowByID[id]
-	if r == nil || !rowShown(id, c.nch) {
+	if r == nil || !rowShown(id, c.shape()) {
 		return SetResult{Row: id, Error: fmt.Sprintf("no row %q", id)}
 	}
 	if remote && c.AutosetBusy() {
@@ -1038,7 +1038,7 @@ func (c *Controller) applyRow(r *row, s *sv, value any, text string) error {
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) runAction(id, action string, remote bool) SetResult {
 	r := rowByID[id]
-	if r == nil || !rowShown(id, c.nch) {
+	if r == nil || !rowShown(id, c.shape()) {
 		return SetResult{Row: id, Error: fmt.Sprintf("no row %q", id)}
 	}
 	if remote && id != "sys.autoset" && c.AutosetBusy() {

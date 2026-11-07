@@ -145,8 +145,9 @@ const (
 
 var (
 	sheetTabs [numTabs]*tab
-	// rowsByChans[n][ti] are tab ti's rows on a scope of n channels.
-	rowsByChans [maxChans + 1][numTabs][]*row
+	// rowsByShape[n][b][ti] are tab ti's rows on a scope of n channels, with
+	// (b 1) or without (b 0) a boot target.
+	rowsByShape [maxChans + 1][2][numTabs][]*row
 	rowByID     = map[string]*row{}
 	rowTab      = map[string]int{}
 )
@@ -173,10 +174,12 @@ func init() {
 		{id: "sys", name: "SYS", title: "System and help", key: "Help", rows: sysRows()},
 	}
 	for n := 1; n <= maxChans; n++ {
-		for ti, t := range sheetTabs {
-			for _, r := range t.rows {
-				if r.minChans <= n {
-					rowsByChans[n][ti] = append(rowsByChans[n][ti], r)
+		for b := range 2 {
+			for ti, t := range sheetTabs {
+				for _, r := range t.rows {
+					if (rowShape{nch: n, boot: b == 1}).has(r) {
+						rowsByShape[n][b][ti] = append(rowsByShape[n][b][ti], r)
+					}
 				}
 			}
 		}
@@ -198,16 +201,33 @@ func tabShown(ti, nch int) bool {
 	return ti < tabCh1 || ti > tabCh4 || ti-tabCh1 < nch
 }
 
-// rowShown reports whether row id is on a scope of nch channels.
-// TRLC-LINKS: REQ-DSO-212
-func rowShown(id string, nch int) bool {
-	ti, ok := rowTab[id]
-	return ok && tabShown(ti, nch) && rowByID[id].minChans <= nch
+// rowShape is what decides which rows a scope's sheets have: its channels
+// and whether its board offers a boot target.
+type rowShape struct {
+	nch  int
+	boot bool
 }
 
-// tabRows are tab ti's rows on a scope of nch channels.
+// has reports whether row r is on a scope of shape sh (its tab aside).
+// TRLC-LINKS: REQ-DSO-212, REQ-DSO-297
+func (sh rowShape) has(r *row) bool { return r.minChans <= sh.nch && (!r.boot || sh.boot) }
+
+// rowShown reports whether row id is on a scope of shape sh.
 // TRLC-LINKS: REQ-DSO-212
-func tabRows(ti, nch int) []*row { return rowsByChans[min(max(nch, 1), maxChans)][ti] }
+func rowShown(id string, sh rowShape) bool {
+	ti, ok := rowTab[id]
+	return ok && tabShown(ti, sh.nch) && sh.has(rowByID[id])
+}
+
+// tabRows are tab ti's rows on a scope of shape sh.
+// TRLC-LINKS: REQ-DSO-212
+func tabRows(ti int, sh rowShape) []*row {
+	b := 0
+	if sh.boot {
+		b = 1
+	}
+	return rowsByShape[min(max(sh.nch, 1), maxChans)][b][ti]
+}
 
 // tabIndex finds a tab by id.
 // TRLC-LINKS: REQ-DSO-212
@@ -220,10 +240,10 @@ func tabIndex(id string) int {
 	return -1
 }
 
-// rowIndex is r's index in its tab on a scope of nch channels.
+// rowIndex is r's index in its tab on a scope of shape sh.
 // TRLC-LINKS: REQ-DSO-212
-func rowIndex(id string, nch int) int {
-	for i, r := range tabRows(rowTab[id], nch) {
+func rowIndex(id string, sh rowShape) int {
+	for i, r := range tabRows(rowTab[id], sh) {
 		if r.id == id {
 			return i
 		}
@@ -2048,5 +2068,5 @@ func sysRows() []*row {
 		},
 	}
 	off.def = func(c *Controller) error { return off.set(c, defOffMin) }
-	return []*row{help, printRow, auto, def, remote, saver, off}
+	return []*row{help, printRow, auto, def, remote, saver, off, bootRow()}
 }

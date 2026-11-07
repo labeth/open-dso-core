@@ -136,7 +136,7 @@ func (c *Controller) keyTab(key string) {
 	}
 	c.openSheetLocked(ti, key)
 	if id := keyRows[key]; id != "" {
-		c.ui.rowAt[ti] = rowIndex(id, c.nch)
+		c.ui.rowAt[ti] = rowIndex(id, c.shape())
 	}
 }
 
@@ -168,7 +168,7 @@ func (c *Controller) chanKey(ch int) {
 // curRow is the sheet's highlighted row.
 // TRLC-LINKS: REQ-DSO-212
 func curRow(u *uiState) *row {
-	rows := tabRows(u.tab, u.nch)
+	rows := tabRows(u.tab, u.shape())
 	return rows[clampInt(u.rowAt[u.tab], 0, len(rows)-1)]
 }
 
@@ -318,7 +318,7 @@ func (c *Controller) sheetAdjust(dir, steps int) {
 	c.mu.Lock()
 	sub, edit := c.ui.sub, c.ui.edit
 	if sub == subNone && !edit {
-		n := len(tabRows(c.ui.tab, c.nch))
+		n := len(tabRows(c.ui.tab, c.shape()))
 		c.ui.rowAt[c.ui.tab] = ((c.ui.rowAt[c.ui.tab]+dir)%n + n) % n
 		c.mu.Unlock()
 		return

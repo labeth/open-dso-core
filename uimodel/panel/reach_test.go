@@ -230,7 +230,7 @@ func (rc *reach) never() []string {
 	var out []string
 	for _, tb := range sheetTabs {
 		for _, rw := range tb.rows {
-			if rw.kind != wsview.Action && rw.kind != wsview.Slot && !rc.ok[rw.id] && rowShown(rw.id, rc.chans) {
+			if rw.kind != wsview.Action && rw.kind != wsview.Slot && !rc.ok[rw.id] && rowShown(rw.id, rowShape{nch: rc.chans}) {
 				out = append(out, rw.id+" ("+rc.why[rw.id]+")")
 			}
 		}
@@ -295,7 +295,7 @@ func TestEveryRowReachableFromThePanel(t *testing.T) {
 				if !tabShown(ti, c.nch) {
 					continue
 				}
-				for _, rw := range tabRows(ti, c.nch) {
+				for _, rw := range tabRows(ti, c.shape()) {
 					if !rw.relevant(c.snap()) || rw.kind == wsview.Action || rw.kind == wsview.Slot || rc.ok[rw.id] {
 						continue
 					}
@@ -344,7 +344,7 @@ func TestSheetsModelListsEveryRow(t *testing.T) {
 		t.Fatalf("%d tabs, want %d", len(m.Tabs), len(shown))
 	}
 	for i, tab := range m.Tabs {
-		if ti := shown[i]; tab.ID != sheetTabs[ti].id || len(tab.Rows) != len(tabRows(ti, c.nch)) {
+		if ti := shown[i]; tab.ID != sheetTabs[ti].id || len(tab.Rows) != len(tabRows(ti, c.shape())) {
 			t.Fatalf("tab %d: %s with %d rows", i, tab.ID, len(tab.Rows))
 		}
 		for _, rw := range tab.Rows {
@@ -377,7 +377,7 @@ func TestSheetsModelListsEveryRow(t *testing.T) {
 	}
 	declared := 0
 	for id := range rowByID {
-		if rowShown(id, c.nch) {
+		if rowShown(id, c.shape()) {
 			declared++
 		}
 	}

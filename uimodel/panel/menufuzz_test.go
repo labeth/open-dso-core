@@ -140,7 +140,7 @@ func reachRow(c *Controller, id string) bool {
 	for i := 0; i <= numTabs && c.ui.tab != ti; i++ {
 		c.dispatch("tdiv", 1, 1)
 	}
-	for i := 0; i <= len(tabRows(ti, c.nch)) && c.ui.open && curRow(&c.ui).id != id; i++ {
+	for i := 0; i <= len(tabRows(ti, c.shape())) && c.ui.open && curRow(&c.ui).id != id; i++ {
 		c.dispatch("adjust", 1, 1)
 	}
 	return c.ui.open && c.ui.sub == subNone && !c.ui.edit && curRow(&c.ui).id == id
@@ -160,7 +160,7 @@ func checkUIInvariants(c *Controller) []string {
 	}
 	if u.tab < 0 || u.tab >= numTabs {
 		fail("tab %d", u.tab)
-	} else if r := u.rowAt[u.tab]; r < 0 || r >= len(tabRows(u.tab, u.nch)) || !tabShown(u.tab, u.nch) {
+	} else if r := u.rowAt[u.tab]; r < 0 || r >= len(tabRows(u.tab, u.shape())) || !tabShown(u.tab, u.nch) {
 		fail("row %d of tab %s", r, sheetTabs[u.tab].id)
 	}
 	if u.sub != subNone && !u.open {

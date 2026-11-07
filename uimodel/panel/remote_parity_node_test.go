@@ -66,7 +66,7 @@ func TestRemoteCoreParity(t *testing.T) {
 		if !tabShown(ti, c.nch) {
 			continue
 		}
-		for _, r := range tabRows(ti, c.nch) {
+		for _, r := range tabRows(ti, c.shape()) {
 			if r.kind == wsview.Number {
 				numbers = append(numbers, r)
 			}

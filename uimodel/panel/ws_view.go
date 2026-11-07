@@ -129,7 +129,7 @@ func (c *Controller) sheetView(s *sv) *wsview.Sheet {
 	for i, ti := range order {
 		sh.Tabs = append(sh.Tabs, wsview.Tab{Name: sheetTabs[ti].name, Own: i < own, Active: ti == u.tab})
 	}
-	rows := tabRows(u.tab, s.nch)
+	rows := tabRows(u.tab, s.shape())
 	focus := clampInt(u.rowAt[u.tab], 0, len(rows)-1)
 	c.amu.Lock()
 	allVals, allOK := c.ana.allVals, c.ana.allOK

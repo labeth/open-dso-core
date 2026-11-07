@@ -236,6 +236,7 @@ type Controller struct {
 	slotSum        [setupSlots + 1]string // the FILE rows' summaries
 	slotWS         [setupSlots + 1]int    // the workspace each slot holds (-1 unknown)
 	remoteNotices  bool                   // show REMOTE notes on the LCD
+	bootTarget     hal.BootTarget         // the board's next-boot choice; nil: the board has none
 	saverMin       int                    // Screen saver after this many minutes without input (0 = off)
 	offMin         int                    // Screen off after this many minutes without input (0 = off)
 	lastInput      time.Time              // the last input run on the panel goroutine (zero: none yet)
