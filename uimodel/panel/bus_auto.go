@@ -240,12 +240,23 @@ type busMsgs struct {
 // the decoder settings: the frame on screen, else a decimated record.
 // TRLC-LINKS: REQ-DSO-223
 func (c *Controller) measureMsgs() busMsgs {
-	res, sampleS, ok := c.decodeOnScreen()
+	// The frame on screen when it is of the timebase set: a search's last
+	// step can leave one of another timebase on screen, too coarse to show
+	// the idle between messages; one of the timebase set is waited for, and
+	// the frame on screen read when none comes.
+	set := c.snap().st.TdivSet()
+	current := func(f *sample.Frame) bool {
+		return searchable(f) && (f.Snapshot.TdivS == 0 || set <= 0 || math.Abs(f.Snapshot.TdivS-set) <= 1e-3*set)
+	}
+	res, sampleS, ok := c.decodeOnScreenIf(current)
 	valid := 0
 	if !ok {
-		all := func(*sample.Frame, bool) bool { return true }
+		all := func(f *sample.Frame, _ bool) bool { return current(f) }
 		l := c.detectWith(true, false, all, c.decodeOnScreen, decimatedWait)
 		res, sampleS, ok = l.res, l.sampleS, l.found
+	}
+	if !ok {
+		res, sampleS, ok = c.decodeOnScreen()
 	}
 	if !ok || !(sampleS > 0) {
 		return busMsgs{}
