@@ -295,3 +295,120 @@ decisions:
   decision: 'A missing optional capability (`Streamer` kind, `Stacker`, `Images`, `LogicProbe`) refuses every feature that needs it with the profile''s reason; the simulator does the same for parts it does not model'
   consequences:
   - 'Designed in HAL v1 (the HAL and move plan for the family).'
+
+- id: ADR-HAL-NODE-CONFIG-FIELDS
+  title: 'Trigger node configurations are typed TrigStage fields'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Pattern, video, gated and timeout triggers bent the protocol-only Proto field on the SDS800X HD.'
+  decision: 'TrigStage gains Gate, Pattern, Video and Timeout; Proto carries only protocol, symbol, sequence and frame-start nodes. The doc maps all 14 trigger types.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-PROTO-CONFIGS
+  title: 'Protocol trigger configurations live in hal/prototrig'
+  status: accepted
+  date: '2026-11-07'
+  context: 'A board programming its matcher should not import a decoder.'
+  decision: 'hal/prototrig holds I2C, SPI, UART, CAN and LIN trigger configurations; PatternState moves to hal.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-TRIGGER-DEFAULTS
+  title: 'Boards give each trigger node''s defaults'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Default levels depend on the board (the SDS800X HD''s sync tip in pixels at the source''s V/div).'
+  decision: 'Trigger.Default(node, src) returns a stage; the controller decides when a choice is the first one.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-STREAM-LAYOUT
+  title: 'Multi-channel stream blocks are channel-major'
+  status: accepted
+  date: '2026-11-07'
+  context: 'A block holding several channels needed one layout rule.'
+  decision: 'Equal runs per channel in StreamSpec.Channels order; Held has one entry per sample time; StreamBlock.Run(i) returns one channel.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-STREAM-GOROUTINE
+  title: 'A stream''s transfer goroutine may own the transfer path'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Roll mode on the SDS800X HD needs its DMA serviced off the owner loop.'
+  decision: 'Between Start and Stop the stream goroutine owns the transfer path and nothing else; Arm and Read are refused; Stop returns after it lets go. Amends ADR-HAL-SERVICE-HOOK.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-PEAK-PAIRS
+  title: 'Peak pairs are (min, max) unless Ordered'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The CML, the fake board and the SDS800X HD disagreed on order and counting.'
+  decision: 'Pairs are (min, max) unless Ordered, set only when the hardware records which extreme came first; SampleS, TriggerAt and WinPoints count codes; merging keeps whole pairs, so compressing hardware reads peak windows uncompressed.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-RENDER-VIEW
+  title: 'The renderer view has display modes and a zoom gain'
+  status: accepted
+  date: '2026-11-07'
+  context: 'XY bool could not express YT+XY or split; the zoom view needed its gain.'
+  decision: 'View.Mode (YT, XY, YT+XY, split) replaces XY; Gain is the zoom view''s vertical zoom; OffsetDiv is defined for both views; Held redraws the stored record at once or is refused.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-SELFCAL
+  title: 'Self-calibration is a FrontEnd method'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The SDS800X HD ran self-cal as a board extension with its own state machine.'
+  decision: 'FrontEnd.SelfCal(ctx, progress) (CalReport, error), LONG and OWNER; CalSource.Author is vendor, open or empty.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-EXTENSIONS-NO-HARDWARE
+  title: 'Extension handlers never touch hardware'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Extension routes and SCPI headers run on server goroutines.'
+  decision: 'Short work is queued for Platform.Service; long work is a HAL method the core schedules; SCPIHeader splits into Command and Query.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-SUPERVISOR-HEALTH
+  title: 'A supervisor without a watchdog checks health'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The SDS800X HD has no hardware watchdog.'
+  decision: 'Optional hal.HealthChecker (Healthy, Confirmed); SupervisorBoard.Reboot may be refused under a reboot policy.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-CENSUS-SUPERVISOR
+  title: 'The census belongs to the supervisor board'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Board.Census made a scope''s app module require its ota module.'
+  decision: 'Board.Census is removed; the optional hal.CensusBoard sits on the supervisor board. Amends ADR-HAL-SUPERVISOR-MODULE.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-PROFILE-ABSENT
+  title: 'Profiles say why an optional part is absent'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Refusals for missing parts need a reason the profile can state.'
+  decision: 'Profile.Absent maps each optional part to its reason, validated by profile.Validate.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
+
+- id: ADR-HAL-INPUT-BEEPER-TOUCH
+  title: 'Input covers the beeper and the touch switch'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The SDS800X HD has a beeper and a touch panel the HAL could not reach.'
+  decision: 'Input gains SetSound, Beep and SetTouch, refused where absent.'
+  consequences:
+  - 'HAL v1.1, found by the SDS800X HD board layer and adopted by both scopes.'
