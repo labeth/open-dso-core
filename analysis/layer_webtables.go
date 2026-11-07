@@ -61,7 +61,7 @@ var layerTablesJS = sync.OnceValue(func() string {
 	}
 	obj["owROMCmds"] = ow
 	var sb strings.Builder
-	sb.WriteString("// ENGMODEL-OWNER-UNIT: FU-DSO-ANALYSIS\n")
+	sb.WriteString("// ENGMODEL-OWNER-UNIT: FU-DSO-WEBCLIENT\n") // the unit of the file it writes, webclient/layer_tables.js
 	sb.WriteString("// layer_tables.js - the layers' name and command tables, written from the scope's own\n")
 	sb.WriteString("// (internal/analysis LayerTablesJS; TestLayerTablesJS keeps this file equal to them).\n")
 	sb.WriteString("\"use strict\";\n")
