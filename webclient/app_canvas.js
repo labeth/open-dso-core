@@ -10,7 +10,7 @@ scope.addEventListener("pointerdown", ev => {
     const vpc = frame["vpc" + trigChan()] || (1 / 25);
     const volts = (codeAtY(Math.max(0, Math.min(1, ptToNorm(ev).y)), 1) - 128) * vpc;
     st.trig_volts = volts; $("lvl").value = volts; $("lvlv").textContent = eng(volts, "V");
-    send("triglevelcode", trigCodeFor(volts)); redraw();
+    sendTrigLevel(volts); redraw();
     return;
   }
   if (typeof zmPointerDown === "function" && zmPointerDown(ptToNorm(ev))) { // armed zone drawing
@@ -103,7 +103,7 @@ scope.addEventListener("pointerup", ev => {
       const fw = view.fwin;
       const clickedFreq = (fw.a + ptToNorm(ev).x * (fw.b - fw.a)) * displayNyq();
       let best = null;
-      for (const ch of [1, 2]) {
+      for (const ch of chanNums()) {
         const idx = nearestPeak(fftCh[ch].peaks, clickedFreq);
         if (idx < 0) continue;
         const dx = Math.abs(fftCh[ch].peaks[idx].freq - clickedFreq);

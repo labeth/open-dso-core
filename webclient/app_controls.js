@@ -65,11 +65,11 @@ async function panelPress(name) {
 $("set50").onclick = async () => {
   if (await panelPress("set50")) return;
   // No panel (bench server): place the level at the source's mid-swing here.
-  const m = frame && (st && st.trig_source === 1 ? frame.m2 : frame.m1);
+  const m = frame && frame["m" + trigChan()];
   if (!m || !(m.vmax > m.vmin)) { toast("50 %: no signal on the trigger source", "warn"); return; }
   const mid = (m.vmax + m.vmin) / 2;
   st.trig_volts = mid; $("lvl").value = mid; $("lvlv").textContent = eng(mid, "V");
-  send("triglevelcode", trigCodeFor(mid)); redraw();
+  sendTrigLevel(mid); redraw();
 };
 // TRLC-LINKS: REQ-SDS-204
 $("force").onclick = async () => { if (!(await panelPress("force"))) toast("Force trigger is not available on this server", "warn"); };
@@ -94,18 +94,40 @@ $("refSaveB").onclick = () => saveRef("B");
 $("holdoff").onchange = () => send("holdoff", +$("holdoff").value);
 
 // sendChan sets channel n's control: channels 1 and 2 by the names the
-// scope has always taken (vdiv1, offset2, coupling1…), any other with its
-// channel index beside the control's name.
+// scope has always taken (vdiv1, offset2, coupling1…), any other as the
+// settings v2 body (WEB-API-DESIGN §2.5): {control, ch, value} with ch the
+// channel's index (C3 is 2) and the v2 control's name and unit — vdiv
+// (V/div at the tip), offset (V at the tip), probe (a vertical.probes
+// entry), coupling (0 DC, 1 AC, 2 GND), bwlimit (0 full, 1 the limit) and
+// invert (0/1).
 // TRLC-LINKS: REQ-SDS-204
 async function sendChan(control, n, value) {
   if (n <= 2) return send(control + n, value);
+  return sendBody({ control, ch: n - 1, value }, chanName(n) + " " + control);
+}
+
+// sendBody posts one /api/set body as it is and says a refusal.
+// TRLC-LINKS: REQ-SDS-204
+async function sendBody(body, what) {
   if (autosetBusy && !await autosetDone) return { ok: false };
   try {
-    const r = await (await fetch("/api/set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ control, ch: n - 1, value }) })).json();
-    if (r && r.ok === false && r.err) toast(chanName(n) + " " + control + ": " + r.err, "warn");
+    const r = await (await fetch("/api/set", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
+    if (r && r.ok === false && r.err) toast(what + ": " + r.err, "warn");
     kickStatus();
     return r;
   } catch (e) { return { ok: false }; }
+}
+
+// sendTrigLevel sets the trigger level, tipVolts at the source's probe tip.
+// A scope whose caps list the "triglevel" control takes the volts as the
+// settings v2 body {control: "triglevel", ch, value_v} (WEB-API-DESIGN §2.5:
+// ch the source channel's index; the scope converts with its own
+// calibration); one without takes the v1 DAC code "triglevelcode" the page
+// works out from the status's trig_zero/trig_cpv.
+// TRLC-LINKS: REQ-SDS-204
+function sendTrigLevel(tipVolts) {
+  if (capsControl("triglevel")) return sendBody({ control: "triglevel", ch: trigChan() - 1, value_v: tipVolts }, "Trigger level");
+  return send("triglevelcode", trigCodeFor(tipVolts));
 }
 
 // wireChannel wires channel n's controls: display, V/div and its steppers,
@@ -127,9 +149,9 @@ function wireChannel(n) {
   // TRLC-LINKS: REQ-SDS-204
   $("probe" + n).onchange = () => sendChan("probe", n, +$("probe" + n).value);
   // TRLC-LINKS: REQ-SDS-211
-  $("bwl" + n).onchange = () => sheetSet("ch" + n + ".bwl", +$("bwl" + n).value);
+  $("bwl" + n).onchange = () => n <= 2 ? sheetSet("ch" + n + ".bwl", +$("bwl" + n).value) : sendChan("bwlimit", n, +$("bwl" + n).value);
   // TRLC-LINKS: REQ-SDS-211
-  $("inv" + n).onchange = () => sheetSet("ch" + n + ".invert", +$("inv" + n).value);
+  $("inv" + n).onchange = () => n <= 2 ? sheetSet("ch" + n + ".invert", +$("inv" + n).value) : sendChan("invert", n, +$("inv" + n).value);
   // TRLC-LINKS: REQ-SDS-204
   $("cpl" + n).onchange = () => sendChan("coupling", n, +$("cpl" + n).value);
   const rng = $("off" + n), lbl = $("off" + n + "v");
@@ -145,7 +167,7 @@ for (const n of [1, 2]) wireChannel(n);
 // TRLC-LINKS: REQ-SDS-204
 $("lvl").oninput = () => { lvlDragging = true; $("lvlv").textContent = eng(+$("lvl").value, "V"); };
 // TRLC-LINKS: REQ-SDS-204
-$("lvl").onchange = () => { lvlDragging = false; send("triglevelcode", trigCodeFor(+$("lvl").value)); };
+$("lvl").onchange = () => { lvlDragging = false; sendTrigLevel(+$("lvl").value); };
 
 // TRLC-LINKS: REQ-SDS-204
 $("ttype").onchange = () => { send("trigtype", +$("ttype").value); if (st) st.trig_type = +$("ttype").value; updateQualRow(); };
@@ -197,12 +219,13 @@ $("eCSV").onclick = () => {
   // 1–200 ns/div bands (2 ns/sample shown at 1 ns — see frameReply.DtS).
   // Fall back for client-synthesized frames and captures saved before dt_s.
   const dt = frame.dt_s > 0 ? frame.dt_s : (frame.col_span_s || 0) / frame.c1.length;
-  const vpc1 = frame.vpc1 || (1 / 25), vpc2 = frame.vpc2 || (1 / 25);
-  const o1 = frame.off1_v || 0, o2 = frame.off2_v || 0;
-  const [inv1, inv2] = exportInvert();
+  // a column per channel of the scope, in volts at the probe tip: (unit −
+  // 128)·vpc − off, whatever the scope's code format (a channel the frame
+  // does not carry leaves its column empty)
+  const nums = chanNums(), inv = exportInvert();
+  const cols = nums.map((k) => ({ k, a: frame["c" + k], vpc: chanVpc(frame, k), off: chanOff(frame, k), inv: inv[k - 1] }));
   // TRLC-LINKS: REQ-SDS-069
   const toV = (code, vpc, off, inv) => (code === undefined || code < 0 ? "" : ((inv ? -1 : 1) * ((code - 128) * vpc - off)).toExponential(6));
-  const c2 = frame.c2;
   // Decimate huge arrays: a superres stack's K× fine grid is interpolation,
   // so exporting every point (>1M) means ~0.5 s of number-formatting for
   // sub-sample rows that carry no new data. Cap at ~131072 rows — beyond the
@@ -214,17 +237,19 @@ $("eCSV").onclick = () => {
   // Time is relative to the trigger (t = 0 at the trigger, pre-trigger
   // negative) when the frame places one; it started at the left edge.
   const t0 = frame.edge_frac >= 0 ? frame.edge_frac * N * dt : 0;
+  const invd = cols.filter((c) => c.inv).map((c) => "c" + c.k);
   rows[0] = "# open-sds1000cml capture seq=" + frame.seq +
-    " tdiv_s=" + (frame.tdiv_s || 0) + " probe_c1=" + (st ? st.probe1 || 1 : 1) +
-    " probe_c2=" + (st ? st.probe2 || 1 : 1) +
+    " tdiv_s=" + (frame.tdiv_s || 0) + cols.map((c) => " probe_c" + c.k + "=" + (st ? st["probe" + c.k] || 1 : 1)).join("") +
     (frame.edge_frac >= 0 ? " t0=trigger" : " t0=first_point") +
     (frame.peak_detect ? " peak_detect=1_rows_alternate_bucket_min_max" : "") +
     (step > 1 ? " decimated=" + step + "x_of_" + N + "_pts" : "") +
-    (inv1 || inv2 ? " inverted=" + [inv1 && "c1", inv2 && "c2"].filter(Boolean).join("+") + "_as_displayed" : "") + "\nt_s,c1_v,c2_v";
+    (invd.length ? " inverted=" + invd.join("+") + "_as_displayed" : "") + "\nt_s" + cols.map((c) => ",c" + c.k + "_v").join("");
   let r = 1;
-  for (let i = 0; i < N; i += step)
-    rows[r++] = (i * dt - t0).toExponential(6) + "," + toV(frame.c1[i], vpc1, o1, inv1) + "," +
-      toV(c2 ? c2[i] : undefined, vpc2, o2, inv2);
+  for (let i = 0; i < N; i += step) {
+    let row = (i * dt - t0).toExponential(6);
+    for (const c of cols) row += "," + toV(c.a ? c.a[i] : undefined, c.vpc, c.off, c.inv);
+    rows[r++] = row;
+  }
   exportFile(exportName(frame.seq, "csv"), "text/csv", rows.join("\n") + "\n");
 };
 // ---- sigrok exports (encoders in sigrok_export.js) ----
@@ -238,7 +263,7 @@ $("eCSV").onclick = () => {
 // files export what the screen shows; SCPI WF? keeps the acquired volts.
 // TRLC-LINKS: REQ-SDS-069
 function exportInvert() {
-  return [!!(st && st.inv1), !!(st && st.inv2)];
+  return chanNums().map((n) => !!(st && st["inv" + n]));
 }
 // TRLC-LINKS: REQ-SDS-069
 function exportName(seq, ext) {
