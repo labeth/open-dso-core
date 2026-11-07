@@ -89,3 +89,19 @@ func TestProtoTriggerByEmbedding(t *testing.T) {
 		t.Error(p.Protocol())
 	}
 }
+
+func TestStreamBlockRuns(t *testing.T) {
+	b := StreamBlock{Payload: PayloadCodes, Formats: make([]CodeFormat, 3), Words: []uint16{1, 2, 3, 4, 5, 6}}
+	for i, want := range [][]uint16{{1, 2}, {3, 4}, {5, 6}} {
+		if _, w := b.Run(i); len(w) != 2 || w[0] != want[0] || w[1] != want[1] {
+			t.Errorf("run %d = %v, want %v", i, w, want)
+		}
+	}
+	if by, w := b.Run(3); by != nil || w != nil {
+		t.Error("a run past the channels")
+	}
+	b8 := StreamBlock{Formats: make([]CodeFormat, 2), Bytes: []byte{7, 8, 9, 10}}
+	if by, _ := b8.Run(1); len(by) != 2 || by[0] != 9 {
+		t.Errorf("byte run %v", by)
+	}
+}
