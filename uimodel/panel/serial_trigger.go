@@ -4,6 +4,7 @@ package panel
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/framecalc"
@@ -43,6 +44,62 @@ func trigTypeIndex(st *instrument.Stats) int {
 		return trigSerial
 	}
 	return st.TrigType & 3
+}
+
+// halTypeBase numbers the Type row's options on a scope whose instrument
+// state holds every trigger type: halTypeBase + the type, past the panel's
+// own Edge … Serial.
+const halTypeBase = 100
+
+// typeLister is a scope's Hardware that lists the trigger types its
+// instrument state holds, with whether the board runs them.
+type typeLister interface {
+	TrigTypes() []instrument.TypeAvail
+}
+
+// fixedTypeOpts are the Type row's options of a scope whose engine keeps
+// its trigger: Edge, Pulse, Slope, Video and Serial.
+var fixedTypeOpts = []opt{{0, "Edge"}, {1, "Pulse"}, {2, "Slope"}, {3, "Video"}, {4, "Serial"}}
+
+// trigTypeOpts are the Type row's options: the types the board runs on a
+// scope that lists them, else the fixed five.
+// TRLC-LINKS: REQ-DSO-212, REQ-DSO-011
+func trigTypeOpts(s *sv) []opt {
+	tl, ok := s.hw.(typeLister)
+	if !ok {
+		return fixedTypeOpts
+	}
+	var out []opt
+	for _, a := range tl.TrigTypes() {
+		if a.OK {
+			out = append(out, opt{halTypeBase + int(a.Type), typeLabel(a.Type)})
+		}
+	}
+	return out
+}
+
+// typeLabel is a trigger type as the Type row names it.
+// TRLC-LINKS: REQ-DSO-212
+func typeLabel(t instrument.TrigType) string {
+	switch t { //nolint:exhaustive // default: the name with its first letter up
+	case instrument.TrigNthEdge:
+		return "Nth edge"
+	case instrument.TrigSetupHold:
+		return "Setup/hold"
+	case instrument.TrigI2C, instrument.TrigSPI, instrument.TrigUART, instrument.TrigCAN, instrument.TrigLIN:
+		return strings.ToUpper(t.String())
+	}
+	n := t.String()
+	return strings.ToUpper(n[:1]) + n[1:]
+}
+
+// trigTypeRow is the Type row's value.
+// TRLC-LINKS: REQ-DSO-212
+func trigTypeRow(s *sv) int {
+	if _, ok := s.hw.(typeLister); ok {
+		return halTypeBase + s.st.TrigType
+	}
+	return trigTypeIndex(&s.st)
 }
 
 // setTrigTypeIndex sets the Type, arming the serial trigger on Serial (the

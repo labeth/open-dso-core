@@ -2,6 +2,7 @@ package panel
 
 import (
 	"image"
+	"strings"
 	"testing"
 
 	"github.com/labeth/open-dso-core/hal"
@@ -21,8 +22,6 @@ func halRig(t *testing.T, chans int) (*Controller, *instrument.Model, *halfake.B
 	for range chans {
 		st.Channels = append(st.Channels, ch)
 	}
-	st.Trigger.Source = hal.Source{Kind: hal.Analog, Index: 0}
-	st.Trigger.Slope = hal.Rising
 	m := instrument.New(st, nil)
 	s := NewHALScope(m, b, "open-dso test scope")
 	m.SetTimebases(s.Tdivs())
@@ -52,7 +51,7 @@ func TestHALScopeKeysAndKnobs(t *testing.T) {
 		t.Fatalf("CH1 position up: offset %g", got)
 	}
 	c.Input(knob(KnobTrigLevel, 3))
-	if got := m.State().Trigger.LevelV; !(got > 0) {
+	if got := m.State().Trigger.LevelV(); !(got > 0) {
 		t.Fatalf("level up: %g", got)
 	}
 	c.Input(key(KeySingle))
@@ -111,5 +110,40 @@ func TestHALScopeDrawsOverTheWaveformPlane(t *testing.T) {
 	render.Render(img, nil, c.HUD(4), true)
 	if !c.PanelStatus().Sheet.Open {
 		t.Fatal("the menu key opened no sheet")
+	}
+}
+
+// On a HAL scope the TRIG tab's Type row lists the trigger types the
+// board runs, and picking one stages it in the instrument state; the
+// pulse rows reach the pulse type's stage.
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-011, REQ-DSO-212
+func TestHALScopeTrigTypes(t *testing.T) {
+	c, m, b := halRig(t, 2)
+	m.SetTrigCaps(b.Trigger().Caps)
+	var opts []string
+	for _, tab := range c.Sheets().Tabs {
+		for _, r := range tab.Rows {
+			if r.ID == "trig.type" {
+				for _, o := range r.Options {
+					opts = append(opts, o.Text)
+				}
+			}
+		}
+	}
+	if strings.Join(opts, ",") != "Edge,Pulse" {
+		t.Fatalf("Type options %v (the fake board has an edge and a pulse node)", opts)
+	}
+	if res := c.SheetSet("trig.type", nil, "Pulse"); !res.OK {
+		t.Fatalf("Pulse: %+v", res)
+	}
+	if st := m.State(); st.Trigger.Type != instrument.TrigPulse || st.TriggerSpec().Stages[0].Node != hal.NodePulse {
+		t.Fatalf("pulse: %+v", st.Trigger.Type)
+	}
+	m.SetPulseParams(.5, 100, 1000, 3)
+	if q := m.State().TriggerSpec().Stages[0].Qual; q == nil || q.Op != hal.Inside || q.MinS != 100e-9 || q.MaxS != 1000e-9 {
+		t.Fatalf("pulse limits: %+v", q)
+	}
+	if err := m.SetTrigTypeOf(instrument.TrigVideo); err == nil || !strings.Contains(err.Error(), "no video node") {
+		t.Fatalf("video on a board without: %v", err)
 	}
 }

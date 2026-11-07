@@ -19,6 +19,7 @@ type HALScope struct {
 	m       *instrument.Model
 	b       hal.Board
 	product string
+	mask    *engine.FrameMask
 }
 
 // NewHALScope is the UI model's view of board b through instrument state
@@ -28,10 +29,17 @@ func NewHALScope(m *instrument.Model, b hal.Board, product string) *HALScope {
 	return &HALScope{m: m, b: b, product: product}
 }
 
-// Engine is the Model's controls; the HAL scope has no mask test yet, so
-// the mask staging does nothing (the COMPARE mask rows say why).
+// WithMask gives the UI model the mask test the owner runs on the frames
+// (engine.HALConfig.Mask); without one the mask staging does nothing.
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-014
+func (s *HALScope) WithMask(x *engine.FrameMask) *HALScope {
+	s.mask = x
+	return s
+}
+
+// Engine is the Model's controls with the owner's mask test.
 // TRLC-LINKS: REQ-DSO-135
-func (s *HALScope) Engine() Engine { return halEngine{s.m} }
+func (s *HALScope) Engine() Engine { return halEngine{s.m, s.mask} }
 
 // Analog is the front end through the Model.
 // TRLC-LINKS: REQ-DSO-135
@@ -49,17 +57,49 @@ func (s *HALScope) Hardware() Hardware { return halHardware{s} }
 // TRLC-LINKS: REQ-DSO-135
 func (s *HALScope) Tdivs() []float64 { return s.b.Profile().Timebase.TdivS }
 
-// halEngine is the Model with the mask test refused.
-type halEngine struct{ *instrument.Model }
+// halEngine is the Model with the owner's mask test (none: the mask
+// staging does nothing).
+type halEngine struct {
+	*instrument.Model
+	mask *engine.FrameMask
+}
 
 // TRLC-LINKS: REQ-DSO-014
-func (halEngine) SetMask(*engine.Mask) {}
+func (e halEngine) SetMask(m *engine.Mask) {
+	if e.mask != nil {
+		e.mask.SetMask(m)
+	}
+}
 
 // TRLC-LINKS: REQ-DSO-014
-func (halEngine) SetMaskMode(int) {}
+func (e halEngine) SetMaskMode(m int) {
+	if e.mask != nil {
+		e.mask.SetMaskMode(m)
+	}
+}
 
 // TRLC-LINKS: REQ-DSO-014
-func (halEngine) ClearMaskFails() {}
+func (e halEngine) ClearMaskFails() {
+	if e.mask != nil {
+		e.mask.ClearMaskFails()
+	}
+}
+
+// Snapshot is the Model's with the mask test's counts.
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-014
+func (e halEngine) Snapshot() instrument.Stats {
+	st := e.Model.Snapshot()
+	if e.mask != nil {
+		k := e.mask.Counts()
+		st.MaskMode, st.MaskPass, st.MaskFail, st.MaskSkip = k.Mode, int64(k.Pass), int64(k.Fail), int64(k.Skip) //nolint:gosec // G115: frame counts
+		st.MaskRing, st.MaskStopped, st.MaskSet, st.MaskGen = k.Ring, k.Stopped, k.Set, k.Gen
+	}
+	return st
+}
+
+// TrigTypes are the trigger types with whether the board runs them.
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-011
+func (e halEngine) TrigTypes() []instrument.TypeAvail { return e.Model.TrigTypes() }
 
 // channel is channel ch of the wanted state, ok false past the scope's.
 // TRLC-LINKS: REQ-DSO-135
@@ -236,21 +276,21 @@ func (l halLevels) grid(src int) hal.Grid {
 // TRLC-LINKS: REQ-DSO-098
 func (l halLevels) SetTrigLevel(v float64, src int) float64 {
 	v = l.grid(src).Snap(v)
-	_ = l.s.m.Change(func(st *instrument.State) error { st.Trigger.LevelV = v; return nil })
+	_ = l.s.m.Change(func(st *instrument.State) error { return st.Trigger.SetLevel(v, len(st.Channels)) })
 	return v
 }
 
 // TrigLevelOrIn is the Model's level: it always holds one.
 // TRLC-LINKS: REQ-DSO-098
 func (l halLevels) TrigLevelOrIn(instrument.Stats, float64, int) float64 {
-	return l.s.m.State().Trigger.LevelV
+	return l.s.m.State().Trigger.LevelV()
 }
 
 // StepTrigLevel moves the level n grid steps (positive raises it).
 // TRLC-LINKS: REQ-DSO-098
 func (l halLevels) StepTrigLevel(n, src int) float64 {
 	g := l.grid(src)
-	return l.SetTrigLevel(l.s.m.State().Trigger.LevelV+float64(n)*g.Step, src)
+	return l.SetTrigLevel(l.s.m.State().Trigger.LevelV()+float64(n)*g.Step, src)
 }
 
 // TrigLevelGrid is the board's level grid at the tip.
@@ -267,7 +307,7 @@ func (l halLevels) TrigStepsV(n int) float64 {
 // SaveTrigLevel keeps the level's volts.
 // TRLC-LINKS: REQ-DSO-098
 func (l halLevels) SaveTrigLevel() instrument.TrigLevelSaved {
-	return instrument.TrigLevelSaved{Word: math.Float64bits(l.s.m.State().Trigger.LevelV) + 1}
+	return instrument.TrigLevelSaved{Word: math.Float64bits(l.s.m.State().Trigger.LevelV()) + 1}
 }
 
 // SaveTrigLevelIn is SaveTrigLevel: the Model is the state.
@@ -281,14 +321,14 @@ func (l halLevels) SaveTrigLevelIn(instrument.Stats) instrument.TrigLevelSaved {
 func (l halLevels) RestoreTrigLevel(s instrument.TrigLevelSaved) {
 	if s.Set() {
 		v := math.Float64frombits(s.Word - 1)
-		_ = l.s.m.Change(func(st *instrument.State) error { st.Trigger.LevelV = v; return nil })
+		_ = l.s.m.Change(func(st *instrument.State) error { return st.Trigger.SetLevel(v, len(st.Channels)) })
 	}
 }
 
 // ResetTrigLevel is the default setup's level, 0 V.
 // TRLC-LINKS: REQ-DSO-098
 func (l halLevels) ResetTrigLevel() {
-	_ = l.s.m.Change(func(st *instrument.State) error { st.Trigger.LevelV = 0; return nil })
+	_ = l.s.m.Change(func(st *instrument.State) error { return st.Trigger.SetLevel(0, len(st.Channels)) })
 }
 
 // LevelWordV is 0: a HAL scope's setups keep the level in volts.
@@ -363,3 +403,8 @@ func (halHardware) StreamMode(int, int, bool) string { return "" }
 // Product is the firmware line.
 // TRLC-LINKS: REQ-DSO-212
 func (h halHardware) Product() string { return h.s.product }
+
+// TrigTypes are the trigger types the instrument state holds, with whether
+// the board runs them: the TRIG tab's Type row lists those that run.
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-011
+func (h halHardware) TrigTypes() []instrument.TypeAvail { return h.s.m.TrigTypes() }
