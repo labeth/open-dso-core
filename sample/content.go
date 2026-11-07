@@ -232,6 +232,9 @@ func (s Scale) Volts(word float64) float64 { return (word-s.Zero)*s.PerCode - s.
 // precision words serve any converter. A word is the format's mid at 128.0;
 // one 8-bit step is Unit8 words.
 
+// Mid8 is the 8-bit view's centre line, where every format's Mid lands.
+const Mid8 = 128
+
 // q88Shift is how far a word's code moves left to land on the Q8.8 scale.
 func (f CodeFormat) q88Shift() int { return 16 - int(f.Bits) - int(f.Shift) - int(f.Frac) }
 
