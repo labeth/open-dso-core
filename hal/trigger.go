@@ -303,7 +303,10 @@ type NodeCaps struct {
 type Trigger interface {
 	// Program stages s, or returns a *Refusal; it never substitutes another
 	// node. Levels are volts: the board converts them with the FrontEnd
-	// state staged before it. COMMIT.
+	// state staged before it. As with Acquirer.Configure, what is staged
+	// stays staged across arms, and the spec already staged at the same
+	// FrontEnd state changes nothing; it should cost the board little more
+	// than the comparison, since an owner may program at every pass. COMMIT.
 	Program(s TriggerSpec) error
 	// Caps is what the current image implements, intersected with the
 	// profile. ANY.

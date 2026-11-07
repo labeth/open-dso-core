@@ -25,3 +25,10 @@ type Bus struct {
 // Protocol is "bus".
 // TRLC-LINKS: REQ-DSO-013, REQ-DSO-1001
 func (Bus) Protocol() string { return "bus" }
+
+// Equal reports that b and o are the same trigger: the request, the levels
+// and the slicer.
+// TRLC-LINKS: REQ-DSO-013
+func (b *Bus) Equal(o *Bus) bool {
+	return b.Levels == o.Levels && sliceEqual(b.ARINCSlicer, o.ARINCSlicer) && b.Request.Equal(&o.Request)
+}
