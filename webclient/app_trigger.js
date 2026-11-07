@@ -52,6 +52,7 @@ function trigTypeLabel(id) {
 // trigInput is one setting's control.
 // TRLC-LINKS: REQ-DSO-011, REQ-DSO-162
 function trigInput(p, ch) {
+  // TRLC-LINKS: REQ-DSO-011
   const send = (v) => {
     const body = { control: "trig." + p.id };
     if (typeof v === "string") body.text = v; else body.value = v;
@@ -65,19 +66,23 @@ function trigInput(p, ch) {
       e = trigEl("select");
       const opts = p.kind === "choice" ? p.choices : (caps.trigger.sources || []);
       for (const o of opts) { const op = trigEl("option", "", o.replace(/_/g, " ")); op.value = o; e.appendChild(op); }
+      // TRLC-LINKS: REQ-DSO-011
       e.onchange = () => send(e.value);
       break;
     }
     case "bool":
       e = trigEl("input"); e.type = "checkbox";
+      // TRLC-LINKS: REQ-DSO-011
       e.onchange = () => send(e.checked ? 1 : 0);
       break;
     case "states":
       e = trigEl("input", "w-md"); e.type = "text"; e.title = "H, L or X per input, comma separated";
+      // TRLC-LINKS: REQ-DSO-011
       e.onchange = () => send(e.value);
       break;
     default:
       e = trigEl("input", "w-md"); e.type = "number"; e.step = p.kind === "int" ? "1" : "any";
+      // TRLC-LINKS: REQ-DSO-011
       e.onchange = () => { const v = parseFloat(e.value); if (Number.isFinite(v)) send(v); };
   }
   e.dataset.trig = p.id;
@@ -98,6 +103,7 @@ function trigBuild(box, tc, type) {
     sel.appendChild(op);
   }
   sel.value = type;
+  // TRLC-LINKS: REQ-DSO-011
   sel.onchange = () => trigSend({ control: "trigtype", text: sel.value });
   row.append(trigEl("span", "l", "Type"), sel);
   box.appendChild(row);
