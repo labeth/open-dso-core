@@ -40,7 +40,7 @@ func (c *Controller) maskBuildStart() {
 	gen := c.maskGen
 	c.mu.Unlock()
 	st := c.eng.Snapshot()
-	ch := st.TrigSource & 1
+	ch := c.chOf(st.TrigSource)
 	if c.fe != nil && c.fe.Coupling(ch) != dsp.CoupleDC {
 		c.maskSetMsg(fmt.Sprintf("MASK: set C%d coupling to DC first", ch+1))
 		c.mu.Lock()
@@ -83,10 +83,7 @@ func (c *Controller) maskBuildRun(gen uint64, n, tolT, tolV, ch int, posFrac flo
 				return
 			}
 			lastSeq = f.Seq
-			sig := f.Codes8(0)
-			if ch == 1 {
-				sig = f.Codes8(1)
-			}
+			sig := f.Codes8(ch)
 			valid := min(f.Len(), len(sig))
 			if valid == 0 {
 				return

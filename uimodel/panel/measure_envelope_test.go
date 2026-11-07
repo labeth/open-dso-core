@@ -25,7 +25,7 @@ func TestMeasureInvertedEnvelopeDuty(t *testing.T) {
 		}
 		f.Codes8(0)[2*b], f.Codes8(0)[2*b+1] = v, v
 	}
-	s := &sv{probe: [2]float64{1, 1}, vert: [2]vstep{testLadder[10], testLadder[10]}, hasInv: true}
+	s := &sv{nch: 2, probe: [maxChans]float64{1, 1}, vert: [maxChans]vstep{testLadder[10], testLadder[10]}, hasInv: true}
 	plain := measureCh(f, s, 0)
 	s.inv[0] = true
 	inv := measureCh(f, s, 0)
@@ -84,7 +84,8 @@ func TestStatisticsCountAnEdgeReadingOnce(t *testing.T) {
 	}
 	c := &Controller{clock: func() time.Time { return time.Unix(0, 0) }}
 	s := &sv{
-		probe: [2]float64{1, 1}, vert: [2]vstep{testLadder[10], testLadder[10]}, chDisp: [2]bool{true, true},
+		nch:   2,
+		probe: [maxChans]float64{1, 1}, vert: [maxChans]vstep{testLadder[10], testLadder[10]}, chDisp: [maxChans]bool{true, true},
 		meas: []measItem{{0, measIndex("rise")}, {0, measIndex("pkpk")}},
 	}
 	first, second := win(10), win(14)

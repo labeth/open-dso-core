@@ -22,6 +22,8 @@ const (
 	KeyMenu         = "menu"
 	KeyCh1          = "ch1"
 	KeyCh2          = "ch2"
+	KeyCh3          = "ch3" // on a scope with a third channel
+	KeyCh4          = "ch4"
 	KeyMath         = "math"
 	KeyRef          = "ref"
 	KeyTrigMenu     = "trigmenu"
@@ -42,10 +44,14 @@ const (
 	KeyTrigNormal = "trignormal"
 
 	// Knob pushes, with their printed jobs.
-	KeyCh1VdivPush  = "ch1vdivpush"  // CH1 V/DIV push: Variable
-	KeyCh2VdivPush  = "ch2vdivpush"  // CH2 V/DIV push: Variable
-	KeyCh1PosPush   = "ch1pospush"   // CH1 POSITION push: Zero
-	KeyCh2PosPush   = "ch2pospush"   // CH2 POSITION push: Zero
+	KeyCh1VdivPush  = "ch1vdivpush" // CH1 V/DIV push: Variable
+	KeyCh2VdivPush  = "ch2vdivpush" // CH2 V/DIV push: Variable
+	KeyCh1PosPush   = "ch1pospush"  // CH1 POSITION push: Zero
+	KeyCh2PosPush   = "ch2pospush"  // CH2 POSITION push: Zero
+	KeyCh3VdivPush  = "ch3vdivpush"
+	KeyCh4VdivPush  = "ch4vdivpush"
+	KeyCh3PosPush   = "ch3pospush"
+	KeyCh4PosPush   = "ch4pospush"
 	KeyTrigLvlPush  = "triglvlpush"  // TRIG LEVEL push: level 0 V
 	KeyTdivPush     = "tdivpush"     // S/DIV push: Zoom
 	KeyHorizPosPush = "horizpospush" // HORIZONTAL POSITION push: Zero
@@ -60,6 +66,10 @@ const (
 	KnobCh2Vdiv   = "ch2vdiv"
 	KnobCh1Pos    = "ch1pos"
 	KnobCh2Pos    = "ch2pos"
+	KnobCh3Vdiv   = "ch3vdiv"
+	KnobCh4Vdiv   = "ch4vdiv"
+	KnobCh3Pos    = "ch3pos"
+	KnobCh4Pos    = "ch4pos"
 	KnobTrigLevel = "triglevel"
 	KnobAdjust    = "adjust"
 	KnobHorizPos  = "horizpos"
@@ -91,6 +101,7 @@ var coreKeys = func() map[string]bool {
 	for _, k := range []string{
 		KeyRunStop, KeySingle, KeyAuto, KeyDefaultSetup, KeySet50, KeyForce, KeyPrint, KeyHelp, KeyMenu,
 		KeyCh1, KeyCh2, KeyCh1VdivPush, KeyCh2VdivPush, KeyCh1PosPush, KeyCh2PosPush, KeyTrigLvlPush,
+		KeyCh3, KeyCh4, KeyCh3VdivPush, KeyCh4VdivPush, KeyCh3PosPush, KeyCh4PosPush,
 		KeyTdivPush, KeyHorizPosPush, KeyAdjustPush, KeyTrigAuto, KeyTrigNormal,
 	} {
 		m[k] = true
@@ -108,6 +119,26 @@ var coreKeys = func() map[string]bool {
 var knobNames = map[string]bool{
 	KnobTdiv: true, KnobCh1Vdiv: true, KnobCh2Vdiv: true, KnobCh1Pos: true,
 	KnobCh2Pos: true, KnobTrigLevel: true, KnobAdjust: true, KnobHorizPos: true,
+	KnobCh3Vdiv: true, KnobCh4Vdiv: true, KnobCh3Pos: true, KnobCh4Pos: true,
+}
+
+// keyChan is the channel a channel's key, push or knob names ("ch3",
+// "ch3vdivpush", "ch3pos") and the rest of its name; ok false for any other
+// name.
+// TRLC-LINKS: REQ-DSO-135
+func keyChan(name string) (ch int, rest string, ok bool) {
+	if len(name) < 3 || !strings.HasPrefix(name, "ch") || name[2] < '1' || name[2] > '0'+maxChans {
+		return 0, "", false
+	}
+	return int(name[2] - '1'), name[3:], true
+}
+
+// hasKey reports whether this scope has the key or knob named name: a
+// channel's keys and knobs only for the channels it has.
+// TRLC-LINKS: REQ-DSO-135
+func (c *Controller) hasKey(name string) bool {
+	ch, _, ok := keyChan(name)
+	return !ok || ch < c.nch
 }
 
 // KeyName is the core name of a key named name or one of its aliases (any
@@ -145,7 +176,7 @@ func Knobs() []string {
 // TRLC-LINKS: REQ-DSO-135
 func (c *Controller) InjectButton(name string) bool {
 	key, ok := KeyName(name)
-	if !ok {
+	if !ok || !c.hasKey(key) {
 		return false
 	}
 	select {
@@ -162,7 +193,7 @@ func (c *Controller) InjectButton(name string) bool {
 // TRLC-LINKS: REQ-DSO-135
 func (c *Controller) InjectButtonWait(name string, timeout time.Duration) bool {
 	key, ok := KeyName(name)
-	if !ok {
+	if !ok || !c.hasKey(key) {
 		return false
 	}
 	done := make(chan struct{})
@@ -182,7 +213,7 @@ func (c *Controller) InjectButtonWait(name string, timeout time.Duration) bool {
 // InjectKnob runs a named knob step (dir ±1, steps≥1) on the panel goroutine.
 // TRLC-LINKS: REQ-DSO-135
 func (c *Controller) InjectKnob(name string, dir, steps int) bool {
-	if !knobNames[name] {
+	if !knobNames[name] || !c.hasKey(name) {
 		return false
 	}
 	if steps < 1 {

@@ -222,11 +222,11 @@ func TestAutosetEndsItsSampleLease(t *testing.T) {
 func TestAutosetTriggersOnAResolvedChannel(t *testing.T) {
 	sq := &measure.Result{Vpp: 3.81, Freq: 1000}
 	pulse := &measure.Result{Vpp: 3.91}
-	if got := autosetTrigSource([2]*measure.Result{sq, pulse}); got != 0 {
+	if got := autosetTrigSource([maxChans]*measure.Result{sq, pulse}); got != 0 {
 		t.Fatalf("1 kHz on C1, unresolved pulse on C2: triggers on C%d", got+1)
 	}
 	both := &measure.Result{Vpp: 3.91, Freq: 100e3}
-	if got := autosetTrigSource([2]*measure.Result{sq, both}); got != 1 {
+	if got := autosetTrigSource([maxChans]*measure.Result{sq, both}); got != 1 {
 		t.Fatalf("both resolved: the stronger C2, got C%d", got+1)
 	}
 }

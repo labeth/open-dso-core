@@ -55,11 +55,11 @@ type wsDef struct {
 
 // wsDefs are the five workspaces (REQ-DSO-211).
 var wsDefs = [wsview.Count]wsDef{
-	{tabs: []string{tabIDTrig, "ch1", "ch2", tabIDTime, "acq"}, plotTop: 0, view: viewYT, cycle: "Y-T / X-Y"},
+	{tabs: []string{tabIDTrig, "ch1", "ch2", "ch3", "ch4", tabIDTime, "acq"}, plotTop: 0, view: viewYT, cycle: "Y-T / X-Y"},
 	{tabs: []string{"bus", tabIDTrig, tabIDTime}, plotTop: 136, view: viewYT, cycle: "Packets / Eye diagram / Stream / Visual"},
 	{tabs: []string{"view", "snd", "acq", tabIDTime}, plotTop: 150, view: viewFFT, cycle: "FFT / Spectrogram / Bode / Sound"},
 	{tabs: []string{tabIDMeas, "curs", "acq"}, plotTop: 142, view: viewYT, cycle: "statistics / all values"},
-	{tabs: []string{"cmp", "ch1", "ch2"}, plotTop: 104, view: viewYT, cycle: "stack a master"},
+	{tabs: []string{"cmp", "ch1", "ch2", "ch3", "ch4"}, plotTop: 104, view: viewYT, cycle: "stack a master"},
 }
 
 // wsKeys name the F-key of each workspace.
@@ -94,6 +94,7 @@ type uiState struct {
 
 	open  bool              // a settings sheet is open
 	tab   int               // the sheet's tab (index into sheetTabs)
+	nch   int               // the scope's channels (the tabs and rows it has)
 	via   string            // the key that opened it
 	rowAt [numTabs]int      // the remembered row of each tab
 	wsTab [wsview.Count]int // where the sheet was left per workspace (-1: never)
@@ -195,44 +196,59 @@ func (c *Controller) railNoteLocked(head, text string) {
 // snap reads everything the rows and panes show.
 // TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
 func (c *Controller) snap() *sv {
-	s := &sv{now: c.now(), st: c.eng.Snapshot(), hw: c.hw, tdivs: c.tdivs}
+	s := &sv{now: c.now(), st: c.eng.Snapshot(), hw: c.hw, tdivs: c.tdivs, nch: c.nch}
+	for ch := range s.nch {
+		s.cpd[ch] = math.Float64frombits(c.cpd[ch].Load())
+	}
 	s.memDepth = s.st.MemDepth
 	if md, ok := c.eng.(interface{ MemDepth() int }); ok {
 		s.memDepth = md.MemDepth()
 	}
-	src := s.st.TrigSource & 1
+	src := s.chOf(s.st.TrigSource)
 	g := c.lv.TrigLevelGrid(src)
 	s.trigLo, s.trigHi = g.Min, g.Max
 	s.trigV = c.lv.TrigLevelOrIn(s.st, 0, src)
 	s.trigSaved = c.lv.SaveTrigLevelIn(s.st)
 	if c.fe != nil {
 		s.fe = true
-		for ch := range 2 {
+		for ch := range s.nch {
 			s.vert[ch] = c.vstepOf(ch)
 			s.offRange[ch] = c.fe.OffsetRangeV(ch)
 		}
 		c.snapChannels(s)
 	} else {
-		s.probe = [2]float64{1, 1}
-		s.vert = [2]vstep{noFrontEnd, noFrontEnd}
-		s.offRange = [2]float64{40, 40}
+		for ch := range s.nch {
+			s.probe[ch], s.vert[ch], s.offRange[ch] = 1, noFrontEnd, 40
+		}
 	}
-	for ch := range 2 {
+	for ch := range s.nch {
 		s.ladder[ch] = c.tipLadder(ch)
 	}
 	step := int(panelTrigStepsPerVdiv) // trigSteps, on the V/div and source read above
 	if c.fe != nil {
-		step = trigStepsAt([2]float64{s.vert[0].vdiv, s.vert[1].vdiv}, src)
+		step = trigStepsAt(s.vert[src].vdiv)
 	}
 	s.trigStep = c.lv.TrigStepsV(step) * s.probe[src]
 	if c.inverter != nil {
-		s.hasInv, s.inv = true, c.inverter.Inverted()
+		s.hasInv = true
+		inv := c.inverter.Inverted()
+		copy(s.inv[:], inv[:])
 	}
 	if se := c.serialTrig(); se != nil {
 		s.hasSerial, s.serial = true, se.SerialConfig()
 	}
 	q := s.st.TrigQual
+	cs, shower := c.fe.(channelShower)
+	var on [maxChans]bool
+	if shower {
+		for ch := range s.nch {
+			on[ch] = cs.ChannelOn(ch)
+		}
+	}
 	c.mu.Lock()
+	if shower { // the instrument state's: a page or SCPI may have switched one
+		c.chDisp = on
+	}
 	if q.PulseLvl <= 0 { // an engine that does not publish its qualifiers: the shadows
 		q = engine.TrigQual{
 			PulseLvl: c.pulseLvl, PulseMinNs: c.pulseMin, PulseMaxNs: c.pulseMax, PulseCond: c.pulseCond,
@@ -245,6 +261,7 @@ func (c *Controller) snap() *sv {
 	s.video = [3]int{q.VideoStd, q.VideoLine, b2ic(q.VideoNeg)}
 	s.chDisp, s.showMeas, s.persist = c.chDisp, c.showMeas, c.persist
 	s.viewMode, s.mathMode, s.zoom, s.zoomOff = c.viewMode, c.mathMode, c.zoom, c.zoomOff
+	s.mathCh, s.xyCh = c.mathCh, c.xyCh
 	s.decProto, s.decBaud, s.decChA, s.decChB = c.decProto, c.decBaud, c.decChA, c.decChB
 	s.decCPOL, s.decCPHA, s.decLSB, s.decFormat = c.decCPOL, c.decCPHA, c.decLSB, c.decFormat
 	s.decParity, s.decInv, s.decBits = c.decParity, c.decInv, c.decBits
@@ -266,7 +283,7 @@ func (c *Controller) snap() *sv {
 	}
 	for i, r := range c.refs {
 		s.refHas[i], s.refShow[i] = r.has, r.show
-		s.refC2[i], s.refTdiv[i] = r.c2 != nil, r.tdiv
+		s.refC2[i], s.refTdiv[i] = r.cs[1] != nil, r.tdiv
 	}
 	s.srActive, s.srFocus, s.srCh, s.srK = c.srActive, c.srFocus, c.srCh, c.srK
 	s.srSeeding = c.srSeeding
@@ -302,7 +319,7 @@ func (c *Controller) snapChannels(s *sv) {
 		ChannelState(ch int) (offV float64, cpl int, probe float64, bwl bool)
 	}); ok {
 		// a channel's settings under one lock, not one a value
-		for ch := range 2 {
+		for ch := range s.nch {
 			off, cpl, p, bwl := cs.ChannelState(ch)
 			if !(p >= 1) { // as ProbeFactor
 				p = 1
@@ -313,14 +330,16 @@ func (c *Controller) snapChannels(s *sv) {
 			}
 		}
 	} else {
-		for ch := range 2 {
+		for ch := range s.nch {
 			s.probe[ch] = c.fe.ProbeFactor(ch)
 			s.cpl[ch] = c.fe.Coupling(ch)
 			s.offV[ch] = c.fe.OffsetReqV(ch)
 		}
 		if hasBWL {
 			s.hasBWL = true
-			s.bwl = [2]bool{b.BWL(0), b.BWL(1)}
+			for ch := range s.nch {
+				s.bwl[ch] = b.BWL(ch)
+			}
 		}
 	}
 }

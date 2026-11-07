@@ -489,6 +489,20 @@ func (c *Controller) setDecBaud(b int) error {
 	return nil
 }
 
+// otherRole is a role put on channel ch (it was on was) and the other
+// role, which keeps its channel unless that is ch: then it takes the one
+// this role left (on two channels, always the other one).
+// TRLC-LINKS: REQ-DSO-018
+func (c *Controller) otherRole(ch, was, other int) (int, int) {
+	if other != ch {
+		return ch, other
+	}
+	if was != ch {
+		return ch, was
+	}
+	return ch, (ch + 1) % max(c.nch, 1)
+}
+
 // setDecRole puts a line on a channel: the first role (UART source, I2C SCL,
 // SPI CLK) or the second (SDA, DATA); the other role moves to the other
 // channel, so clock and data never share one.
@@ -497,11 +511,9 @@ func (c *Controller) setDecRole(first bool, ch int) error {
 	c.mu.Lock()
 	c.auto = autoWatch{} // set by hand
 	if first {
-		c.decChA = ch & 1
-		c.decChB = 1 - c.decChA
+		c.decChA, c.decChB = c.otherRole(c.chOf(ch), c.decChA, c.decChB)
 	} else {
-		c.decChB = ch & 1
-		c.decChA = 1 - c.decChB
+		c.decChB, c.decChA = c.otherRole(c.chOf(ch), c.decChB, c.decChA)
 	}
 	c.mu.Unlock()
 	c.syncSerialBus()

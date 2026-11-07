@@ -89,6 +89,23 @@ func probeOf(c hal.Channel) float64 { return max(c.Probe, 1) }
 // halAnalog is the front end at the BNC.
 type halAnalog struct{ s *HALScope }
 
+// Channels is the scope's channel count: the instrument state's.
+// TRLC-LINKS: REQ-DSO-135
+func (a halAnalog) Channels() int { return len(a.s.m.State().Channels) }
+
+// ChannelOn reports whether channel ch is on in the instrument state.
+// TRLC-LINKS: REQ-DSO-135
+func (a halAnalog) ChannelOn(ch int) bool {
+	c, ok := a.s.channel(ch)
+	return ok && c.On
+}
+
+// SetChannelOn switches channel ch on or off in the instrument state.
+// TRLC-LINKS: REQ-DSO-135
+func (a halAnalog) SetChannelOn(ch int, on bool) {
+	_ = a.s.setChannel(ch, func(c *hal.Channel) { c.On = on })
+}
+
 // Ladder is channel ch's ladder at the probe tip for the probe the Model
 // holds (the board's ladder is for the probe it has applied).
 // TRLC-LINKS: REQ-DSO-015

@@ -70,13 +70,14 @@ func TestMenuKeyOpensTheWorkspaceSheet(t *testing.T) {
 	for i, key := range []string{"f1", "f2", "f3", "f4", "f5"} {
 		press(t, c, key, "menu")
 		st := mustState(t, c, wsview.Names[i], "sheet")
-		own := wsDefs[i].tabs
-		for j, id := range own {
-			if st.Sheet.Tabs[j] != sheetTabs[tabIndex(id)].name {
+		order, nown := tabOrder(wsview.WS(i), c.nch)
+		own := order[:nown]
+		for j, ti := range own {
+			if st.Sheet.Tabs[j] != sheetTabs[ti].name {
 				t.Fatalf("%s sheet tabs %v: own tabs %v first", wsview.Names[i], st.Sheet.Tabs, own)
 			}
 		}
-		if len(st.Sheet.Tabs) != numTabs || st.Sheet.Tab != own[0] {
+		if len(st.Sheet.Tabs) != len(order) || st.Sheet.Tab != sheetTabs[own[0]].id {
 			t.Fatalf("%s sheet on %s with %d tabs", wsview.Names[i], st.Sheet.Tab, len(st.Sheet.Tabs))
 		}
 		if st.FKeys[0].Label == wsview.Tags[0] {

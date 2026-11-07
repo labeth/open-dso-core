@@ -168,10 +168,9 @@ func (c *Controller) ApplySettingsView(v settings.ViewState) {
 	if d.Baud < 50 || d.Baud > maxDecBaud {
 		d.Baud = 115200
 	}
-	d.ChA &= 1
-	d.ChB &= 1
-	if framecalc.TwoLine(d.Proto) || d.ChB == d.ChA {
-		d.ChB = 1 - d.ChA // data on the OTHER channel
+	d.ChA, d.ChB = c.chOf(d.ChA), c.chOf(d.ChB)
+	if d.ChB == d.ChA {
+		d.ChB = (d.ChA + 1) % c.nch // data on another channel
 	}
 	d.Format = mod3(d.Format)
 	view := modViews(v.ViewMode)
@@ -181,7 +180,10 @@ func (c *Controller) ApplySettingsView(v settings.ViewState) {
 	c.viewMode = view
 	c.mathMode = mod5(v.Display.MathMode)
 	c.showMeas, c.persist = v.Display.ShowMeas, v.Display.Persist
-	c.chDisp = [2]bool{!v.Display.Hidden[0], !v.Display.Hidden[1]}
+	// the file keeps C1 and C2's; channels past them keep theirs
+	for ch, h := range v.Display.Hidden {
+		c.chDisp[ch] = !h
+	}
 	var inv *[2]bool
 	if ds := v.Display; ds.Set {
 		c.applyDisplayLocked(ds)
@@ -222,6 +224,7 @@ func (c *Controller) ApplySettingsView(v settings.ViewState) {
 			inverter.SetInverted(ch, inv[ch])
 		}
 	}
+	c.pushShown()
 	c.syncDecodeView(d.Proto != framecalc.ProtoOff)
 	c.restoreSerial(v.Serial)
 	if restream {
@@ -305,11 +308,11 @@ func (c *Controller) applyUILocked(u settings.UI) (restream bool) {
 			continue
 		}
 		ch, p := (m-1)/32, (m-1)%32
-		if ch <= 1 && p < len(measParams) {
+		if ch < c.nch && p < len(measParams) {
 			c.meas = append(c.meas, measItem{ch: ch, param: p})
 		}
 	}
-	c.fftSrc = u.FFTSource & 1
+	c.fftSrc = c.chOf(u.FFTSource)
 	c.stackN = 64
 	for _, n := range stackDepths {
 		if n == u.MasterDepth {

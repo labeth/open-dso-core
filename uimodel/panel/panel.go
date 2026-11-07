@@ -20,6 +20,7 @@ import (
 	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/instrument"
+	"github.com/labeth/open-dso-core/render"
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/settings"
 	"github.com/labeth/open-dso-core/superres"
@@ -194,16 +195,22 @@ type Controller struct {
 	// UI state (ADR-TASK-WORKSPACES): written by the panel goroutine, read by
 	// the LCD renderer and the remote, guarded by mu. inject runs API-driven
 	// panel events on the panel goroutine so dispatch stays single-threaded.
-	mu       sync.Mutex
-	ui       uiState
-	snd      *soundSvc        // SOUND's settings and service (sound.go)
-	clock    func() time.Time // nil: time.Now (tests drive notices with their own)
-	chDisp   [2]bool
+	mu     sync.Mutex
+	ui     uiState
+	snd    *soundSvc        // SOUND's settings and service (sound.go)
+	clock  func() time.Time // nil: time.Now (tests drive notices with their own)
+	chDisp [maxChans]bool
+	nch    int // the scope's channels (the front end's, else two)
+	// cpd is each channel's codes a division on the 8-bit view, as the last
+	// frame analysed stated it (float64 bits; 0 before one).
+	cpd      [maxChans]atomic.Uint64
 	showMeas bool
 	meas     []measItem // the chosen readouts (at most maxMeasItems)
 	viewMode int        // 0 Y-T, 1 X-Y, 2 FFT, 3 Bode, 4 spectrogram (the VIEW tab's View)
 	mathMode int        // 0 = off, 1 = C1+C2, 2 = C1-C2, 3 = C2-C1, 4 = C1×C2
 	fftSrc   int        // the channel SPECTRUM and the spectrogram analyse
+	mathCh   [2]int     // the channels math combines (A, B)
+	xyCh     [2]int     // the channels X-Y plots (X, Y)
 	inverter Inverter   // the display invert (SCPI Cn:INVS state); nil without one
 
 	// Per-frame analysis for the panes (OnFrame), guarded by amu. Lock order:
@@ -269,6 +276,10 @@ type Controller struct {
 	// frameFn reads the latest published frame (fo.WithFrame) for autoset; nil
 	// until SetFrameSource is called (AUTO then falls back to plain AUTO/run).
 	frameFn func(func(*sample.Frame))
+	// view8 is the frame on screen on the 8-bit view the analysis reads
+	// (every code format: 12-bit words as Q8.8 precision beside the view's
+	// codes); an 8-bit frame is read as it is.
+	view8 sample.View8Cache
 	// autoset runs as a background sweep; autosetStop cancels it (second AUTO).
 	autosetBusy bool
 	autosetStop chan struct{}
@@ -359,7 +370,10 @@ func New(eng Engine, fe Analog, lv Levels, hw Hardware, tdivs []float64, startTd
 	c := &Controller{
 		eng: eng, fe: fe, lv: lv, hw: hw, logf: logf,
 		tdivs:        tdivs,
-		chDisp:       [2]bool{true, true},
+		chDisp:       [maxChans]bool{true, true, true, true},
+		mathCh:       [2]int{0, 1},
+		xyCh:         [2]int{0, 1},
+		nch:          numChans(fe),
 		curPend:      &cursorHome,
 		inject:       make(chan func(), 32),
 		running:      true,
@@ -384,6 +398,7 @@ func New(eng Engine, fe Analog, lv Levels, hw Hardware, tdivs []float64, startTd
 		saverMin:      defSaverMin,
 		offMin:        defOffMin,
 	}
+	c.ui.nch = c.nch
 	c.snd = newSoundSvc(c)
 	for i := range c.slotWS {
 		c.slotWS[i] = -1
@@ -405,6 +420,59 @@ func New(eng Engine, fe Analog, lv Levels, hw Hardware, tdivs []float64, startTd
 		}
 	}
 	return c
+}
+
+// maxChans is the most channels the UI model serves: the HUD's.
+const maxChans = render.MaxChans
+
+// defaultCodesPerDiv is the codes a division on the 8-bit view of a trace
+// that states none (the SDS1000CML+'s 25).
+const defaultCodesPerDiv = 25
+
+// channelCounter is a front end that knows its scope's channel count.
+type channelCounter interface{ Channels() int }
+
+// numChans is the channels of the scope behind front end fe: its own count,
+// else two (the SDS1000CML+'s, and a dev host's without a front end).
+// TRLC-LINKS: REQ-DSO-212
+func numChans(fe Analog) int {
+	if n, ok := fe.(channelCounter); ok {
+		return min(max(n.Channels(), 1), maxChans)
+	}
+	return 2
+}
+
+// Channels is the scope's channel count the UI model serves.
+// TRLC-LINKS: REQ-DSO-212
+func (c *Controller) Channels() int { return c.nch }
+
+// chOf is channel number x on this scope (sv.chOf).
+// TRLC-LINKS: REQ-DSO-212
+func (c *Controller) chOf(x int) int { return chMod(x, c.nch) }
+
+// channelShower is a front end whose channels are switched on and off in
+// the instrument state (a HAL scope's Channel.On), so the trace shown is the
+// same on every surface; without one the UI model keeps it.
+type channelShower interface {
+	ChannelOn(ch int) bool
+	SetChannelOn(ch int, on bool)
+}
+
+// pushShown puts the channels shown into a front end that keeps them.
+// TRLC-LINKS: REQ-DSO-212
+func (c *Controller) pushShown() {
+	cs, ok := c.fe.(channelShower)
+	if !ok {
+		return
+	}
+	c.mu.Lock()
+	d := c.chDisp
+	c.mu.Unlock()
+	for ch := range c.nch {
+		if cs.ChannelOn(ch) != d[ch] {
+			cs.SetChannelOn(ch, d[ch])
+		}
+	}
 }
 
 // Inverter is the display-level trace invert (the SCPI Cn:INVS state).

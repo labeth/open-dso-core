@@ -219,7 +219,7 @@ func TestCursorTimesFollowTheZoomedScreen(t *testing.T) {
 		off, pos   float64
 		curA, curB float64
 	}{{1, 0, 0.3, 0.2, 0.7}, {10, 0, 0.3, 0.2, 0.7}, {10, 0.05, 0.5, 0.4, 0.9}, {5, -0.1, 0.8, 0.1, 0.6}} {
-		s := &sv{zoom: tc.zoom, zoomOff: tc.off, records: float64(valid) / winCols}
+		s := &sv{nch: 2, zoom: tc.zoom, zoomOff: tc.off, records: float64(valid) / winCols}
 		s.st.TdivS, s.st.TrigPosFrac = tdiv, tc.pos
 		x := [2]float64{tc.curA, tc.curB}
 		left, win := windowOf(g, s)
