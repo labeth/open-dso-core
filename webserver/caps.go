@@ -61,14 +61,18 @@ func encodeV2(fr FramesV2, q FrameQueryV2) []byte {
 	return buf
 }
 
-// wantV2 reports a request for frame wire v2 that the scope can serve.
+// wantV2 reports a request to serve in frame wire v2: one asking for it
+// that the scope can serve, or any request to a scope that serves v2 only.
 // TRLC-LINKS: REQ-DSO-163
 func wantV2(fr Frames, r *http.Request) (FramesV2, bool) {
-	if r.URL.Query().Get("v") != "2" {
+	v2, ok := fr.(FramesV2)
+	if !ok {
 		return nil, false
 	}
-	v2, ok := fr.(FramesV2)
-	return v2, ok
+	if _, only := fr.(V2Only); only {
+		return v2, true
+	}
+	return v2, r.URL.Query().Get("v") == "2"
 }
 
 // hCaps serves the capabilities document.

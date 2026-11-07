@@ -201,8 +201,8 @@ func TestCapsFromHAL(t *testing.T) {
 	if !ok || caps.Screen.W != 64 || caps.Limits.LiveClients != 4 {
 		t.Fatalf("controls %+v screen %+v limits %+v", caps.Controls, caps.Screen, caps.Limits)
 	}
-	if rec := r.serve(t, http.MethodGet, "/api/frame.bin?cols=100", ""); rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), webserver.FrameV2OnlyText) {
-		t.Fatalf("v1 on a v2-only scope: %d %s", rec.Code, rec.Body)
+	if rec := r.serve(t, http.MethodGet, "/api/frame.bin?cols=100", ""); rec.Code != http.StatusOK || !strings.HasPrefix(rec.Body.String(), string(wire.FrameMagic2[:])) {
+		t.Fatalf("a v1 request to a v2-only scope: %d %.20q", rec.Code, rec.Body)
 	}
 }
 

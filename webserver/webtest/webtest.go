@@ -188,15 +188,13 @@ func checkSet(t *testing.T, c client, _ webserver.Scope) {
 
 // checkFrames checks v1 frames: a native frame's payload size, a held frame
 // unchanged, raw frames, and clamped column counts; a scope v1 cannot carry
-// refuses them with why.
+// serves those requests in v2.
 // TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
 func checkFrames(t *testing.T, c client, sc webserver.Scope) {
 	t.Helper()
 	if _, only := sc.Frames().(webserver.V2Only); only {
 		for _, p := range []string{"/api/frame.bin?cols=100", "/api/frame.bin?raw=1"} {
-			if out := c.json(http.MethodGet, p, "", http.StatusConflict); out["err"] != webserver.FrameV2OnlyText {
-				t.Fatalf("%s on a v2-only scope: %v", p, out)
-			}
+			c.frame2(p) // served in v2, which its magic says
 		}
 		return
 	}
