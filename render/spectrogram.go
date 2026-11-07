@@ -216,6 +216,16 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 			scaleRow(line[:cols], srow, xmap)
 			copy(drow, line[:cols])
 		}
+	} else if m, ok := sf.(*Image32); ok && x0 >= 0 && x1 <= m.m.W && y0 >= 0 && y1 <= m.m.H {
+		w := m.m.W
+		for y := range rows {
+			r := sg.imgRow(y * sgRows / rows)
+			srow := sg.img[r*sgCols : (r+1)*sgCols]
+			drow := m.pix[(y0+y)*w+x0 : (y0+y)*w+x0+cols]
+			for x := range drow {
+				drow[x] = m.native(srow[x*sgCols/cols])
+			}
+		}
 	} else {
 		for y := range rows {
 			sr := sg.imgRow(y * sgRows / rows)

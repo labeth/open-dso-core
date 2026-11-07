@@ -565,14 +565,22 @@ func drawEyePlot(sf Canvas, p plotArea, e *wsview.EyePane) {
 	// The counts are whole: h >= t exactly when h >= ceil(t), so the cells
 	// compare as integers, not converted one by one.
 	i1, i2, i3 := uint64(math.Ceil(t1)), uint64(math.Ceil(t2)), uint64(math.Ceil(t3))
-	if m, ok := sf.(*Image565); ok {
+	sm := metricsOf(sf)
+	switch m := sf.(type) {
+	case *Image565:
 		var n [4]uint16
 		for i, c := range sh {
 			n[i] = pack565(c)
 		}
-		eyeCells(sf, m.px(), p.m.W, p.m.H, e, x0, y1, sh, n, i1, i2, i3)
-	} else {
-		eyeCells[uint16](sf, nil, p.m.W, p.m.H, e, x0, y1, sh, [4]uint16{}, i1, i2, i3)
+		eyeCells(sf, m.pix, sm.W, sm.H, e, x0, y1, sh, n, i1, i2, i3)
+	case *Image32:
+		var n [4]uint32
+		for i, c := range sh {
+			n[i] = m.native(c)
+		}
+		eyeCells(sf, m.pix, sm.W, sm.H, e, x0, y1, sh, n, i1, i2, i3)
+	default:
+		eyeCells[uint16](sf, nil, sm.W, sm.H, e, x0, y1, sh, [4]uint16{}, i1, i2, i3)
 	}
 	if e.HasBox {
 		xa, xb := x0+2*e.Box[0], x0+2*e.Box[2]

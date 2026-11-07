@@ -161,25 +161,134 @@ func (m *Image565) BlitBright(src Canvas) {
 	}
 }
 
-// EncodePNG renders the canvas to a PNG — the device-screen view for the web
+// Image32 is an in-memory 32-bit canvas, XRGB8888 or ARGB8888: four bytes
+// a pixel, little-endian words 0xAARRGGBB (B, G, R, A in memory) as a Linux
+// framebuffer holds them. On an ARGB8888 canvas a Transparent pixel shows
+// the plane under it (a hardware waveform renderer's); on XRGB8888 every
+// pixel is opaque.
+// TRLC-LINKS: REQ-SDS-021
+type Image32 struct {
+	Pix    []byte // W*H*4 bytes
+	pix    []uint32
+	m      *Metrics
+	format hal.PixelFormat
+	opaque uint32 // or-ed into every pixel: the alpha byte on XRGB8888
+}
+
+// NewImage32 returns a blank 32-bit page of screen m's size: black on
+// XRGB8888, transparent on ARGB8888.
+// TRLC-LINKS: REQ-SDS-021
+func NewImage32(m *Metrics, format hal.PixelFormat) *Image32 {
+	pix := make([]uint32, m.W*m.H)
+	img := &Image32{Pix: unsafe.Slice((*byte)(unsafe.Pointer(&pix[0])), 4*len(pix)), pix: pix, m: m, format: format} //nolint:gosec // the words' own bytes, little-endian as a framebuffer takes them
+	if format != hal.ARGB8888 {
+		img.format, img.opaque = hal.XRGB8888, 0xff000000
+		img.Fill(Transparent)
+	}
+	return img
+}
+
+// Format is XRGB8888 or ARGB8888.
+func (m *Image32) Format() hal.PixelFormat { return m.format }
+
+// Metrics is the canvas's screen.
+func (m *Image32) Metrics() *Metrics { return m.m }
+
+// native is c as the canvas stores it.
+func (m *Image32) native(c Color) uint32 { return uint32(c) | m.opaque }
+
+// SetPixel sets one pixel; one off the page is ignored.
+// TRLC-LINKS: REQ-SDS-021
+func (m *Image32) SetPixel(x, y int, c Color) {
+	if uint(x) >= uint(m.m.W) || uint(y) >= uint(m.m.H) {
+		return
+	}
+	m.pix[y*m.m.W+x] = m.native(c)
+}
+
+// Fill sets every pixel of the page to c.
+// TRLC-LINKS: REQ-SDS-021
+func (m *Image32) Fill(c Color) {
+	if p := m.native(c); p == 0 {
+		clear(m.pix)
+	} else {
+		fillPx(m.pix, m.m.W, m.m.H, 0, 0, m.m.W, m.m.H, p)
+	}
+}
+
+// At reads one pixel (Transparent off the page).
+// TRLC-LINKS: REQ-SDS-021
+func (m *Image32) At(x, y int) Color {
+	if uint(x) >= uint(m.m.W) || uint(y) >= uint(m.m.H) {
+		return Transparent
+	}
+	return Color(m.pix[y*m.m.W+x])
+}
+
+// FadeToBlack dims every pixel toward black by 1/4, as Image565's does.
+// TRLC-LINKS: REQ-SDS-021
+func (m *Image32) FadeToBlack() {
+	for i, c := range m.pix {
+		if c&0xffffff == 0 {
+			continue
+		}
+		r, g, b := (c>>16&0xff)*3/4, (c>>8&0xff)*3/4, (c&0xff)*3/4
+		m.pix[i] = c&0xff000000 | r<<16 | g<<8 | b
+	}
+}
+
+// BlitBright copies src's bright enough pixels onto m, as Image565's does.
+// TRLC-LINKS: REQ-SDS-021
+func (m *Image32) BlitBright(src Canvas) {
+	s, ok := src.(*Image32)
+	if !ok {
+		return
+	}
+	for i, c := range s.pix {
+		if c&0xffffff == 0 || (c>>19&0x1f)+(c>>11&0x1f)+(c>>3&0x1f) < 3 { // too dim → let the graticule show
+			continue
+		}
+		m.pix[i] = c | m.opaque
+	}
+}
+
+// EncodePNG renders a canvas to a PNG — the device-screen view for the web
 // /api/screen.png endpoint. Pixels are expanded straight into the image and
 // compressed at BestSpeed: the default level cost ~10x the time for a
-// screen grab the browser decodes to the same pixels.
+// screen grab the browser decodes to the same pixels. An ARGB8888 canvas
+// keeps its alpha.
 // TRLC-LINKS: REQ-SDS-021
-func EncodePNG(m *Image565) []byte {
-	img := image.NewRGBA(image.Rect(0, 0, m.m.W, m.m.H))
+func EncodePNG(sf Canvas) []byte {
+	sm := sf.Metrics()
+	img := image.NewNRGBA(image.Rect(0, 0, sm.W, sm.H))
 	d := img.Pix
-	for i, c := range m.px() {
-		o := i * 4
-		d[o] = uint8((c>>11)&0x1f) << 3
-		d[o+1] = uint8((c>>5)&0x3f) << 2
-		d[o+2] = uint8(c&0x1f) << 3
-		d[o+3] = 255
+	switch m := sf.(type) {
+	case *Image565:
+		for i, c := range m.pix {
+			o := i * 4
+			d[o] = uint8((c>>11)&0x1f) << 3
+			d[o+1] = uint8((c>>5)&0x3f) << 2
+			d[o+2] = uint8(c&0x1f) << 3
+			d[o+3] = 255
+		}
+	case *Image32:
+		for i, c := range m.pix {
+			o := i * 4
+			d[o], d[o+1], d[o+2], d[o+3] = uint8(c>>16), uint8(c>>8), uint8(c), uint8(c>>24) //nolint:gosec // a byte each
+		}
+	default:
+		for y := range sm.H {
+			for x := range sm.W {
+				r, g, b := sf.At(x, y).channels()
+				o := (y*sm.W + x) * 4
+				d[o], d[o+1], d[o+2], d[o+3] = r, g, b, 255
+			}
+		}
 	}
 	var buf bytes.Buffer
 	enc := png.Encoder{CompressionLevel: png.BestSpeed}
 	if err := enc.Encode(&buf, img); err != nil {
-		return nil // not reached: a fixed-size RGBA image into a memory buffer
+		return nil // not reached: a fixed-size image into a memory buffer
 	}
 	return buf.Bytes()
 }
@@ -232,6 +341,9 @@ func fillSpan(sf Canvas, x0, y0, x1, y1 int, c Color) bool {
 	case *Image565:
 		fillPx(m.pix, m.m.W, m.m.H, x0, y0, x1, y1, pack565(c))
 		return true
+	case *Image32:
+		fillPx(m.pix, m.m.W, m.m.H, x0, y0, x1, y1, m.native(c))
+		return true
 	}
 	return false
 }
@@ -241,14 +353,21 @@ func fillSpan(sf Canvas, x0, y0, x1, y1 int, c Color) bool {
 // frame), else pixel by pixel.
 // TRLC-LINKS: REQ-SDS-021
 func vline(sf Canvas, x, y0, y1 int, c Color) {
-	m, ok := sf.(*Image565)
-	if !ok {
+	switch m := sf.(type) {
+	case *Image565:
+		vlineClip(m.pix, m.m.W, m.m.H, x, y0, y1, pack565(c))
+	case *Image32:
+		vlineClip(m.pix, m.m.W, m.m.H, x, y0, y1, m.native(c))
+	default:
 		for y := y0; y <= y1; y++ {
 			sf.SetPixel(x, y, c)
 		}
-		return
 	}
-	w, h := m.m.W, m.m.H
+}
+
+// vlineClip is vlinePx clipped to a w×h page.
+// TRLC-LINKS: REQ-SDS-021
+func vlineClip[P pixel](px []P, w, h, x, y0, y1 int, c P) {
 	if x < 0 || x >= w {
 		return
 	}
@@ -256,7 +375,7 @@ func vline(sf Canvas, x, y0, y1 int, c Color) {
 	if y0 > y1 {
 		return
 	}
-	vlinePx(m.pix, w, x, y0, y1, pack565(c))
+	vlinePx(px, w, x, y0, y1, c)
 }
 
 // atPrecision is c as a canvas of format f holds it, its low bits clear: the

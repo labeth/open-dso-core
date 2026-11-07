@@ -22,9 +22,9 @@ type Scene struct {
 }
 
 // Draw renders the scene into sf as a live frame.
-func (s Scene) Draw(sf *render.Image565) {
+func (s Scene) Draw(sf render.Canvas) {
 	if s.Prefill {
-		sf.Fill(0xf81f)
+		sf.Fill(render.RGB(255, 0, 255))
 	}
 	render.Render(sf, s.Frame, s.HUD, true)
 }

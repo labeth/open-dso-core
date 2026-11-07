@@ -22,11 +22,14 @@ func TextWidth(s string, scale int) int {
 // does not read as 9 ("Sp9m", "phase de9").
 // TRLC-LINKS: REQ-SDS-021
 func DrawText(sf Canvas, x, y int, s string, c Color, scale int) {
-	if m, ok := sf.(*Image565); ok {
+	switch m := sf.(type) {
+	case *Image565:
 		textPx(sf, m.pix, m.m.W, m.m.H, x, y, s, pack565(c), c, scale)
-		return
+	case *Image32:
+		textPx(sf, m.pix, m.m.W, m.m.H, x, y, s, m.native(c), c, scale)
+	default:
+		textPx[uint16](sf, nil, 0, 0, x, y, s, 0, c, scale)
 	}
-	textPx[uint16](sf, nil, 0, 0, x, y, s, 0, c, scale)
 }
 
 // textPx is DrawText on a w×h page of pixels px, n being c in its format;

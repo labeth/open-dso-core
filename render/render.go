@@ -243,11 +243,17 @@ func drawLine(sf Canvas, x0, y0, x1, y1 int, c Color) {
 		sy = -1
 	}
 	err := dx - dy
-	if m, ok := sf.(*Image565); ok && uint(x0) < uint(m.m.W) && uint(x1) < uint(m.m.W) && uint(y0) < uint(m.m.H) && uint(y1) < uint(m.m.H) {
-		// On screen end to end: write the pixels without the interface call
-		// and per-pixel clip (a sparse trace is one segment per column).
-		linePx(m.pix, m.m.W, x0, y0, x1, y1, pack565(c))
-		return
+	// On screen end to end: write the pixels without the interface call and
+	// per-pixel clip (a sparse trace is one segment per column).
+	if sm := sf.Metrics(); uint(x0) < uint(sm.W) && uint(x1) < uint(sm.W) && uint(y0) < uint(sm.H) && uint(y1) < uint(sm.H) {
+		switch m := sf.(type) {
+		case *Image565:
+			linePx(m.pix, sm.W, x0, y0, x1, y1, pack565(c))
+			return
+		case *Image32:
+			linePx(m.pix, sm.W, x0, y0, x1, y1, m.native(c))
+			return
+		}
 	}
 	for {
 		sf.SetPixel(x0, y0, c)
@@ -500,18 +506,24 @@ const spanBlock = 128
 // column at a time.
 // TRLC-LINKS: REQ-SDS-021
 func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
-	m, ok := sf.(*Image565)
-	if !ok {
+	switch m := sf.(type) {
+	case *Image565:
+		var nc [MaxW]uint16
+		for i, c := range cc[:min(len(cc), MaxW)] {
+			nc[i] = pack565(c)
+		}
+		fillSpansPx(m.pix, m.m.W, m.m.H, top, bot, nc[:len(cc)])
+	case *Image32:
+		var nc [MaxW]uint32
+		for i, c := range cc[:min(len(cc), MaxW)] {
+			nc[i] = m.native(c)
+		}
+		fillSpansPx(m.pix, m.m.W, m.m.H, top, bot, nc[:len(cc)])
+	default:
 		for x := range top {
 			vline(sf, x, int(top[x]), int(bot[x]), cc[x])
 		}
-		return
 	}
-	var nc [MaxW]uint16
-	for i, c := range cc[:min(len(cc), MaxW)] {
-		nc[i] = pack565(c)
-	}
-	fillSpansPx(m.pix, m.m.W, m.m.H, top, bot, nc[:len(cc)])
 }
 
 // fillSpansPx is fillSpans on a w×h page of pixels px, the colours in its
