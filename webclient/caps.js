@@ -296,7 +296,13 @@ function chanControls(n) {
     vg.style.gridTemplateColumns = "58px" + " minmax(0, 1fr)".repeat(cols);
   }
   view["c" + n] = true;
-  for (const el of document.querySelectorAll(`[id$="${n}"].seg`)) { el._seg = false; segInit(el); }
+  // its key shows and hides it, as 1 and 2 do channels 1 and 2
+  if (n <= 9 && typeof KEYMAP !== "undefined" && !KEYMAP.some((k) => k.key === String(n))) {
+    const at = KEYMAP.findIndex((k) => k.key === String(n - 1));
+    // TRLC-LINKS: REQ-SDS-204
+    KEYMAP.splice(at + 1, 0, { key: String(n), label: String(n), desc: "Show / hide channel " + n, run: () => $("tC" + n).click() });
+  }
+  for (const el of document.querySelectorAll(`[id$="${n}"].seg`)) segInit(el);
   mirrorInit();
   if (typeof wireChannel === "function") wireChannel(n);
 }
