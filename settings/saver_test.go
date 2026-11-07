@@ -69,3 +69,23 @@ func TestSlotFileNames(t *testing.T) {
 		}
 	}
 }
+
+// A primed saver sees a change made before its first poll.
+// TRLC-LINKS: REQ-DSO-293
+func TestSaverPrimedSeesAnEarlyChange(t *testing.T) {
+	cur := Settings{Version: Version, TdivS: 1e-3}
+	now := time.Unix(0, 0)
+	saves := 0
+	s := NewSaver(FileKV{}, FileKey, func() Settings { return cur }, nil)
+	s.save = func(Settings) error { saves++; return nil }
+	s.now = func() time.Time { return now }
+	s.Prime()
+	cur.TdivS = 2e-3 // before the first poll
+	for range 5 {
+		now = now.Add(time.Second)
+		s.step()
+	}
+	if saves != 1 {
+		t.Fatalf("%d saves of a change made before the first poll, want 1", saves)
+	}
+}

@@ -55,6 +55,19 @@ func NewSaver(kv hal.KV, key string, snap func() Settings, logf func(string, ...
 	}
 }
 
+// Prime takes the live setup as the stored one, at once: called right
+// after the restore, a change made before the first poll (a host that
+// connects as soon as the app serves) is then a change, not the baseline.
+// TRLC-LINKS: REQ-DSO-293
+func (s *Saver) Prime() {
+	cur := s.snap()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.primed {
+		s.last, s.saved, s.primed, s.unsaved = cur, cur, true, false
+	}
+}
+
 // Run polls until stop closes, then flushes any pending change.
 // TRLC-LINKS: REQ-DSO-293
 func (s *Saver) Run(stop <-chan struct{}) {

@@ -425,6 +425,7 @@ func restoreSettings(env *Env, o Settings) *settings.Saver {
 			env.Logf("settings: no saved setup at %s — defaults", nameOf(kv))
 		}
 		saver = settings.NewSaver(kv, settings.FileKey, collect, env.Logf)
+		saver.Prime()
 	}
 	// The numbered setups (*SAV/*RCL, the SAVE/RECALL key), through the
 	// same collect and apply as the restore; SCPI and the web save and
