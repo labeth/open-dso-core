@@ -6,6 +6,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/uimodel/wsview"
 )
 
@@ -17,6 +18,7 @@ type plotArea struct {
 	w, y0, h int // x runs 0..w-1, y y0..y0+h-1
 	top, bot int // the trace's +4 and -4 division rows
 	m        *Metrics
+	cpd      float64 // codes a division on the 8-bit view (sy)
 }
 
 // plotOf is the plot area a layout leaves. With no pane the trace keeps the
@@ -25,7 +27,7 @@ type plotArea struct {
 // graticule.
 // TRLC-LINKS: REQ-SDS-211
 func plotOf(m *Metrics, l wsview.Layout) plotArea {
-	p := plotArea{w: m.W - max(0, min(l.MenuW, m.W-m.MinPlotW)), y0: max(0, min(l.PlotTop, m.MaxPlotTop)), m: m}
+	p := plotArea{w: m.W - max(0, min(l.MenuW, m.W-m.MinPlotW)), y0: max(0, min(l.PlotTop, m.MaxPlotTop)), m: m, cpd: defaultCodesPerDiv}
 	p.h = m.H - p.y0
 	if p.y0 == 0 {
 		p.top, p.bot = m.TraceTop, m.TraceBot
@@ -75,14 +77,15 @@ func (p plotArea) last() int { return p.y0 + p.h - 1 }
 // fullPlotOf is screen m's whole area (thumbnails and tests).
 // TRLC-LINKS: REQ-SDS-021
 func fullPlotOf(m *Metrics) plotArea {
-	return plotArea{w: m.W, y0: 0, h: m.H, top: m.TraceTop, bot: m.TraceBot, m: m}
+	return plotArea{w: m.W, y0: 0, h: m.H, top: m.TraceTop, bot: m.TraceBot, m: m, cpd: defaultCodesPerDiv}
 }
 
-// sy maps a display code to a row: higher code = higher on screen; 25
-// codes/div, code 128 at the centre (spec 07 §3.4, spec 10 §7.1).
+// sy maps a code of the 8-bit view to a row: higher code = higher on
+// screen, the view's centre (sample.Mid8) on the centre line, p.cpd codes a
+// division (spec 07 §3.4, spec 10 §7.1).
 // TRLC-LINKS: REQ-SDS-021
 func (p plotArea) sy(v float64) int {
-	y := p.bot - int(((v-128)/200+0.5)*float64(p.bot-p.top)+0.5)
+	y := p.bot - int(((v-sample.Mid8)/(float64(p.m.DivsV)*p.cpd)+0.5)*float64(p.bot-p.top)+0.5)
 	return min(max(y, p.y0), p.last())
 }
 
@@ -122,10 +125,10 @@ var codeRowCache struct {
 	}
 }
 
-// gridY is the row of graticule line r (0..8, top to bottom).
+// gridY is the row of graticule line r (0..DivsV, top to bottom).
 // TRLC-LINKS: REQ-SDS-021
-func (p plotArea) gridY(r int) int { return p.y0 + r*(p.h-1)/8 }
+func (p plotArea) gridY(r int) int { return p.y0 + r*(p.h-1)/p.m.DivsV }
 
-// gridX is the column of graticule line c (0..10, left to right).
+// gridX is the column of graticule line c (0..DivsH, left to right).
 // TRLC-LINKS: REQ-SDS-021
-func (p plotArea) gridX(c int) int { return c * (p.w - 1) / 10 }
+func (p plotArea) gridX(c int) int { return c * (p.w - 1) / p.m.DivsH }

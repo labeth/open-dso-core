@@ -62,7 +62,7 @@ func TestMathCodesMatchesRef(t *testing.T) {
 	} {
 		for mode := range 6 {
 			h.MathMode = mode
-			got, want := mathCodes(c1, c2, h), mathCodesRef(c1, c2, h)
+			got, want := mathCodes(c1, c2, h, defaultCodesPerDiv), mathCodesRef(c1, c2, h)
 			if string(got) != string(want) {
 				t.Fatalf("mode %d hud %+v: mathCodes differs from the reference", mode, h)
 			}

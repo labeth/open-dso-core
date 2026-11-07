@@ -846,22 +846,24 @@ func drawCmpPane(sf Canvas, p plotArea, c *wsview.CmpPane) {
 // TRLC-LINKS: REQ-SDS-211, REQ-SDS-212
 func drawMiniScope(sf Canvas, f *sample.Frame, hud HUD, x0, y0, w, h int) {
 	fillRect(sf, x0, y0, w, h, colBG)
-	for c := range 11 {
+	sm := metricsOf(sf)
+	for c := range sm.DivsH + 1 {
 		col := colGrid
-		if c == 5 {
+		if c == sm.DivsH/2 {
 			col = colAxis
 		}
-		vline(sf, x0+c*(w-1)/10, y0, y0+h-1, col)
+		vline(sf, x0+c*(w-1)/sm.DivsH, y0, y0+h-1, col)
 	}
-	for r := range 9 {
+	for r := range sm.DivsV + 1 {
 		col := colGrid
-		if r == 4 {
+		if r == sm.DivsV/2 {
 			col = colAxis
 		}
-		hline(sf, x0, x0+w-1, y0+r*(h-1)/8, col)
+		hline(sf, x0, x0+w-1, y0+r*(h-1)/sm.DivsV, col)
 	}
+	span := float64(sm.DivsV) * codesPerDiv(f) // the codes the box's height shows
 	yOf := func(v uint8) int {
-		y := y0 + h - 1 - int((float64(v)-28)/200*float64(h-1)+0.5)
+		y := y0 + h - 1 - int((float64(v)-(sample.Mid8-span/2))/span*float64(h-1)+0.5)
 		return min(max(y, y0), y0+h-1)
 	}
 	if f != nil && len(f.Codes8(0)) > 0 && (!f.Flags.Has(sample.Envelope) || len(f.Min8(0)) != 0) {

@@ -135,7 +135,7 @@ func BenchmarkSpectrogramPaneBlit(b *testing.B) {
 		sg.Push(sgSine(4096, 10e6+1e5*float64(r), 2e-9), 0, 0.5/2e-9)
 	}
 	m := NewImage565(m800)
-	p := plotArea{w: W - 70, y0: 40, h: H - 40, top: 48, bot: H - 8}
+	p := plotArea{w: W - 70, y0: 40, h: H - 40, top: 48, bot: H - 8, m: m800, cpd: defaultCodesPerDiv}
 	for b.Loop() {
 		drawSpectrogramMark(m, p, sg, true, nil)
 	}

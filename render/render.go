@@ -195,18 +195,18 @@ type Zone struct {
 // drawGraticule draws the plot's 10 x 8 divisions, centre axes brighter.
 // TRLC-LINKS: REQ-SDS-021
 func drawGraticule(sf Canvas, p plotArea) {
-	for c := range 11 {
+	for c := range p.m.DivsH + 1 {
 		x := p.gridX(c)
 		col := colGrid
-		if c == 5 {
+		if c == p.m.DivsH/2 {
 			col = colAxis
 		}
 		vline(sf, x, p.y0, p.last(), col)
 	}
-	for r := range 9 {
+	for r := range p.m.DivsV + 1 {
 		y := p.gridY(r)
 		col := colGrid
-		if r == 4 {
+		if r == p.m.DivsV/2 {
 			col = colAxis
 		}
 		hline(sf, 0, p.w-1, y, col)
@@ -750,6 +750,16 @@ func drawEnvelope(sf Canvas, p plotArea, mn, mx []uint8, cols int, col Color, zo
 	fillSpans(sf, top[:w], bot[:w], cc[:w])
 }
 
+// codesPerDiv is frame f's codes a division on the 8-bit view: its first
+// trace's, or an 8-bit converter's when it states none.
+// TRLC-LINKS: REQ-SDS-021
+func codesPerDiv(f *sample.Frame) float64 {
+	if f != nil && len(f.Traces) > 0 && f.Traces[0].CodesPerDiv > 0 {
+		return f.Traces[0].CodesPerDiv8()
+	}
+	return defaultCodesPerDiv
+}
+
 // frameValid clamps a frame's valid-sample count into range (shared by the
 // alternate-view renderers below).
 // TRLC-LINKS: REQ-SDS-021
@@ -834,6 +844,7 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	sheet := ui.Sheet != nil
 	sm := metricsOf(sf)
 	p := plotOf(sm, ui.Layout)
+	p.cpd = codesPerDiv(f)
 	traces := !sheet && !ui.Layout.HideTraces
 	if traces && decodeStrip(hud) {
 		p = p.aboveStrip()

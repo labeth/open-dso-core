@@ -72,15 +72,15 @@ func mathScale(hud HUD) float64 {
 // mathCodes combines calibrated input voltages, not offset display codes.
 // The math trace has its own zero at screen centre.
 // TRLC-LINKS: REQ-SDS-021
-func mathCodes(c1, c2 []uint8, hud HUD) []uint8 {
-	scale := mathScale(hud) / 25
-	v1 := hud.C1VdivV * float64(max(hud.Zoom1, 1)) / 25 * math.Max(hud.Probe1, 1)
-	v2 := hud.C2VdivV * float64(max(hud.Zoom2, 1)) / 25 * math.Max(hud.Probe2, 1)
+func mathCodes(c1, c2 []uint8, hud HUD, cpd float64) []uint8 {
+	scale := mathScale(hud) / cpd
+	v1 := hud.C1VdivV * float64(max(hud.Zoom1, 1)) / cpd * math.Max(hud.Probe1, 1)
+	v2 := hud.C2VdivV * float64(max(hud.Zoom2, 1)) / cpd * math.Max(hud.Probe2, 1)
 	if v1 <= 0 {
-		v1 = 1.0 / 25
+		v1 = 1 / cpd
 	}
 	if v2 <= 0 {
-		v2 = 1.0 / 25
+		v2 = 1 / cpd
 	}
 	off1, off2 := hud.OffC1V*math.Max(hud.Probe1, 1), hud.OffC2V*math.Max(hud.Probe2, 1)
 	if hud.Cpl1 != 0 {
@@ -93,12 +93,12 @@ func mathCodes(c1, c2 []uint8, hud HUD) []uint8 {
 	// sample loop.
 	var va, vb [256]float64
 	for c := range va {
-		va[c] = (float64(c)-128)*v1 - off1
-		vb[c] = (float64(c)-128)*v2 - off2
+		va[c] = (float64(c)-sample.Mid8)*v1 - off1
+		vb[c] = (float64(c)-sample.Mid8)*v2 - off2
 	}
 	m := make([]uint8, min(len(c1), len(c2)))
 	c1, c2 = c1[:len(m)], c2[:len(m)]
-	put := func(i int, v float64) { m[i] = uint8(math.Round(max(0, min(255, 128+v/scale)))) } // builtins: NaN propagates as in math.Max
+	put := func(i int, v float64) { m[i] = uint8(math.Round(max(0, min(255, sample.Mid8+v/scale)))) } // builtins: NaN propagates as in math.Max
 	switch hud.MathMode {
 	case 1:
 		for i := range m {
@@ -132,7 +132,7 @@ func drawMath(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posF
 	}
 	c1 := coupledDisplay(f.Codes8(0)[:valid], hud.Cpl1)
 	c2 := coupledDisplay(f.Codes8(1)[:valid], hud.Cpl2)
-	m := mathCodes(c1, c2, hud)
+	m := mathCodes(c1, c2, hud, p.cpd)
 	drawTraceID(sf, p, traceID{}, m, win, xc, f.Flags.Has(sample.Interp), colMath, posFrac)
 	unit := "V/div"
 	if hud.MathMode == 4 {
@@ -169,7 +169,7 @@ func drawRefs(sf Canvas, p plotArea, hud HUD) {
 				// its volts at the tip, through the probe it was stored with,
 				// as the live input's through the probe on it now
 				k := max(hud.RefProbe[i][ch], 1) / liveProbe[ch]
-				codes = rescaleRef(r, v*k, hud.RefOff[i][ch]*k, live[ch][0], live[ch][1])
+				codes = rescaleRef(r, v*k, hud.RefOff[i][ch]*k, live[ch][0], live[ch][1], p.cpd)
 			}
 			drawTraceID(sf, p, traceID{}, codes, len(codes), float64(len(codes))/2, false, cols[i], .5, zoom[ch])
 		}
@@ -177,13 +177,13 @@ func drawRefs(sf Canvas, p plotArea, hud HUD) {
 }
 
 // rescaleRef re-expresses codes saved at one analog V/div and offset at
-// another: a code reads (code-128)*vdiv/25 - off volts. Off-range clips.
+// another: a code reads (code-Mid8)*vdiv/cpd - off volts. Off-range clips.
 // TRLC-LINKS: REQ-SDS-021
-func rescaleRef(r []uint8, vdiv, off, toVdiv, toOff float64) []uint8 {
-	k, b := vdiv/toVdiv, (toOff-off)*25/toVdiv
+func rescaleRef(r []uint8, vdiv, off, toVdiv, toOff, cpd float64) []uint8 {
+	k, b := vdiv/toVdiv, (toOff-off)*cpd/toVdiv
 	out := make([]uint8, len(r))
 	for x, v := range r {
-		out[x] = uint8(math.Round(math.Max(0, math.Min(255, 128+(float64(v)-128)*k+b))))
+		out[x] = uint8(math.Round(math.Max(0, math.Min(255, sample.Mid8+(float64(v)-sample.Mid8)*k+b))))
 	}
 	return out
 }

@@ -148,7 +148,7 @@ func BenchmarkMathCodes(b *testing.B) {
 	for b.Loop() {
 		for mode := 1; mode <= 4; mode++ {
 			h.MathMode = mode
-			render.MathCodes(c1, c2, h)
+			render.MathCodes(c1, c2, h, 25)
 		}
 	}
 }

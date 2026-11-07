@@ -108,7 +108,7 @@ func chanMeasure(f *sample.Frame, hud HUD, ch int) *measure.Result {
 		sig = dsp.CoupleDisplay(sig, cpl)
 		off = 0
 	}
-	vpc := vdiv * float64(zoomOf(hud, ch)) / 25 * probe
+	vpc := vdiv * float64(zoomOf(hud, ch)) / codesPerDiv(f) * probe
 	q := frameQ(f, ch)
 	if a, b := measure.Range(f); b-a < len(sig) { // a roll view's captured stretch
 		sig = sig[a:b]
@@ -448,7 +448,7 @@ func drawMarkers(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 		}
 	}
 	// Trigger LEVEL: dashed horizontal line + right-edge arrow at the level code.
-	ly := p.sy(128 + hud.TrigLvlDiv*25)
+	ly := p.sy(sample.Mid8 + hud.TrigLvlDiv*p.cpd)
 	if ly >= p.y0+2 && ly < p.m.H {
 		for x := 0; x < p.w; x += 7 {
 			px(x, ly, colTrig)
@@ -469,12 +469,12 @@ func drawMarkers(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 			px(tx+dx, p.y0+dy+2, colTrig)
 		}
 	}
-	// Per-channel GROUND (0 V) arrows on the left edge: code = 128 + offV·25/Vdiv.
+	// Per-channel GROUND (0 V) arrows on the left edge: code = Mid8 + offV·cpd/Vdiv.
 	ground := func(vdiv, offV float64, col Color) {
 		if vdiv <= 0 {
 			return
 		}
-		gy := p.sy(128 + offV*25/vdiv)
+		gy := p.sy(sample.Mid8 + offV*p.cpd/vdiv)
 		for dx := range 7 {
 			for dy := -(6 - dx); dy <= 6-dx; dy++ {
 				px(dx, gy+dy, col)
@@ -654,7 +654,7 @@ func frameQ(f *sample.Frame, ch int) []uint16 {
 }
 
 // zoomOf is a channel's display zoom: codes sit on the analog range, a
-// zoomed detent's volts per code is VdivV·zoom/25.
+// zoomed detent's volts per code is VdivV·zoom over its codes a division.
 // TRLC-LINKS: REQ-SDS-021
 func zoomOf(hud HUD, ch int) int {
 	z := hud.Zoom1

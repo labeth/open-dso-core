@@ -29,7 +29,13 @@ type Metrics struct {
 	StatusSlotX int
 	// SaverW and SaverH are the screen saver's mini scope.
 	SaverW, SaverH int
+	// DivsH and DivsV are the graticule's divisions across and down.
+	DivsH, DivsV int
 }
+
+// defaultCodesPerDiv is the codes a division on the 8-bit view of a trace
+// that does not state its own: an 8-bit converter's 25 (the SDS1000CML+'s).
+const defaultCodesPerDiv = 25
 
 // MaxW is the widest screen the renderer draws: its per-column scratch
 // arrays hold this many columns.
@@ -46,6 +52,7 @@ var Metrics800x480 = Metrics{
 	ChanLabelDX:  92, ReadoutDX: 406,
 	StatusSlotX: 664,
 	SaverW:      240, SaverH: 144,
+	DivsH: 10, DivsV: 8,
 }
 
 // metricsOf is the table canvas sf draws with.
