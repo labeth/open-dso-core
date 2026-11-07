@@ -5,7 +5,6 @@ package engine
 import (
 	"time"
 
-	"github.com/labeth/open-dso-core/measure"
 	"github.com/labeth/open-dso-core/sample"
 )
 
@@ -106,27 +105,6 @@ func NearestEdgeBucket(pairs []uint8, trig int) (int, bool) {
 		}
 	}
 	return -1, false
-}
-
-// EdgeWindows is channel ch's samples of frame f's edge windows, for
-// measure.Result.WithEdgeDetail; none on a frame without them. The codes are
-// the calibrated ones rounded: the Q8.8 values would cost each measurement a
-// 65536-bin histogram (512 KB), on every LCD repaint - half the frame rate.
-// TRLC-LINKS: REQ-SDS-021
-func EdgeWindows(f *sample.Frame, ch int) []measure.EdgeWindow {
-	var out []measure.EdgeWindow // nil without windows
-	for _, r := range [2]sample.Role{sample.Edge, sample.EdgeOpp} {
-		d := f.Detail(r)
-		if d == nil {
-			continue
-		}
-		if out == nil {
-			out = make([]measure.EdgeWindow, 0, 2) // both, one allocation
-		}
-		w := d.Frame
-		out = append(out, measure.EdgeWindow{Sig: w.Codes8(ch), SampleS: w.SampleS, Shape: w.Content == sample.RawFullRate})
-	}
-	return out
 }
 
 // EdgeRead numbers the read frame f's edge windows come from (0: none):

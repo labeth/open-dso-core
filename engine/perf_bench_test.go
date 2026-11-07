@@ -190,18 +190,6 @@ func BenchmarkBuildMask(b *testing.B) {
 	}
 }
 
-// TRLC-LINKS: REQ-SDS-021
-func BenchmarkEdgeWindows(b *testing.B) {
-	w := func() *sample.Frame {
-		return &sample.Frame{SampleS: 2e-9, Traces: []sample.Trace{{Codes8: make([]uint8, 1024)}, {Ch: 1, Codes8: make([]uint8, 1024)}}}
-	}
-	f := &sample.Frame{Details: []sample.Detail{{Role: sample.Edge, Frame: w()}, {Role: sample.EdgeOpp, Frame: w()}}}
-	for b.Loop() {
-		EdgeWindows(f, 0)
-		EdgeWindows(f, 1)
-	}
-}
-
 // TRLC-LINKS: REQ-SDS-013, REQ-SDS-229
 func BenchmarkClockRate(b *testing.B) {
 	codes := make([]uint8, 20000)
