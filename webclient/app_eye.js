@@ -16,20 +16,20 @@ function ejStop(why) {
 
 // TRLC-LINKS: REQ-SDS-067
 function ejIngest(f) {
-  const ch = +$("ejCh").value === 2 ? 2 : 1;
+  const ch = chanNums().includes(+$("ejCh").value) ? +$("ejCh").value : 1;
   if (ej.ch && ch !== ej.ch) { ejStop("channel changed — re-ARM to analyze the other channel"); return; }
   ej.ch = ch;
-  const raw = ch === 2 ? f.c2 : f.c1;
+  const raw = chanArr(f, ch);
   if (!raw || !f.full_rate) return; // only full-rate raw records fold (ejLoop holds the eye meanwhile)
   // the codes as the scope draws them (inverted, magnified at 2 and 5 mV/div),
   // as the LCD's eye folds them; a change of either starts the eye over
-  const z = (st && (ch === 2 ? st.zoom2 : st.zoom1)) || 1, inv = !!(st && (ch === 2 ? st.inv2 : st.inv1));
+  const z = (st && st["zoom" + ch]) || 1, inv = !!(st && st["inv" + ch]);
   if (ej.disp !== undefined && ej.disp !== z + "/" + inv) ej.st = ejNew({ eyeW: EJ_EYE_W, eyeH: EJ_EYE_H });
   ej.disp = z + "/" + inv;
   const sig = ejDisplayCodes(raw, z, inv);
   if (!(f.sample_s > 0)) return; // no timebase → zero-second TIE would be fabricated
-  const vpc = (ch === 2 ? f.vpc2 : f.vpc1) || (1 / 25);
-  ej.vpcReal = !!(ch === 2 ? f.vpc2 : f.vpc1); // mV readouts only with a real calibration
+  const vpc = chanVpc(f, ch);
+  ej.vpcReal = !!f["vpc" + ch]; // mV readouts only with a real calibration
   // a V/div change rescales the codes mid-accumulation — the eye/levels would
   // mix scales; stop honestly (same policy as superres)
   if (ej.vpc0 && Math.abs(vpc - ej.vpc0) > 0.02 * ej.vpc0) {
@@ -96,7 +96,7 @@ function ejRender(force) {
 // the eye's background, dim to full (lcd eyeShades).
 // TRLC-LINKS: REQ-SDS-215
 function ejShades(ch) {
-  const hex = (ch === 2 ? C2COL : C1COL) || "#f5d90a", bg = [5, 8, 12];
+  const hex = chanColor(ch) || "#f5d90a", bg = [5, 8, 12];
   const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   return [0.3, 0.52, 0.76, 1].map((f) => bg.map((b, i) => Math.round(b + (c[i] - b) * f)));
 }
@@ -546,9 +546,7 @@ $("ejReset").onclick = () => { ej.st = ejNew({ eyeW: EJ_EYE_W, eyeH: EJ_EYE_H })
 async function ejLoop(gen) {
   if (!ej.armed || gen !== ej.gen) return;
   try {
-    const r = await fetch("/api/frame.bin?since=" + ej.lastSeq + "&waitms=1000&raw=1&lease=raw");
-    if (!r.ok) throw new Error("http " + r.status);
-    const f = decodeBinFrame(await r.arrayBuffer());
+    const f = await rawFrame("since=" + ej.lastSeq + "&waitms=1000&raw=1&lease=raw");
     if (f === null) throw new Error("decode");
     if (!ej.armed || gen !== ej.gen) return; // stop clicked mid-flight
     ej.fails = 0;

@@ -129,9 +129,9 @@ function precisionWindow(sig, a, b, dt, maxN) {
 // TRLC-LINKS: REQ-SDS-205
 async function precisionSampledFrame() {
   for (let i = 0; i < 4; i++) {
-    const r = await fetch("/api/frame.bin?since=" + (frame ? frame.seq : 0) + "&waitms=1500&raw=1&lease=raw");
-    if (!r.ok) return null;
-    const f = decodeBinFrame(await r.arrayBuffer());
+    let f;
+    // a reply refused is no capture; a failed transfer says why
+    try { f = await rawFrame("since=" + (frame ? frame.seq : 0) + "&waitms=1500&raw=1&lease=raw"); } catch (e) { if (/^http \d+$/.test(e.message)) return null; throw e; }
     if (f && !f.unchanged && f.c1 && f.c1.length >= 64 && !f.peak_detect && !f.is_env && f.sample_s > 0) return f;
     if (!(st && st.running)) return null;
   }
@@ -154,10 +154,10 @@ if(typeof document!=="undefined") {
         if(!src)throw new Error("Fit requires sampled data; min/max envelopes cannot be fitted and no capture of samples came. Run, or a faster time/div (a stopped record redraws from memory), or the Precision acquisition.");
       }
       const ch=+document.getElementById("precisionChannel").value, model=document.getElementById("precisionModel").value;
-      const sig=ch?src.c2:src.c1, m=ch?frame.m2:frame.m1;
+      const sig=src["c"+(ch+1)], m=frame["m"+(ch+1)];
       const w=precisionWindow(sig,view.win.a,view.win.b,src.sample_s||src.col_span_s/src.cols,4096), y=w.y, dt=w.dt;
       const fit=model==="periodic"?precisionPeriodicFit(y,dt,m&&m.freq):precisionFitSignal(y,dt,m&&m.freq,model);
-      const vpc=ch?frame.vpc2:frame.vpc1;
+      const vpc=frame["vpc"+(ch+1)];
       if(!(vpc>0))throw new Error("Capture calibration unavailable.");
       const rms=fit.rms*vpc, vpp=2*Math.abs(fit.amplitude)*vpc;
       out.textContent=model+" fit, CH"+(ch+1)+", capture "+src.seq+": "+eng(fit.hz,"Hz")+", "+eng(vpp,"V")+" pp; residual RMS "+eng(rms,"V")+
