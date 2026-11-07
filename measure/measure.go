@@ -403,6 +403,13 @@ func ComputeAcquisition(raw []uint8, q []uint16, voltsPerCode, offV, sampleS flo
 
 // TRLC-LINKS: REQ-SDS-017
 func compute[T ~uint8 | ~uint16](sig []T, voltsPerCode, offV, sampleS, scale float64) *Result {
+	return computeMin(sig, voltsPerCode, offV, sampleS, scale, minAmplCodes)
+}
+
+// computeMin is compute with timing resolvable from a top-base span of
+// minAmpl 8-bit codes.
+// TRLC-LINKS: REQ-SDS-017
+func computeMin[T ~uint8 | ~uint16](sig []T, voltsPerCode, offV, sampleS, scale, minAmpl float64) *Result {
 	n := len(sig)
 	if n == 0 {
 		return nil
@@ -516,7 +523,7 @@ func compute[T ~uint8 | ~uint16](sig []T, voltsPerCode, offV, sampleS, scale flo
 	}
 
 	// Timing needs a resolvable two-level edge.
-	if float64(topCode-baseCode) < minAmplCodes*scale || sampleS <= 0 {
+	if float64(topCode-baseCode) < minAmpl*scale || sampleS <= 0 {
 		return r
 	}
 	base, top := float64(baseCode), float64(topCode)

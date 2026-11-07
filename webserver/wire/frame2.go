@@ -232,12 +232,10 @@ func (f *Frame) FromSample(src *sample.Frame) {
 	h.Interp = src.Flags&sample.Interp != 0
 	h.Filter, h.FilterGuard = src.Cond.Filter, src.Cond.Guard
 	h.BandwidthHz, h.PassbandHz, h.NoiseGainIdeal = src.Cond.BandwidthHz, src.Cond.PassbandHz, src.Cond.NoiseGain
-	h.StreamSeq, h.WindowNs, h.GapNs = 0, 0, 0
-	if src.Stream != nil {
-		h.StreamSeq = src.Stream.Seq
-		h.WindowNs = int64(src.Stream.WindowS * 1e9)
-		h.GapNs = int64(src.Stream.GapS * 1e9)
-	}
+	// A frame outside a decoded stream carries the zero StreamPos.
+	h.StreamSeq = src.Stream.Seq
+	h.WindowNs = int64(src.Stream.WindowS * 1e9)
+	h.GapNs = int64(src.Stream.GapS * 1e9)
 	h.MatchEndS = nil
 	if src.Match != nil {
 		end := src.Match.EndS
