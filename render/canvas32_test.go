@@ -49,3 +49,26 @@ func scene(name string) rendertest.Scene {
 	}
 	panic("no scene " + name)
 }
+
+// Every scene paints every pixel at every screen's metrics: a scene that
+// starts on a colour no frame uses leaves none of it.
+// TRLC-LINKS: REQ-SDS-021
+func TestScenesPaintEveryScreen(t *testing.T) {
+	fill := render.RGB(255, 0, 255)
+	for _, m := range []*render.Metrics{&render.Metrics800x480, &render.Metrics1024x600, &render.Metrics1280x800} {
+		for _, s := range append(rendertest.Scenes(), rendertest.FourChanScenes()...) {
+			if !s.Prefill {
+				continue
+			}
+			sf := render.NewImage32(m, hal.XRGB8888)
+			s.Draw(sf)
+			for y := range m.H {
+				for x := range m.W {
+					if sf.At(x, y) == fill {
+						t.Fatalf("%dx%d %s: pixel (%d,%d) not painted", m.W, m.H, s.Name, x, y)
+					}
+				}
+			}
+		}
+	}
+}

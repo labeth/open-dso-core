@@ -4,10 +4,12 @@ package render_test
 
 import (
 	"flag"
+	"image"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/render"
 	"github.com/labeth/open-dso-core/render/rendertest"
 )
@@ -45,17 +47,75 @@ func TestGolden(t *testing.T) {
 	}
 }
 
-// goldenCheck compares one render with its golden, as the flags say.
+// The same scenes on a 1024×600 XRGB8888 screen: the right column, the
+// strips and the readouts follow the screen, the font and the panes keep
+// their size.
+// TRLC-LINKS: REQ-SDS-021, REQ-SDS-211
+func TestGolden1024x600(t *testing.T) {
+	for _, s := range rendertest.Scenes() {
+		t.Run(s.Name, func(t *testing.T) {
+			sf := render.NewImage32(&render.Metrics1024x600, hal.XRGB8888)
+			s.Draw(sf)
+			goldenCheck(t, "1024x600/"+s.Name, render.EncodePNG(sf))
+		})
+	}
+}
+
+// Four channels of 12-bit codes on a 1024×600 ARGB8888 screen: drawn by
+// the CPU, and as the UI over a hardware waveform renderer whose 1000×480
+// plane shows through a transparent area (ADR-HAL-UI-OVER-HW-RENDERER).
+// TRLC-LINKS: REQ-SDS-021
+func TestGolden4Ch12Bit(t *testing.T) {
+	for _, s := range rendertest.FourChanScenes() {
+		t.Run(s.Name, func(t *testing.T) {
+			sf := render.NewImage32(&render.Metrics1024x600, hal.ARGB8888)
+			s.Draw(sf)
+			goldenCheck(t, "1024x600argb/"+s.Name, render.EncodePNG(sf))
+		})
+		t.Run(s.Name+"_over_hw", func(t *testing.T) {
+			sf := render.NewImage32(&render.Metrics1024x600, hal.ARGB8888)
+			sf.SetUnder(hwPlane)
+			s.Draw(sf)
+			clear := 0 // the UI drawn over the plane (markers, readouts, the rail) may cover some of it
+			for y := hwPlane.Min.Y; y < hwPlane.Max.Y; y++ {
+				for x := hwPlane.Min.X; x < hwPlane.Max.X; x++ {
+					if sf.At(x, y) == render.Transparent {
+						clear++
+					}
+				}
+			}
+			if area := hwPlane.Dx() * hwPlane.Dy(); clear < area*3/4 {
+				t.Fatalf("%d of the waveform plane's %d pixels transparent", clear, area)
+			}
+			if sf.At(0, 0) == render.Transparent || sf.At(hwPlane.Max.X, hwPlane.Max.Y) == render.Transparent {
+				t.Fatal("the UI outside the plane is transparent")
+			}
+			goldenCheck(t, "1024x600argb/"+s.Name+"_over_hw", render.EncodePNG(sf))
+		})
+	}
+}
+
+// hwPlane is a 1000×480 waveform plane under a 1024×600 screen, as the
+// SDS800X HD's PL composes it under fb0.
+var hwPlane = image.Rect(12, 60, 1012, 540)
+
+// goldenCheck compares one render with its golden, as the flags say; name
+// may hold a subdirectory.
 func goldenCheck(t *testing.T, name string, got []byte) {
 	t.Helper()
 	if *goldenSave != "" {
-		if err := os.WriteFile(filepath.Join(*goldenSave, name+".png"), got, 0o644); err != nil { //nolint:gosec // a test artefact
+		path := filepath.Join(*goldenSave, name+".png")
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, got, 0o644); err != nil { //nolint:gosec // a test artefact
 			t.Fatal(err)
 		}
 	}
+	dir, base := filepath.Split(name)
 	if *goldenExact != "" {
-		rendertest.Check(t, *goldenExact, name, got, 0, false)
+		rendertest.Check(t, filepath.Join(*goldenExact, dir), base, got, 0, false)
 		return
 	}
-	rendertest.Check(t, filepath.Join("testdata", "golden"), name, got, rendertest.MaxDiffPixels, *updateGolden)
+	rendertest.Check(t, filepath.Join("testdata", "golden", dir), base, got, rendertest.MaxDiffPixels, *updateGolden)
 }

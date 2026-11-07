@@ -68,6 +68,22 @@ type Layer interface {
 	BlitBright(src Canvas) // src's bright pixels onto this canvas
 }
 
+// Overlay is a canvas drawn over a hardware waveform renderer's plane: the
+// renderer leaves Under transparent and draws no traces there.
+type Overlay interface {
+	Canvas
+	Under() image.Rectangle
+}
+
+// underOf is the area canvas sf leaves to a hardware plane (empty for none).
+// TRLC-LINKS: REQ-SDS-021
+func underOf(sf Canvas) image.Rectangle {
+	if o, ok := sf.(Overlay); ok {
+		return o.Under()
+	}
+	return image.Rectangle{}
+}
+
 // Image565 is an in-memory RGB565 canvas: a display's back buffer (exactly
 // one page) and the test canvas.
 // TRLC-LINKS: REQ-SDS-021
@@ -172,7 +188,8 @@ type Image32 struct {
 	pix    []uint32
 	m      *Metrics
 	format hal.PixelFormat
-	opaque uint32 // or-ed into every pixel: the alpha byte on XRGB8888
+	opaque uint32          // or-ed into every pixel: the alpha byte on XRGB8888
+	under  image.Rectangle // a hardware renderer's plane shows here (SetUnder)
 }
 
 // NewImage32 returns a blank 32-bit page of screen m's size: black on
@@ -190,6 +207,21 @@ func NewImage32(m *Metrics, format hal.PixelFormat) *Image32 {
 
 // Format is XRGB8888 or ARGB8888.
 func (m *Image32) Format() hal.PixelFormat { return m.format }
+
+// SetUnder makes an ARGB8888 canvas an overlay over a hardware waveform
+// renderer whose plane shows through area r (hal Renderer.Area): the
+// renderer leaves r transparent and draws no traces
+// (ADR-HAL-UI-OVER-HW-RENDERER). An empty r, or another format, draws the
+// whole picture.
+// TRLC-LINKS: REQ-SDS-021
+func (m *Image32) SetUnder(r image.Rectangle) {
+	if m.format == hal.ARGB8888 {
+		m.under = r
+	}
+}
+
+// Under is the area SetUnder gave.
+func (m *Image32) Under() image.Rectangle { return m.under }
 
 // Metrics is the canvas's screen.
 func (m *Image32) Metrics() *Metrics { return m.m }

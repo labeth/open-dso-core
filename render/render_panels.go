@@ -334,6 +334,15 @@ func drawCursors(sf Canvas, p plotArea, hud HUD) {
 	}
 	w := len(label)*6 + 6
 	x := p.w/2 - w/2 // top-centre, clear of the MEAS boxes (left) and the right column
+	if hud.ShowMeas && !hud.UI.Layout.HideMeas {
+		boxes := 0
+		for ch := range hud.numChans() {
+			if hud.shown(ch) {
+				boxes++
+			}
+		}
+		x = max(x, 4+boxes*116+4) // more boxes than the left half holds
+	}
 	fillRect(sf, x, p.y0+22, w, 12, colBoxBg)
 	DrawText(sf, x+3, p.y0+24, label, colTrig, 1)
 }

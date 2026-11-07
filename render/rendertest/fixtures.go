@@ -948,3 +948,96 @@ func DefaultHUD() render.HUD {
 		Ch: [render.MaxChans]render.Channel{{VdivV: 1}, {VdivV: 1}}, TdivS: 500e-6, TrigRising: true,
 		Running: true, SampleS: 800e-9, NumChans: 2}
 }
+
+// Format12 is a 12-bit converter's codes left-aligned in 16-bit words (the
+// SDS800X HD's), and CodesPerDiv12 its words a division: 30 codes a
+// division on the 8-bit view.
+var Format12 = sample.CodeFormat{Bits: 12, Storage: sample.U16, Shift: 4, Min: 0, Max: 0xfff0, Mid: 0x8000}
+
+// CodesPerDiv12 is Format12's words a division.
+const CodesPerDiv12 = 30 * 256
+
+// Frame12 builds a frame of len(gens) channels of 12-bit codes from
+// per-sample generators in divisions from the centre line, windowed across
+// the whole record and centred on its middle.
+// TRLC-LINKS: REQ-SDS-021
+func Frame12(n int, gens ...func(i int) float64) *sample.Frame {
+	f := &sample.Frame{
+		WinPoints: n,
+		TriggerAt: float64(n) / 2,
+		SourcePtp: 144,
+		SampleS:   800e-9,
+		Snapshot:  sample.Settings{TdivS: 500e-6},
+		Status:    sample.Status{Triggered: true},
+	}
+	for ch, g := range gens {
+		w := make([]uint16, n)
+		for i := range w {
+			v := 0x8000 + g(i)*CodesPerDiv12
+			w[i] = uint16(math.Min(math.Max(math.Round(v/16)*16, 0), 0xfff0))
+		}
+		f.Traces = append(f.Traces, sample.Trace{Ch: ch, Format: Format12, Codes16: w, Valid: n, CodesPerDiv: CodesPerDiv12})
+	}
+	return f
+}
+
+// FourChanFrame is four 12-bit channels: a square, a sine, a ramp and a
+// small fast burst, each about its own level.
+// TRLC-LINKS: REQ-SDS-021
+func FourChanFrame() *sample.Frame {
+	const n = 2048
+	return Frame12(n,
+		func(i int) float64 { // C1: 512-sample square, rising edge at 1024
+			if (i/256)%2 == 0 {
+				return 2.5
+			}
+			return 0.5
+		},
+		func(i int) float64 { return 1.2 * math.Sin(2*math.Pi*float64(i-n/2)/512) },
+		func(i int) float64 { return -1 + 1.5*float64(i%400)/400 },
+		func(i int) float64 {
+			return -3 + 0.6*math.Sin(2*math.Pi*float64(i)/37)*math.Exp(-math.Abs(float64(i-n/2))/300)
+		})
+}
+
+// FourChanHUD shows the four channels at their own scales and offsets.
+// TRLC-LINKS: REQ-SDS-021
+func FourChanHUD() render.HUD {
+	h := DefaultHUD()
+	h.NumChans = 4
+	for ch, c := range []render.Channel{
+		{VdivV: 1, OffV: -1.5, Probe: 10},
+		{VdivV: 0.5},
+		{VdivV: 0.2, OffV: 0.2, Cpl: 1},
+		{VdivV: 0.05, OffV: 0.15, Probe: 1},
+	} {
+		c.Show = true
+		h.Ch[ch] = c
+	}
+	h.ChanExplicit = true
+	h.TrigLvlDiv, h.TrigLvlV = 1.5, 0.5
+	h.TrigPosFrac = 0.5
+	h.Trigd = true
+	h.URL = "http://192.168.1.42:8080"
+	return h
+}
+
+// FourChanScenes are pictures only a four-channel 12-bit scope shows: the
+// Y-T screen, its MEASURE boxes and volt cursors, and SCOPE's rail.
+// TRLC-LINKS: REQ-SDS-021
+func FourChanScenes() []Scene {
+	yt := FourChanHUD()
+	meas := FourChanHUD()
+	meas.ShowMeas = true
+	meas.CurOn, meas.CurType, meas.CurY = true, 1, [2]float64{0.3, 0.6}
+	rail := UIHUD(wsview.View{
+		WS: wsview.Scope, Layout: PaneLayout(0), Rail: true,
+		Scope: &wsview.ScopePane{AdjustTag: "Adjust: Level 500mV", Hot: true},
+	})
+	rail.Ch, rail.NumChans, rail.ChanExplicit = yt.Ch, 4, true
+	return []Scene{
+		{Name: "yt_4ch_12bit", Frame: FourChanFrame(), HUD: yt},
+		{Name: "measure_4ch_12bit", Frame: FourChanFrame(), HUD: meas},
+		{Name: "ws_scope_4ch", Frame: FourChanFrame(), HUD: rail, Prefill: true},
+	}
+}

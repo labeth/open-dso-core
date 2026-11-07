@@ -861,7 +861,15 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	if traces && decodeStrip(hud) {
 		p = p.aboveStrip()
 	}
-	if traces {
+	// Over a hardware waveform renderer the plane under the canvas shows the
+	// graticule and the waveforms: its area stays transparent under the
+	// markers, readouts and UI drawn over it.
+	under := underOf(sf)
+	hw := !under.Empty()
+	if hw {
+		fillRect(sf, under.Min.X, under.Min.Y, under.Dx(), under.Dy(), Transparent)
+	}
+	if traces && !hw {
 		drawGraticule(sf, p)
 	}
 	// Running, a frame captured at another timebase is not this view: drawn
@@ -885,13 +893,13 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	if len(persist) > 0 {
 		pb = persist[0]
 	}
-	persisting := traces && pb != nil && hud.Persist && hud.ViewMode == 0 && f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0
+	persisting := traces && !hw && pb != nil && hud.Persist && hud.ViewMode == 0 && f != nil && !f.Flags.Has(sample.Envelope) && len(f.Codes8(0)) > 0
 	traceTarget := sf
 	if persisting {
 		pb.FadeToBlack()
 		traceTarget = pb
 	}
-	if traces {
+	if traces && !hw {
 		drawViews(sf, traceTarget, p, f, hud)
 	}
 	if persisting { // composite the decayed trace layer over the graticule

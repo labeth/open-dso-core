@@ -55,6 +55,35 @@ var Metrics800x480 = Metrics{
 	DivsH: 10, DivsV: 8,
 }
 
+// Metrics1024x600 is a 1024×600 panel (the SDS800X HD): the F-key rows
+// spread over the taller screen, the strips and readouts anchored as on the
+// 800×480 panel, the four channels' readouts across the width.
+var Metrics1024x600 = Metrics{
+	W: 1024, H: 600,
+	TraceTop: 8, TraceBot: 596,
+	MinPlotW: 256, MaxPlotTop: 375,
+	DecodeStripH: 38,
+	SoftkeyY:     [5]int{100, 200, 300, 400, 512},
+	ChanLabelDX:  92, ReadoutDX: 255,
+	StatusSlotX: 888,
+	SaverW:      300, SaverH: 180,
+	DivsH: 10, DivsV: 8,
+}
+
+// Metrics1280x800 is a 1280×800 panel (the DHO1000 series): laid out as the
+// 1024×600 one.
+var Metrics1280x800 = Metrics{
+	W: 1280, H: 800,
+	TraceTop: 8, TraceBot: 796,
+	MinPlotW: 320, MaxPlotTop: 500,
+	DecodeStripH: 38,
+	SoftkeyY:     [5]int{133, 266, 400, 533, 683},
+	ChanLabelDX:  92, ReadoutDX: 319,
+	StatusSlotX: 1144,
+	SaverW:      384, SaverH: 230,
+	DivsH: 10, DivsV: 8,
+}
+
 // metricsOf is the table canvas sf draws with.
 // TRLC-LINKS: REQ-SDS-021
 func metricsOf(sf Canvas) *Metrics { return sf.Metrics() }

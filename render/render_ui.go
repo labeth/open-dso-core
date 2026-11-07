@@ -273,6 +273,8 @@ func drawScopeChrome(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	y := p.m.H - 9
 	if hud.DecProto != 0 { // above the decode strip's label
 		y = p.m.H - 47
+	} else if hud.numChans() > 2 { // the channels' readouts fill the bottom row
+		y -= 12
 	}
 	fillRect(sf, 158, y-2, TextWidth(sp.AdjustTag, 1)+4, 11, colBG)
 	DrawText(sf, 160, y, sp.AdjustTag, col, 1)
