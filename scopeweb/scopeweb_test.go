@@ -59,7 +59,7 @@ func newRig(t *testing.T, cfg halfake.Config) *rig {
 		<-done
 	})
 	r := &rig{b: b, m: m, fo: fo}
-	r.web = scopeweb.New(scopeweb.Config{Board: b, Instrument: m, Frames: fo, Version: "test", Caps: true})
+	r.web = scopeweb.New(scopeweb.Config{Board: b, Instrument: m, Frames: fo, Version: "test"}).WithCaps()
 	if fo.WaitNext(0, 2*time.Second) == 0 {
 		t.Fatal("no frame published")
 	}

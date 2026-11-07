@@ -14,6 +14,9 @@ import (
 
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/hal/halfake"
+	"github.com/labeth/open-dso-core/measure"
+	"github.com/labeth/open-dso-core/sample"
+	"github.com/labeth/open-dso-core/scopeweb"
 	"github.com/labeth/open-dso-core/webserver"
 	"github.com/labeth/open-dso-core/webserver/wire"
 )
@@ -280,5 +283,47 @@ func TestSetups(t *testing.T) {
 	}
 	if out := r.json(t, http.MethodPost, "/api/setup", `{"op":"recall","slot":4}`); out["ok"] != false {
 		t.Fatalf("an empty slot: %v", out)
+	}
+}
+
+// BuildReply measures once per frame, coupling and scale and reuses the
+// result on repeat calls; a scale change measures afresh at once, a new
+// frame within 100 ms only while running free.
+// TRLC-LINKS: REQ-DSO-164
+func TestMeasCacheReuse(t *testing.T) {
+	c1, c2 := make([]uint8, 512), make([]uint8, 512)
+	for i := range c1 {
+		if i%100 < 50 {
+			c1[i], c2[i] = 60, 70
+		} else {
+			c1[i], c2[i] = 200, 210
+		}
+	}
+	f := &sample.Frame{Seq: 21, WinPoints: 512, TriggerAt: 256, SampleS: 1e-6, Traces: []sample.Trace{{Codes8: c1, Valid: 512}, {Ch: 1, Codes8: c2, Valid: 512}}}
+	s := scopeweb.New(scopeweb.Config{Frames: scopeweb.NewFanout()})
+	reply := func(vpc0 float64, free bool) *measure.Result {
+		return s.BuildReply(f, scopeweb.ReplyQuery{Cols: 512, Vpc: [2]float64{vpc0, 1. / 32}, PosFrac: 0.5, MeasThrottle: free}).M1
+	}
+	r1, r2 := reply(1./32, true), reply(1./32, true)
+	if r1 == nil || r1 != r2 {
+		t.Fatalf("cache miss on identical inputs: %p vs %p", r1, r2)
+	}
+	r3 := reply(1./16, true)
+	if r3 == r1 {
+		t.Fatal("a scale change did not measure afresh")
+	}
+	f.Seq = 22
+	if r4 := reply(1./16, true); r4 != r3 {
+		t.Fatal("a new frame within the throttle window should reuse the measurements")
+	}
+	f.Seq = 23
+	r5 := reply(1./16, false)
+	if r5 == r3 {
+		t.Fatal("a new frame without the throttle did not measure afresh")
+	}
+	f.Seq = 24
+	s.ExpireMeasurements()
+	if r6 := reply(1./16, true); r6 == r5 {
+		t.Fatal("an expired throttle window did not measure afresh")
 	}
 }

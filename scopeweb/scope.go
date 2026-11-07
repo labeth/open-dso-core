@@ -41,9 +41,6 @@ type Config struct {
 	Frames FrameSource
 	// Version is the firmware's version as the page shows it.
 	Version string
-	// Caps serves /api/caps (and api and caps_gen in the status, which
-	// the page then reads its lists from).
-	Caps bool
 	// Probes are the probe factors a channel offers (default 1, 10, 100),
 	// BWLimits the bandwidth limits by name (default "full"): the HAL
 	// front end takes any value and refuses at commit, so the lists the
@@ -112,21 +109,30 @@ type Scope struct {
 
 var _ webserver.Scope = (*Scope)(nil)
 
-// New is the web scope over cfg. With cfg.Caps it also serves the
-// capabilities document (webserver.CapsSource).
+// New is the web scope over cfg. It serves no capabilities document: a
+// page then keeps the two-channel 8-bit constants it was written for
+// (WithCaps serves one).
 // TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
-func New(cfg Config) webserver.Scope {
+func New(cfg Config) *Scope {
 	if len(cfg.Probes) == 0 {
 		cfg.Probes = []float64{1, 10, 100}
 	}
 	if len(cfg.BWLimits) == 0 {
 		cfg.BWLimits = []string{"full"}
 	}
-	s := &Scope{cfg: cfg}
-	if cfg.Caps && cfg.Board != nil {
-		return capsScope{s}
+	return &Scope{cfg: cfg}
+}
+
+// WithCaps is the scope serving its capabilities document projected from
+// the board (webserver.CapsSource): the page reads its lists, channels and
+// code format from it, and api and caps_gen lead the status. Without a
+// board it is the scope as it is.
+// TRLC-LINKS: REQ-DSO-164
+func (s *Scope) WithCaps() webserver.Scope {
+	if s.cfg.Board == nil {
+		return s
 	}
-	return s
+	return capsScope{s}
 }
 
 // capsScope is a scope that serves its capabilities.
