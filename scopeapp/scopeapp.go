@@ -273,6 +273,7 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		}
 		ws := webserver.New(sc, o.WebOptions...)
 		env.Web = ws
+		env.display.web.Store(ws)
 		srv = newWebServer(o.Listen, ws.Handler())
 		go func() {
 			logf("web ui listening on %s", o.Listen)
@@ -306,9 +307,7 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		o.OnStop()
 	}
 	if srv != nil {
-		sctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(sctx) // the process is ending; a slow client is cut off
+		_ = srv.Close() // the process is ending: parked long polls are cut off, not waited for
 	}
 	return nil
 }

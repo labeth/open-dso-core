@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"sync/atomic"
 	"time"
 
 	"github.com/labeth/open-dso-core/framecalc"
@@ -16,6 +17,7 @@ import (
 	"github.com/labeth/open-dso-core/streamwire"
 	"github.com/labeth/open-dso-core/uimodel/panel"
 	"github.com/labeth/open-dso-core/uimodel/wsview"
+	"github.com/labeth/open-dso-core/webserver"
 )
 
 // Display is how the scope's own display is drawn: the screen the loop
@@ -100,6 +102,9 @@ type display struct {
 	eng   DisplayEngine
 	spect *render.Spectrogram // the one waterfall every picture of it blits
 	chans int                 // the board's channels (a profile is built per call on some boards)
+	// web is the web server once it is built: whether a page shows the
+	// scope steers the governor.
+	web atomic.Pointer[webserver.Server]
 }
 
 // newDisplay is the display of env with cfg.
@@ -465,7 +470,7 @@ func (d *display) run(stop <-chan struct{}, scr Screen) { //nolint:gocyclo // th
 			// timer)
 			now := time.Now()
 			if dt := now.Sub(govAt); dt >= govEvery {
-				ws := env.Web
+				ws := d.web.Load()
 				page := ws != nil && ws.FrameClient(pageGone)
 				rate := float64(pictures-govPictures) / dt.Seconds()
 				if govAt.IsZero() {
