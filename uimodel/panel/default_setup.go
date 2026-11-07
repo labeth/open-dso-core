@@ -69,7 +69,7 @@ func (c *Controller) DefaultSetup() {
 		}
 	}
 	if c.fe != nil {
-		for ch := range 2 {
+		for ch := range c.nch {
 			c.defaultChannel(ch)
 		}
 		// the level at 0 V (here, not under the invert below: that runs only with
@@ -77,14 +77,15 @@ func (c *Controller) DefaultSetup() {
 		c.lv.ResetTrigLevel()
 	}
 	if c.inverter != nil { // the traces the right way up
-		for ch := range 2 {
+		for ch := range min(c.nch, 2) { // the display invert is C1 and C2's
 			c.inverter.SetInverted(ch, false)
 		}
 	}
 	c.eng.SetRunning(true)
 	c.mu.Lock()
-	c.chDisp = [2]bool{true, true}
+	c.chDisp = [maxChans]bool{true, true, true, true}
 	c.showMeas, c.viewMode, c.mathMode, c.persist = false, 0, 0, false
+	c.mathCh, c.xyCh = [2]int{0, 1}, [2]int{0, 1}
 	c.curOn, c.curType, c.curSel = false, 0, 0
 	c.curPend, c.curVCh = &cursorHome, 0
 	c.zoom, c.zoomOff = 1, 0
@@ -115,6 +116,7 @@ func (c *Controller) DefaultSetup() {
 		c.leaveStream() // RUN again once the stream's end has stopped the scope
 	}
 	c.syncDecodeView(false)
+	c.pushShown()
 	c.pushLEDs()
 }
 

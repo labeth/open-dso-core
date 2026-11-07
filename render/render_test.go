@@ -611,7 +611,7 @@ func TestRefDrawnThroughItsProbe(t *testing.T) {
 	for i := range ref {
 		ref[i] = 228 // 4 V at the tip through the x1 probe it was stored with
 	}
-	hud.RefC1[0], hud.RefShow[0], hud.RefVdiv[0][0], hud.RefProbe[0][0] = ref, true, 1, 1
+	hud.Ref[0][0], hud.RefShow[0], hud.RefVdiv[0][0], hud.RefProbe[0][0] = ref, true, 1, 1
 	m := NewImage565(m800)
 	drawRefs(m, fullPlot, hud)
 	row := func(code float64) int {

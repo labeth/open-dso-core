@@ -3,6 +3,7 @@
 package panel
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -102,7 +103,7 @@ func setupPrint(s *sv) string {
 	n(s.st.AcqMode)
 	n(s.st.AvgCount)
 	n(s.st.EresLen)
-	for ch := range 2 {
+	for ch := range s.nch {
 		f(s.vert[ch].vdiv)
 		f(s.offV[ch])
 		n(s.cpl[ch])
@@ -164,6 +165,11 @@ func (c *Controller) pushLEDs() {
 	s := c.snap()
 	w := c.lampWord(s)
 	on := lampSet(w, s.st.Norm)
+	for ch := 2; ch < s.nch; ch++ { // channels past C2 have no bit in the word: their lamps go by name
+		if s.chDisp[ch] {
+			on = append(on, fmt.Sprintf("ch%d", ch+1))
+		}
+	}
 	key := strings.Join(on, " ")
 	c.mu.Lock()
 	changed := !c.ledSet || key != c.ledLit

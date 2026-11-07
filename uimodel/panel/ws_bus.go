@@ -1837,7 +1837,7 @@ func eyeConfigOf(s *sv, a *anaState) (ch int, bit float64, why string) {
 	case proto == framecalc.ProtoSPI || proto == framecalc.ProtoI2C:
 		ch = chB
 		bit = res.SPB * a.g.sampleS
-		if !s.chDisp[chA&1] {
+		if !s.chDisp[s.chOf(chA)] {
 			return 0, 0, fmt.Sprintf("The clock channel C%d is off", chA+1)
 		}
 	default:
@@ -1846,10 +1846,10 @@ func eyeConfigOf(s *sv, a *anaState) (ch int, bit float64, why string) {
 	if !(bit > 0) {
 		return 0, 0, "No bit period yet"
 	}
-	if !s.chDisp[ch&1] {
+	if !s.chDisp[s.chOf(ch)] {
 		return 0, 0, fmt.Sprintf("The data channel C%d is off", ch+1)
 	}
-	return ch & 1, bit, ""
+	return s.chOf(ch), bit, ""
 }
 
 // eyeWhyText explains a capture the eye could not fold.
@@ -2212,7 +2212,7 @@ func (c *Controller) eyeRawFix(s *sv) string {
 // TRLC-LINKS: REQ-DSO-215
 func displayCodes(f *sample.Frame, s *sv, ch, lo, n, stride int) []float64 {
 	valid := framecalc.Valid(f)
-	if ch == 1 && len(f.Codes8(1)) < valid || n <= 0 {
+	if ch > 0 && len(f.Codes8(ch)) < valid || n <= 0 {
 		return nil
 	}
 	sig := framecalc.Channel(f, ch, valid)
@@ -2220,10 +2220,7 @@ func displayCodes(f *sample.Frame, s *sv, ch, lo, n, stride int) []float64 {
 	if cpl != dsp.CoupleDC {
 		sig = dsp.CoupleDisplay(sig, cpl)
 	}
-	q := f.Precision(0)
-	if ch == 1 {
-		q = f.Precision(1)
-	}
+	q := f.Precision(ch)
 	fine := cpl == dsp.CoupleDC && len(q) >= valid
 	z := float64(max(s.vert[ch].zoom, 1))
 	out := make([]float64, 0, n)
@@ -2247,7 +2244,8 @@ func displayCodes(f *sample.Frame, s *sv, ch, lo, n, stride int) []float64 {
 // dispVoltsPerCode is a channel's volts per displayed code at the tip.
 // TRLC-LINKS: REQ-DSO-215
 func dispVoltsPerCode(s *sv, ch int) float64 {
-	return s.vert[ch&1].vdiv / 25 * s.probe[ch&1]
+	ch = s.chOf(ch)
+	return s.vert[ch].vdiv / s.cpdOf(ch) * s.probe[ch]
 }
 
 // eyeClear is the Adjust push in the eye: start over, folding again from

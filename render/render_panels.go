@@ -563,9 +563,8 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	}
 	// Math legend so the purple trace is identified (and not confused with a ref).
 	if hud.MathMode != 0 && hud.ViewMode == 0 {
-		names := []string{"", "C1+C2", "C1-C2", "C2-C1", "C1xC2"} // ASCII font has no '×'
-		if m := hud.MathMode; m >= 1 && m < len(names) {
-			DrawText(sf, tx+100, 2, "M:"+names[m], colMath, 1)
+		if name := mathName(hud); name != "" {
+			DrawText(sf, tx+100, 2, "M:"+name, colMath, 1)
 		}
 	}
 
@@ -733,6 +732,10 @@ func colorOf(c wsview.Col) Color {
 		return colC1
 	case wsview.C2:
 		return colC2
+	case wsview.C3:
+		return chanColor(2)
+	case wsview.C4:
+		return chanColor(3)
 	case wsview.Math:
 		return colMath
 	case wsview.SR:

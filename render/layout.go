@@ -20,6 +20,7 @@ type plotArea struct {
 	m        *Metrics
 	cpd      float64 // codes a division on the 8-bit view
 	span     float64 // the codes the DivsV divisions span (sy): worked out once, sy runs per column
+	fine     bool    // the frame's traces carry Q8.8 words finer than their codes (fine.go)
 }
 
 // plotOf is the plot area a layout leaves. With no pane the trace keeps the

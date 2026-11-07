@@ -27,6 +27,8 @@ const (
 	tabTrig = iota
 	tabCh1
 	tabCh2
+	tabCh3 // the channel tabs past C2 show on a scope that has the channel
+	tabCh4
 	tabTime
 	tabAcq
 	tabView
@@ -70,7 +72,17 @@ const (
 var (
 	onOff = []opt{{0, "Off"}, {1, "On"}}
 	chans = []opt{{0, "CH1"}, {1, "CH2"}}
+	// allChans are every channel the UI model serves, chanOpts a scope's.
+	allChans = []opt{{0, "CH1"}, {1, "CH2"}, {2, "CH3"}, {3, "CH4"}}
 )
+
+// chanOpts are the scope's channels as a row's choices.
+// TRLC-LINKS: REQ-DSO-212
+func chanOpts(s *sv) []opt { return allChans[:min(max(s.nch, 1), len(allChans))] }
+
+// edgeOpts are the trigger's source and slope choices: each channel's
+// rising and falling edge.
+var edgeOpts = []opt{{0, "C1 Rise"}, {1, "C1 Fall"}, {2, "C2 Rise"}, {3, "C2 Fall"}, {4, "C3 Rise"}, {5, "C3 Fall"}, {6, "C4 Rise"}, {7, "C4 Fall"}}
 
 // staticOpts is an options function for a row whose options never change.
 // TRLC-LINKS: REQ-DSO-212
@@ -133,8 +145,10 @@ const (
 
 var (
 	sheetTabs [numTabs]*tab
-	rowByID   = map[string]*row{}
-	rowTab    = map[string]int{}
+	// rowsByChans[n][ti] are tab ti's rows on a scope of n channels.
+	rowsByChans [maxChans + 1][numTabs][]*row
+	rowByID     = map[string]*row{}
+	rowTab      = map[string]int{}
 )
 
 // init builds the sheet tabs and indexes every row by its id (a duplicate
@@ -145,6 +159,8 @@ func init() {
 		{id: tabIDTrig, name: "TRIG", title: "Trigger", key: "Trig Menu", rows: trigRows()},
 		{id: "ch1", name: "CH1", title: "Channel 1", key: "1", rows: chanRows(0)},
 		{id: "ch2", name: "CH2", title: "Channel 2", key: "2", rows: chanRows(1)},
+		{id: "ch3", name: "CH3", title: "Channel 3", key: "3", rows: chanRows(2)},
+		{id: "ch4", name: "CH4", title: "Channel 4", key: "4", rows: chanRows(3)},
 		{id: tabIDTime, name: "TIME", title: "Horizontal", key: "Hori Menu", rows: timeRows()},
 		{id: "acq", name: "ACQ", title: "Acquire", key: "Acquire", rows: acqRows()},
 		{id: "view", name: "VIEW", title: "Display", key: "Display", rows: viewRows()},
@@ -156,6 +172,15 @@ func init() {
 		{id: "file", name: "FILE", title: "Setups", key: "Save/Recall", rows: fileRows()},
 		{id: "sys", name: "SYS", title: "System and help", key: "Help", rows: sysRows()},
 	}
+	for n := 1; n <= maxChans; n++ {
+		for ti, t := range sheetTabs {
+			for _, r := range t.rows {
+				if r.minChans <= n {
+					rowsByChans[n][ti] = append(rowsByChans[n][ti], r)
+				}
+			}
+		}
+	}
 	for ti, t := range sheetTabs {
 		for _, r := range t.rows {
 			if _, dup := rowByID[r.id]; dup {
@@ -165,6 +190,24 @@ func init() {
 		}
 	}
 }
+
+// tabShown reports whether tab ti is on a scope of nch channels: a channel
+// tab only for a channel it has.
+// TRLC-LINKS: REQ-DSO-212
+func tabShown(ti, nch int) bool {
+	return ti < tabCh1 || ti > tabCh4 || ti-tabCh1 < nch
+}
+
+// rowShown reports whether row id is on a scope of nch channels.
+// TRLC-LINKS: REQ-DSO-212
+func rowShown(id string, nch int) bool {
+	ti, ok := rowTab[id]
+	return ok && tabShown(ti, nch) && rowByID[id].minChans <= nch
+}
+
+// tabRows are tab ti's rows on a scope of nch channels.
+// TRLC-LINKS: REQ-DSO-212
+func tabRows(ti, nch int) []*row { return rowsByChans[min(max(nch, 1), maxChans)][ti] }
 
 // tabIndex finds a tab by id.
 // TRLC-LINKS: REQ-DSO-212
@@ -177,10 +220,10 @@ func tabIndex(id string) int {
 	return -1
 }
 
-// rowIndex is r's index in its tab.
+// rowIndex is r's index in its tab on a scope of nch channels.
 // TRLC-LINKS: REQ-DSO-212
-func rowIndex(id string) int {
-	for i, r := range sheetTabs[rowTab[id]].rows {
+func rowIndex(id string, nch int) int {
+	for i, r := range tabRows(rowTab[id], nch) {
 		if r.id == id {
 			return i
 		}
@@ -280,10 +323,10 @@ func trigRows() []*row {
 		help: "Channel the trigger watches and its edge in one choice. Pulse trigger: Rise = positive pulse.",
 		knob: "The Level knob moves the level; its push = 0 V.",
 		rel:  notSerial, why: "Type other than Serial (Serial uses the BUS lines)",
-		opts: staticOpts([]opt{{0, "C1 Rise"}, {1, "C1 Fall"}, {2, "C2 Rise"}, {3, "C2 Fall"}}),
-		get:  func(s *sv) int { return (s.st.TrigSource&1)*2 + b2ic(!s.st.TrigRising) },
+		opts: func(s *sv) []opt { return edgeOpts[:2*min(max(s.nch, 1), maxChans)] },
+		get:  func(s *sv) int { return s.chOf(s.st.TrigSource)*2 + b2ic(!s.st.TrigRising) },
 		set: func(c *Controller, v int) error {
-			c.eng.SetTrigSource(v / 2)
+			c.eng.SetTrigSource(c.chOf(v / 2))
 			c.eng.SetTrigSlope(v%2 == 0)
 			return nil
 		},
@@ -478,6 +521,9 @@ func chanRows(ch int) []*row {
 		fmtN: siFmt("V"),
 		lim: func(s *sv) (float64, float64) {
 			l := s.ladder[ch]
+			if len(l) == 0 { // a channel the scope does not have
+				return 0, 0
+			}
 			return l[0], l[len(l)-1]
 		},
 		step:   constStep(0),
@@ -878,11 +924,11 @@ func viewRows() []*row {
 		id: "view.fft_source", label: "FFT source", kind: wsview.Enum,
 		help: "The channel the spectrum, the SPECTRUM peak table and the spectrogram analyse.",
 		knob: "The FFT view draws both shown channels; this one on top.",
-		opts: staticOpts(chans),
+		opts: chanOpts,
 		get:  func(s *sv) int { return s.fftSrc },
 		set: func(c *Controller, v int) error {
 			c.mu.Lock()
-			c.fftSrc = v & 1
+			c.fftSrc = c.chOf(v)
 			c.mu.Unlock()
 			return nil
 		},
@@ -936,8 +982,42 @@ func viewRows() []*row {
 			return "on the largest peak"
 		},
 	}
-	return []*row{view, src, persist, bodeRef, bodeDut, bodeClear, marker}
+	xyX := pairRow("view.xy_x", "X-Y across", "The channel X-Y plots across.", func(c *Controller) *[2]int { return &c.xyCh }, func(s *sv) [2]int { return s.xyCh }, 0)
+	xyY := pairRow("view.xy_y", "X-Y up", "The channel X-Y plots up.", func(c *Controller) *[2]int { return &c.xyCh }, func(s *sv) [2]int { return s.xyCh }, 1)
+	return []*row{view, src, xyX, xyY, persist, bodeRef, bodeDut, bodeClear, marker}
 }
+
+// pairRow is role k of a channel pair's row (math's operands, X-Y's axes):
+// a choice between channels, on a scope with more than two (on two the pair
+// is C1 and C2).
+// TRLC-LINKS: REQ-DSO-212
+func pairRow(id, label, help string, pair func(*Controller) *[2]int, get func(*sv) [2]int, k int) *row {
+	r := &row{
+		id: id, label: label, kind: wsview.Enum, help: help + " The other keeps its channel, or takes this one's.",
+		minChans: 3, opts: chanOpts,
+		get: func(s *sv) int { return get(s)[k] },
+		set: func(c *Controller, v int) error { return c.setPairCh(pair(c), k, v) },
+	}
+	r.def = func(c *Controller) error { return r.set(c, k) }
+	return r
+}
+
+// mathOpts are the Math row's choices, named for the channels it combines.
+// TRLC-LINKS: REQ-DSO-212
+func mathOpts(s *sv) []opt {
+	return mathOptsBy[chMod(s.mathCh[0], maxChans)][chMod(s.mathCh[1], maxChans)]
+}
+
+// mathOptsBy are the Math row's choices for each pair of channels, made once.
+var mathOptsBy = func() (o [maxChans][maxChans][]opt) {
+	for i := range o {
+		for j := range o[i] {
+			a, b := fmt.Sprintf("C%d", i+1), fmt.Sprintf("C%d", j+1)
+			o[i][j] = []opt{{0, "Off"}, {1, a + "+" + b}, {2, a + "-" + b}, {3, b + "-" + a}, {4, a + "x" + b}}
+		}
+	}
+	return o
+}()
 
 // bodeChanRow is the Bode reference or DUT channel row: the engine's own
 // setting, which the web's selectors set too, so the Bode view arms the
@@ -964,6 +1044,22 @@ func bodeChanRow(id, label, help string, dut bool) *row {
 // ---- MEAS ----
 
 var measOpts = []opt{{0, "Off"}, {1, "C1"}, {2, "C2"}, {3, "Both"}}
+
+// measOptsN are a measurement's channel choices on a scope with more than
+// two: each channel alone, or all of them (bit n is channel n+1).
+var measOptsN = [maxChans + 1][]opt{
+	3: {{0, "Off"}, {1, "C1"}, {2, "C2"}, {4, "C3"}, {7, "All"}},
+	4: {{0, "Off"}, {1, "C1"}, {2, "C2"}, {4, "C3"}, {8, "C4"}, {15, "All"}},
+}
+
+// measChanOpts are the MEAS rows' choices on this scope.
+// TRLC-LINKS: REQ-DSO-217
+func measChanOpts(s *sv) []opt {
+	if s.nch > 2 && s.nch <= maxChans {
+		return measOptsN[s.nch]
+	}
+	return measOpts
+}
 
 // measRows are the MEAS tab's rows.
 // TRLC-LINKS: REQ-DSO-066
@@ -999,7 +1095,7 @@ func measRows() []*row {
 		r := &row{
 			id: "meas." + p.id, label: p.label, kind: wsview.Enum, meas: i + 1,
 			help: "Show the " + strings.ToLower(p.label) + " of CH1, CH2 or both in the readouts and the MEASURE statistics.",
-			opts: staticOpts(measOpts),
+			opts: measChanOpts,
 			get: func(s *sv) int {
 				v := 0
 				for _, it := range s.meas {
@@ -1185,7 +1281,7 @@ func cmpRows() []*row {
 		id: "cmp.math", label: "Math", kind: wsview.Enum,
 		help: "Show a computed trace from both channels.",
 		knob: "COMPARE workspace: the MATH row, Adjust push = next.",
-		opts: staticOpts([]opt{{0, "Off"}, {1, "C1+C2"}, {2, "C1-C2"}, {3, "C2-C1"}, {4, "C1xC2"}}),
+		opts: mathOpts,
 		get:  func(s *sv) int { return s.mathMode },
 		set:  func(c *Controller, v int) error { return c.setMath(v) },
 		def:  func(c *Controller) error { return c.setMath(0) },
@@ -1338,7 +1434,9 @@ func cmpRows() []*row {
 			return "none"
 		},
 	}
-	return []*row{mathRow, sa, show(0), sb, show(1), clearRow, maskMode, build, clearMask, frames, tol, counters, depth, master}
+	mathA := pairRow("cmp.math_a", "Math A", "The first channel math combines.", func(c *Controller) *[2]int { return &c.mathCh }, func(s *sv) [2]int { return s.mathCh }, 0)
+	mathB := pairRow("cmp.math_b", "Math B", "The second channel math combines.", func(c *Controller) *[2]int { return &c.mathCh }, func(s *sv) [2]int { return s.mathCh }, 1)
+	return []*row{mathRow, mathA, mathB, sa, show(0), sb, show(1), clearRow, maskMode, build, clearMask, frames, tol, counters, depth, master}
 }
 
 // ---- BUS ----
@@ -1599,7 +1697,7 @@ func busTabRows() []*row {
 	line := &row{
 		id: "bus.source", label: "Source", kind: wsview.Enum,
 		help: "Channel carrying the line.", rel: func(s *sv) bool { return lineProto(s.decProto) }, why: "a single-line protocol",
-		opts: staticOpts(chans),
+		opts: chanOpts,
 		get:  func(s *sv) int { return s.decChA },
 		set:  func(c *Controller, v int) error { return c.setDecRole(true, v) },
 		def:  func(c *Controller) error { return c.setDecRole(true, 0) },
@@ -1608,13 +1706,13 @@ func busTabRows() []*row {
 	isSPI := func(s *sv) bool { return s.decProto == framecalc.ProtoSPI }
 	scl := &row{
 		id: "bus.scl", label: "SCL", kind: wsview.Enum, hdr: "I2C", help: "I2C clock channel.",
-		rel: isI2C, why: "Protocol = I2C", opts: staticOpts(chans),
+		rel: isI2C, why: "Protocol = I2C", opts: chanOpts,
 		get: func(s *sv) int { return s.decChA },
 		set: func(c *Controller, v int) error { return c.setDecRole(true, v) },
 	}
 	sda := &row{
 		id: "bus.sda", label: "SDA", kind: wsview.Enum, help: "I2C data channel.",
-		rel: isI2C, why: "Protocol = I2C", opts: staticOpts(chans),
+		rel: isI2C, why: "Protocol = I2C", opts: chanOpts,
 		get: func(s *sv) int { return s.decChB },
 		set: func(c *Controller, v int) error { return c.setDecRole(false, v) },
 	}
@@ -1622,14 +1720,14 @@ func busTabRows() []*row {
 	clk := &row{
 		id: "bus.clk", label: "CLK", kind: wsview.Enum, hdr: "SPI AND CLOCKED BUSES",
 		help: "Clock channel: SPI CLK, PS/2 CLK, SWD SWCLK, MDIO MDC, SD CLK, PDI_CLK, cJTAG TCKC, Maple SDCKA, caliper CLK; Wiegand D0; an encoder's A, a stepper's STEP.",
-		rel:  isClocked, why: "Protocol = SPI or a clocked two-line bus", opts: staticOpts(chans),
+		rel:  isClocked, why: "Protocol = SPI or a clocked two-line bus", opts: chanOpts,
 		get: func(s *sv) int { return s.decChA },
 		set: func(c *Controller, v int) error { return c.setDecRole(true, v) },
 	}
 	data := &row{
 		id: "bus.data", label: "DATA", kind: wsview.Enum,
 		help: "Data channel: SPI DATA, PS/2 DATA, SWD SWDIO, MDIO MDIO, SD CMD, PDI_DATA, cJTAG TMSC, Maple SDCKB, caliper DATA; Wiegand D1; an encoder's B, a stepper's DIR.",
-		rel:  isClocked, why: "Protocol = SPI or a clocked two-line bus", opts: staticOpts(chans),
+		rel:  isClocked, why: "Protocol = SPI or a clocked two-line bus", opts: chanOpts,
 		get: func(s *sv) int { return s.decChB },
 		set: func(c *Controller, v int) error { return c.setDecRole(false, v) },
 	}

@@ -82,14 +82,14 @@ type anaState struct {
 	statLast map[measItem]float64
 	statKey  string
 	statN    int
-	statAt   time.Time    // the last reading counted
-	statFed  frameKey     // the frame counted last
-	statEdge uint64       // the edge-window read counted last (engine.EdgeRead)
-	allVals  [2][]float64 // MEASURE all values: per channel, per parameter
-	allOK    [2]bool
-	allWin   [2]map[int]bool // the parameters taken from edge windows (carried between reads)
-	curV     [2][2]float64   // each channel's volts at the time cursors A and B
-	curOK    [2]bool
+	statAt   time.Time           // the last reading counted
+	statFed  frameKey            // the frame counted last
+	statEdge uint64              // the edge-window read counted last (engine.EdgeRead)
+	allVals  [maxChans][]float64 // MEASURE all values: per channel, per parameter
+	allOK    [maxChans]bool
+	allWin   [maxChans]map[int]bool // the parameters taken from edge windows (carried between reads)
+	curV     [maxChans][2]float64   // each channel's volts at the time cursors A and B
+	curOK    [maxChans]bool
 
 	// COMPARE
 	stabLows, stabHighs []float64 // the last tested capture's column extremes
@@ -162,9 +162,11 @@ func (c *Controller) need() needKey {
 // source (the caller holds the fan-out lock).
 // TRLC-LINKS: REQ-DSO-214, REQ-DSO-215, REQ-DSO-216, REQ-DSO-217, REQ-DSO-218
 func (c *Controller) OnFrame(f *sample.Frame) {
+	f = c.view8.Of(f)
 	if f == nil || len(f.Codes8(0)) == 0 {
 		return
 	}
+	c.noteCodesPerDiv(f)
 	k, need := keyOf(f), c.need()
 	c.amu.Lock()
 	if k != (frameKey{}) && k == c.ana.key && need == c.ana.need {
@@ -292,8 +294,79 @@ func windowOf(g geom, s *sv) (left float64, win int) {
 // voltsPerCode is a channel's volts per display code at the probe tip.
 // TRLC-LINKS: REQ-DSO-216, REQ-DSO-217
 func voltsPerCode(s *sv, ch int) float64 {
-	d := s.vert[ch&1]
-	return d.vdiv * float64(max(d.zoom, 1)) / 25 * s.probe[ch&1]
+	return voltsPerCodeAt(s, ch, s.cpdOf(ch))
+}
+
+// voltsPerCodeIn is voltsPerCode for frame f's trace of channel ch, at the
+// codes a division it states.
+// TRLC-LINKS: REQ-DSO-216, REQ-DSO-217
+func voltsPerCodeIn(f *sample.Frame, s *sv, ch int) float64 {
+	return voltsPerCodeAt(s, ch, frameCodesPerDiv(f, s, s.chOf(ch)))
+}
+
+// voltsPerCodeAt is a channel's volts per code at the probe tip at cpd
+// codes a division.
+// TRLC-LINKS: REQ-DSO-216, REQ-DSO-217
+func voltsPerCodeAt(s *sv, ch int, cpd float64) float64 {
+	ch = s.chOf(ch)
+	d := s.vert[ch]
+	return d.vdiv * float64(max(d.zoom, 1)) / cpd * s.probe[ch]
+}
+
+// noteCodesPerDiv keeps the codes a division each of f's traces states on
+// the 8-bit view, for the volts the views and rows work out between
+// frames (sv.cpd).
+// TRLC-LINKS: REQ-DSO-216
+func (c *Controller) noteCodesPerDiv(f *sample.Frame) {
+	for ch := range min(len(f.Traces), c.nch) {
+		if v := codesPerDiv8(&f.Traces[ch]); v > 0 {
+			c.cpd[ch].Store(math.Float64bits(v))
+		}
+	}
+}
+
+// frameCodesPerDiv is the codes a division channel ch's trace in f states
+// on the 8-bit view, else what the scope's last frame stated.
+// TRLC-LINKS: REQ-DSO-216
+func frameCodesPerDiv(f *sample.Frame, s *sv, ch int) float64 {
+	if f != nil && ch < len(f.Traces) {
+		if v := codesPerDiv8(&f.Traces[ch]); v > 0 {
+			return v
+		}
+	}
+	return s.cpdOf(ch)
+}
+
+// codesPerDiv is channel ch's codes a division on the 8-bit view as the
+// last frame analysed stated it, defaultCodesPerDiv before one.
+// TRLC-LINKS: REQ-DSO-216
+func (c *Controller) codesPerDiv(ch int) float64 {
+	if v := math.Float64frombits(c.cpd[c.chOf(ch)].Load()); v > 0 {
+		return v
+	}
+	return defaultCodesPerDiv
+}
+
+// traceCodesPerDiv is the codes a division channel ch's trace in f states
+// on the 8-bit view, defaultCodesPerDiv for none.
+// TRLC-LINKS: REQ-DSO-216
+func traceCodesPerDiv(f *sample.Frame, ch int) float64 {
+	if f != nil && ch < len(f.Traces) {
+		if v := codesPerDiv8(&f.Traces[ch]); v > 0 {
+			return v
+		}
+	}
+	return defaultCodesPerDiv
+}
+
+// codesPerDiv8 is trace t's codes a division on the 8-bit view; a trace
+// that states no format holds 8-bit codes.
+// TRLC-LINKS: REQ-DSO-216
+func codesPerDiv8(t *sample.Trace) float64 {
+	if t.Format.Bits == 0 {
+		return t.CodesPerDiv
+	}
+	return t.CodesPerDiv8()
 }
 
 // measureCh measures one channel of the frame as the LCD's readouts do:
@@ -301,7 +374,7 @@ func voltsPerCode(s *sv, ch int) float64 {
 // TRLC-LINKS: REQ-DSO-217
 func measureCh(f *sample.Frame, s *sv, ch int) *measure.Result {
 	valid := framecalc.Valid(f)
-	if ch == 1 && len(f.Codes8(1)) < valid {
+	if ch > 0 && len(f.Codes8(ch)) < valid {
 		return nil
 	}
 	sig := framecalc.Channel(f, ch, valid)
@@ -314,16 +387,13 @@ func measureCh(f *sample.Frame, s *sv, ch int) *measure.Result {
 		sig = dsp.CoupleDisplay(sig, cpl)
 		off = 0
 	}
-	q := f.Precision(0)
-	if ch == 1 {
-		q = f.Precision(1)
-	}
+	q := f.Precision(ch)
 	if len(q) < valid {
 		q = nil
 	} else {
 		q = q[:valid]
 	}
-	vpc := voltsPerCode(s, ch)
+	vpc := voltsPerCodeIn(f, s, ch)
 	if a, b := measure.Range(f); b-a < len(sig) { // a roll view's captured stretch
 		sig = sig[a:b]
 		if len(q) >= b {

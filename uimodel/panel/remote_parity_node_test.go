@@ -62,8 +62,11 @@ func TestRemoteCoreParity(t *testing.T) {
 	}
 	// every number row's format over its range, its value and its steps
 	var numbers []*row
-	for _, tab := range sheetTabs {
-		for _, r := range tab.rows {
+	for ti := range sheetTabs {
+		if !tabShown(ti, c.nch) {
+			continue
+		}
+		for _, r := range tabRows(ti, c.nch) {
 			if r.kind == wsview.Number {
 				numbers = append(numbers, r)
 			}

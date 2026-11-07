@@ -126,7 +126,7 @@ func TestCompareRowActions(t *testing.T) {
 	}
 	turn(c, "adjust", 1) // REF A
 	press(t, c, "adjustpush")
-	if rv := c.RefView()[0]; !rv.Show || rv.C1 == nil {
+	if rv := c.RefView()[0]; !rv.Show || rv.Ch[0] == nil {
 		t.Fatal("REF A not stored")
 	}
 	press(t, c, "adjustpush")

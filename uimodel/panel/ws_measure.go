@@ -34,7 +34,7 @@ func (c *Controller) setMeasParam(p, chans int) {
 		}
 	}
 	dropped := false
-	for ch := range 2 {
+	for ch := range c.nch {
 		if chans&(1<<ch) != 0 {
 			keep = append(keep, measItem{ch: ch, param: p})
 		}
@@ -71,7 +71,7 @@ func (c *Controller) seedMeas() {
 	if len(c.meas) > 0 {
 		return
 	}
-	for ch := range 2 {
+	for ch := range c.nch {
 		if c.chDisp[ch] {
 			c.meas = append(c.meas, measItem{ch: ch, param: mPkpk}, measItem{ch: ch, param: mFreq})
 		}
@@ -114,8 +114,8 @@ func measTabOpen(s *sv) bool { return s.ui.open && sheetTabs[s.ui.tab].id == tab
 
 // measVals measures the channels in need: every parameter's value.
 // TRLC-LINKS: REQ-DSO-217
-func measVals(a *anaState, s *sv, f *sample.Frame, need [2]bool) {
-	for ch := range 2 {
+func measVals(a *anaState, s *sv, f *sample.Frame, need [maxChans]bool) {
+	for ch := range s.nch {
 		a.allOK[ch] = false
 		if !need[ch] {
 			continue
@@ -176,12 +176,12 @@ func (c *Controller) measFrame(a *anaState, s *sv, f *sample.Frame) {
 		c.ui.statT = c.now()
 		c.mu.Unlock()
 	}
-	var need [2]bool
+	var need [maxChans]bool
 	for _, it := range s.meas {
-		need[it.ch] = true
+		need[s.chOf(it.ch)] = true
 	}
 	if s.ui.measAll || measTabOpen(s) {
-		need = [2]bool{s.chDisp[0], s.chDisp[1]}
+		copy(need[:s.nch], s.chDisp[:s.nch])
 	}
 	measVals(a, s, f, need)
 	if seen(&a.statFed, keyOf(f)) {
@@ -307,13 +307,15 @@ func cursorYOf(s *sv, v float64, ch int) float64 {
 	if !(vd > 0) {
 		return 0.5
 	}
-	return (4 - (v+s.offV[ch&1]*s.probe[ch&1])/vd) / 8
+	ch = s.chOf(ch)
+	return (4 - (v+s.offV[ch]*s.probe[ch])/vd) / 8
 }
 
 // cursorVoltAt is channel ch's volts at its tip at screen fraction y down.
 // TRLC-LINKS: REQ-DSO-217
 func cursorVoltAt(s *sv, y float64, ch int) float64 {
-	return (4-y*8)*s.vdivTip(ch) - s.offV[ch&1]*s.probe[ch&1]
+	ch = s.chOf(ch)
+	return (4-y*8)*s.vdivTip(ch) - s.offV[ch]*s.probe[ch]
 }
 
 // cursorVoltChLocked is the channel the voltage cursors are placed on: ch,
@@ -323,8 +325,13 @@ func cursorVoltAt(s *sv, y float64, ch int) float64 {
 func (c *Controller) cursorVoltChLocked(s *sv, ch int) int {
 	if ch < 0 {
 		ch = c.curVCh
-		if !s.chDisp[ch] && s.chDisp[1-ch] {
-			ch = 1 - ch
+		if !s.chDisp[ch] { // the next channel shown
+			for k := 1; k < s.nch; k++ {
+				if o := (ch + k) % s.nch; s.chDisp[o] {
+					ch = o
+					break
+				}
+			}
 		}
 	}
 	if ch != c.curVCh {
@@ -381,7 +388,7 @@ func (c *Controller) cursorAtTrigger(k int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.curType == 1 {
-		c.cursorVoltChLocked(s, s.st.TrigSource&1)
+		c.cursorVoltChLocked(s, s.chOf(s.st.TrigSource))
 		c.curV[k&1] = s.trigV
 		return
 	}
@@ -427,7 +434,7 @@ func cursorTimes(s *sv) (ta, tb float64) { return s.curT[0], s.curT[1] }
 // channel they are placed on, the other's where the screen shows them.
 // TRLC-LINKS: REQ-DSO-217
 func cursorVolts(s *sv, ch int) (va, vb float64) {
-	if ch&1 == s.curVCh {
+	if s.chOf(ch) == s.curVCh {
 		return s.curV[0], s.curV[1]
 	}
 	return cursorVoltAt(s, s.curY[0], ch), cursorVoltAt(s, s.curY[1], ch)
@@ -435,7 +442,7 @@ func cursorVolts(s *sv, ch int) (va, vb float64) {
 
 // cursorLines is the MEASURE pane's cursor block.
 // TRLC-LINKS: REQ-DSO-217
-func cursorLines(s *sv, liveV [2][2]float64, liveOK [2]bool) []wsview.Span {
+func cursorLines(s *sv, liveV [maxChans][2]float64, liveOK [maxChans]bool) []wsview.Span {
 	switch {
 	case !s.curOn:
 		return []wsview.Span{
@@ -456,23 +463,23 @@ func cursorLines(s *sv, liveV [2][2]float64, liveOK [2]bool) []wsview.Span {
 			inv = si(1/dt, "Hz")
 		}
 		out = append(out, wsview.Span{Text: "dt " + si(dt, "s") + "  1/dt " + inv, Col: wsview.Amber})
-		for ch := range 2 {
+		for ch := range s.nch {
 			if s.chDisp[ch] && liveOK[ch] {
 				out = append(out, wsview.Span{
 					Text: fmt.Sprintf("C%d A %s  B %s", ch+1, si(liveV[ch][0], "V"), si(liveV[ch][1], "V")),
-					Col:  wsview.C1 + wsview.Col(ch),
+					Col:  wsview.ChanCol(ch),
 				})
 			}
 		}
 		return out
 	}
 	out := []wsview.Span{{Text: "CURSORS VOLTS", Col: wsview.Amber}}
-	for ch := range 2 {
+	for ch := range s.nch {
 		if !s.chDisp[ch] {
 			continue
 		}
 		va, vb := cursorVolts(s, ch)
-		out = append(out, wsview.Span{Text: fmt.Sprintf("C%d A %s  B %s", ch+1, si(va, "V"), si(vb, "V")), Col: wsview.C1 + wsview.Col(ch)},
+		out = append(out, wsview.Span{Text: fmt.Sprintf("C%d A %s  B %s", ch+1, si(va, "V"), si(vb, "V")), Col: wsview.ChanCol(ch)},
 			wsview.Span{Text: "   dV " + si(math.Abs(vb-va), "V"), Col: wsview.Amber})
 	}
 	return out
@@ -480,14 +487,14 @@ func cursorLines(s *sv, liveV [2][2]float64, liveOK [2]bool) []wsview.Span {
 
 // cursorTraceVolts reads each channel's trace at the time cursors.
 // TRLC-LINKS: REQ-DSO-217
-func cursorTraceVolts(f *sample.Frame, s *sv) (v [2][2]float64, ok [2]bool) {
+func cursorTraceVolts(f *sample.Frame, s *sv) (v [maxChans][2]float64, ok [maxChans]bool) {
 	if f == nil || f.Flags.Has(sample.Envelope) || len(f.Codes8(0)) == 0 {
 		return v, ok
 	}
 	g := geom{valid: framecalc.Valid(f), winCols: f.WinPoints, edgeX: f.TriggerAt, sampleS: f.SampleS}
 	left, win := windowOf(g, s)
-	for ch := range 2 {
-		if ch == 1 && len(f.Codes8(1)) < g.valid {
+	for ch := range s.nch {
+		if ch > 0 && len(f.Codes8(ch)) < g.valid {
 			continue
 		}
 		sig := framecalc.Channel(f, ch, g.valid)
@@ -497,7 +504,7 @@ func cursorTraceVolts(f *sample.Frame, s *sv) (v [2][2]float64, ok [2]bool) {
 				v[ch][k] = math.NaN()
 				continue
 			}
-			v[ch][k] = (float64(sig[i])-128)*voltsPerCode(s, ch) - s.offV[ch]*s.probe[ch]
+			v[ch][k] = (float64(sig[i])-sample.Mid8)*voltsPerCodeIn(f, s, ch) - s.offV[ch]*s.probe[ch]
 		}
 		ok[ch] = true
 	}
@@ -537,7 +544,7 @@ func (c *Controller) measPane(s *sv) *wsview.MeasPane {
 	liveV, liveOK := a.curV, a.curOK
 	c.amu.Unlock()
 	if u.measAll {
-		p.Caption = "all values, both channels (live)"
+		p.Caption = "all values, " + bothChannels(s.nch) + " (live)"
 		allValueRows(s, p, all, allOK)
 	} else {
 		// The span runs to the last reading counted, not to now: stopped,
@@ -561,7 +568,7 @@ func (c *Controller) measPane(s *sv) *wsview.MeasPane {
 			}
 			p.Stats = append(p.Stats, wsview.StatRow{
 				Name: "C" + strconv.Itoa(r.it.ch+1) + " " + measParams[r.it.param].short,
-				Col:  wsview.C1 + wsview.Col(r.it.ch), Now: fmtMeas(r.it.param, r.now), Mean: fmtMeas(r.it.param, r.mean), //nolint:gosec // G115: ch is 0 or 1
+				Col:  wsview.ChanCol(r.it.ch), Now: fmtMeas(r.it.param, r.now), Mean: fmtMeas(r.it.param, r.mean),
 				Min: fmtMeas(r.it.param, r.mn), Max: fmtMeas(r.it.param, r.mx), Sdev: sdev, N: strconv.Itoa(r.cnt),
 			})
 		}
@@ -590,14 +597,17 @@ func (c *Controller) measPane(s *sv) *wsview.MeasPane {
 // (all, per parameter; allOK whether the channel read), in the web's order
 // and columns.
 // TRLC-LINKS: REQ-DSO-217
-func allValueRows(s *sv, p *wsview.MeasPane, all [2][]float64, allOK [2]bool) {
+func allValueRows(s *sv, p *wsview.MeasPane, all [maxChans][]float64, allOK [maxChans]bool) {
+	if s.nch > 2 {
+		p.AllChans = s.nch
+	}
 	for row, id := range measAllOrder {
 		i := measIndex(id)
 		if i < 0 || row >= len(p.AllRows) {
 			continue
 		}
 		p.AllRows[row][0] = measParams[i].short
-		for ch := range 2 {
+		for ch := range s.nch {
 			p.AllRows[row][1+ch] = "---"
 			if s.chDisp[ch] && allOK[ch] {
 				p.AllRows[row][1+ch] = fmtMeas(i, all[ch][i])

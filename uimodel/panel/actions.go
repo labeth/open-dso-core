@@ -19,7 +19,7 @@ import (
 // setTrigLevelV puts the trigger level at v volts (probe tip).
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) setTrigLevelV(v float64) error {
-	c.lv.SetTrigLevel(v, c.eng.Snapshot().TrigSource&1)
+	c.lv.SetTrigLevel(v, c.chOf(c.eng.Snapshot().TrigSource))
 	return nil
 }
 
@@ -34,9 +34,9 @@ func (c *Controller) stepTrigLevel(n int) error {
 		step = c.trigSteps()
 		st = c.eng.Snapshot()
 	case c.fe != nil: // trigSteps on what resync read
-		step = trigStepsAt(vd, st.TrigSource&1)
+		step = trigStepsAt(vd[c.chOf(st.TrigSource)])
 	}
-	c.lv.StepTrigLevel(n*step, st.TrigSource&1)
+	c.lv.StepTrigLevel(n*step, c.chOf(st.TrigSource))
 	return nil
 }
 
@@ -242,8 +242,9 @@ func (c *Controller) setInvert(ch int, on bool) error {
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) setChanShown(ch int, on bool) error {
 	c.mu.Lock()
-	c.chDisp[ch&1] = on
+	c.chDisp[c.chOf(ch)] = on
 	c.mu.Unlock()
+	c.pushShown()
 	return nil
 }
 
@@ -424,6 +425,17 @@ func (c *Controller) setMath(m int) error {
 	c.mu.Lock()
 	c.mathMode = mod5(m)
 	c.mu.Unlock()
+	return nil
+}
+
+// setPairCh puts role k (0 or 1) of a channel pair (math's operands, X-Y's
+// axes) on channel ch; the other role leaves ch for the channel k left.
+// TRLC-LINKS: REQ-DSO-212
+func (c *Controller) setPairCh(p *[2]int, k, ch int) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	k &= 1
+	p[k], p[1-k] = c.otherRole(c.chOf(ch), p[k], p[1-k])
 	return nil
 }
 

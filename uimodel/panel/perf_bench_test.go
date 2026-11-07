@@ -220,7 +220,7 @@ func TestSnapChannelStateMatches(t *testing.T) {
 	}
 	fe.offReqV = [2]float64{0.25, -1.5}
 	s := c.snap()
-	if s.probe != [2]float64{10, 1} || s.cpl != [2]int{dsp.CoupleDC, dsp.CoupleAC} || s.offV != fe.offReqV || !s.hasBWL || s.bwl != fe.bwl {
+	if s.probe != [maxChans]float64{10, 1} || s.cpl != [maxChans]int{dsp.CoupleDC, dsp.CoupleAC} || [2]float64(s.offV[:2]) != fe.offReqV || !s.hasBWL || [2]bool(s.bwl[:2]) != fe.bwl {
 		t.Fatalf("snap read probe %v cpl %v offV %v bwl %v %v", s.probe, s.cpl, s.offV, s.hasBWL, s.bwl)
 	}
 }
@@ -795,7 +795,7 @@ func BenchmarkScreenExtremes(b *testing.B) {
 		f.Codes8(0)[i] = uint8(128 + 60*((i/90)%2*2-1) + i%5)
 		f.Codes8(1)[i] = f.Codes8(0)[i]
 	}
-	s := &sv{probe: [2]float64{1, 1}, vert: [2]vstep{testLadder[10], testLadder[10]}}
+	s := &sv{nch: 2, probe: [maxChans]float64{1, 1}, vert: [maxChans]vstep{testLadder[10], testLadder[10]}}
 	for b.Loop() {
 		screenExtremes(f, s, 0, stabCols)
 		screenExtremes(f, s, 1, stabCols)

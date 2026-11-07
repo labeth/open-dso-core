@@ -228,7 +228,7 @@ func TestCoarseEnvelopeFailureReadsSampledRecords(t *testing.T) {
 // is the key's own.
 // TRLC-LINKS: REQ-DSO-214, REQ-DSO-230
 func TestBusKeyHoldsThroughAutoDelay(t *testing.T) {
-	s := &sv{decProto: framecalc.ProtoSPI, decDelayAuto: true}
+	s := &sv{nch: 2, decProto: framecalc.ProtoSPI, decDelayAuto: true}
 	s.spiEye = decode.SPIEye{PeriodS: 100e-9, DelayS: 12.4e-9}
 	k := busListKey(s)
 	s.spiEye.DelayS = 12.9e-9

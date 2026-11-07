@@ -61,9 +61,12 @@ type HUD struct {
 	ShowMeas     bool // on-device MEASURE readout boxes
 	// MeasItems are the chosen readouts, "1:pkpk" (channel and parameter);
 	// nil shows every parameter of each shown channel.
-	MeasItems        []string
-	ViewMode         int       // 0=Y-T 1=X-Y 2=FFT 3=BODE 4=SPECTROGRAM
-	MathMode         int       // 0 = off, 1 = C1+C2, 2 = C1-C2, 3 = C2-C1, 4 = C1×C2
+	MeasItems []string
+	ViewMode  int // 0=Y-T 1=X-Y 2=FFT 3=BODE 4=SPECTROGRAM
+	MathMode  int // 0 = off, 1 = A+B, 2 = A-B, 3 = B-A, 4 = A×B
+	// MathCh and XYCh are the channels math combines (A, B) and X-Y plots
+	// (X, Y); a pair of one channel twice (the zero value) is C1, C2.
+	MathCh, XYCh     [2]int
 	FFTSrc           int       // the FFT source channel (drawn on top; the SPECTRUM marker's)
 	AutosetBusy      bool      // autoset sweep running → show a cancelable banner
 	AutosetMsg       string    // banner text while AutosetBusy
@@ -82,13 +85,13 @@ type HUD struct {
 	DecBaud          int
 	DecChA, DecChB   int // channel roles (0=C1,1=C2)
 	DecCPOL, DecCPHA bool
-	DecLSB           bool          // SPI least significant bit first
-	DecParity        string        // Modbus RTU's framing ("": found by the decoder)
-	DecDelayNs       float64       // SPI's data delay in use after the sampling edge (ns)
-	DecFormat        int           // byte display: 0=hex,1=ascii,2=both
-	RefC1, RefC2     [2][]uint8    // saved reference waveforms (REF A/B), one code per column; nil if unset
-	RefVdiv, RefOff  [2][2]float64 // [slot][channel] analog V/div and offset volts at the save
-	RefProbe         [2][2]float64 // [slot][channel] the probe factor at the save (0: 1)
+	DecLSB           bool                 // SPI least significant bit first
+	DecParity        string               // Modbus RTU's framing ("": found by the decoder)
+	DecDelayNs       float64              // SPI's data delay in use after the sampling edge (ns)
+	DecFormat        int                  // byte display: 0=hex,1=ascii,2=both
+	Ref              [2][MaxChans][]uint8 // saved reference waveforms (REF A/B) per channel, one code per column; nil if unset
+	RefVdiv, RefOff  [2][MaxChans]float64 // [slot][channel] analog V/div and offset volts at the save
+	RefProbe         [2][MaxChans]float64 // [slot][channel] the probe factor at the save (0: 1)
 	RefShow          [2]bool
 
 	// On-screen cursors: two X (time) and two Y (volts), positions as screen
@@ -157,6 +160,36 @@ type HUD struct {
 	// Spectrogram ("FFT over time", spectrogram.go): the scrolling waterfall
 	// image, accumulated by the LCD loop and blitted when ViewMode == 4.
 	Spect *Spectrogram
+}
+
+// chanPair is a HUD channel pair: p's channels, C1 and C2 when p names
+// one channel twice or one the HUD does not have.
+// TRLC-LINKS: REQ-DSO-021
+func (h HUD) chanPair(p [2]int) (a, b int) {
+	n := h.numChans()
+	if p[0] == p[1] || p[0] < 0 || p[1] < 0 || p[0] >= n || p[1] >= n {
+		return 0, 1
+	}
+	return p[0], p[1]
+}
+
+// mathName is the math trace's legend ("C1+C2"), "" for none; the font has
+// no multiplication sign.
+// TRLC-LINKS: REQ-DSO-021
+func mathName(h HUD) string {
+	a, b := h.chanPair(h.MathCh)
+	na, nb := chanName(a), chanName(b)
+	switch h.MathMode {
+	case 1:
+		return na + "+" + nb
+	case 2:
+		return na + "-" + nb
+	case 3:
+		return nb + "-" + na
+	case 4:
+		return na + "x" + nb
+	}
+	return ""
 }
 
 // MaxChans is the most channels a HUD describes: the family's scopes have
@@ -935,6 +968,7 @@ func drawTraces(sf Canvas, p plotArea, f *sample.Frame, hud HUD, pb Layer) {
 // a held frame; the strip goes red instead.
 // TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
 func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
+	fine := f != nil && f.Wide()
 	f = view8(f)
 	sf.Fill(colBG)
 	ui := &hud.UI
@@ -942,6 +976,7 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	sm := metricsOf(sf)
 	p := plotOf(sm, ui.Layout)
 	p.setCodesPerDiv(codesPerDiv(f))
+	p.fine = fine
 	traces := !sheet && !ui.Layout.HideTraces
 	if traces && decodeStrip(hud) {
 		p = p.aboveStrip()
@@ -1120,6 +1155,8 @@ func drawChan(traceTarget Canvas, p plotArea, f *sample.Frame, hud HUD, ch, vali
 	}
 	if zoomed {
 		drawTraceID(traceTarget, p, traceID{f.Seq, zoomTraceID + ch, c.Cpl, c.Inv}, codes, zw.win, zw.xc, false, chanColor(ch), zw.posFrac, c.Zoom)
+	} else if q := fineQ(p, f, c, ch, valid); q != nil {
+		drawFineTrace(traceTarget, p, q, heldOf(f, valid), rec.win, rec.xc, f.Flags.Has(sample.Interp), chanColor(ch), rec.posFrac, c.Zoom)
 	} else {
 		drawTraceHeld(traceTarget, p, traceID{f.Seq, 1 + ch, c.Cpl, c.Inv}, codes, heldOf(f, valid), rec.win, rec.xc, f.Flags.Has(sample.Interp), chanColor(ch), rec.posFrac, c.Zoom)
 	}

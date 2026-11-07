@@ -216,12 +216,13 @@ func tolOf(m RowModel) float64 {
 // reach records, per row, whether any context changed it and the last
 // reason one could not.
 type reach struct {
-	ok  map[string]bool
-	why map[string]string
+	ok    map[string]bool
+	why   map[string]string
+	chans int // the rigs' channels: the rows a scope of that many has
 }
 
 // TRLC-LINKS: REQ-DSO-212
-func newReach() *reach { return &reach{ok: map[string]bool{}, why: map[string]string{}} }
+func newReach() *reach { return &reach{ok: map[string]bool{}, why: map[string]string{}, chans: 2} }
 
 // never lists the settable rows no context changed, with the last reason.
 // TRLC-LINKS: REQ-DSO-212
@@ -229,7 +230,7 @@ func (rc *reach) never() []string {
 	var out []string
 	for _, tb := range sheetTabs {
 		for _, rw := range tb.rows {
-			if rw.kind != wsview.Action && rw.kind != wsview.Slot && !rc.ok[rw.id] {
+			if rw.kind != wsview.Action && rw.kind != wsview.Slot && !rc.ok[rw.id] && rowShown(rw.id, rc.chans) {
 				out = append(out, rw.id+" ("+rc.why[rw.id]+")")
 			}
 		}
@@ -290,8 +291,11 @@ func TestEveryRowReachableFromThePanel(t *testing.T) {
 		t.Run(x.name, func(t *testing.T) {
 			r := rigFor(t, x)
 			c := r.c
-			for _, tb := range sheetTabs {
-				for _, rw := range tb.rows {
+			for ti := range sheetTabs {
+				if !tabShown(ti, c.nch) {
+					continue
+				}
+				for _, rw := range tabRows(ti, c.nch) {
 					if !rw.relevant(c.snap()) || rw.kind == wsview.Action || rw.kind == wsview.Slot || rc.ok[rw.id] {
 						continue
 					}
@@ -330,8 +334,17 @@ func TestSheetsModelListsEveryRow(t *testing.T) {
 	m := c.Sheets()
 	seen := map[string]bool{}
 	n := 0
+	var shown []int
+	for ti := range sheetTabs {
+		if tabShown(ti, c.nch) {
+			shown = append(shown, ti)
+		}
+	}
+	if len(m.Tabs) != len(shown) {
+		t.Fatalf("%d tabs, want %d", len(m.Tabs), len(shown))
+	}
 	for i, tab := range m.Tabs {
-		if tab.ID != sheetTabs[i].id || len(tab.Rows) != len(sheetTabs[i].rows) {
+		if ti := shown[i]; tab.ID != sheetTabs[ti].id || len(tab.Rows) != len(tabRows(ti, c.nch)) {
 			t.Fatalf("tab %d: %s with %d rows", i, tab.ID, len(tab.Rows))
 		}
 		for _, rw := range tab.Rows {
@@ -362,8 +375,14 @@ func TestSheetsModelListsEveryRow(t *testing.T) {
 			}
 		}
 	}
-	if n != len(rowByID) {
-		t.Fatalf("%d rows in the model, %d declared", n, len(rowByID))
+	declared := 0
+	for id := range rowByID {
+		if rowShown(id, c.nch) {
+			declared++
+		}
+	}
+	if n != declared {
+		t.Fatalf("%d rows in the model, %d declared for %d channels", n, declared, c.nch)
 	}
 	for _, tb := range sheetTabs { // every row has what its kind needs
 		for _, r := range tb.rows {

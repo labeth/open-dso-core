@@ -17,7 +17,7 @@ import (
 // column of an 800-column plot; a renderer stretches them across its own.
 const RefCols = 800
 
-// refWave is a saved snapshot of both channels as they were drawn, overlaid
+// refWave is a saved snapshot of the channels as they were drawn, overlaid
 // dim for comparison (parity with the web REF A/B). Screen-space: it holds
 // the RefCols points of the screen at the save, so it lines up while the timebase is
 // unchanged — the bench "save a good trace, tweak, compare". It keeps the
@@ -25,11 +25,12 @@ const RefCols = 800
 // then, so a later V/div or position change redraws it at the same volts.
 // TRLC-LINKS: REQ-DSO-138
 type refWave struct {
-	c1, c2    []uint8
-	vdiv, off [2]float64
-	tdiv      float64    // the timebase it was stored at (it lines up only there)
-	posFrac   float64    // where the trigger sat across the screen then
-	probe     [2]float64 // each channel's probe factor then (1 without a front end)
+	cs        [maxChans][]uint8 // each channel's columns, nil for one it did not hold
+	vdiv, off [maxChans]float64
+	tdiv      float64           // the timebase it was stored at (it lines up only there)
+	posFrac   float64           // where the trigger sat across the screen then
+	probe     [maxChans]float64 // each channel's probe factor then (1 without a front end)
+	cpd       [maxChans]float64 // each channel's codes a division then (0: defaultCodesPerDiv)
 	has       bool
 	show      bool
 	setup     cmpSetup // the setup it was stored at, for AUTO in COMPARE
@@ -40,6 +41,9 @@ type refWave struct {
 // RefExport is uimodel.RefExport.
 type RefExport = uimodel.RefExport
 
+// ChanValues is uimodel.ChanValues.
+type ChanValues = uimodel.ChanValues
+
 // RefSetup is uimodel.RefSetup.
 type RefSetup = uimodel.RefSetup
 
@@ -49,9 +53,9 @@ type RefTag = uimodel.RefTag
 // RefWave is the render-side view of a saved reference.
 // TRLC-LINKS: REQ-DSO-138
 type RefWave struct {
-	C1, C2    []uint8    // RefCols display codes, nil if the channel was absent
-	Vdiv, Off [2]float64 // per channel: analog V/div and offset volts at the save
-	Probe     [2]float64 // per channel: the probe factor at the save
+	Ch        [maxChans][]uint8 // per channel: RefCols display codes, nil if the channel was absent
+	Vdiv, Off [maxChans]float64 // per channel: analog V/div and offset volts at the save
+	Probe     [maxChans]float64 // per channel: the probe factor at the save
 	Show      bool
 }
 
@@ -75,10 +79,13 @@ func (c *Controller) captureRefFrom(f *sample.Frame, slot int) {
 		return
 	}
 	st := c.eng.Snapshot()
-	r := refWave{has: true, show: true, vdiv: [2]float64{1, 1}, tdiv: st.TdivS, probe: [2]float64{1, 1}}
-	cpl := [2]int{}
+	r := refWave{has: true, show: true, tdiv: st.TdivS}
+	var cpl [maxChans]int
+	for ch := range c.nch {
+		r.vdiv[ch], r.probe[ch] = 1, 1
+	}
 	if c.fe != nil {
-		for ch := range 2 {
+		for ch := range c.nch {
 			r.vdiv[ch] = c.fe.RangeV(ch)
 			r.probe[ch] = max(c.fe.ProbeFactor(ch), 1)
 			cpl[ch] = c.fe.Coupling(ch)
@@ -105,9 +112,13 @@ func (c *Controller) captureRefFrom(f *sample.Frame, slot int) {
 	}
 	left := xc - float64(win)*posFrac
 	r.posFrac = posFrac
-	r.c1 = screenColumns(dsp.CoupleDisplay(f.Codes8(0)[:valid], cpl[0]), left, win, f.Flags.Has(sample.Interp))
-	if len(f.Codes8(1)) >= valid {
-		r.c2 = screenColumns(dsp.CoupleDisplay(f.Codes8(1)[:valid], cpl[1]), left, win, f.Flags.Has(sample.Interp))
+	for ch := range c.nch {
+		if ch < len(f.Traces) {
+			r.cpd[ch] = codesPerDiv8(&f.Traces[ch])
+		}
+		if codes := f.Codes8(ch); len(codes) >= valid {
+			r.cs[ch] = screenColumns(dsp.CoupleDisplay(codes[:valid], cpl[ch]), left, win, f.Flags.Has(sample.Interp))
+		}
 	}
 	r.setup = c.takeSetup()
 	r.at = c.now()
@@ -116,6 +127,15 @@ func (c *Controller) captureRefFrom(f *sample.Frame, slot int) {
 	r.gen = c.refGen
 	c.refs[slot] = r
 	c.mu.Unlock()
+}
+
+// codesPerDiv is channel ch's codes a division at the store.
+// TRLC-LINKS: REQ-DSO-138
+func (r *refWave) codesPerDiv(ch int) float64 {
+	if r.cpd[ch] > 0 {
+		return r.cpd[ch]
+	}
+	return defaultCodesPerDiv
 }
 
 // screenColumns samples sig at the LCD trace's column positions (drawTrace):
@@ -164,16 +184,18 @@ func (c *Controller) RefsExport() [2]RefExport {
 	for i, r := range c.refs {
 		if r.has {
 			e := RefExport{
-				Has: true, Show: r.show, Gen: r.gen, At: r.at.UnixMilli(), Cols: RefCols, C1: ints(r.c1), C2: ints(r.c2),
-				TdivS: r.tdiv, PosFrac: r.posFrac,
+				Has: true, Show: r.show, Gen: r.gen, At: r.at.UnixMilli(), Cols: RefCols, C1: ints(r.cs[0]), C2: ints(r.cs[1]),
+				C3: ints(r.cs[2]), C4: ints(r.cs[3]), TdivS: r.tdiv, PosFrac: r.posFrac,
 			}
-			for ch := range e.Vdiv {
+			n := max(c.nch, 2)
+			e.Vdiv, e.Off, e.Probe = make(ChanValues, n), make(ChanValues, n), make(ChanValues, n)
+			for ch := range n {
 				p := max(r.probe[ch], 1)
 				e.Vdiv[ch], e.Off[ch], e.Probe[ch] = r.vdiv[ch]*p, r.off[ch]*p, p
 			}
 			if s := r.setup; s.has {
-				e.Setup = &RefSetup{TdivS: s.tdiv, PosFrac: s.posFrac, TrigSrc: s.trigSrc, Rising: s.rising}
-				for ch := range e.Setup.Vdiv {
+				e.Setup = &RefSetup{TdivS: s.tdiv, PosFrac: s.posFrac, TrigSrc: s.trigSrc, Rising: s.rising, Vdiv: make(ChanValues, n)}
+				for ch := range n {
 					e.Setup.Vdiv[ch] = s.vert[ch].rng * e.Probe[ch]
 				}
 			}
@@ -222,7 +244,7 @@ func (c *Controller) RefView() [2]RefWave {
 	var out [2]RefWave
 	for i, r := range c.refs {
 		if r.has {
-			out[i] = RefWave{C1: r.c1, C2: r.c2, Vdiv: r.vdiv, Off: r.off, Probe: r.probe, Show: r.show}
+			out[i] = RefWave{Ch: r.cs, Vdiv: r.vdiv, Off: r.off, Probe: r.probe, Show: r.show}
 		}
 	}
 	return out
@@ -235,8 +257,8 @@ type cmpSetup struct {
 	has       bool
 	tdiv      float64
 	posFrac   float64
-	vert      [2]vstep // each channel's V/div step
-	offReq    [2]float64
+	vert      [maxChans]vstep // each channel's V/div step
+	offReq    [maxChans]float64
 	trigLevel instrument.TrigLevelSaved
 	trigSrc   int
 	rising    bool
@@ -249,14 +271,15 @@ func (c *Controller) takeSetup() cmpSetup {
 	st := c.eng.Snapshot()
 	s := cmpSetup{
 		has: true, tdiv: st.TdivSet(), posFrac: st.TrigPosFrac, trigLevel: c.lv.SaveTrigLevelIn(st),
-		trigSrc: st.TrigSource & 1, rising: st.TrigRising, trigType: st.TrigType & 3,
+		trigSrc: c.chOf(st.TrigSource), rising: st.TrigRising, trigType: st.TrigType & 3,
 	}
 	if st.SerialMode != 0 {
 		s.trigType = 0
 	}
 	if c.fe != nil {
-		s.vert = [2]vstep{c.vstepOf(0), c.vstepOf(1)}
-		s.offReq = [2]float64{c.fe.OffsetReqV(0), c.fe.OffsetReqV(1)}
+		for ch := range c.nch {
+			s.vert[ch], s.offReq[ch] = c.vstepOf(ch), c.fe.OffsetReqV(ch)
+		}
 	}
 	return s
 }
@@ -278,7 +301,7 @@ func (c *Controller) applySetup(s cmpSetup) {
 		_ = c.setTrigPos(s.posFrac)
 	}
 	if c.fe != nil {
-		for ch := range 2 {
+		for ch := range c.nch {
 			c.setVdivV(ch, s.vert[ch].vdiv)
 			c.lv.SetOffset(ch, s.offReq[ch])
 		}

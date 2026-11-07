@@ -35,7 +35,15 @@ const (
 // SetFrameSource wires the latest-frame accessor (fo.WithFrame) so autoset can
 // measure the live signal. Optional — without it, AUTO falls back to plain run.
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-138, REQ-DSO-139, REQ-DSO-140
-func (c *Controller) SetFrameSource(fn func(func(*sample.Frame))) { c.frameFn = fn }
+func (c *Controller) SetFrameSource(fn func(func(*sample.Frame))) {
+	if fn == nil {
+		c.frameFn = nil
+		return
+	}
+	c.frameFn = func(read func(*sample.Frame)) {
+		fn(func(f *sample.Frame) { read(c.view8.Of(f)) })
+	}
+}
 
 // autoset is the AUTO button: it starts a background sweep that fits the whole
 // scope to the live signal. A second AUTO press while it's running CANCELS it
@@ -113,8 +121,8 @@ func (c *Controller) runAutosetFor(stop chan struct{}, ws wsview.WS, view int) {
 // and the trigger an edge too).
 type autoEntry struct {
 	tdiv          float64
-	vdiv          [2]float64 // at the BNC
-	off           [2]float64
+	vdiv          [maxChans]float64 // at the BNC
+	off           [maxChans]float64
 	trig          int // the TRIG sheet's type: Serial for an armed serial trigger
 	src           int
 	rising        bool
@@ -138,8 +146,9 @@ func (c *Controller) autoEntryNow() autoEntry {
 		e.trig = trigSerial
 	}
 	if c.fe != nil {
-		e.vdiv = [2]float64{c.fe.VdivV(0), c.fe.VdivV(1)}
-		e.off = [2]float64{c.fe.OffsetReqV(0), c.fe.OffsetReqV(1)}
+		for ch := range c.nch {
+			e.vdiv[ch], e.off[ch] = c.fe.VdivV(ch), c.fe.OffsetReqV(ch)
+		}
 	}
 	c.mu.Lock()
 	e.proto, e.mode, e.auto = c.decProto, c.decMode, c.auto
@@ -176,7 +185,7 @@ func (c *Controller) cancelledAuto(stop chan struct{}, e autoEntry) {
 		_ = c.setMatchTokens(e.match)
 	}
 	if c.fe != nil {
-		for ch := range 2 {
+		for ch := range c.nch {
 			c.setVdivV(ch, e.vdiv[ch])
 			c.lv.SetOffset(ch, e.off[ch])
 		}
@@ -253,7 +262,7 @@ var (
 func (c *Controller) measureCursors() {
 	m, ok := c.measureChans()
 	s := c.snap()
-	src := s.st.TrigSource & 1
+	src := s.chOf(s.st.TrigSource)
 	if !ok || m[src] == nil {
 		return
 	}
@@ -311,7 +320,7 @@ func goalFor(ws wsview.WS, view int) autoGoal {
 // stepped coarser, and SPECTRUM's span (0: not read).
 type autoResult struct {
 	src    int
-	m      [2]*measure.Result
+	m      [maxChans]*measure.Result
 	tdiv   float64
 	clip   int
 	spanHz float64
@@ -447,7 +456,7 @@ func (c *Controller) autosetSweep(stop chan struct{}, g autoGoal) (autoResult, b
 	//    signal (an unknown frequency needs a scale where a few cycles are on
 	//    screen and native — not decimated — so the frequency reads true).
 	if c.fe != nil {
-		for ch := range 2 {
+		for ch := range c.nch {
 			// 2 V/div at the probe tip: ±8 V unclipped. The detents are the
 			// BNC's: with a 10x probe 2 V/div there was 20 V/div at the tip,
 			// a 3.3 V logic swing four codes, and AUTO found no signal.
@@ -513,14 +522,14 @@ func (c *Controller) autosetSweep(stop chan struct{}, g autoGoal) (autoResult, b
 	// the screen when the other came. It keeps the sweep's 2 V/div at 0 V,
 	// where either level of a logic line shows, and is fitted no further.
 	if c.fe != nil {
-		for ch := range 2 {
+		for ch := range c.nch {
 			if has(m[ch]) && !timed[ch] && swing[ch].Vpp < refineMinVpp {
 				c.lv.SetOffset(ch, 0)
 				m[ch], swing[ch] = nil, nil
 			}
 		}
 	}
-	if !has(m[0]) && !has(m[1]) {
+	if noneHas(m) {
 		noSignal()
 		return res, false
 	}
@@ -554,7 +563,7 @@ func (c *Controller) autosetSweep(stop chan struct{}, g autoGoal) (autoResult, b
 	//     is looked for on slower ones.
 	if g.spectrum {
 		c.mu.Lock()
-		fs := c.fftSrc & 1
+		fs := c.chOf(c.fftSrc)
 		c.mu.Unlock()
 		if !c.freqOn(stop, fs) {
 			return res, false
@@ -608,18 +617,18 @@ func (c *Controller) autosetSweep(stop chan struct{}, g autoGoal) (autoResult, b
 // TRLC-LINKS: REQ-DSO-137
 func (c *Controller) entryScale(entry instrument.Stats) (restore func()) {
 	entryTdiv := entry.TdivS
-	var entryVdiv, entryOff [2]float64
+	var entryVdiv, entryOff [maxChans]float64
 	if c.fe != nil {
-		entryVdiv = [2]float64{c.fe.VdivV(0), c.fe.VdivV(1)}
-		entryOff[0] = c.fe.OffsetReqV(0)
-		entryOff[1] = c.fe.OffsetReqV(1)
+		for ch := range c.nch {
+			entryVdiv[ch], entryOff[ch] = c.fe.VdivV(ch), c.fe.OffsetReqV(ch)
+		}
 	}
 	return func() {
 		if entryTdiv > 0 {
 			c.setTdivNearest(entryTdiv)
 		}
 		if c.fe != nil {
-			for ch := range 2 {
+			for ch := range c.nch {
 				c.setVdivV(ch, entryVdiv[ch])
 				c.lv.SetOffset(ch, entryOff[ch])
 			}
@@ -651,11 +660,11 @@ func (c *Controller) autoWidenSwing(stop chan struct{}, sw *autoSweep) bool {
 // fitted and centred for g, refined at the fitted V/div, and its centre
 // nudged where the trace landed. It returns false when cancelled.
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-225
-func (c *Controller) autoFitVertical(stop chan struct{}, m, swing [2]*measure.Result, g autoGoal) bool {
+func (c *Controller) autoFitVertical(stop chan struct{}, m, swing [maxChans]*measure.Result, g autoGoal) bool {
 	// 3. Vertical: fit Vpp into g's divisions, centred on the MIDPOINT
 	//    (Vmax+Vmin)/2 — NOT the mean, which for a duty-cycled signal (UART idles
 	//    high) skews toward a rail and would push the other rail off-screen.
-	for ch := range 2 {
+	for ch := range c.nch {
 		if !has(m[ch]) {
 			continue
 		}
@@ -681,7 +690,7 @@ func (c *Controller) autoFitVertical(stop chan struct{}, m, swing [2]*measure.Re
 	//     landed and nudge the offset to bring the mean to screen centre. This is
 	//     model-independent — it works off the raw codes. A larger fill leaves
 	//     less room above and below, so it centres closer.
-	for ch := range 2 {
+	for ch := range c.nch {
 		if !has(m[ch]) {
 			continue
 		}
@@ -695,8 +704,8 @@ func (c *Controller) autoFitVertical(stop chan struct{}, m, swing [2]*measure.Re
 // the sweep step the signal was found at.
 type autoSweep struct {
 	found   *measure.Result
-	swing   [2]*measure.Result
-	timed   [2]bool
+	swing   [maxChans]*measure.Result
+	timed   [maxChans]bool
 	foundTd float64
 }
 
@@ -717,7 +726,7 @@ func (c *Controller) autoSweepFind(stop chan struct{}) (autoSweep, bool) {
 				break
 			}
 			sw = autoSweep{foundTd: sw.foundTd}
-			for ch := range 2 {
+			for ch := range c.nch {
 				c.setVdiv(ch, nearestLadderStep(c.ladder(ch), tip/c.fe.ProbeFactor(ch)))
 				c.lv.SetOffset(ch, 0)
 			}
@@ -751,7 +760,7 @@ func (c *Controller) autoSweepFind(stop chan struct{}) (autoSweep, bool) {
 // switching a few codes, which the 200 mV/div pass times; ok is false when
 // cancelled.
 // TRLC-LINKS: REQ-DSO-137
-func (c *Controller) autoSweepLook(stop chan struct{}, pass int, td float64) (m [2]*measure.Result, small, ok bool) {
+func (c *Controller) autoSweepLook(stop chan struct{}, pass int, td float64) (m [maxChans]*measure.Result, small, ok bool) {
 	select {
 	case <-stop:
 		return m, false, false
@@ -776,7 +785,7 @@ func (c *Controller) autoSweepLook(stop chan struct{}, pass int, td float64) (m 
 	// pass's, while nothing is timed: a quiet line's noise at
 	// 200 mV/div reads as a swing, and an IR bus was left unfound.
 	lastPass := pass == 1 || c.fe == nil
-	missing := func() bool { return !has(m[0]) && !has(m[1]) || lastPass && !fq2(m) }
+	missing := func() bool { return noneHas(m) || lastPass && !fq2(m) }
 	if td != autoSweepTdivs[len(autoSweepTdivs)-1] || !missing() {
 		return m, false, true
 	}
@@ -807,27 +816,24 @@ func (c *Controller) autoSweepLook(stop chan struct{}, pass int, td float64) (m 
 // sweep step falls back to amplitude-only so a genuinely aperiodic-looking
 // capture is still fitted rather than lost.
 // TRLC-LINKS: REQ-DSO-137
-func foundChannel(m [2]*measure.Result, lastStep bool) (int, bool) {
+func foundChannel(m [maxChans]*measure.Result, lastStep bool) (int, bool) {
 	fq := func(r *measure.Result) bool { return has(r) && r.Freq > 0 }
-	if !fq(m[0]) && !fq(m[1]) && (!lastStep || !has(m[0]) && !has(m[1])) {
+	if !fq2(m) && (!lastStep || noneHas(m)) {
 		return 0, false
 	}
-	if !fq(m[0]) && !fq(m[1]) {
+	if !fq2(m) {
 		return strongerCh(m), true
 	}
 	// prefer the channel that actually has timing
-	if fq(m[1]) && (!fq(m[0]) || m[1].Vpp > m[0].Vpp) {
-		return 1, true
-	}
-	return 0, true
+	return strongestBy(m, fq), true
 }
 
 // autoCoarsenOffScreen is autoset's step 3c: each channel's trace still
 // railed, clipped or off the screen's centre steps one detent coarser and
 // re-centres, bounded by the detent count. It returns false when cancelled.
 // TRLC-LINKS: REQ-DSO-137
-func (c *Controller) autoCoarsenOffScreen(stop chan struct{}, m [2]*measure.Result, swing *[2]*measure.Result, g autoGoal, res *autoResult) bool {
-	for ch := range 2 {
+func (c *Controller) autoCoarsenOffScreen(stop chan struct{}, m [maxChans]*measure.Result, swing *[maxChans]*measure.Result, g autoGoal, res *autoResult) bool {
+	for ch := range c.nch {
 		if !has(m[ch]) {
 			continue
 		}
@@ -855,7 +861,7 @@ func (c *Controller) autoCoarsenOffScreen(stop chan struct{}, m [2]*measure.Resu
 // cycles of frequency f, then the vertical refined on that screen. It
 // returns false when cancelled.
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-225
-func (c *Controller) autoDisplayTimebase(stop chan struct{}, f float64, m, swing [2]*measure.Result, g autoGoal, res *autoResult) bool {
+func (c *Controller) autoDisplayTimebase(stop chan struct{}, f float64, m, swing [maxChans]*measure.Result, g autoGoal, res *autoResult) bool {
 	ss := c.setTdivNearest(c.displayTdiv(g, f))
 	res.tdiv = c.eng.Snapshot().TdivSet()
 	if !c.waitBandFrame(stop, ss) {
@@ -886,13 +892,13 @@ func (c *Controller) autoDisplayTimebase(stop chan struct{}, f float64, m, swing
 // screen. again reports a change the trigger must follow; ok is false when
 // cancelled.
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-225
-func (c *Controller) autoClipCheck(stop chan struct{}, swing *[2]*measure.Result, g autoGoal, res *autoResult) (again, ok bool) {
-	var steps [2]int // each channel's steps, at most autoClipSteps off the rail
+func (c *Controller) autoClipCheck(stop chan struct{}, swing *[maxChans]*measure.Result, g autoGoal, res *autoResult) (again, ok bool) {
+	var steps [maxChans]int // each channel's steps, at most autoClipSteps off the rail
 	for look := range autoClipLooks {
 		if look > 0 && !c.waitFrame(stop) {
 			return again, false
 		}
-		for ch := range 2 {
+		for ch := range c.nch {
 			if !has(swing[ch]) {
 				continue // (a railed trace measures no swing now: the sweep's says it had one)
 			}
@@ -997,7 +1003,7 @@ const (
 // on the sweep's capture widened the extremes, not the step). It reports
 // whether a channel moved; ok false when cancelled.
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-224
-func (c *Controller) refineVertical(stop chan struct{}, m, swing [2]*measure.Result, g autoGoal) (moved, ok bool) {
+func (c *Controller) refineVertical(stop chan struct{}, m, swing [maxChans]*measure.Result, g autoGoal) (moved, ok bool) {
 	mf, _ := c.measureChans()
 	if !c.waitFrame(stop) {
 		return false, false
@@ -1009,7 +1015,7 @@ func (c *Controller) refineVertical(stop chan struct{}, m, swing [2]*measure.Res
 		}
 	}
 	step := func(r *measure.Result) float64 { return r.Vtop - r.Vbase }
-	for ch := range 2 {
+	for ch := range c.nch {
 		if !has(m[ch]) || !has(mf[ch]) || !has(swing[ch]) || swing[ch].Vpp < refineMinVpp || c.clipped(ch) ||
 			mf[ch].Vpp < refineShare*swing[ch].Vpp && !(step(mf[ch]) >= refineShare*step(swing[ch]) && step(swing[ch]) > 0) {
 			continue
@@ -1053,7 +1059,7 @@ func (c *Controller) nudgeCentre(ch int, swing *measure.Result, g autoGoal) bool
 // TRLC-LINKS: REQ-DSO-225
 func (c *Controller) overScreen(ch int) bool {
 	_, span := c.rawCentre(ch)
-	return span > 8*25
+	return float64(span) > 8*c.codesPerDiv(ch)
 }
 
 // recentreClipped centres a clipped trace whose own span fits g's fill: it
@@ -1066,7 +1072,7 @@ func (c *Controller) overScreen(ch int) bool {
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-225
 func (c *Controller) recentreClipped(stop chan struct{}, ch int, g autoGoal) (fixed, ok bool) {
 	errDiv, span := c.rawCentre(ch)
-	if span <= 0 || float64(span) > g.fill*25 || math.Abs(errDiv) < 0.2 {
+	if span <= 0 || float64(span) > g.fill*c.codesPerDiv(ch) || math.Abs(errDiv) < 0.2 {
 		return false, true
 	}
 	c.lv.SetOffset(ch, c.fe.OffsetReqV(ch)-errDiv*c.fe.RangeV(ch))
@@ -1082,7 +1088,7 @@ func (c *Controller) recentreClipped(stop chan struct{}, ch int, g autoGoal) (fi
 // shows a level the last did not. Then the raw-code nudge. stepped is false
 // at the coarsest detent or with the signal gone; ok false when cancelled.
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-225
-func (c *Controller) coarsen(stop chan struct{}, ch int, sw *[2]*measure.Result, g autoGoal) (stepped, ok bool) {
+func (c *Controller) coarsen(stop chan struct{}, ch int, sw *[maxChans]*measure.Result, g autoGoal) (stepped, ok bool) {
 	snap := c.vposs()
 	if snap[ch] >= len(c.ladder(ch))-1 {
 		return false, true // already the coarsest detent — can't fit it any better
@@ -1117,7 +1123,7 @@ func (c *Controller) coarsen(stop chan struct{}, ch int, sw *[2]*measure.Result,
 // when it shows a frequency), rising at mid-screen for g.centre, then checks
 // the comparator fires there. It returns the source; ok false when cancelled.
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-224
-func (c *Controller) autoTrigger(stop chan struct{}, m *[2]*measure.Result, swing [2]*measure.Result, g autoGoal) (src int, ok bool) {
+func (c *Controller) autoTrigger(stop chan struct{}, m *[maxChans]*measure.Result, swing [maxChans]*measure.Result, g autoGoal) (src int, ok bool) {
 	*m, _ = c.measureChans()
 	for ch := range m {
 		m[ch] = widestSwing(m[ch], swing[ch])
@@ -1125,7 +1131,7 @@ func (c *Controller) autoTrigger(stop chan struct{}, m *[2]*measure.Result, swin
 	src = autosetTrigSource(*m)
 	if g.spectrum {
 		c.mu.Lock()
-		fs := c.fftSrc & 1
+		fs := c.chOf(c.fftSrc)
 		c.mu.Unlock()
 		if has(m[fs]) && m[fs].Freq > 0 {
 			src = fs
@@ -1197,7 +1203,7 @@ func (c *Controller) verifyTrigLevel(stop chan struct{}, computed float64) bool 
 	if c.trigFiring() {
 		return true // the fit was right at this detent — nothing to do
 	}
-	src := c.eng.Snapshot().TrigSource & 1
+	src := c.chOf(c.eng.Snapshot().TrigSource)
 	var fires []float64
 	for _, v := range c.trigScanLevels() {
 		c.lv.SetTrigLevel(v, src)
@@ -1278,9 +1284,9 @@ func (c *Controller) frameSeq() uint64 {
 // tip-referred volts (using the CURRENT V/div + offset), plus whether it holds
 // real signal.
 // TRLC-LINKS: REQ-DSO-137
-func (c *Controller) measureChans() ([2]*measure.Result, bool) {
+func (c *Controller) measureChans() ([maxChans]*measure.Result, bool) {
 	st := c.eng.Snapshot()
-	var m [2]*measure.Result
+	var m [maxChans]*measure.Result
 	ok := false
 	if c.frameFn == nil {
 		return m, false
@@ -1291,36 +1297,29 @@ func (c *Controller) measureChans() ([2]*measure.Result, bool) {
 		}
 		ok = true
 		valid := min(max(f.Len(), 1), len(f.Codes8(0)))
-		for ch := range 2 {
-			var sig []uint8
-			switch {
-			case ch == 0:
-				sig = f.Codes8(0)[:valid]
-			case len(f.Codes8(1)) >= valid:
-				sig = f.Codes8(1)[:valid]
-			default:
+		for ch := range c.nch {
+			sig := f.Codes8(ch)
+			if ch > 0 && len(sig) < valid {
 				continue
 			}
+			sig = sig[:valid]
 			vdiv, probe, offV := noFrontEnd.rng, 1.0, 0.0 // volts per code on the analog range
 			if c.fe != nil {
 				vdiv = c.fe.RangeV(ch)
 				probe = c.fe.ProbeFactor(ch)
 				offV = c.lv.OffsetStagedIn(ch, st) // calibrated per-detent zero, not the fixed fallback
 			}
-			q := f.Precision(0)
-			if ch == 1 {
-				q = f.Precision(1)
-			}
-			if len(q) >= valid {
-				m[ch] = measure.ComputeQ8(q[:valid], vdiv/25*probe, offV*probe, f.SampleS)
+			vpc := vdiv / traceCodesPerDiv(f, ch) * probe
+			if q := f.Precision(ch); len(q) >= valid {
+				m[ch] = measure.ComputeQ8(q[:valid], vpc, offV*probe, f.SampleS)
 			} else {
-				m[ch] = measure.Compute(sig, vdiv/25*probe, offV*probe, f.SampleS)
+				m[ch] = measure.Compute(sig, vpc, offV*probe, f.SampleS)
 			}
 			if f.Content == sample.PeakPairs {
-				m[ch] = m[ch].WithEnvelopeTiming(sig, vdiv/25*probe, offV*probe, f.SampleS)
+				m[ch] = m[ch].WithEnvelopeTiming(sig, vpc, offV*probe, f.SampleS)
 			}
 			if f.Cond.BandwidthHz > 0 {
-				m[ch] = ringFree(m[ch], sig, vdiv/25*probe, offV*probe)
+				m[ch] = ringFree(m[ch], sig, vpc, offV*probe)
 			}
 		}
 	})
@@ -1385,10 +1384,7 @@ func (c *Controller) rawCentre(ch int) (errDiv float64, span int) {
 		if f == nil {
 			return
 		}
-		sig := f.Codes8(0)
-		if ch == 1 {
-			sig = f.Codes8(1)
-		}
+		sig := f.Codes8(ch)
 		valid := f.Len()
 		if valid < 1 || valid > len(sig) {
 			valid = len(sig)
@@ -1415,7 +1411,7 @@ func (c *Controller) rawCentre(ch int) (errDiv float64, span int) {
 				break
 			}
 		}
-		errDiv, span = (float64(lo+hi)/2-128)/25, hi-lo
+		errDiv, span = (float64(lo+hi)/2-sample.Mid8)/traceCodesPerDiv(f, ch), hi-lo
 	})
 	return errDiv, span
 }
@@ -1431,7 +1427,7 @@ func (c *Controller) centreErrOver(ch int, swing *measure.Result) (errDiv float6
 	if !has(swing) || c.fe == nil {
 		return errDiv, true
 	}
-	volts := float64(span) * c.fe.RangeV(ch) / 25 * c.fe.ProbeFactor(ch)
+	volts := float64(span) * c.fe.RangeV(ch) / c.codesPerDiv(ch) * c.fe.ProbeFactor(ch)
 	return errDiv, volts >= 0.7*swing.Vpp
 }
 
@@ -1448,10 +1444,7 @@ func (c *Controller) railing(ch int) bool {
 		if f == nil || f.Flags.Has(sample.Envelope) {
 			return // an envelope frame's min/max bands aren't per-sample rails
 		}
-		sig := f.Codes8(0)
-		if ch == 1 {
-			sig = f.Codes8(1)
-		}
+		sig := f.Codes8(ch)
 		valid := f.Len()
 		if valid < 1 || valid > len(sig) {
 			valid = len(sig)
@@ -1491,10 +1484,7 @@ func (c *Controller) clipped(ch int) bool {
 		if f == nil || f.Flags.Has(sample.Envelope) {
 			return
 		}
-		sig := f.Codes8(0)
-		if ch == 1 {
-			sig = f.Codes8(1)
-		}
+		sig := f.Codes8(ch)
 		valid := f.Len()
 		if valid < 1 || valid > len(sig) {
 			valid = len(sig)
@@ -1572,8 +1562,37 @@ func has(r *measure.Result) bool { return r != nil && r.Vpp > 0.02 }
 
 // fq2 reports a capture that timed either channel's frequency.
 // TRLC-LINKS: REQ-DSO-137
-func fq2(m [2]*measure.Result) bool {
-	return has(m[0]) && m[0].Freq > 0 || has(m[1]) && m[1].Freq > 0
+func fq2(m [maxChans]*measure.Result) bool {
+	for _, r := range m {
+		if has(r) && r.Freq > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// noneHas reports a capture with no channel's swing above noise.
+// TRLC-LINKS: REQ-DSO-137
+func noneHas(m [maxChans]*measure.Result) bool {
+	for _, r := range m {
+		if has(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// strongestBy is the channel with the largest swing among those ok accepts,
+// the lowest on a tie; C1 when ok accepts none.
+// TRLC-LINKS: REQ-DSO-137
+func strongestBy(m [maxChans]*measure.Result, ok func(*measure.Result) bool) int {
+	best := 0
+	for ch := 1; ch < len(m); ch++ {
+		if ok(m[ch]) && (!ok(m[best]) || m[ch].Vpp > m[best].Vpp) {
+			best = ch
+		}
+	}
+	return best
 }
 
 // Codes a line's swing spans for smallActive: from smallActiveMin (a 3.3 V
@@ -1598,7 +1617,8 @@ func (c *Controller) smallActive() bool {
 		if f == nil || f.Flags.Has(sample.Envelope) || f.Len() < 64 {
 			return
 		}
-		for _, codes := range [2][]uint8{f.Codes8(0), f.Codes8(1)} {
+		for ch := range c.nch {
+			codes := f.Codes8(ch)
 			if len(codes) < f.Len() {
 				continue
 			}
@@ -1684,25 +1704,20 @@ func widestSwing(r, seen *measure.Result) *measure.Result {
 	return &w
 }
 
-// strongerCh is the channel of the two with the larger swing (0 on a tie).
+// strongerCh is the channel with the largest swing (the lowest on a tie).
 // TRLC-LINKS: REQ-DSO-137
-func strongerCh(m [2]*measure.Result) int {
-	if has(m[1]) && (!has(m[0]) || m[1].Vpp > m[0].Vpp) {
-		return 1
-	}
-	return 0
-}
+func strongerCh(m [maxChans]*measure.Result) int { return strongestBy(m, has) }
 
 // autosetTrigSource is the channel AUTO triggers on: the stronger one, unless
 // only the other's repetition is resolved at the fitted timebase - a stronger
 // channel without a frequency there (a 10 Hz pulse beside a 1 kHz square)
 // fires on few screens, and the display timebase follows the trigger source.
 // TRLC-LINKS: REQ-DSO-137
-func autosetTrigSource(m [2]*measure.Result) int {
+func autosetTrigSource(m [maxChans]*measure.Result) int {
 	src := strongerCh(m)
 	hasFreq := func(r *measure.Result) bool { return has(r) && r.Freq > 0 }
-	if !hasFreq(m[src]) && hasFreq(m[1-src]) {
-		src = 1 - src
+	if !hasFreq(m[src]) && fq2(m) {
+		src = strongestBy(m, hasFreq)
 	}
 	return src
 }
@@ -1846,7 +1861,7 @@ func nearestLadderStep(l []vstep, target float64) int {
 // at 10 mV/div.
 // TRLC-LINKS: REQ-DSO-137
 func (c *Controller) trigScanLevels() []float64 {
-	src := c.eng.Snapshot().TrigSource & 1
+	src := c.chOf(c.eng.Snapshot().TrigSource)
 	vdiv, off, probe := 1.0, 0.0, 1.0
 	if c.fe != nil {
 		vdiv, off, probe = c.fe.VdivV(src), c.fe.OffsetReqV(src), c.fe.ProbeFactor(src)

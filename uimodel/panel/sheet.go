@@ -19,7 +19,7 @@ import (
 
 // keyTabs are the dedicated keys that open a tab.
 var keyTabs = map[string]int{
-	"trigmenu": tabTrig, "ch1": tabCh1, "ch2": tabCh2, "horizmenu": tabTime, "acquire": tabAcq,
+	"trigmenu": tabTrig, "ch1": tabCh1, "ch2": tabCh2, "ch3": tabCh3, "ch4": tabCh4, "horizmenu": tabTime, "acquire": tabAcq,
 	"display": tabView, "measure": tabMeas, "cursors": tabCurs, keyMath: tabCmp, "ref": tabCmp,
 	"utility": tabBus, "saverecall": tabFile, "help": tabSys,
 }
@@ -30,23 +30,30 @@ var keyRows = map[string]string{keyMath: "cmp.math", "ref": "cmp.store_a", "help
 // keyNames are the printed names of the keys, for the hint line.
 var keyNames = map[string]string{keyMath: "Math", "ref": "Ref", "help": "Help"}
 
-// tabOrder is a workspace's sheet tab order: its own tabs, then the rest.
+// tabOrder is a workspace's sheet tab order on a scope of nch channels:
+// its own tabs, then the rest; own is how many are its own.
 // TRLC-LINKS: REQ-DSO-212
-func tabOrder(ws wsview.WS) []int {
+func tabOrder(ws wsview.WS, nch int) (order []int, own int) {
 	var out []int
 	for _, id := range wsDefs[ws].tabs {
-		out = append(out, tabIndex(id))
-	}
-	for i := range numTabs {
-		own := false
-		for _, o := range out {
-			own = own || o == i
+		if ti := tabIndex(id); tabShown(ti, nch) {
+			out = append(out, ti)
 		}
-		if !own {
+	}
+	own = len(out)
+	for i := range numTabs {
+		if !tabShown(i, nch) {
+			continue
+		}
+		mine := false
+		for _, o := range out {
+			mine = mine || o == i
+		}
+		if !mine {
 			out = append(out, i)
 		}
 	}
-	return out
+	return out, own
 }
 
 // fkey is one F-key choice of a menu.
@@ -129,7 +136,7 @@ func (c *Controller) keyTab(key string) {
 	}
 	c.openSheetLocked(ti, key)
 	if id := keyRows[key]; id != "" {
-		c.ui.rowAt[ti] = rowIndex(id)
+		c.ui.rowAt[ti] = rowIndex(id, c.nch)
 	}
 }
 
@@ -151,6 +158,7 @@ func (c *Controller) chanKey(ch int) {
 		c.openSheetLocked(ti, fmt.Sprintf("ch%d", ch+1))
 		c.toastLocked(fmt.Sprintf("CH%d on", ch+1), 900*time.Millisecond)
 		c.mu.Unlock()
+		c.pushShown()
 		return
 	}
 	c.mu.Unlock()
@@ -160,8 +168,8 @@ func (c *Controller) chanKey(ch int) {
 // curRow is the sheet's highlighted row.
 // TRLC-LINKS: REQ-DSO-212
 func curRow(u *uiState) *row {
-	t := sheetTabs[u.tab]
-	return t.rows[clampInt(u.rowAt[u.tab], 0, len(t.rows)-1)]
+	rows := tabRows(u.tab, u.nch)
+	return rows[clampInt(u.rowAt[u.tab], 0, len(rows)-1)]
 }
 
 // sheetKeys are the F-key choices of the open sheet (or its sub-mode).
@@ -293,7 +301,7 @@ func (c *Controller) sheetTurnTab(dir int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.leaveModesLocked()
-	order := tabOrder(c.ui.ws)
+	order, _ := tabOrder(c.ui.ws, c.nch)
 	i := 0
 	for k, t := range order {
 		if t == c.ui.tab {
@@ -310,7 +318,7 @@ func (c *Controller) sheetAdjust(dir, steps int) {
 	c.mu.Lock()
 	sub, edit := c.ui.sub, c.ui.edit
 	if sub == subNone && !edit {
-		n := len(sheetTabs[c.ui.tab].rows)
+		n := len(tabRows(c.ui.tab, c.nch))
 		c.ui.rowAt[c.ui.tab] = ((c.ui.rowAt[c.ui.tab]+dir)%n + n) % n
 		c.mu.Unlock()
 		return

@@ -85,6 +85,9 @@ type row struct {
 
 	meas int // MEAS parameter rows: index+1 into measParams (live values beside)
 	slot int // FILE rows: the setup slot number
+	// minChans: a row only a scope with at least this many channels has
+	// (a choice between channels past two); 0 for every scope.
+	minChans int
 }
 
 // tab is one sheet tab.
@@ -327,17 +330,22 @@ type sv struct {
 	sndRow soundRowInfo  // and what its rows show
 
 	fe       bool
-	vert     [2]vstep     // each channel's V/div step
-	ladder   [2][]float64 // each channel's V/div ladder at the probe tip
-	offRange [2]float64   // each channel's offset range (±) at the BNC
-	probe    [2]float64
-	cpl      [2]int
-	offV     [2]float64 // requested input-referred offset volts
-	hasBWL   bool
-	bwl      [2]bool
-	hasInv   bool
-	inv      [2]bool
-	trigV    float64 // the trigger level at the probe tip
+	nch      int                 // the scope's channels
+	vert     [maxChans]vstep     // each channel's V/div step
+	ladder   [maxChans][]float64 // each channel's V/div ladder at the probe tip
+	offRange [maxChans]float64   // each channel's offset range (±) at the BNC
+	probe    [maxChans]float64
+	cpl      [maxChans]int
+	offV     [maxChans]float64 // requested input-referred offset volts
+	// cpd is each channel's codes a division on the 8-bit view the
+	// analysis reads, as the last frame stated it (defaultCodesPerDiv
+	// before one).
+	cpd    [maxChans]float64
+	hasBWL bool
+	bwl    [maxChans]bool
+	hasInv bool
+	inv    [maxChans]bool
+	trigV  float64 // the trigger level at the probe tip
 	// trigSaved is the trigger level as the board keeps it: equal for equal
 	// levels, set or not.
 	trigSaved instrument.TrigLevelSaved
@@ -348,10 +356,11 @@ type sv struct {
 	hasSerial bool
 	serial    engine.SerialParams
 
-	chDisp            [2]bool
+	chDisp            [maxChans]bool
 	showMeas, persist bool
 	viewMode          int
 	mathMode          int
+	mathCh, xyCh      [2]int // math's operands, X-Y's axes (channels)
 	zoom              int
 	zoomOff           float64
 	tdivs             []float64
@@ -423,7 +432,33 @@ type sv struct {
 // srcVdiv is a channel's displayed V/div at the probe tip.
 // TRLC-LINKS: REQ-DSO-212
 func (s *sv) vdivTip(ch int) float64 {
-	return s.vert[ch&1].vdiv * s.probe[ch&1]
+	ch = s.chOf(ch)
+	return s.vert[ch].vdiv * s.probe[ch]
+}
+
+// chOf is channel number x on this scope: x itself for one of its
+// channels, any other number wrapped onto them (on two channels, x's low
+// bit, as the two-channel model always read a channel number).
+// TRLC-LINKS: REQ-DSO-212
+func (s *sv) chOf(x int) int { return chMod(x, s.nch) }
+
+// chMod is x wrapped onto n channels.
+// TRLC-LINKS: REQ-DSO-212
+func chMod(x, n int) int {
+	if n <= 0 { // a state read without its scope: two channels
+		n = 2
+	}
+	n = min(n, maxChans)
+	return (x%n + n) % n
+}
+
+// cpdOf is channel ch's codes a division on the 8-bit view.
+// TRLC-LINKS: REQ-DSO-216
+func (s *sv) cpdOf(ch int) float64 {
+	if v := s.cpd[s.chOf(ch)]; v > 0 {
+		return v
+	}
+	return defaultCodesPerDiv
 }
 
 // matchTokens is the serial trigger's match as editor tokens.
@@ -443,4 +478,14 @@ func matchText(s *sv) string {
 		return "any byte"
 	}
 	return t
+}
+
+// bothChannels names every channel of a scope with n: "both channels" on
+// two, "all channels" past them.
+// TRLC-LINKS: REQ-DSO-217
+func bothChannels(n int) string {
+	if n <= 2 {
+		return "both channels"
+	}
+	return "all channels"
 }

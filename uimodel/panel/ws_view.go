@@ -124,24 +124,24 @@ func (c *Controller) sheetView(s *sv) *wsview.Sheet {
 	u := &s.ui
 	t := sheetTabs[u.tab]
 	sh := &wsview.Sheet{WSName: wsview.Names[u.ws], ThumbView: s.viewMode, FFTCh: s.fftSrc}
-	own := len(wsDefs[u.ws].tabs)
-	order := tabOrder(u.ws)
+	order, own := tabOrder(u.ws, s.nch)
 	sh.Tabs = make([]wsview.Tab, 0, len(order))
 	for i, ti := range order {
 		sh.Tabs = append(sh.Tabs, wsview.Tab{Name: sheetTabs[ti].name, Own: i < own, Active: ti == u.tab})
 	}
-	focus := clampInt(u.rowAt[u.tab], 0, len(t.rows)-1)
+	rows := tabRows(u.tab, s.nch)
+	focus := clampInt(u.rowAt[u.tab], 0, len(rows)-1)
 	c.amu.Lock()
 	allVals, allOK := c.ana.allVals, c.ana.allOK
 	c.amu.Unlock()
-	nrows := len(t.rows)
-	for _, r := range t.rows {
+	nrows := len(rows)
+	for _, r := range rows {
 		if r.hdr != "" {
 			nrows++
 		}
 	}
 	sh.Rows = make([]wsview.Row, 0, nrows)
-	for i, r := range t.rows {
+	for i, r := range rows {
 		if r.hdr != "" {
 			sh.Rows = append(sh.Rows, wsview.Row{Kind: wsview.Header, Header: r.hdr})
 		}
@@ -169,7 +169,7 @@ func (c *Controller) sheetView(s *sv) *wsview.Sheet {
 
 // rowView is one row as drawn.
 // TRLC-LINKS: REQ-DSO-212
-func (c *Controller) rowView(s *sv, r *row, focus, edit bool, allVals [2][]float64, allOK [2]bool) wsview.Row {
+func (c *Controller) rowView(s *sv, r *row, focus, edit bool, allVals [maxChans][]float64, allOK [maxChans]bool) wsview.Row {
 	rel := r.relevant(s)
 	rv := wsview.Row{Kind: r.kind, Label: r.label, Rel: rel, Focus: focus, Edit: edit}
 	switch r.kind {
@@ -182,7 +182,7 @@ func (c *Controller) rowView(s *sv, r *row, focus, edit bool, allVals [2][]float
 			rv.Opts = append(rv.Opts, wsview.Opt{Text: o.t, Sel: sel, Quiet: sel && (o.t == "Off" || !rel)})
 		}
 		if r.meas > 0 {
-			for ch := range 2 {
+			for ch := range s.nch {
 				if s.chDisp[ch] && allOK[ch] && len(allVals[ch]) > r.meas-1 {
 					rv.Meas[ch] = fmtMeas(r.meas-1, allVals[ch][r.meas-1])
 				} else if s.chDisp[ch] {
@@ -318,7 +318,7 @@ func cursorDelta(s *sv) string {
 		return line
 	}
 	var parts []string
-	for ch := range 2 {
+	for ch := range s.nch {
 		if s.chDisp[ch] {
 			va, vb := cursorVolts(s, ch)
 			parts = append(parts, fmt.Sprintf("dV%d %s", ch+1, si(math.Abs(vb-va), "V")))
