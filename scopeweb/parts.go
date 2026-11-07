@@ -4,6 +4,8 @@ package scopeweb
 
 import (
 	"errors"
+	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -125,6 +127,36 @@ func (t triggers) SetZones(zs []wire.Zone) {
 		out = append(out, engine.Zone{DtLoS: v.DtLoS, DtHiS: v.DtHiS, CodeLo: v.CodeLo, CodeHi: v.CodeHi, Avoid: v.Avoid, Ch: v.Ch})
 	}
 	z.SetZones(out)
+}
+
+// SetZonesV installs zones given in volts at the probe tip: each becomes
+// display codes at the channel's scale now. The zone qualifier compares
+// display codes of C1 and C2, so a zone on another channel is refused.
+// TRLC-LINKS: REQ-DSO-162
+func (t triggers) SetZonesV(zs []wire.ZoneV) (int, error) {
+	if t.s.cfg.Parts.Zones == nil {
+		return 0, errors.New("no zone trigger")
+	}
+	off, vpc := t.s.scales().Scales()
+	out := make([]wire.Zone, 0, len(zs))
+	for _, z := range zs {
+		if z.Ch < 0 || z.Ch > 1 {
+			return 0, fmt.Errorf("channel C%d: the zone trigger takes C1 and C2", z.Ch+1)
+		}
+		lo, hi := zoneCode(z.VLo, off[z.Ch], vpc[z.Ch]), zoneCode(z.VHi, off[z.Ch], vpc[z.Ch])
+		out = append(out, wire.Zone{DtLoS: z.DtLoS, DtHiS: z.DtHiS, CodeLo: min(lo, hi), CodeHi: max(lo, hi), Avoid: z.Avoid, Ch: z.Ch})
+	}
+	t.SetZones(out)
+	return len(out), nil
+}
+
+// zoneCode is volts v at the tip as a display code about 128, clamped.
+// TRLC-LINKS: REQ-DSO-162
+func zoneCode(v, off, vpc float64) int {
+	if !(vpc > 0) {
+		return 128
+	}
+	return clampI(int(math.Round(128+(v+off)/vpc)), 0, 255)
 }
 
 // SerialConfig is the protocol trigger as armed (on the display, a phone

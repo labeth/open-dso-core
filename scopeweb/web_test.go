@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/hal/halfake"
 	"github.com/labeth/open-dso-core/measure"
@@ -327,3 +328,39 @@ func TestMeasCacheReuse(t *testing.T) {
 		t.Fatal("an expired throttle window did not measure afresh")
 	}
 }
+
+// zoneRecorder keeps the zones installed.
+type zoneRecorder struct{ got []engine.Zone }
+
+func (z *zoneRecorder) SetZones(zs []engine.Zone) { z.got = zs }
+
+// Zones in volts become display codes at the channel's scale; a zone on a
+// channel the zone qualifier does not compare is refused with why; a
+// failing frame reads in the v2 shape with its traces' scales.
+// TRLC-LINKS: REQ-DSO-162
+func TestZonesVolts(t *testing.T) {
+	r := newRig(t, halfake.Config{})
+	zr := &zoneRecorder{}
+	r.web = scopeweb.New(scopeweb.Config{Frames: r.fo, Scales: fixedScales{}, Parts: scopeweb.Parts{Zones: zr}})
+	out := r.json(t, http.MethodPost, "/api/zones", `[{"dt_lo_s":-1e-6,"dt_hi_s":1e-6,"v_lo":-0.5,"v_hi":1,"ch":1}]`)
+	if out["ok"] != true || len(zr.got) != 1 || zr.got[0].CodeLo != 120 || zr.got[0].CodeHi != 150 || zr.got[0].Ch != 1 {
+		t.Fatalf("%v %+v", out, zr.got)
+	}
+	if out := r.json(t, http.MethodPost, "/api/zones", `[{"dt_lo_s":0,"dt_hi_s":1,"v_lo":0,"v_hi":1,"ch":2}]`); out["ok"] != false || out["err"] == "" {
+		t.Fatalf("a zone on C3: %v", out)
+	}
+	if out := r.json(t, http.MethodPost, "/api/zones", `[{"dt_lo_s":0,"dt_hi_s":1,"code_lo":10,"code_hi":20,"ch":3}]`); out["ok"] != true || zr.got[0].Ch != 1 {
+		t.Fatalf("a v1 zone: %v %+v", out, zr.got)
+	}
+}
+
+// fixedScales are 0.05 V a code with a 0.1 V offset on both channels.
+type fixedScales struct{}
+
+func (fixedScales) Scales() (off, vpc [2]float64) {
+	return [2]float64{0.1, 0.1}, [2]float64{0.05, 0.05}
+}
+func (fixedScales) Coupling(int) int                { return 0 }
+func (fixedScales) Probe(int) float64               { return 1 }
+func (fixedScales) Inverted() [2]bool               { return [2]bool{} }
+func (fixedScales) Position() (float64, bool, bool) { return 0.5, true, false }

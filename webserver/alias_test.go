@@ -67,3 +67,20 @@ func TestSetAliases(t *testing.T) {
 		}
 	}
 }
+
+// A failing frame of the mask test reads in the v2 shape with ?v=2: its
+// traces with their channel, format and scale; without, as v1.
+// TRLC-LINKS: REQ-DSO-162
+func TestMaskFailV2(t *testing.T) {
+	h := webserver.New(webtest.NewFake(false)).Handler()
+	v2 := serve(t, h, http.MethodGet, "/api/maskfail?i=0&v=2", "").Body.String()
+	if !strings.Contains(v2, `"traces":[{"ch":0,"fmt":{"bits":8,"storage":"u8"`) || !strings.Contains(v2, `"per_code_v":0.04`) || strings.Contains(v2, `"vpc1"`) {
+		t.Fatalf("v2: %s", v2)
+	}
+	if v1 := serve(t, h, http.MethodGet, "/api/maskfail?i=0", "").Body.String(); !strings.Contains(v1, `"vpc1":0.04`) || strings.Contains(v1, "traces") {
+		t.Fatalf("v1: %s", v1)
+	}
+	if out := serve(t, h, http.MethodPost, "/api/zones", `[{"dt_lo_s":0,"dt_hi_s":1,"v_lo":0,"v_hi":1}]`).Body.String(); !strings.Contains(out, "display codes") {
+		t.Fatalf("v2 zones on a scope that takes codes: %s", out)
+	}
+}

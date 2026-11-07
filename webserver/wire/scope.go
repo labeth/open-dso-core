@@ -34,6 +34,15 @@ type Zone struct {
 	Ch             int
 }
 
+// ZoneV is a zone in the v2 shape: seconds from the trigger edge by volts
+// at the probe tip on a channel.
+type ZoneV struct {
+	DtLoS, DtHiS float64
+	VLo, VHi     float64
+	Avoid        bool
+	Ch           int
+}
+
 // Mask is an envelope mask: a frame fails where a sample of display column
 // j leaves [Lo[j], Hi[j]] on channel Ch. With TdivS and SampleS it holds
 // only for frames of that timebase, interval and kind (PeakDetect).

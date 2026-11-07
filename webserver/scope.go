@@ -241,6 +241,13 @@ type Triggers interface {
 	SerialProtocols() any
 }
 
+// ZonesV2 is optional on Triggers: zones in volts at the probe tip on any
+// channel (the /api/zones v2 body). It answers how many it installed, or
+// why it refused them.
+type ZonesV2 interface {
+	SetZonesV(z []wire.ZoneV) (int, error)
+}
+
 // Masks is the envelope mask test.
 type Masks interface {
 	SetMask(m wire.Mask)
