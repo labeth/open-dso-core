@@ -291,6 +291,12 @@ type NodeCaps struct {
 	MinS    float64  `yaml:"min_s"`
 	MaxS    float64  `yaml:"max_s"`
 	Broken  []string `yaml:"broken"` // refused with this text: "runt either"
+	// Gate says the node takes a gate input (TrigStage.Gate): the
+	// qualified edge on NodeEdge.
+	Gate bool `yaml:"gate"`
+	// MaxCount is the largest event count the node takes (TrigStage.Count:
+	// the Nth edge on NodeEdge); 0 or 1 counts nothing.
+	MaxCount int `yaml:"max_count"`
 }
 
 // Trigger programs the hardware trigger. It is the only trigger entry point.
