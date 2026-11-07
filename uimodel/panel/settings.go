@@ -45,8 +45,12 @@ func (c *Controller) SettingsView() settings.ViewState {
 	disp := settings.Display{
 		MathMode: c.mathMode, ShowMeas: c.showMeas, Persist: c.persist,
 		Hidden: [2]bool{!c.chDisp[0], !c.chDisp[1]},
-		Set:    true, CurX: s.curX, CurY: s.curY, CurAt: true, CurT: c.curT, CurV: c.curV, CurVCh: c.curVCh,
+		MathCh: pairOut(c.mathCh), XYCh: pairOut(c.xyCh),
+		Set: true, CurX: s.curX, CurY: s.curY, CurAt: true, CurT: c.curT, CurV: c.curV, CurVCh: c.curVCh,
 		CurSel: c.curSel, Zoom: c.zoom, ZoomOff: c.zoomOff,
+	}
+	for i := range disp.HiddenMore {
+		disp.HiddenMore[i] = 2+i < c.nch && !c.chDisp[2+i] // a channel the scope lacks is not hidden
 	}
 	if c.curOn {
 		disp.CurMode = 1 + c.curType
@@ -180,10 +184,15 @@ func (c *Controller) ApplySettingsView(v settings.ViewState) {
 	c.viewMode = view
 	c.mathMode = mod5(v.Display.MathMode)
 	c.showMeas, c.persist = v.Display.ShowMeas, v.Display.Persist
-	// the file keeps C1 and C2's; channels past them keep theirs
 	for ch, h := range v.Display.Hidden {
 		c.chDisp[ch] = !h
 	}
+	for i, h := range v.Display.HiddenMore {
+		if 2+i < c.nch {
+			c.chDisp[2+i] = !h
+		}
+	}
+	c.mathCh, c.xyCh = c.pairIn(v.Display.MathCh), c.pairIn(v.Display.XYCh)
 	var inv *[2]bool
 	if ds := v.Display; ds.Set {
 		c.applyDisplayLocked(ds)
@@ -345,4 +354,25 @@ func (c *Controller) applyUILocked(u settings.UI) (restream bool) {
 		}
 	}
 	return restream
+}
+
+// pairOut is a channel pair as the settings file keeps it: each channel
+// plus one, zero for C1 and C2.
+// TRLC-LINKS: REQ-DSO-136, REQ-DSO-089
+func pairOut(p [2]int) [2]int {
+	if p == [2]int{0, 1} {
+		return [2]int{}
+	}
+	return [2]int{p[0] + 1, p[1] + 1}
+}
+
+// pairIn is a saved channel pair: C1 and C2 for zero, or for a pair this
+// scope cannot take (a channel it lacks, or one channel twice).
+// TRLC-LINKS: REQ-DSO-136, REQ-DSO-072
+func (c *Controller) pairIn(p [2]int) [2]int {
+	a, b := p[0]-1, p[1]-1
+	if p == [2]int{} || a < 0 || b < 0 || a >= c.nch || b >= c.nch || a == b {
+		return [2]int{0, 1}
+	}
+	return [2]int{a, b}
 }

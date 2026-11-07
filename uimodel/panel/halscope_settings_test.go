@@ -125,3 +125,41 @@ func TestModelLevelKeepsAnUnsavedLevel(t *testing.T) {
 		t.Fatalf("level %g, want 0.7 kept", got)
 	}
 }
+
+// C3 and C4 drawn off, math's operands and X-Y's axes come back from a
+// saved setup; a two-channel scope's C1/C2 pairs are left out of the file,
+// and a pair the scope cannot take is C1/C2.
+// TRLC-LINKS: REQ-DSO-136, REQ-DSO-089
+func TestSettingsKeepChannelsPastC2AndPairs(t *testing.T) {
+	c, m, b := halRig(t, 4)
+	c.SetTraceOn(2, false) // a HAL scope's shown channels are the instrument state's
+	c.mu.Lock()
+	c.mathCh, c.xyCh = [2]int{2, 3}, [2]int{0, 3}
+	c.mu.Unlock()
+	st := settings.Collect(m, NewHALScope(m, b, "").Settings(), c, nil)
+	d := st.Display
+	if d.HiddenMore != [2]bool{true, false} || d.MathCh != [2]int{3, 4} || d.XYCh != [2]int{1, 4} {
+		t.Fatalf("collected %+v", d)
+	}
+	c2, m2, b2 := halRig(t, 4)
+	settings.Apply(st, m2, NewHALScope(m2, b2, "").Settings(), c2, nil, t.Logf)
+	c2.mu.Lock()
+	got := [2]any{c2.mathCh, c2.xyCh}
+	c2.mu.Unlock()
+	if got != [2]any{[2]int{2, 3}, [2]int{0, 3}} || m2.State().Channels[2].On || !m2.State().Channels[3].On {
+		t.Fatalf("restored pairs %v, C3 on %v", got, m2.State().Channels[2].On)
+	}
+
+	two, _, _ := halRig(t, 2)
+	raw, err := settings.Encode(settings.Collect(nil, nil, two, nil))
+	if err != nil || bytes.Contains(raw, []byte("math_ch")) || bytes.Contains(raw, []byte("xy_ch")) || bytes.Contains(raw, []byte("hidden_more")) {
+		t.Fatalf("a two-channel setup names pairs or channels past C2 (%v):\n%s", err, raw)
+	}
+	st.Display.MathCh = [2]int{3, 4} // C3 and C4 on a two-channel scope
+	settings.Apply(st, nil, nil, two, nil, t.Logf)
+	two.mu.Lock()
+	defer two.mu.Unlock()
+	if two.mathCh != [2]int{0, 1} {
+		t.Fatalf("a pair the scope lacks restored as %v", two.mathCh)
+	}
+}

@@ -218,6 +218,13 @@ type Display struct {
 	ShowMeas bool    `json:"show_meas"`
 	Persist  bool    `json:"persist"`
 	Hidden   [2]bool `json:"hidden"` // channel trace off (DISPLAY CH1/CH2)
+	// HiddenMore are the channels past C2 drawn off (C3, C4). MathCh are
+	// math's operands and XYCh X-Y's axes, each channel stored plus one;
+	// zero is C1 and C2, the only pair a two-channel scope has, so its file
+	// keeps its bytes.
+	HiddenMore [MaxChannels - 2]bool `json:"hidden_more,omitzero"`
+	MathCh     [2]int                `json:"math_ch,omitzero"`
+	XYCh       [2]int                `json:"xy_ch,omitzero"`
 	// Set marks the blocks below (an older file has none: invert off, no
 	// zoom, the cursors where they were). A recalled setup brings them back.
 	Set     bool       `json:"set,omitempty"`
