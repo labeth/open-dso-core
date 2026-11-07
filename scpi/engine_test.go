@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/labeth/open-dso-core/hal"
 )
 
 // ieee is a small IEEE dialect: the commons, the system subset and two
@@ -260,5 +262,21 @@ func FuzzExec(f *testing.F) {
 		a.Exec([]byte(s))
 		b.Exec([]byte(s))
 		_ = strings.ToUpper(s)
+	})
+}
+
+// A setting the board refused at the owner's commit reaches the error queue
+// as a settings conflict with the refusal's text; other faults as an
+// execution error.
+// TRLC-LINKS: REQ-DSO-024
+func TestReportCommitRefusal(t *testing.T) {
+	e := ieee(EdgeSummaries)
+	e.Report(nil)
+	e.Report(hal.Refuse("V/div", `2 mV at 10x: below the "20 mV" tip floor`))
+	e.Report(errors.New("bus fault"))
+	run(t, e, [][2]string{
+		{"SYST:ERR?", `-221,"Settings conflict;V/div: 2 mV at 10x: below the '20 mV' tip floor"` + "\n"},
+		{"SYST:ERR?", `-200,"Execution error"` + "\n"},
+		{"SYST:ERR?", `0,"No error"` + "\n"},
 	})
 }

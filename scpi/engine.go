@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 	"sync"
+
+	"github.com/labeth/open-dso-core/hal"
 )
 
 // Grammar selects how a program message is split, matched and answered.
@@ -228,6 +230,25 @@ func (e *Engine) pushError(code int, info string) {
 	}
 	e.errs.push(queued{code: code, info: info})
 	e.st.setESR(e.st.esr | esrBit(code))
+}
+
+// Report queues an error raised outside a program message: a setting a
+// command staged that the board refused when the owner committed it. A
+// *hal.Refusal is a settings conflict with the refusal as its text; any
+// other error is an execution error. A dialect without a status model
+// keeps no queue, so nothing is reported there.
+// TRLC-LINKS: REQ-DSO-024
+func (e *Engine) Report(err error) {
+	if err == nil {
+		return
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if r, ok := hal.AsRefusal(err); ok {
+		e.pushError(ErrSettingsConflict, strings.ReplaceAll(r.Error(), `"`, `'`))
+		return
+	}
+	e.pushError(ErrExecution, "")
 }
 
 // Exec runs one program message (without its transport terminator) and
