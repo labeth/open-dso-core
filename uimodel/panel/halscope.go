@@ -20,19 +20,20 @@ type HALScope struct {
 	m       *instrument.Model
 	b       hal.Board
 	product string
+	bode    *engine.Bode // the frequency response, measured beside the owner loop (Watch)
 }
 
 // NewHALScope is the UI model's view of board b through instrument state
 // m; product is the firmware line the SYS tab names.
 // TRLC-LINKS: REQ-DSO-135, REQ-DSO-008
 func NewHALScope(m *instrument.Model, b hal.Board, product string) *HALScope {
-	return &HALScope{m: m, b: b, product: product}
+	return &HALScope{m: m, b: b, product: product, bode: engine.NewBode()}
 }
 
 // Engine is the Model's controls; the HAL scope has no mask test yet, so
 // the mask staging does nothing (the COMPARE mask rows say why).
 // TRLC-LINKS: REQ-DSO-135
-func (s *HALScope) Engine() Engine { return halEngine{s.m} }
+func (s *HALScope) Engine() Engine { return halEngine{s.m, s.bode} }
 
 // Analog is the front end through the Model.
 // TRLC-LINKS: REQ-DSO-135
@@ -56,8 +57,12 @@ func (s *HALScope) Settings() settings.Analog { return halAnalog{s} }
 // TRLC-LINKS: REQ-DSO-135
 func (s *HALScope) Tdivs() []float64 { return s.b.Profile().Timebase.TdivS }
 
-// halEngine is the Model with the mask test refused.
-type halEngine struct{ *instrument.Model }
+// halEngine is the Model with the mask test refused and the frequency
+// response measured beside it.
+type halEngine struct {
+	*instrument.Model
+	bode *engine.Bode
+}
 
 // TRLC-LINKS: REQ-DSO-014
 func (halEngine) SetMask(*engine.Mask) {}

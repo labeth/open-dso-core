@@ -148,6 +148,31 @@ func (f *Frame) SetLen(n int) {
 	}
 }
 
+// Codes8Len is the length of the codes of the frame's first trace that
+// carries 8-bit codes: the record's length on the 8-bit view whichever
+// channels are on (a scope with C1 switched off still has one). 0: none.
+// TRLC-LINKS: REQ-DSO-1003
+func (f *Frame) Codes8Len() int {
+	for i := range f.Traces {
+		if n := len(f.Traces[i].Codes8); n > 0 {
+			return n
+		}
+	}
+	return 0
+}
+
+// Min8Len is the length of the first display envelope among the frame's
+// traces (Min8), 0 when none carries one.
+// TRLC-LINKS: REQ-DSO-1003
+func (f *Frame) Min8Len() int {
+	for i := range f.Traces {
+		if n := len(f.Traces[i].Min8); n > 0 {
+			return n
+		}
+	}
+	return 0
+}
+
 // Codes8 is trace ch's 8-bit codes, nil when the frame has no such trace.
 // The slices returned by these accessors are the trace's own, with its full
 // length; the samples are their first Len().

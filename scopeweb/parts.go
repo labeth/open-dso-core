@@ -438,13 +438,20 @@ func (s *Scope) soundScales(scales []engine.SoundScale) []wire.SoundScale {
 	for _, v := range scales {
 		var o wire.SoundScale
 		o.From = v.From
-		for ch := range 2 {
-			vpc, off := v.SoundVolts(ch)
+		if v.Chans != nil { // lanes past C1 and C2: named on the wire
+			o.Chans = append([]int(nil), v.Chans...)
+		}
+		for lane := range 2 {
+			ch := lane
+			if lane < len(v.Chans) {
+				ch = v.Chans[lane]
+			}
+			vpc, off := v.SoundVolts(lane)
 			p := sc.Probe(ch)
 			if !(p > 0) {
 				p = 1
 			}
-			o.VPC[ch], o.Off[ch] = vpc*p, off*p
+			o.VPC[lane], o.Off[lane] = vpc*p, off*p
 		}
 		out = append(out, o)
 	}

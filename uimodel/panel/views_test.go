@@ -125,7 +125,7 @@ func newViewRig(t *testing.T) *viewRig {
 		r.fmu.Unlock()
 		fn(f)
 	})
-	c.SetInverter(&fakeInv{})
+	c.SetInverter(Inverter2(&fakeInv{}))
 	c.SetDecodeStream(&fakeStream{})
 	return r
 }

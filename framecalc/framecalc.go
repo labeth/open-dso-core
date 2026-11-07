@@ -10,6 +10,7 @@ package framecalc
 
 import (
 	"math"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -208,19 +209,32 @@ func codes8(f *sample.Frame, ch int) []uint8 {
 }
 
 // Channel is trace ch's first valid codes on the 8-bit view; the first
-// trace's when ch's is short of them.
+// trace's that has codes when ch's is short of them.
 // TRLC-LINKS: REQ-DSO-018
 func Channel(f *sample.Frame, ch, valid int) []uint8 {
-	if c := codes8(f, ch); ch > 0 && len(c) >= valid {
+	if c := codes8(f, ch); len(c) > 0 && len(c) >= valid {
 		return c[:valid]
 	}
-	return codes8(f, 0)[:valid]
+	return codes8(f, first(f))[:valid]
 }
 
-// Valid clamps a frame's valid-sample count into its first trace's codes.
+// first is the index of f's first trace that has codes: C1's, or the first
+// channel switched on when C1 is off. 0 when none has.
+// TRLC-LINKS: REQ-DSO-018
+func first(f *sample.Frame) int {
+	for ch := range f.Traces {
+		if len(codes8(f, ch)) > 0 {
+			return ch
+		}
+	}
+	return 0
+}
+
+// Valid clamps a frame's valid-sample count into its first codes (the
+// record's length whichever channels are on).
 // TRLC-LINKS: REQ-DSO-018
 func Valid(f *sample.Frame) int {
-	return min(max(f.Len(), 1), len(codes8(f, 0)))
+	return min(max(f.Len(), 1), len(codes8(f, first(f))))
 }
 
 // Decode decodes f's valid samples with p, reusing the last result for the
@@ -229,7 +243,7 @@ func Valid(f *sample.Frame) int {
 // A zero Seq and Content (a hand-built frame) is never cached.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func Decode(f *sample.Frame, p DecodeParams) decode.Result {
-	if f == nil || len(codes8(f, 0)) == 0 || p.Proto == ProtoOff || p.Proto == ProtoAuto {
+	if f == nil || len(codes8(f, first(f))) == 0 || p.Proto == ProtoOff || p.Proto == ProtoAuto {
 		return decode.Result{}
 	}
 	valid := Valid(f)
@@ -391,13 +405,24 @@ func decodePhys(p DecodeParams, a, b []uint8, sampleS float64) decode.Result {
 // detection is asked for, never per frame.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-214, REQ-DSO-222
 func Detect(f *sample.Frame, format string) decode.Result {
-	if f == nil || len(codes8(f, 0)) == 0 {
+	return DetectPair(f, format, [2]int{0, 1})
+}
+
+// DetectPair is Detect on the two lines of channels pair: the search is a
+// two-line one, so a scope of more channels names the pair it searches,
+// and the result's roles (Roles, Src) name scope channels.
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214, REQ-DSO-222
+func DetectPair(f *sample.Frame, format string, pair [2]int) decode.Result {
+	if f == nil || len(codes8(f, first(f))) == 0 {
 		return decode.Result{}
 	}
 	valid := Valid(f)
 	// Strided: a full Autodetect of a 500 k-sample screen took 14 s on the
 	// scope's ARM.
-	res, st := decode.AutodetectFast(Channel(f, 0, valid), Channel(f, 1, valid), f.SampleS, format)
+	res, st := decode.AutodetectFast(Channel(f, pair[0], valid), Channel(f, pair[1], valid), f.SampleS, format)
+	if pair != [2]int{0, 1} {
+		res = onPair(res, pair)
+	}
 	if k := int(st/f.SampleS + 0.5); k > 1 {
 		for i := range res.Spans { // back to the frame's sample indices
 			res.Spans[i].I0 *= k
@@ -681,11 +706,11 @@ func SpectrumHeld(f *sample.Frame, ch int, sampleS float64) (Spec, bool) {
 // hold after it was taken.
 // TRLC-LINKS: REQ-DSO-070, REQ-DSO-216
 func spectrum(f *sample.Frame, ch int, sampleS float64, hold time.Duration) (Spec, bool) {
-	if f == nil || f.Flags.Has(sample.Envelope) || len(codes8(f, 0)) == 0 || ch < 0 || ch >= len(f.Traces) {
+	if f == nil || f.Flags.Has(sample.Envelope) || ch < 0 || ch >= len(f.Traces) || len(codes8(f, ch)) == 0 {
 		return Spec{}, false
 	}
 	valid := Valid(f)
-	if ch > 0 && len(codes8(f, ch)) < valid {
+	if len(codes8(f, ch)) < valid {
 		return Spec{}, false
 	}
 	n := 1
@@ -780,4 +805,24 @@ func SpectrumRows(f *sample.Frame, ch int, sampleS float64) []Spec {
 		out = append(out, specOf(BlockMeans(src[i*seg:(i+1)*seg], RowFFT, full.Stride), full.Stride, sampleS, f.Cond.BandwidthHz))
 	}
 	return out
+}
+
+// onPair restates a two-line search's roles, found on lines C1 and C2, as
+// the scope channels pair names.
+// TRLC-LINKS: REQ-DSO-214
+func onPair(res decode.Result, pair [2]int) decode.Result {
+	res.Roles.ChA, res.Roles.ChB = pair[res.Roles.ChA&1], pair[res.Roles.ChB&1]
+	if res.Src != "" {
+		w := strings.Fields(res.Src)
+		for i, t := range w {
+			switch t {
+			case "C1":
+				w[i] = "C" + strconv.Itoa(pair[0]+1)
+			case "C2":
+				w[i] = "C" + strconv.Itoa(pair[1]+1)
+			}
+		}
+		res.Src = strings.Join(w, " ")
+	}
+	return res
 }

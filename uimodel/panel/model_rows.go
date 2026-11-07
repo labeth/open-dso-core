@@ -72,9 +72,15 @@ const (
 var (
 	onOff = []opt{{0, "Off"}, {1, "On"}}
 	chans = []opt{{0, "CH1"}, {1, "CH2"}}
+	// chNameOpts are channel choices named C1..C4 (the super-res and Bode rows').
+	chNameOpts = []opt{{0, "C1"}, {1, "C2"}, {2, "C3"}, {3, "C4"}}
 	// allChans are every channel the UI model serves, chanOpts a scope's.
 	allChans = []opt{{0, "CH1"}, {1, "CH2"}, {2, "CH3"}, {3, "CH4"}}
 )
+
+// chNameChoices are the scope's channels as choices named C1..C4.
+// TRLC-LINKS: REQ-DSO-212
+func chNameChoices(s *sv) []opt { return chNameOpts[:min(max(s.nch, 2), len(chNameOpts))] }
 
 // chanOpts are the scope's channels as a row's choices.
 // TRLC-LINKS: REQ-DSO-212
@@ -802,11 +808,11 @@ func superResRows() []*row {
 	}
 	srCh := &row{
 		id: "acq.sr_channel", label: "Channel", kind: wsview.Enum,
-		help: "The channel the stack aligns on.", opts: staticOpts([]opt{{0, "C1"}, {1, "C2"}}),
+		help: "The channel the stack aligns on.", opts: chNameChoices,
 		get: func(s *sv) int { return s.srCh },
 		set: func(c *Controller, v int) error {
 			c.mu.Lock()
-			c.srCh = v & 1
+			c.srCh = c.chOf(v)
 			c.mu.Unlock()
 			c.srRearm()
 			return nil
@@ -1048,14 +1054,14 @@ func bodeChanRow(id, label, help string, dut bool) *row {
 	r := &row{
 		id: id, label: label, kind: wsview.Enum, help: help,
 		knob: "SPECTRUM again (F3) shows Bode, which measures with these.",
-		opts: staticOpts([]opt{{0, "C1"}, {1, "C2"}}),
+		opts: chNameChoices,
 		get: func(s *sv) int {
 			if dut {
-				return s.st.BodeDut & 1
+				return s.chOf(s.st.BodeDut)
 			}
-			return s.st.BodeRef & 1
+			return s.chOf(s.st.BodeRef)
 		},
-		set: func(c *Controller, v int) error { return c.setBodeChannel(dut, v&1) },
+		set: func(c *Controller, v int) error { return c.setBodeChannel(dut, c.chOf(v)) },
 	}
 	r.def = func(c *Controller) error { return c.setBodeChannel(dut, b2ic(dut)) }
 	return r
@@ -1283,10 +1289,15 @@ func cursorDiv(s *sv, k int) float64 {
 
 // maskTolNames label the mask tolerance presets (±samples / ±codes).
 // TRLC-LINKS: REQ-DSO-212
-func maskTolOpts() []opt {
+func maskTolOpts(s *sv) []opt {
 	var o []opt
+	cpd := s.cpdOf(s.st.TrigSource)
 	for i, t := range maskTols {
-		o = append(o, opt{i, fmt.Sprintf("%dpt/%dcd", t[0], t[1])})
+		if cpd == defaultCodesPerDiv {
+			o = append(o, opt{i, fmt.Sprintf("%dpt/%dcd", t[0], t[1])})
+			continue
+		}
+		o = append(o, opt{i, fmt.Sprintf("%dpt/%.2gdiv", t[0], float64(t[1])/defaultCodesPerDiv)})
 	}
 	return o
 }
@@ -1400,7 +1411,7 @@ func cmpRows() []*row {
 	frames.def = func(c *Controller) error { return frames.set(c, 32) }
 	tol := &row{
 		id: "cmp.mask_tol", label: "Tolerance", kind: wsview.Enum,
-		help: "The mask's margin: +/- samples across, +/- codes up and down.", opts: func(*sv) []opt { return maskTolOpts() },
+		help: "The mask's margin: +/- samples across, +/- codes up and down.", opts: maskTolOpts,
 		get: func(s *sv) int { return s.maskTol },
 		set: func(c *Controller, v int) error {
 			c.mu.Lock()

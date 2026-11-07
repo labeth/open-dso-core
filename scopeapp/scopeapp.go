@@ -234,6 +234,9 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 	if err := buildUI(env, o); err != nil {
 		return err
 	}
+	if env.HALScope != nil {
+		go env.HALScope.Watch(env.Frames, stop)
+	}
 	in := o.Input
 	if in == nil {
 		in = b.Input()
@@ -260,6 +263,7 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 	if saver != nil {
 		go saver.Run(stop)
 	}
+	restoreRefs(env, stop)
 
 	// The web server.
 	var srv *http.Server
@@ -396,6 +400,38 @@ func startDisplay(env *Env, cfg Display, stop <-chan struct{}) (<-chan Screen, <
 	return out, done
 }
 
+// restoreRefs puts the stored references back (settings.RefsKey, a store
+// of their own beside the setup file) and stores them on every change
+// until stop.
+// TRLC-LINKS: REQ-DSO-138
+func restoreRefs(env *Env, stop <-chan struct{}) {
+	st := env.Board.Storage()
+	if st == nil {
+		return
+	}
+	kv := st.Settings()
+	if kv == nil {
+		return
+	}
+	if r, ok := settings.LoadRefs(kv, env.Logf); ok {
+		env.UI.ApplyRefs(r)
+		env.Logf("settings: references restored from %s", keyName(kv, settings.RefsKey))
+	}
+	go settings.WatchRefs(kv, env.UI, refsPoll, stop, env.Logf)
+}
+
+// refsPoll is how often the references are checked for a change to store.
+const refsPoll = 2 * time.Second
+
+// keyName is where key lives in kv, for the log.
+// TRLC-LINKS: REQ-DSO-295
+func keyName(kv hal.KV, key string) string {
+	if n, ok := kv.(interface{ Name(string) string }); ok {
+		return n.Name(key)
+	}
+	return key
+}
+
 // restoreSettings restores the setup in the board's settings store
 // through the same setters the panel and the web use (a missing or corrupt
 // file is a start with the defaults), wires the setup memory and returns
@@ -442,12 +478,7 @@ func restoreSettings(env *Env, o Settings) *settings.Saver {
 
 // nameOf is where the settings file lives, for the log.
 // TRLC-LINKS: REQ-DSO-295
-func nameOf(kv hal.KV) string {
-	if n, ok := kv.(interface{ Name(string) string }); ok {
-		return n.Name(settings.FileKey)
-	}
-	return settings.FileKey
-}
+func nameOf(kv hal.KV) string { return keyName(kv, settings.FileKey) }
 
 // buildWeb is the web scope: the scope's, or the core's over the board,
 // the instrument state and the UI model.
@@ -461,8 +492,20 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 	}
 	return scopeweb.New(scopeweb.Config{
 		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, UI: env.UI,
-		Setups: WebSetups{env.Setups}, Screen: env.ScreenPNG,
+		Setups: WebSetups{env.Setups}, Parts: WebParts(env), Screen: env.ScreenPNG,
 	}).WithCaps(), nil
+}
+
+// WebParts are the parts of the core's own that a HAL scope's web scope
+// serves beside the board: the frequency response measured beside the
+// owner loop.
+// TRLC-LINKS: REQ-DSO-295
+func WebParts(env *Env) scopeweb.Parts {
+	var p scopeweb.Parts
+	if env.HALScope != nil {
+		p.Bode = env.HALScope.Bode()
+	}
+	return p
 }
 
 // WebSetups is the setup memory the panel and SCPI share as the web's

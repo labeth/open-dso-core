@@ -50,7 +50,7 @@ func drawVisualPane(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 		DrawText(sf, 8, p.y0+8, "VISUAL  "+protoNames[hud.DecProto%len(protoNames)]+": "+res.Error, colStale, 1)
 		return
 	}
-	n := len(f.Codes8(0))
+	n := f.Codes8Len()
 	dt := f.SampleS
 	if !(dt > 0) && n > 0 {
 		dt = f.Snapshot.TdivS * 14 / float64(n)

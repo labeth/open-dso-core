@@ -46,14 +46,13 @@ func defaultSoundSettings() SoundSettings {
 	return SoundSettings{A4: 440, Ref: "dbu", Cycles: 2, Gate: -1, GateV: 0.1, PreS: 1, PostS: 4}
 }
 
-// cleanSoundSettings bounds every field.
+// cleanSoundSettings bounds every field on a scope of nch channels.
 // TRLC-LINKS: REQ-DSO-273
-func cleanSoundSettings(s SoundSettings) SoundSettings {
+func cleanSoundSettings(s SoundSettings, nch int) SoundSettings {
 	if !(s.A4 >= 400 && s.A4 <= 480) {
 		s.A4 = 440
 	}
-	s.Ch &= 1
-	s.ABIn &= 1
+	s.Ch, s.ABIn = chMod(s.Ch, nch), chMod(s.ABIn, nch)
 	if sound.PresetByID(s.Ref).ID != s.Ref {
 		s.Ref = "dbu"
 	}
@@ -64,7 +63,7 @@ func cleanSoundSettings(s SoundSettings) SoundSettings {
 	if s.Cycles != 1 && s.Cycles != 4 {
 		s.Cycles = 2
 	}
-	if s.Gate < -1 || s.Gate > 1 {
+	if s.Gate < -1 || s.Gate >= max(min(nch, maxChans), 2) {
 		s.Gate = -1
 	}
 	if !(s.GateV >= -50 && s.GateV <= 50) {
@@ -249,7 +248,7 @@ func (s *soundSvc) update(fn func(*SoundSettings)) SoundSettings {
 	defer s.mu.Unlock()
 	old := s.set
 	fn(&s.set)
-	s.set = cleanSoundSettings(s.set)
+	s.set = cleanSoundSettings(s.set, s.c.nch)
 	if s.set.Ch != old.Ch || s.set.Range != old.Range || s.set.Slow != old.Slow {
 		s.tuner = sound.Tuner{Slow: s.set.Slow}
 		s.strip, s.cycles, s.hz = nil, nil, 0
@@ -493,10 +492,7 @@ func (s *soundSvc) step(now time.Time) {
 // over its scales.
 // TRLC-LINKS: REQ-DSO-265
 func (s *soundSvc) volts(b engine.SoundBlock, ch int, dst []float64) []float64 {
-	q := b.Q1
-	if ch == 1 {
-		q = b.Q2
-	}
+	q := b.Lane(ch)
 	dst = dst[:0]
 	probe := 1.0
 	if s.c.fe != nil {
@@ -508,7 +504,7 @@ func (s *soundSvc) volts(b engine.SoundBlock, ch int, dst []float64) []float64 {
 		ord := b.First + uint64(i)
 		for k+1 < len(b.Scales) && (k < 0 || b.Scales[k+1].From <= ord) {
 			k++
-			vpc, off = b.Scales[k].SoundVolts(ch)
+			vpc, off = b.Scales[k].ChanVolts(ch)
 			vpc, off = vpc*probe, off*probe
 		}
 		// the samples up to the next scale's first, at this one
@@ -627,10 +623,7 @@ func (s *soundSvc) readLevels(e soundEngine, set SoundSettings) {
 			continue
 		}
 		m := sound.Measure(x)
-		q := b.Q1
-		if ch == 1 {
-			q = b.Q2
-		}
+		q := b.Lane(ch)
 		lv[ch] = SoundLevel{
 			OK: true, Vpp: m.Vpp, RMS: m.RMS, Peak: m.Peak, DC: m.DC, CrestDB: m.CrestDB,
 			DB: sound.DB(m.RMS, ref), PeakDB: sound.DB(m.Peak/math.Sqrt2, ref), Clip: sound.ClipCodes(q),
@@ -684,10 +677,7 @@ func (s *soundSvc) readPage(e soundEngine, set SoundSettings, now time.Time) {
 		x, b := s.latest(e, int(4*fs), set.Ch)
 		var m sound.Modulation
 		var l sound.LFO
-		q := b.Q1
-		if set.Ch == 1 {
-			q = b.Q2
-		}
+		q := b.Lane(set.Ch)
 		if len(x) <= len(q) {
 			q = q[len(q)-len(x):] // what follows the last gap, as x
 		}
@@ -713,7 +703,7 @@ func (s *soundSvc) readPage(e soundEngine, set SoundSettings, now time.Time) {
 		}
 		a, _ := s.latest(e, 16384, set.ABIn)
 		a = append([]float64(nil), a...)
-		b, _ := s.latest(e, 16384, 1-set.ABIn)
+		b, _ := s.latest(e, 16384, abOut(set, s.c.nch))
 		r := sound.CompareAB(a, b, fs, hz)
 		s.mu.Lock()
 		s.ab, s.heavyAt = r, now
@@ -737,7 +727,7 @@ func (s *soundSvc) codeOf(b engine.SoundBlock, ch int, v float64) uint8 {
 	if len(b.Scales) == 0 {
 		return 128
 	}
-	vpc, off := b.Scales[len(b.Scales)-1].SoundVolts(ch)
+	vpc, off := b.Scales[len(b.Scales)-1].ChanVolts(ch)
 	probe := 1.0
 	if s.c.fe != nil {
 		probe = s.c.fe.ProbeFactor(ch)
@@ -855,7 +845,7 @@ func (s *soundSvc) readCycle(e soundEngine, set SoundSettings) {
 	s.x = x
 	lvV := 0.0
 	if len(b.Scales) > 0 {
-		vpc, off := b.Scales[len(b.Scales)-1].SoundVolts(set.Ch)
+		vpc, off := b.Scales[len(b.Scales)-1].ChanVolts(set.Ch)
 		probe := 1.0
 		if s.c.fe != nil {
 			probe = s.c.fe.ProbeFactor(set.Ch)
@@ -1199,3 +1189,8 @@ func (s *soundSvc) Report() SoundReport {
 	}
 	return r
 }
+
+// abOut is the A/B comparison's output channel: the one after its input
+// (the other of two).
+// TRLC-LINKS: REQ-DSO-273
+func abOut(s SoundSettings, nch int) int { return chMod(s.ABIn+1, nch) }

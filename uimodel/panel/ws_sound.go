@@ -328,7 +328,7 @@ func soundPageLines(ss *soundSvc, set SoundSettings) []wsview.Span {
 		}
 	case soundPageAB:
 		r := ss.ab
-		out = append(out, d(fmt.Sprintf("in C%d  out C%d", set.ABIn+1, 2-set.ABIn)))
+		out = append(out, d(fmt.Sprintf("in C%d  out C%d", set.ABIn+1, abOut(set, ss.c.nch)+1)))
 		if !r.OK {
 			out = append(out, d("waiting: "+r.Why))
 			break
@@ -387,8 +387,8 @@ func (c *Controller) soundPush() {
 		c.snd.arm(!busy)
 		msg = choose(busy, "Envelope: cancelled", "Envelope: armed (the FPGA's edge starts it)")
 	case soundPageAB:
-		set = c.snd.update(func(s *SoundSettings) { s.ABIn = 1 - s.ABIn })
-		msg = fmt.Sprintf("A/B: in C%d, out C%d", set.ABIn+1, 2-set.ABIn)
+		set = c.snd.update(func(s *SoundSettings) { s.ABIn = c.chOf(s.ABIn + 1) })
+		msg = fmt.Sprintf("A/B: in C%d, out C%d", set.ABIn+1, abOut(set, c.nch)+1)
 	case soundPageVOct:
 		err = c.snd.voctCapture()
 		msg = "V/oct: point taken"
@@ -442,7 +442,7 @@ func (c *Controller) soundChannel() {
 		c.toast(msg, 900*time.Millisecond)
 		return
 	}
-	set := c.snd.update(func(s *SoundSettings) { s.Ch = 1 - s.Ch })
+	set := c.snd.update(func(s *SoundSettings) { s.Ch = c.chOf(s.Ch + 1) })
 	c.toast(fmt.Sprintf("Tuner: C%d", set.Ch+1), 900*time.Millisecond)
 }
 
@@ -506,10 +506,7 @@ func (c *Controller) soundAutoFit(stop chan struct{}) {
 			if done[ch] {
 				continue
 			}
-			q := b.Q1
-			if ch == 1 {
-				q = b.Q2
-			}
+			q := b.Lane(ch)
 			if sound.ClipCodes(q) {
 				_ = c.setVdivPos(ch, idx[ch]+2)
 				continue

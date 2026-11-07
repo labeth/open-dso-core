@@ -704,3 +704,66 @@ decisions:
   decision: 'Each board package owns the mapping from its keys and knobs to the core names.'
   consequences:
   - 'From the composition and settings step (S11, S13).'
+
+- id: ADR-RECORD-LENGTH-FROM-TRACES
+  title: 'Analysis and drawing take a record''s length from the traces it carries'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Analysis and drawing read the record length from C1, so a scope with C1 switched off analysed and drew nothing.'
+  decision: 'The length comes from whichever traces the frame carries; no channel is assumed present.'
+  consequences:
+  - 'Any channel subset works on any scope; the two-channel CML is unchanged (C1 or C2 always carries the record).'
+
+- id: ADR-AUTODETECT-PAIR
+  title: 'The bus search reads a named pair of channels'
+  status: proposed
+  date: '2026-11-07'
+  context: 'The bus search read C1 and C2. A four-channel scope has more lines than the search can take in its time budget.'
+  decision: 'The search takes a named pair; the UI model picks the two busiest lines. On two channels that is C1 and C2, as before.'
+  consequences:
+  - 'Buses with three or more lines on a four-channel scope are searched only through their two busiest lines; to review once a four-channel unit is available.'
+
+- id: ADR-SCREEN-FRACTIONS-NOT-CODES
+  title: 'Mask tolerance and autoset clip windows are in screen divisions'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The mask tolerance and autoset''s clip window were in 8-bit converter codes, which mean different voltages on a 12-bit scope.'
+  decision: 'Both are held in divisions of the screen and turned into codes by the board''s code format.'
+  consequences:
+  - 'The CML''s values convert to the same codes, so its behaviour is unchanged; a 12-bit scope gets the same visual tolerance.'
+
+- id: ADR-BODE-IN-CORE
+  title: 'The frequency response is the core''s'
+  status: accepted
+  date: '2026-11-07'
+  context: 'The Bode sweep and its single-bin measurement lived in the CML''s engine.'
+  decision: 'The measurement on any reference and DUT channel, the sweep a HAL scope runs beside its owner loop, and its web serving (bodemode, bodeclear, /api/bode) are in the core.'
+  consequences:
+  - 'Every scope with a signal source gets Bode; the CML''s engine uses the core measurement.'
+
+- id: ADR-REFS-OWN-STORE
+  title: 'References have a store of their own'
+  status: accepted
+  date: '2026-11-07'
+  context: 'References are kilobytes a channel and change only when stored or cleared, while the setup file is rewritten on every settled knob; a recalled setup should not bring back the references stored with it.'
+  decision: 'References live in references.json in the scope''s settings store, beside the setup file, with each channel''s screen columns and the V/div, offset and probe they were stored at, for any channel count.'
+  consequences:
+  - 'Setup writes stay small; references redraw at the same volts and time on any scope.'
+
+- id: ADR-INVERTER-N
+  title: 'Invert covers N channels and a scope without it refuses with the reason'
+  status: accepted
+  date: '2026-11-07'
+  context: 'Invert was two fields reached through the CML''s SCPI INVS pair.'
+  decision: 'The UI model inverts any channel through the board; a board without invert reports it absent and the request is refused with the reason. The CML''s two channels go through a two-channel adapter over its INVS pair.'
+  consequences:
+  - 'C3/C4 invert is kept in settings for any channel count.'
+
+- id: ADR-SHEETSSEQ-LIVE
+  title: 'Live MEAS row values move SheetsSeq'
+  status: proposed
+  date: '2026-11-07'
+  context: 'The web read the MEAS sheet''s live values only when something else changed the sheets, so they went stale.'
+  decision: 'A change in a MEAS row''s live value moves SheetsSeq, so the web fetches the sheets again.'
+  consequences:
+  - 'More sheet fetches while MEAS is open; to review if the web''s request rate matters.'

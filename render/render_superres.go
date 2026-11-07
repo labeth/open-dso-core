@@ -5,6 +5,8 @@ package render
 import (
 	"fmt"
 	"math"
+
+	"github.com/labeth/open-dso-core/superres"
 )
 
 // colSR (palette.go, token "sr") is the super-res overlay colour — the old
@@ -284,24 +286,17 @@ func drawSuperresFFT(sf Canvas, p plotArea, hud HUD) {
 		return
 	}
 	half := n / 2
-	// Map the align/other means back to physical C1/C2 for colour + labels.
-	c1Mean, c2Mean := hud.SRMean, hud.SRMean2
-	if hud.SRAlign == 1 {
-		c1Mean, c2Mean = hud.SRMean2, hud.SRMean
-	}
-	sc1, sc2 := hud.shownChans()
+	// The two lanes back on their scope channels for colour and labels, the
+	// lower channel drawn last (on top).
+	lo, hi := srChans(hud)
 	row := p.y0 + 10
-	if sc2 && hud.NumChans > 1 && len(c2Mean) > 0 {
-		if s2, _ := srResampleArray(c2Mean, n); s2 != nil {
-			fpk := fftCoreP(sf, p, s2, colC2, effNyq, kLo, kHi)
-			DrawText(sf, 10, row, "SR FFT C2 peak "+fmtFreq(fpk), colC2, 1)
-			row += 12
+	for _, l := range [2]srLane{hi, lo} {
+		if !hud.shown(l.ch) || len(l.mean) == 0 || (l.ch > 0 && hud.NumChans < 2) {
+			continue
 		}
-	}
-	if sc1 {
-		if s1, _ := srResampleArray(c1Mean, n); s1 != nil {
-			fpk := fftCoreP(sf, p, s1, colC1, effNyq, kLo, kHi)
-			DrawText(sf, 10, row, "SR FFT C1 peak "+fmtFreq(fpk), colC1, 1)
+		if sp, _ := srResampleArray(l.mean, n); sp != nil {
+			fpk := fftCoreP(sf, p, sp, chanColor(l.ch), effNyq, kLo, kHi)
+			DrawText(sf, 10, row, "SR FFT "+chanName(l.ch)+" peak "+fmtFreq(fpk), chanColor(l.ch), 1)
 			row += 12
 		}
 	}
@@ -316,10 +311,8 @@ func drawSuperresFFT(sf Canvas, p plotArea, hud HUD) {
 // uncovered (-1 gap) bins rather than drawing a false chord (matches the web).
 // TRLC-LINKS: REQ-DSO-021
 func drawSuperresXY(sf Canvas, p plotArea, hud HUD) {
-	c1Mean, c2Mean := hud.SRMean, hud.SRMean2
-	if hud.SRAlign == 1 {
-		c1Mean, c2Mean = hud.SRMean2, hud.SRMean
-	}
+	xl, yl := srChans(hud)
+	c1Mean, c2Mean := xl.mean, yl.mean
 	if hud.NumChans < 2 || len(c2Mean) == 0 {
 		DrawText(sf, 10, p.y0+10, "X-Y needs CH2", colDim, 1)
 		return
@@ -343,5 +336,23 @@ func drawSuperresXY(sf Canvas, p plotArea, hud HUD) {
 		}
 		px, py = sx, sy
 	}
-	DrawText(sf, 10, p.y0+10, "X:C1  Y:C2 (SR)", colDim, 1)
+	DrawText(sf, 10, p.y0+10, "X:"+chanName(xl.ch)+"  Y:"+chanName(yl.ch)+" (SR)", colDim, 1)
+}
+
+// srLane is one super-res lane's review mean on its scope channel.
+type srLane struct {
+	ch   int
+	mean []float32
+}
+
+// srChans is the stack's two lanes on their scope channels, the lower
+// channel first (C1 and C2 on a two-channel scope, whichever was aligned).
+// TRLC-LINKS: REQ-DSO-021
+func srChans(hud HUD) (lo, hi srLane) {
+	a := srLane{hud.SRAlign, hud.SRMean}
+	b := srLane{superres.Other(hud.SRAlign), hud.SRMean2}
+	if a.ch > b.ch {
+		return b, a
+	}
+	return a, b
 }

@@ -56,7 +56,13 @@ func (c *Controller) SettingsView() settings.ViewState {
 		disp.CurMode = 1 + c.curType
 	}
 	if c.inverter != nil {
-		disp.Invert = c.inverter.Inverted()
+		for ch := range c.nch {
+			if ch < 2 {
+				disp.Invert[ch] = c.inverter.IsInverted(ch)
+			} else {
+				disp.InvertMore[ch-2] = c.inverter.IsInverted(ch)
+			}
+		}
 	}
 	return settings.ViewState{
 		ViewMode: c.viewMode,
@@ -101,7 +107,7 @@ func soundSettingsIn(s settings.Sound) SoundSettings {
 		A4: s.A4, Ch: s.Ch, Ref: s.Ref, Range: s.Range, Slow: s.Slow, Page: s.Page, Cycles: s.Cycles,
 		ABIn: s.ABIn, EnvCV: s.EnvCV, Gate: s.Gate, GateV: s.GateV, VOctAuto: s.VOctAuto,
 		PreS: s.PreS, PostS: s.PostS, TrigGate: s.TrigGate,
-	})
+	}, maxChans) // the scope's own count bounds them again as they are applied
 }
 
 // serialSettingsOf is the serial trigger as the settings file keeps it, from
@@ -193,10 +199,10 @@ func (c *Controller) ApplySettingsView(v settings.ViewState) {
 		}
 	}
 	c.mathCh, c.xyCh = c.pairIn(v.Display.MathCh), c.pairIn(v.Display.XYCh)
-	var inv *[2]bool
+	var inv []bool
 	if ds := v.Display; ds.Set {
 		c.applyDisplayLocked(ds)
-		inv = &ds.Invert
+		inv = append(append(inv, ds.Invert[:]...), ds.InvertMore[:]...)
 	}
 	inverter := c.inverter
 	c.decProto, c.decBaud = d.Proto, d.Baud
@@ -229,7 +235,7 @@ func (c *Controller) ApplySettingsView(v settings.ViewState) {
 	}
 	c.mu.Unlock()
 	if inv != nil && inverter != nil {
-		for ch := range 2 {
+		for ch := range min(c.nch, len(inv)) {
 			inverter.SetInverted(ch, inv[ch])
 		}
 	}
@@ -338,7 +344,7 @@ func (c *Controller) applyUILocked(u settings.UI) (restream bool) {
 		c.maskTol = clampInt(u.MaskTol-1, 0, len(maskTols)-1)
 	}
 	if u.SrCh > 0 {
-		c.srCh = (u.SrCh - 1) & 1
+		c.srCh = c.chOf(u.SrCh - 1)
 	}
 	for _, k := range []int{8, 16, 32, 64} {
 		if u.SrGrid == k {

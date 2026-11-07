@@ -468,9 +468,9 @@ func (c *Controller) fillIn(res decode.Result) bool {
 	}
 	c.decProto = p
 	c.decGen++
-	c.decChA, c.decChB = res.Roles.ChA&1, res.Roles.ChB&1
+	c.decChA, c.decChB = c.chOf(res.Roles.ChA), c.chOf(res.Roles.ChB)
 	if c.decChB == c.decChA {
-		c.decChB = 1 - c.decChA
+		c.decChB = c.chOf(c.decChA + 1)
 	}
 	if res.Baud > 0 {
 		c.decBaud = res.Baud
@@ -511,7 +511,8 @@ func (c *Controller) detectOnScreen() (decode.Result, float64, bool) {
 		return decode.Result{}, 0, false
 	}
 	var res decode.Result
-	atSearchPriority(func() { res = framecalc.Detect(f, "hex") })
+	pair := c.busPair(f)
+	atSearchPriority(func() { res = framecalc.DetectPair(f, "hex", pair) })
 	return res, f.SampleS, res.OK && res.Proto != "" && res.Proto != "off"
 }
 
@@ -519,7 +520,7 @@ func (c *Controller) detectOnScreen() (decode.Result, float64, bool) {
 // time order, enough of them.
 // TRLC-LINKS: REQ-DSO-214
 func searchable(f *sample.Frame) bool {
-	return f != nil && !f.Flags.Has(sample.Envelope) && (f.Content != sample.PeakPairs || f.Flags.Has(sample.Ordered)) && len(f.Codes8(0)) >= 32
+	return f != nil && !f.Flags.Has(sample.Envelope) && (f.Content != sample.PeakPairs || f.Flags.Has(sample.Ordered)) && f.Codes8Len() >= 32
 }
 
 // frameCopy is a copy of the frame on screen when ok accepts it (nil
@@ -617,10 +618,10 @@ type look struct {
 	sampleS  float64
 	found    bool
 	resolved bool
-	runs     [2]int     // a decimated record's shortest run between edges per channel (decode.ShortestRun)
-	envRun   [2]float64 // the live envelope's bound on each channel's edge spacing where busy, seconds (decode.EnvelopeRun; 0: none)
-	envBusy  [2]float64 // the share of the envelope's buckets each channel swings across
-	envSeen  bool       // a live envelope of the timebase was read
+	runs     [maxChans]int     // a decimated record's shortest run between edges per channel (decode.ShortestRun)
+	envRun   [maxChans]float64 // the live envelope's bound on each channel's edge spacing where busy, seconds (decode.EnvelopeRun; 0: none)
+	envBusy  [maxChans]float64 // the share of the envelope's buckets each channel swings across
+	envSeen  bool              // a live envelope of the timebase was read
 }
 
 // detectOn waits for a sampled frame of the timebase on screen and runs auto
@@ -766,7 +767,7 @@ func (c *Controller) detectWith(decimated, stepped bool, accept func(*sample.Fra
 		}
 	}
 	defer lease(0)
-	var envRun, envBusy [2]float64
+	var envRun, envBusy [maxChans]float64
 	envSeen := false
 	if decimated && !stepped { // the frame on screen, no wait (a find that needs one reads it, weighEnvelope)
 		envRun, envBusy, envSeen = c.envelopeRuns(false, accept, deadline)
@@ -774,14 +775,14 @@ func (c *Controller) detectWith(decimated, stepped bool, accept func(*sample.Fra
 	for {
 		lease(3 * time.Second)
 		got, usable, resolved := false, false, false
-		var runs [2]int
+		var runs [maxChans]int
 		if c.frameFn != nil {
 			c.frameFn(func(f *sample.Frame) {
-				usable = f != nil && !f.Flags.Has(sample.Envelope) && (f.Content != sample.PeakPairs || f.Flags.Has(sample.Ordered)) && f.Len() >= 32 && len(f.Codes8(0)) >= f.Len()
+				usable = f != nil && !f.Flags.Has(sample.Envelope) && (f.Content != sample.PeakPairs || f.Flags.Has(sample.Ordered)) && f.Len() >= 32 && f.Codes8Len() >= f.Len()
 				got = usable && f.Content != sample.PeakPairs && accept(f, decimated) && fresh(f)
-				if got && decimated && len(f.Codes8(1)) >= f.Len() {
-					runs = [2]int{decode.ShortestRun(f.Codes8(0)[:f.Len()]), decode.ShortestRun(f.Codes8(1)[:f.Len()])}
-					resolved = runsResolved(runs[0]) && runsResolved(runs[1])
+				if pair := c.busPair(f); got && decimated && len(f.Codes8(pair[0])) >= f.Len() && len(f.Codes8(pair[1])) >= f.Len() {
+					runs[pair[0]], runs[pair[1]] = decode.ShortestRun(f.Codes8(pair[0])[:f.Len()]), decode.ShortestRun(f.Codes8(pair[1])[:f.Len()])
+					resolved = runsResolved(runs[pair[0]]) && runsResolved(runs[pair[1]])
 				}
 			})
 		}
@@ -826,19 +827,20 @@ const envWait = 400 * time.Millisecond
 // lease; else only the frame on screen is looked at. seen is false (and the
 // figures zeros) when none is seen.
 // TRLC-LINKS: REQ-DSO-214
-func (c *Controller) envelopeRuns(wait bool, accept func(*sample.Frame, bool) bool, deadline time.Time) (runs, busy [2]float64, seen bool) {
+func (c *Controller) envelopeRuns(wait bool, accept func(*sample.Frame, bool) bool, deadline time.Time) (runs, busy [maxChans]float64, seen bool) {
 	if c.frameFn == nil {
 		return runs, busy, false
 	}
 	end := minTime(deadline, c.now().Add(envWait))
 	for {
 		c.frameFn(func(f *sample.Frame) {
-			if f == nil || f.Content != sample.PeakPairs || !f.Flags.Has(sample.Ordered) || f.Len() < 64 || len(f.Codes8(0)) < f.Len() || len(f.Codes8(1)) < f.Len() || !accept(f, true) {
+			pair := c.busPair(f)
+			if f == nil || f.Content != sample.PeakPairs || !f.Flags.Has(sample.Ordered) || f.Len() < 64 || len(f.Codes8(pair[0])) < f.Len() || len(f.Codes8(pair[1])) < f.Len() || !accept(f, true) {
 				return
 			}
 			seen = true
-			for ch, codes := range [2][]uint8{f.Codes8(0)[:f.Len()], f.Codes8(1)[:f.Len()]} {
-				runs[ch], busy[ch] = decode.EnvelopeRun(codes, f.SampleS)
+			for _, ch := range pair {
+				runs[ch], busy[ch] = decode.EnvelopeRun(f.Codes8(ch)[:f.Len()], f.SampleS)
 			}
 		})
 		if seen || !wait || c.detectSync || !c.now().Before(end) {
@@ -896,9 +898,9 @@ const aliasRatio = 4.0
 // busLines are the channels a found bus uses: its line, and SDA or data.
 // TRLC-LINKS: REQ-DSO-214
 func busLines(res decode.Result) []int {
-	lines := []int{res.Roles.ChA & 1}
+	lines := []int{chMod(res.Roles.ChA, maxChans)}
 	if res.Proto == "i2c" || res.Proto == "spi" {
-		lines = append(lines, res.Roles.ChB&1)
+		lines = append(lines, chMod(res.Roles.ChB, maxChans))
 	}
 	return lines
 }
@@ -997,7 +999,7 @@ func hidesFaster(l look) bool {
 	if l.res.Proto != protoUART || !(l.res.SPB > 0) {
 		return false
 	}
-	run := l.runs[l.res.Roles.ChA&1]
+	run := l.runs[chMod(l.res.Roles.ChA, maxChans)]
 	return run > 0 && float64(run) < 0.4*l.res.SPB
 }
 
@@ -1040,7 +1042,7 @@ func (c *Controller) findBus(auto AutoSource, wanted func() bool) (decode.Result
 	// the full-rate search reads seconds of the same idle. Not when the live
 	// envelope shows a line busy faster than the record (a CAN or USB bus's
 	// bursts, averaged away in the record).
-	slowFirst := !found && dec.resolved && dec.envRun == [2]float64{} && !c.waitingForTrigger(c.snap())
+	slowFirst := !found && dec.resolved && dec.envRun == [maxChans]float64{} && !c.waitingForTrigger(c.snap())
 	if slowFirst {
 		if r, s, ok, stepped, _ := c.findSlowBus(auto, wanted, "", 0); ok {
 			return r, s, true, stepped
@@ -1497,7 +1499,8 @@ func (c *Controller) smallSwing(auto bool) string {
 		if f == nil || f.Len() <= 0 {
 			return
 		}
-		for ch, codes := range [2][]uint8{f.Codes8(0), f.Codes8(1)} {
+		for ch := range c.nch {
+			codes := f.Codes8(ch)
 			n := min(f.Len(), len(codes))
 			if n == 0 {
 				continue
@@ -1512,7 +1515,7 @@ func (c *Controller) smallSwing(auto bool) string {
 				if auto {
 					fix = "check its probe factor (1x, 10x) or V/DIV"
 				}
-				note = fmt.Sprintf("no bus found: CH%d swings only %.1f div - %s", ch+1, float64(sw)/25, fix)
+				note = fmt.Sprintf("no bus found: CH%d swings only %.1f div - %s", ch+1, float64(sw)/traceCodesPerDiv(f, ch), fix)
 				return
 			}
 		}
@@ -1778,7 +1781,7 @@ func (c *Controller) openPickSub() error {
 	}
 	var valid int
 	if c.frameFn != nil {
-		if f := c.frameCopy(func(f *sample.Frame) bool { return f != nil && len(f.Codes8(0)) > 0 }); f != nil {
+		if f := c.frameCopy(func(f *sample.Frame) bool { return f != nil && f.Codes8Len() > 0 }); f != nil {
 			res = framecalc.Decode(f, decodeParamsOf(s))
 			valid = framecalc.Valid(f)
 		}
@@ -2212,7 +2215,7 @@ func (c *Controller) eyeRawFix(s *sv) string {
 // TRLC-LINKS: REQ-DSO-215
 func displayCodes(f *sample.Frame, s *sv, ch, lo, n, stride int) []float64 {
 	valid := framecalc.Valid(f)
-	if ch > 0 && len(f.Codes8(ch)) < valid || n <= 0 {
+	if len(f.Codes8(ch)) < valid || n <= 0 {
 		return nil
 	}
 	sig := framecalc.Channel(f, ch, valid)
@@ -2291,4 +2294,59 @@ func eyeRowOf(r EyeResult, code float64) int {
 // TRLC-LINKS: REQ-DSO-215
 func eyeColOf(r EyeResult, ui float64) int {
 	return clampInt(int(math.Round(ui/2*float64(r.Cols))), 0, max(r.Cols-1, 0))
+}
+
+// busPair is the two channels a bus search reads, in channel order: the
+// search is a two-line one (decode.Autodetect). C1 and C2 on a two-channel
+// scope; on more, the two channels switched on whose lines cross their
+// mid-level most often (an idle or switched-off channel least), so a bus
+// on C3 and C4 is found beside idle C1 and C2.
+// TRLC-LINKS: REQ-DSO-214
+func (c *Controller) busPair(f *sample.Frame) [2]int {
+	if c.nch <= 2 || f == nil || f.Len() <= 0 {
+		return [2]int{0, 1}
+	}
+	n := f.Len()
+	type line struct{ ch, edges int }
+	var lines []line
+	for ch := range c.nch {
+		if codes := f.Codes8(ch); len(codes) >= n {
+			lines = append(lines, line{ch, lineEdges(codes[:n])})
+		}
+	}
+	if len(lines) < 2 {
+		if len(lines) == 1 && lines[0].ch > 0 {
+			return [2]int{0, lines[0].ch}
+		}
+		return [2]int{0, 1}
+	}
+	slices.SortStableFunc(lines, func(a, b line) int { return b.edges - a.edges })
+	return [2]int{min(lines[0].ch, lines[1].ch), max(lines[0].ch, lines[1].ch)}
+}
+
+// lineEdges counts the crossings of a line's mid-level with a hysteresis of
+// a quarter of its swing; 0 for a line that swings less than a signal does
+// (smallSwingSeen).
+// TRLC-LINKS: REQ-DSO-214
+func lineEdges(codes []uint8) int {
+	var h [256]int
+	for _, v := range codes {
+		h[v]++
+	}
+	lo, hi := codePercentile(&h, len(codes), 0.02), codePercentile(&h, len(codes), 0.98)
+	if hi-lo < smallSwingSeen {
+		return 0
+	}
+	q := (hi - lo) / 4
+	low, high := lo+q, hi-q
+	edges, state := 0, int(codes[0]) > (lo+hi)/2
+	for _, v := range codes {
+		switch {
+		case !state && int(v) >= high:
+			state, edges = true, edges+1
+		case state && int(v) <= low:
+			state, edges = false, edges+1
+		}
+	}
+	return edges
 }

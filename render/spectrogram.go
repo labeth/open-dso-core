@@ -91,7 +91,7 @@ func heat(t float64) Color {
 // TRLC-LINKS: REQ-DSO-068
 func (sg *Spectrogram) Push(f *sample.Frame, ch int, effNyq float64) {
 	f = view8(f)
-	if f == nil || len(f.Codes8(0)) == 0 {
+	if f == nil || f.Codes8Len() == 0 {
 		return
 	}
 	sampleS := f.SampleS

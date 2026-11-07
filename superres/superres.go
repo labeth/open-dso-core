@@ -176,3 +176,24 @@ func selectKth(a []float64, k int) float64 {
 	}
 	return a[k]
 }
+
+// Lanes maps the stack's two lanes onto scope channels for a stack aligned
+// on channel ch, and names the aligned lane (Stack.Align): C1 and C2 with
+// the chosen one aligned, as a two-channel scope stacks; past C2 the chosen
+// channel in lane 1 beside C1, so a four-channel scope stacks any channel
+// with the same two-lane accumulators.
+// TRLC-LINKS: REQ-DSO-141
+func Lanes(ch int) (lanes [2]int, align int) {
+	if ch < 2 {
+		return [2]int{0, 1}, max(ch, 0)
+	}
+	return [2]int{0, ch}, 1
+}
+
+// Other is the scope channel of a stack's second result (Result.Mean2)
+// when it aligned on channel ch.
+// TRLC-LINKS: REQ-DSO-141
+func Other(ch int) int {
+	l, a := Lanes(ch)
+	return l[1-a]
+}
