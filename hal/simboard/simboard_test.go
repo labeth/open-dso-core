@@ -367,3 +367,21 @@ func TestScreenAndStores(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// At a fast timebase a full-rate record holds its depth with the screen in
+// its middle: the screen's samples are WinPoints of them, the trigger at
+// the screen's centre.
+// TRLC-LINKS: REQ-DSO-1001
+func TestFullRateRecordBeyondTheScreen(t *testing.T) {
+	b := newBoard(t, 2, format8, 25)
+	if err := b.Signals().Set(0, "square,1e6,2,0"); err != nil {
+		t.Fatal(err)
+	}
+	f, _, err := acquire(t, b, hal.Channel{On: true, VoltsDiv: 0.5}, hal.Request{TimePerDivS: 200e-9}, edge(0, 0, hal.NormalSweep), 2*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Content != sample.RawFullRate || f.Len() != 4096 || f.WinPoints != 2000 || math.Abs(f.TriggerAt-2048) > 1 {
+		t.Fatalf("content %v, %d samples, %d on the screen, trigger at %g", f.Content, f.Len(), f.WinPoints, f.TriggerAt)
+	}
+}
