@@ -18,6 +18,12 @@ this core; today that is [open-sds1000cml](https://github.com/labeth/open-sds100
 | `superres/` | super-resolution stacking |
 | `sound/` | the sound analysis |
 | `vxi11srv/` | the VXI-11 server |
+| `webserver/` | the web server every scope mounts: the shared client's pages and assets and every route of the API over `webserver.Scope`, which a scope's adapter implements (status, frames and settings, and optional parts by typed accessor) |
+| `webserver/wire/` | what goes over the socket: the routes' reply and header types and the binary frame, record, sound and words encoders |
+| `webserver/webtest/` | the server's conformance suite (`webtest.Run`), which each scope's adapter runs, and a fake scope |
+| `webserver/shape/` | frame shaping for the page: the screen window, envelope resampling, held stretches, the coupling of precision words, the measurement cache |
+| `uimodel/` | the UI model's contract shared by a scope's display, the web page and the phone remote: panel snapshot, settings sheets and rows, set results, references, SOUND settings |
+| `streamwire/` | the decoded stream's transcript as served: the list window and the lines as data |
 | `design/` | the shared look: colour tokens (one source for web and displays), the web stylesheets, the 5×7 display font |
 | `testenv/` | test helpers: toolchain gates, and the scope checkout the parity and RTL tests run against |
 
