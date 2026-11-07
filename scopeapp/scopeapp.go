@@ -156,14 +156,11 @@ func (e *Env) Render(dst render.Canvas) { e.display.Render(dst) }
 // TRLC-LINKS: REQ-DSO-168
 func (e *Env) Canvas() render.Canvas { return e.display.canvas() }
 
-// ScreenPNG is the display's picture as a PNG (the web's screen.png, a
-// hardcopy).
+// ScreenPNG is the display's picture as a PNG at its native size (the
+// web's screen.png, a hardcopy): over a hardware renderer, the panel's
+// picture read back; otherwise drawn headless.
 // TRLC-LINKS: REQ-DSO-168
-func (e *Env) ScreenPNG() []byte {
-	c := e.Canvas()
-	e.Render(c)
-	return render.EncodePNG(c)
-}
+func (e *Env) ScreenPNG() []byte { return e.display.screenPNG() }
 
 // webHeaderTimeout bounds a request's header only: the frame route parks a
 // request up to 2 s (its long poll), so a global write timeout would kill
@@ -360,6 +357,9 @@ func buildUI(env *Env, o Options) error {
 	}
 	pc := env.UI
 	pc.SetFrameSource(env.Frames.WithFrame)
+	if bt, ok := hal.BootTargetOf(env.Board); ok {
+		pc.SetBootTarget(bt) // the SYS sheet's Next boot row
+	}
 	spec := env.Board.Profile().Display
 	if spec.W > 0 && spec.H > 0 {
 		m := metricsFor(spec)
@@ -461,7 +461,7 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 	}
 	return scopeweb.New(scopeweb.Config{
 		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, UI: env.UI,
-		Setups: WebSetups{env.Setups},
+		Setups: WebSetups{env.Setups}, Screen: env.ScreenPNG,
 	}).WithCaps(), nil
 }
 
