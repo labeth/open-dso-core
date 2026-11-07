@@ -159,8 +159,10 @@ type HUD struct {
 	Spect *Spectrogram
 }
 
-// MaxChans is the most channels a HUD describes.
-const MaxChans = 8
+// MaxChans is the most channels a HUD describes: the family's scopes have
+// two or four. The HUD is copied by value through the drawing calls, so it
+// stays no larger than they need.
+const MaxChans = 4
 
 // Channel is one channel's display settings.
 type Channel struct {
