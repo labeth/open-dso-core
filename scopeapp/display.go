@@ -90,11 +90,12 @@ type display struct {
 	cfg   Display
 	eng   DisplayEngine
 	spect *render.Spectrogram // the one waterfall every picture of it blits
+	chans int                 // the board's channels (a profile is built per call on some boards)
 }
 
 // newDisplay is the display of env with cfg.
 func newDisplay(env *Env, cfg Display) *display {
-	d := &display{env: env, cfg: cfg, eng: cfg.Engine, spect: render.NewSpectrogram()}
+	d := &display{env: env, cfg: cfg, eng: cfg.Engine, spect: render.NewSpectrogram(), chans: env.Board.Profile().Channels}
 	if d.eng == nil {
 		d.eng = freeEngine{}
 	}
@@ -109,7 +110,7 @@ func (d *display) hud() render.HUD {
 	case d.cfg.HUD != nil:
 		hud = d.cfg.HUD()
 	case d.env.UI != nil:
-		hud = d.env.UI.HUD(d.env.Board.Profile().Channels)
+		hud = d.env.UI.HUD(d.chans)
 	}
 	if hud.Spect == nil {
 		hud.Spect = d.spect
