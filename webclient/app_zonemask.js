@@ -167,6 +167,16 @@ function zmZoneList() {
 // TRLC-LINKS: REQ-DSO-014
 function zmStatus(m) { if (m !== undefined) $("zmStats").textContent = m || "—"; }
 
+// zmRefused says why the scope runs no mask test or zone trigger (its
+// caps), true when it runs none: nothing is built or armed then.
+// TRLC-LINKS: REQ-DSO-014
+function zmRefused(name, what) {
+  const f = feature(name);
+  if (f.ok) return false;
+  zmStatus(`${what} is not available on this scope: ${f.why || "its engine does not run it"}`);
+  return true;
+}
+
 // --- vertical re-anchoring: masks and zones are physically VOLTS ---
 // The engine tests raw codes and honestly SKIPS a mask whose vertical
 // mapping changed (VdivKey/OffKey identity) — but a skipping test plus a
@@ -270,6 +280,7 @@ window.zm = {
 // --- zone drawing (armed drag; wired into the scope pointer handlers) ---
 // TRLC-LINKS: REQ-DSO-014
 $("zmDraw").onclick = () => {
+  if (!zm.drawArmed && zmRefused("zones", "The zone trigger")) return;
   if (!zm.drawArmed && !zmCplOK(+$("zmCh").value || 0)) return;
   zm.drawArmed = !zm.drawArmed;
   zm.drawA = zm.drawB = null;
@@ -281,6 +292,7 @@ $("zmClearZones").onclick = () => { zm.zones = []; zmPushZones(); redraw(); };
 // TRLC-LINKS: REQ-DSO-014
 $("zmTrig").onclick = () => {
   const on = !$("zmTrig").classList.contains("on");
+  if (on && zmRefused("zones", "The zone trigger")) return;
   $("zmTrig").classList.toggle("on", on);
   send("zonemode", on ? 1 : 0);
   zmStatus(on ? "zone trigger ON — the FPGA fires only on edges that pass every zone" : "zone trigger off");
@@ -297,6 +309,7 @@ function zmPackMask(a) {
 // --- mask build from N raw frames (dilated client-side, uploaded) ---
 // TRLC-LINKS: REQ-DSO-014
 $("zmBuild").onclick = async () => {
+  if (zmRefused("mask", "The mask test")) return;
   if (!st || !st.win_cols) { zmStatus("no window info yet"); return; }
   const N = Math.max(4, Math.min(200, +$("zmN").value || 32));
   const tolT = Math.max(0, Math.min(1048576, Math.floor(+$("zmTolT").value || 0))), tolV = Math.max(0, Math.min(255, +$("zmTolV").value || 0));

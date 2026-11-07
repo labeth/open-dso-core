@@ -255,7 +255,10 @@ async function stackMaster() {
     const j = await (await fetch("/api/refs")).json().catch(() => null);
     const a = j && j.ok && j.refs && j.refs[0];
     if (a && a.has) loadScopeRef("A", a, "master ×" + m[1]);
-    masterSay("Master ×" + m[1] + " of C" + m[2] + " stored as REF A on the scope and here; the scope builds the mask from the live captures after it and tests them.");
+    const mask = feature("mask");
+    masterSay("Master ×" + m[1] + " of C" + m[2] + " stored as REF A on the scope and here; " + (mask.ok ?
+      "the scope builds the mask from the live captures after it and tests them." :
+      "no mask test follows: " + (mask.why || "this scope runs none") + "."));
     toast("Master ×" + m[1] + ": REF A stored, the scope's mask test runs");
     await masterStatus();
   } catch (e) {
