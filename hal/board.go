@@ -20,7 +20,6 @@ type Board interface {
 	Display() Display
 	Input() Input
 	Storage() Storage
-	Census() Census
 
 	// Optional capabilities, by typed accessor. ok=false: absent, and every
 	// feature that needs it is refused with the profile's reason. ANY.
@@ -64,6 +63,12 @@ type Handover struct {
 
 // Extension is a scope-only feature: web routes and SCPI headers, named as
 // one feature so the capabilities list it.
+//
+// Its handlers run on the web server's and the SCPI transports'
+// goroutines, so they never touch the hardware: a handler records a
+// request and the board carries it out in Platform.Service (OWNER, short
+// work only). Long work (a calibration, an image load, a census) is a HAL
+// method the core schedules, never an extension that blocks Service.
 type Extension struct {
 	Feature string
 	Routes  []Route
@@ -76,10 +81,15 @@ type Route struct {
 	Handler http.Handler
 }
 
-// SCPIHeader is one scope-only SCPI command or query.
+// SCPIHeader is one scope-only SCPI header with its command form, its
+// query form or both. ANY, like every Extension handler.
 type SCPIHeader struct {
-	Header string // the long form, as the dialect names it
-	// Handle runs the command with its argument text; a query returns its
-	// reply without the terminator.
-	Handle func(args string) (reply []byte, err error)
+	Header string // the long form without "?", as the dialect names it
+	// Command runs the header as a command with its argument text; nil
+	// when the header has no command form.
+	Command func(args string) error
+	// Query runs the header as a query ("HEADER?") with its argument text
+	// and returns the reply without the terminator; nil when the header
+	// has no query form.
+	Query func(args string) (reply []byte, err error)
 }
