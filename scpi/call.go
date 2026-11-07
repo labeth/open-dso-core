@@ -29,6 +29,7 @@ type Call struct {
 	out         *bytes.Buffer
 	outputs     int
 	pendingSemi bool
+	sufBuf      [2]int
 }
 
 // Engine is the engine running the call.

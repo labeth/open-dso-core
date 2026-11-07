@@ -84,7 +84,10 @@ type Engine struct {
 	cmds   []*command
 	byRoot map[string][]*command // IEEE: first node (long and short) → commands
 	common map[string]*command   // IEEE: "*IDN?" → command
-	exact  map[string]*command   // Line: upper-cased pattern → command
+	// Line: source key ("", "C#:", "C#-C#:") → upper-cased header → command
+	exact      map[string]map[string]*command
+	singleKeys map[string]string // source prefix → its single key, C#:
+	pairKeys   map[string]string // source prefix → its pair key, C#-C#:
 }
 
 type command struct {
@@ -130,9 +133,22 @@ func (e *Engine) Register(cs ...Command) {
 func (e *Engine) index() {
 	e.byRoot = map[string][]*command{}
 	e.common = map[string]*command{}
-	e.exact = map[string]*command{}
+	e.exact = map[string]map[string]*command{"": {}}
+	e.singleKeys, e.pairKeys = map[string]string{}, map[string]string{}
+	for _, s := range e.d.Sources {
+		p := strings.ToUpper(s.Prefix)
+		e.singleKeys[p], e.pairKeys[p] = p+"#:", p+"#-"+p+"#:"
+		e.exact[p+"#:"], e.exact[p+"#-"+p+"#:"] = map[string]*command{}, map[string]*command{}
+	}
 	for _, c := range e.cmds {
-		e.exact[strings.ToUpper(c.Pattern)] = c
+		up := strings.ToUpper(c.Pattern)
+		key := ""
+		for k := range e.exact {
+			if k != "" && strings.HasPrefix(up, k) && len(k) > len(key) {
+				key = k
+			}
+		}
+		e.exact[key][up[len(key):]] = c
 		if c.pat.common {
 			e.common[strings.ToUpper(c.Pattern)] = c
 			continue
@@ -276,56 +292,55 @@ func (e *Engine) execIEEE(msg []byte) []byte {
 // grammar has none) and concatenates the replies.
 func (e *Engine) execLine(msg []byte) []byte {
 	var out bytes.Buffer
+	c := &Call{e: e, out: &out}
 	rest := strings.TrimRight(string(msg), "\r\n")
 	for more := true; more; {
 		var part string
 		part, rest, more = strings.Cut(rest, ";")
 		if part = strings.TrimSpace(part); part != "" {
-			e.lineUnit(part, &out)
+			e.lineUnit(c, part)
 		}
 	}
 	return out.Bytes()
 }
 
-// lineUnit runs one legacy unit: [source prefix]HEADER[ argument].
-func (e *Engine) lineUnit(unit string, out *bytes.Buffer) {
+// lineFail answers code in place.
+func (e *Engine) lineFail(out *bytes.Buffer, code int) {
+	out.WriteString(errorText(e.d.Errors, code))
+	out.WriteByte('\n')
+}
+
+// lineUnit runs one legacy unit, [source prefix]HEADER[ argument], on the
+// message's call c.
+func (e *Engine) lineUnit(c *Call, unit string) {
 	up := strings.ToUpper(unit)
-	fail := func(code int) {
-		out.WriteString(errorText(e.d.Errors, code))
-		out.WriteByte('\n')
-	}
-	key, rest, suf, pair := "", up, []int(nil), false
+	key, rest, nsuf, pair := "", up, 0, false
 	for _, s := range e.d.Sources {
-		p := s.Prefix
-		digit := func(i int) (int, bool) {
-			if i < len(up) && up[i] >= '0' && up[i] <= '9' {
-				return int(up[i] - '0'), true
-			}
-			return 0, false
+		p, n := s.Prefix, len(s.Prefix)
+		if !strings.HasPrefix(up, p) {
+			continue
 		}
-		in := func(n int) bool { return n >= s.Min && n <= s.Max }
-		n := len(p)
-		if strings.HasPrefix(up, p) && len(up) >= 2*n+4 && up[n+1] == '-' && up[2*n+3] == ':' &&
-			up[n+2:2*n+2] == p {
+		if len(up) >= 2*n+4 && up[n+1] == '-' && up[2*n+3] == ':' && up[n+2:2*n+2] == p {
 			// The pair form is known by its shape; any character in a digit's
 			// place is a suffix out of range.
 			a, b := int(up[n])-'0', int(up[2*n+2])-'0'
-			if !in(a) || !in(b) || a == b {
-				fail(ErrHeaderSuffixRange)
+			if a < s.Min || a > s.Max || b < s.Min || b > s.Max || a == b {
+				e.lineFail(c.out, ErrHeaderSuffixRange)
 				return
 			}
-			key, rest, suf, pair = p+"#-"+p+"#:", up[2*n+4:], []int{a, b}, true
+			key, rest, pair = e.pairKeys[p], up[2*n+4:], true
+			c.sufBuf[0], c.sufBuf[1], nsuf = a, b, 2
 			break
 		}
-		if strings.HasPrefix(up, p) && len(up) >= n+2 && up[n+1] == ':' {
-			if a, ok := digit(n); ok {
-				if !in(a) {
-					fail(ErrHeaderSuffixRange)
-					return
-				}
-				key, rest, suf = p+"#:", up[n+2:], []int{a}
-				break
+		if len(up) >= n+2 && up[n+1] == ':' && up[n] >= '0' && up[n] <= '9' {
+			a := int(up[n] - '0')
+			if a < s.Min || a > s.Max {
+				e.lineFail(c.out, ErrHeaderSuffixRange)
+				return
 			}
+			key, rest = e.singleKeys[p], up[n+2:]
+			c.sufBuf[0], nsuf = a, 1
+			break
 		}
 	}
 	head, arg := rest, ""
@@ -333,17 +348,17 @@ func (e *Engine) lineUnit(unit string, out *bytes.Buffer) {
 		head, arg = rest[:i], strings.TrimSpace(rest[i+1:])
 	}
 	if !pair && (head == "" || strings.HasSuffix(head, ":")) {
-		fail(ErrHeaderSeparator)
+		e.lineFail(c.out, ErrHeaderSeparator)
 		return
 	}
-	cmd := e.exact[key+head]
+	cmd := e.exact[key][head]
 	if cmd == nil {
-		fail(ErrUndefinedHeader)
+		e.lineFail(c.out, ErrUndefinedHeader)
 		return
 	}
-	c := &Call{e: e, Header: key + head, Suffix: suf, arg: arg, out: out}
+	c.Header, c.Suffix, c.arg, c.outputs = cmd.Pattern, c.sufBuf[:nsuf], arg, 0
 	before := e.pushes
 	if err := cmd.Handler(c); err != nil && e.pushes == before {
-		fail(ErrExecution)
+		e.lineFail(c.out, ErrExecution)
 	}
 }
