@@ -217,3 +217,17 @@ func TestTouchPressesTheLayoutsKey(t *testing.T) {
 		t.Fatalf("a touch on RUN: %v", eng.calls)
 	}
 }
+
+// A panel's own trigger-mode keys pick AUTO and NORMAL.
+// TRLC-LINKS: REQ-DSO-135
+func TestTriggerModeKeys(t *testing.T) {
+	c, eng, _ := newC(t)
+	c.Input(key(KeyTrigNormal))
+	if !eng.stats.Norm {
+		t.Fatalf("NORMAL: %v", eng.calls)
+	}
+	c.Input(key(KeyTrigAuto))
+	if eng.stats.Norm {
+		t.Fatalf("AUTO: %v", eng.calls)
+	}
+}

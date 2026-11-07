@@ -13,12 +13,13 @@ import (
 	"github.com/labeth/open-dso-core/uimodel"
 )
 
-// RefCols is a reference's width: one point per screen column.
+// RefCols is a reference's width: the points it is stored at, one per
+// column of an 800-column plot; a renderer stretches them across its own.
 const RefCols = 800
 
 // refWave is a saved snapshot of both channels as they were drawn, overlaid
 // dim for comparison (parity with the web REF A/B). Screen-space: it holds
-// the 800 columns on screen at the save, so it lines up while the timebase is
+// the RefCols points of the screen at the save, so it lines up while the timebase is
 // unchanged — the bench "save a good trace, tweak, compare". It keeps the
 // volts it was saved at: Vdiv/Off are each channel's analog V/div and offset
 // then, so a later V/div or position change redraws it at the same volts.

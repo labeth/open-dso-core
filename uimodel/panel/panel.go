@@ -120,6 +120,8 @@ type Controller struct {
 	lv    Levels
 	hw    Hardware
 	input Input // the board's front panel (Run's), guarded by mu
+	// screenHeight is the display's rows (SetScreen; 0: 480)
+	screenHeight atomic.Int64
 	// touchKeys is the screen's touch layout (SetTouchKeys), guarded by mu
 	touchKeys func(x, y int) string
 	logf      func(string, ...any)
@@ -417,4 +419,20 @@ func (c *Controller) SetInverter(i Inverter) {
 	c.mu.Lock()
 	c.inverter = i
 	c.mu.Unlock()
+}
+
+// SetScreen gives the display's size the views are laid out for (the eye
+// diagram's rows); without it, 800×480.
+// TRLC-LINKS: REQ-DSO-211
+func (c *Controller) SetScreen(_, h int) {
+	c.screenHeight.Store(int64(h))
+}
+
+// screenH is the display's rows.
+// TRLC-LINKS: REQ-DSO-211
+func (c *Controller) screenH() int {
+	if h := c.screenHeight.Load(); h > 0 {
+		return int(h)
+	}
+	return 480
 }

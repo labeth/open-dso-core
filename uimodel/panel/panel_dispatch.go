@@ -110,6 +110,7 @@ func (c *Controller) Input(ev hal.InputEvent) {
 			return
 		}
 		c.touch(ev.TouchX, ev.TouchY)
+	case hal.Overload: // an input's protection tripped: the board's own alarm, no notice of the UI model's yet
 	}
 }
 
@@ -149,6 +150,8 @@ func (c *Controller) button(key string) {
 		c.defaultSetupUI()
 	case KeySet50:
 		c.setTrigMid()
+	case KeyTrigAuto, KeyTrigNormal:
+		_ = c.setNorm(key == KeyTrigNormal) // cannot fail
 	case KeyForce:
 		_ = c.force() // cannot fail
 	case KeyPrint:

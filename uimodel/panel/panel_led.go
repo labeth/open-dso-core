@@ -183,9 +183,19 @@ var lampBits = []struct {
 	bit  uint16
 	name string
 }{
-	{ledCursors, "cursors"}, {ledCH1, "ch1"}, {ledMath, "math"}, {ledCH2, "ch2"}, {ledRef, "ref"},
-	{ledMeasure, "measure"}, {ledAcquire, "acquire"}, {ledDisplay, "display"}, {ledSaveRec, "save"},
-	{ledUtility, "decode"}, {ledRun, "run"}, {ledStop, "stop"}, {ledSingle, "single"},
+	{ledCursors, "cursors"},
+	{ledCH1, "ch1"},
+	{ledMath, "math"},
+	{ledCH2, "ch2"},
+	{ledRef, "ref"},
+	{ledMeasure, "measure"},
+	{ledAcquire, "acquire"},
+	{ledDisplay, "display"},
+	{ledSaveRec, "save"},
+	{ledUtility, "decode"},
+	{ledRun, "run"},
+	{ledStop, "stop"},
+	{ledSingle, "single"},
 }
 
 // lampSet is the lit lamps by core name: the word's, and the trigger

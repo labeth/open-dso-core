@@ -75,8 +75,18 @@ type detent struct {
 
 // detents is the front end's ladder.
 var detents = []detent{
-	{0.002, false, 5}, {0.005, false, 2}, {0.010, false, 1}, {0.020, false, 1}, {0.050, false, 1}, {0.100, false, 1},
-	{0.200, false, 1}, {0.500, true, 1}, {1.0, true, 1}, {2.0, true, 1}, {5.0, true, 1}, {10.0, true, 1},
+	{0.002, false, 5},
+	{0.005, false, 2},
+	{0.010, false, 1},
+	{0.020, false, 1},
+	{0.050, false, 1},
+	{0.100, false, 1},
+	{0.200, false, 1},
+	{0.500, true, 1},
+	{1.0, true, 1},
+	{2.0, true, 1},
+	{5.0, true, 1},
+	{10.0, true, 1},
 }
 
 // detentRange is the V/div of the analog range a step's codes are on.
@@ -181,7 +191,7 @@ func (l *boardLevels) StepTrigLevel(n, src int) float64 {
 		c = clampCode(trigZeroFit)
 	}
 	nc := min(max(int(c)-n, trigCodeMin), trigCodeMax)
-	return l.trigVoltsOf(l.eng.SetTrigLevelCode(uint16(nc)), src) //nolint:gosec // G115: clamped to the DAC's range
+	return l.trigVoltsOf(l.eng.SetTrigLevelCode(uint16(nc)), src)
 }
 
 // TRLC-LINKS: REQ-DSO-098
@@ -203,7 +213,7 @@ func (l *boardLevels) SaveTrigLevelIn(st instrument.Stats) instrument.TrigLevelS
 // TRLC-LINKS: REQ-DSO-098
 func (l *boardLevels) RestoreTrigLevel(s instrument.TrigLevelSaved) {
 	if s.Set() {
-		l.eng.SetTrigLevelCode(uint16(s.Word)) //nolint:gosec // G115: the code SaveTrigLevelIn kept
+		l.eng.SetTrigLevelCode(uint16(s.Word))
 	}
 }
 
@@ -212,7 +222,7 @@ func (l *boardLevels) ResetTrigLevel() { l.eng.SetTrigLevelCode(uint16(l.trigCod
 
 // TRLC-LINKS: REQ-DSO-098
 func (l *boardLevels) LevelWordV(word int) float64 {
-	return trigLevelVolts(uint16(min(max(word, 1), 65535))) //nolint:gosec // G115: clamped to 1..65535
+	return trigLevelVolts(uint16(min(max(word, 1), 65535)))
 }
 
 // TRLC-LINKS: REQ-DSO-095

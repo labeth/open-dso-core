@@ -84,6 +84,9 @@ func (c *Controller) sameAsSavedSetup(s *sv) bool {
 // setupSlots is the FILE tab's slot count (the SCPI *SAV range).
 const setupSlots = 20
 
+// SetupSlots is the number of setup memories the FILE tab offers.
+const SetupSlots = setupSlots
+
 // SetSetupMemory wires the FILE tab (Save/Recall key) to a setup store.
 // TRLC-LINKS: REQ-DSO-136
 func (c *Controller) SetSetupMemory(m SetupMemory) {

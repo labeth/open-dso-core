@@ -43,7 +43,7 @@ const (
 
 // eyeRows is the eye grid's height for the BUS plot.
 // TRLC-LINKS: REQ-DSO-214
-func eyeRows() int { return (480 - wsDefs[wsview.Bus].plotTop - 12) / 2 }
+func eyeRows(screenH int) int { return (screenH - wsDefs[wsview.Bus].plotTop - 12) / 2 }
 
 // busDecoding reports a bus being decoded (decode not off).
 // TRLC-LINKS: REQ-DSO-214
@@ -1915,7 +1915,7 @@ func (c *Controller) eyeFrame(a *anaState, s *sv, f *sample.Frame) {
 	key := fmt.Sprint(ch, s.decProto, keyBit, s.vert[ch], s.offV[ch], s.probe[ch], s.cpl[ch], s.inv[ch], f.SampleS, s.zoom,
 		s.zoomOff, s.st.AcqMode, s.st.TdivS, s.st.TrigPosFrac)
 	if a.eye == nil {
-		a.eye = anaNewEye(eyeCols, eyeRows())
+		a.eye = anaNewEye(eyeCols, eyeRows(c.screenH()))
 	}
 	if key != a.eyeKey || a.eyeOff >= eyeRestartOff { // any change to the picture starts the eye over
 		a.eye.Reset()

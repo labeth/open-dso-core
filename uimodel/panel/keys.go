@@ -37,6 +37,9 @@ const (
 	KeyF3           = "f3"
 	KeyF4           = "f4"
 	KeyF5           = "f5"
+	// The trigger mode's own keys, on a panel that has them.
+	KeyTrigAuto   = "trigauto"
+	KeyTrigNormal = "trignormal"
 
 	// Knob pushes, with their printed jobs.
 	KeyCh1VdivPush  = "ch1vdivpush"  // CH1 V/DIV push: Variable
@@ -88,7 +91,7 @@ var coreKeys = func() map[string]bool {
 	for _, k := range []string{
 		KeyRunStop, KeySingle, KeyAuto, KeyDefaultSetup, KeySet50, KeyForce, KeyPrint, KeyHelp, KeyMenu,
 		KeyCh1, KeyCh2, KeyCh1VdivPush, KeyCh2VdivPush, KeyCh1PosPush, KeyCh2PosPush, KeyTrigLvlPush,
-		KeyTdivPush, KeyHorizPosPush, KeyAdjustPush,
+		KeyTdivPush, KeyHorizPosPush, KeyAdjustPush, KeyTrigAuto, KeyTrigNormal,
 	} {
 		m[k] = true
 	}
