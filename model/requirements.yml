@@ -4679,6 +4679,7 @@ requirements:
   - CODE-ENGINE-CLOCK-GO
   appliesTo:
   - FU-DSO-ENGINE
+  - FU-DSO-INSTRUMENT
   notes: Source-derived contract; source presence is not evidence of a passing hardware qualification.
   verificationMethods:
   - inspection

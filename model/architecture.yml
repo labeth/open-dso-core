@@ -48,9 +48,15 @@ architecture:
   - id: FU-DSO-ENGINE
     name: Core engine
     group: FG-DSO-ACQUISITION
-    prose: 'The engine''s hardware-free code: the fanout that hands the newest frame to every reader.'
+    prose: 'The engine: the owner loop that drives a board through the HAL, its hardware-free acquisition policy, and the fanout that hands the newest frame to every reader.'
     tags:
     - package:engine
+  - id: FU-DSO-INSTRUMENT
+    name: Instrument state
+    group: FG-DSO-ACQUISITION
+    prose: 'The instrument state every controller stages and the owner loop commits: settings in volts and seconds, its generation, the run state, refusals, forced triggers and LONG work.'
+    tags:
+    - package:instrument
   - id: FU-DSO-FRAMECALC
     name: Frame arithmetic
     group: FG-DSO-ACQUISITION
