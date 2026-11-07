@@ -113,7 +113,7 @@ func TestRenderFuzzNoPanic(t *testing.T) {
 			AutosetBusy: rng.Intn(6) == 0, AutosetMsg: "sweep",
 		}
 		if rng.Intn(3) == 0 && f != nil && len(f.Codes8(0)) > 0 {
-			hud.RefC1[0] = f.Codes8(0) // ref same as live
+			hud.Ref[0][0] = f.Codes8(0) // ref same as live
 			hud.RefShow[0] = true
 		}
 		// Fill the super-res means with real values + occasional -1 gaps so the

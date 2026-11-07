@@ -19,14 +19,15 @@ import (
 func drawXY(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	valid := frameValid(f)
 	captions := !hud.UI.Layout.HideViewCaptions
-	if len(f.Codes8(1)) < valid {
+	xa, ya := hud.chanPair(hud.XYCh)
+	if len(f.Codes8(ya)) < valid || len(f.Codes8(xa)) < valid {
 		if captions {
-			DrawText(sf, 10, p.y0+10, "X-Y needs CH2", colDim, 1)
+			DrawText(sf, 10, p.y0+10, "X-Y needs CH"+itoa(max(xa, ya)+1), colDim, 1)
 		}
 		return
 	}
-	c1 := coupledDisplay(f.Codes8(0)[:valid], hud.Ch[0].Cpl)
-	c2 := coupledDisplay(f.Codes8(1)[:valid], hud.Ch[1].Cpl)
+	c1 := coupledDisplay(f.Codes8(xa)[:valid], hud.Ch[xa].Cpl)
+	c2 := coupledDisplay(f.Codes8(ya)[:valid], hud.Ch[ya].Cpl)
 	step := 1
 	if valid > 4000 {
 		step = valid / 4000
@@ -47,7 +48,7 @@ func drawXY(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 		px, py = x, y
 	}
 	if captions {
-		DrawText(sf, 10, p.y0+10, "X:C1  Y:C2", colDim, 1)
+		DrawText(sf, 10, p.y0+10, "X:"+chanName(xa)+"  Y:"+chanName(ya), colDim, 1)
 	}
 }
 
@@ -55,8 +56,9 @@ func drawXY(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 // four times the product of the channel scales, in V²/div; sums use C1 V/div.
 // TRLC-LINKS: REQ-DSO-021
 func mathScale(hud HUD) float64 {
-	a := hud.Ch[0].VdivV * math.Max(hud.Ch[0].Probe, 1)
-	b := hud.Ch[1].VdivV * math.Max(hud.Ch[1].Probe, 1)
+	ca, cb := hud.chanPair(hud.MathCh)
+	a := hud.Ch[ca].VdivV * math.Max(hud.Ch[ca].Probe, 1)
+	b := hud.Ch[cb].VdivV * math.Max(hud.Ch[cb].Probe, 1)
 	if a <= 0 {
 		a = 1
 	}
@@ -74,19 +76,21 @@ func mathScale(hud HUD) float64 {
 // TRLC-LINKS: REQ-DSO-021
 func mathCodes(c1, c2 []uint8, hud HUD, cpd float64) []uint8 {
 	scale := mathScale(hud) / cpd
-	v1 := hud.Ch[0].VdivV * float64(max(hud.Ch[0].Zoom, 1)) / cpd * math.Max(hud.Ch[0].Probe, 1)
-	v2 := hud.Ch[1].VdivV * float64(max(hud.Ch[1].Zoom, 1)) / cpd * math.Max(hud.Ch[1].Probe, 1)
+	ca, cb := hud.chanPair(hud.MathCh)
+	ka, kb := &hud.Ch[ca], &hud.Ch[cb]
+	v1 := ka.VdivV * float64(max(ka.Zoom, 1)) / cpd * math.Max(ka.Probe, 1)
+	v2 := kb.VdivV * float64(max(kb.Zoom, 1)) / cpd * math.Max(kb.Probe, 1)
 	if v1 <= 0 {
 		v1 = 1 / cpd
 	}
 	if v2 <= 0 {
 		v2 = 1 / cpd
 	}
-	off1, off2 := hud.Ch[0].OffV*math.Max(hud.Ch[0].Probe, 1), hud.Ch[1].OffV*math.Max(hud.Ch[1].Probe, 1)
-	if hud.Ch[0].Cpl != 0 {
+	off1, off2 := ka.OffV*math.Max(ka.Probe, 1), kb.OffV*math.Max(kb.Probe, 1)
+	if ka.Cpl != 0 {
 		off1 = 0
 	}
-	if hud.Ch[1].Cpl != 0 {
+	if kb.Cpl != 0 {
 		off2 = 0
 	}
 	// Each input's volts per code, tabled once; the mode chosen outside the
@@ -127,11 +131,12 @@ func mathCodes(c1, c2 []uint8, hud HUD, cpd float64) []uint8 {
 // TRLC-LINKS: REQ-DSO-021
 func drawMath(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posFrac float64) {
 	valid := frameValid(f)
-	if len(f.Codes8(1)) < valid {
+	ca, cb := hud.chanPair(hud.MathCh)
+	if len(f.Codes8(ca)) < valid || len(f.Codes8(cb)) < valid {
 		return
 	}
-	c1 := coupledDisplay(f.Codes8(0)[:valid], hud.Ch[0].Cpl)
-	c2 := coupledDisplay(f.Codes8(1)[:valid], hud.Ch[1].Cpl)
+	c1 := coupledDisplay(f.Codes8(ca)[:valid], hud.Ch[ca].Cpl)
+	c2 := coupledDisplay(f.Codes8(cb)[:valid], hud.Ch[cb].Cpl)
 	m := mathCodes(c1, c2, hud, p.cpd)
 	drawTraceID(sf, p, traceID{}, m, win, xc, f.Flags.Has(sample.Interp), colMath, posFrac)
 	unit := "V/div"
@@ -150,28 +155,24 @@ func drawMath(sf Canvas, p plotArea, f *sample.Frame, hud HUD, win int, xc, posF
 // TRLC-LINKS: REQ-DSO-021, REQ-DSO-138
 func drawRefs(sf Canvas, p plotArea, hud HUD) {
 	cols := [2]Color{colInfo, colDim}
-	live := [2][2]float64{ // per channel: analog V/div, offset volts
-		{hud.Ch[0].VdivV * float64(max(hud.Ch[0].Zoom, 1)), hud.Ch[0].OffV},
-		{hud.Ch[1].VdivV * float64(max(hud.Ch[1].Zoom, 1)), hud.Ch[1].OffV},
-	}
-	liveProbe := [2]float64{max(hud.Ch[0].Probe, 1), max(hud.Ch[1].Probe, 1)}
-	zoom := [2]int{hud.Ch[0].Zoom, hud.Ch[1].Zoom}
 	for i := range 2 {
 		if !hud.RefShow[i] {
 			continue
 		}
-		for ch, r := range [2][]uint8{hud.RefC1[i], hud.RefC2[i]} {
-			if len(r) == 0 || (ch == 1 && hud.NumChans < 2) {
+		for ch, r := range hud.Ref[i] {
+			if len(r) == 0 || ch > 0 && ch >= hud.NumChans {
 				continue
 			}
+			lc := &hud.Ch[ch]
+			liveV, liveOff, liveProbe := lc.VdivV*float64(max(lc.Zoom, 1)), lc.OffV, max(lc.Probe, 1)
 			codes := r
-			if v := hud.RefVdiv[i][ch]; v > 0 && live[ch][0] > 0 {
+			if v := hud.RefVdiv[i][ch]; v > 0 && liveV > 0 {
 				// its volts at the tip, through the probe it was stored with,
 				// as the live input's through the probe on it now
-				k := max(hud.RefProbe[i][ch], 1) / liveProbe[ch]
-				codes = rescaleRef(r, v*k, hud.RefOff[i][ch]*k, live[ch][0], live[ch][1], p.cpd)
+				k := max(hud.RefProbe[i][ch], 1) / liveProbe
+				codes = rescaleRef(r, v*k, hud.RefOff[i][ch]*k, liveV, liveOff, p.cpd)
 			}
-			drawTraceID(sf, p, traceID{}, codes, len(codes), float64(len(codes))/2, false, cols[i], .5, zoom[ch])
+			drawTraceID(sf, p, traceID{}, codes, len(codes), float64(len(codes))/2, false, cols[i], .5, lc.Zoom)
 		}
 	}
 }

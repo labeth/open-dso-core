@@ -753,10 +753,15 @@ func drawMeasPane(sf Canvas, p plotArea, m *wsview.MeasPane) {
 		if split <= 0 {
 			split = 9
 		}
-		for k, x := range []int{4, 262} {
+		chans, half := 2, 262
+		if m.AllChans > 2 { // four columns a half: the halves take half the pane each
+			chans, half = min(m.AllChans, len(m.AllRows[0])-1), 4+p.w/2
+		}
+		for k, x := range []int{4, half} {
 			DrawText(sf, x, 27, "PARAM", colDim, 1)
-			DrawTextRight(sf, x+130, 27, "C1", colC1, 1)
-			DrawTextRight(sf, x+206, 27, "C2", colC2, 1)
+			for ch := range chans {
+				DrawTextRight(sf, x+130+76*ch, 27, chanName(ch), chanColor(ch), 1)
+			}
 			for r := range 9 {
 				i := r
 				if k == 1 {
@@ -769,8 +774,9 @@ func drawMeasPane(sf Canvas, p plotArea, m *wsview.MeasPane) {
 				}
 				y := 37 + r*10
 				DrawText(sf, x, y, m.AllRows[i][0], colInfo, 1)
-				DrawTextRight(sf, x+130, y, m.AllRows[i][1], colC1, 1)
-				DrawTextRight(sf, x+206, y, m.AllRows[i][2], colC2, 1)
+				for ch := range chans {
+					DrawTextRight(sf, x+130+76*ch, y, m.AllRows[i][1+ch], chanColor(ch), 1)
+				}
 			}
 		}
 	case m.Empty:
@@ -1069,20 +1075,16 @@ func drawRow(sf Canvas, r wsview.Row, y int) {
 	case wsview.Header: // drawn by drawRows as a section title
 	case wsview.Enum:
 		limit := xEnd + 2
-		if r.Meas != [2]string{} {
+		if r.Meas != [4]string{} {
 			limit = 290
 		}
 		xe = drawOptions(sf, r.Opts, xOpt, y, r.Rel, limit)
-		if r.Meas != [2]string{} {
+		if r.Meas != [4]string{} {
 			for ch, v := range r.Meas {
 				if v == "" {
 					continue
 				}
-				col, x := colC1, 300
-				if ch == 1 {
-					col, x = colC2, 388
-				}
-				DrawText(sf, x, y+5, cutText("C"+itoa(ch+1)+" "+v, 13), col, 1)
+				DrawText(sf, 300+88*ch, y+5, cutText("C"+itoa(ch+1)+" "+v, 13), chanColor(ch), 1)
 			}
 			xe = xEnd
 		}
