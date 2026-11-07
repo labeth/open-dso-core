@@ -11,6 +11,13 @@ type TriggerSpec struct {
 	// they also move the trigger position the readout reports.
 	Coupling    TrigCoupling
 	NoiseReject bool
+	// FreeRun keeps the stages staged but not armed: every acquisition
+	// completes without a trigger. A controller whose trigger cannot be
+	// served yet (its levels are still being learned, its image is not
+	// loaded) shows the signal untriggered instead of substituting a
+	// trigger; the stages still say the source and level a board shows and
+	// places frames by.
+	FreeRun bool
 }
 
 // TrigCoupling is the trigger path's coupling.
@@ -50,6 +57,7 @@ const (
 //	video       NodeVideo with Video
 //	delay       two stages: NodePattern (event A), then NodeEdge (event B) with Qual
 //	serial      NodeProtocol with Proto
+//	zone        any node with Zones: its event fires only when the zones pass
 //	window, runt, slope use Levels.High and Levels.Low
 type TrigStage struct {
 	Node   TrigNode
@@ -66,6 +74,23 @@ type TrigStage struct {
 	Proto   ProtoTrigger // nil unless Node is a protocol, symbol, sequence or frame-start node
 	DelayS  float64
 	Count   int // the Nth event
+	// Zones qualify the node's event: it fires only when the signal passes
+	// through every zone (and stays out of every Avoid zone) in the zone's
+	// time window around the event. A board without zone hardware refuses
+	// a stage with zones.
+	Zones []Zone
+}
+
+// Zone is a box in time and level the signal must pass through (or avoid)
+// for a zone-qualified event to fire.
+type Zone struct {
+	Source Source
+	// FromS and ToS bound the zone's time window, seconds relative to the
+	// event the stage's node fires on (negative: before it).
+	FromS, ToS float64
+	// Low and High bound the zone's level band, volts at the tip.
+	Low, High float64
+	Avoid     bool // the signal must stay out of the zone
 }
 
 // Gate is a qualifying second input.
@@ -121,6 +146,9 @@ type Video struct {
 	Line     int  // 1-based line in the field
 	Field    int  // 1-based field; progressive standards have one
 	AnyLine  bool // every line's sync
+	// Positive is a sync that rises into its tip; the zero value is the
+	// usual negative sync.
+	Positive bool
 	// The custom standard: lines per frame, frame rate, interlace factor
 	// and fields counted.
 	Lines     int
@@ -201,7 +229,12 @@ const (
 	Either
 )
 
-// Qualifier is a time condition on a node.
+// Qualifier is a time condition on a node: Shorter than MaxS, Longer than
+// MinS, Inside or Outside [MinS, MaxS]. Both limits are kept whatever the
+// operator, so a board whose counter's range is sized from the longest
+// limit sizes it from the limit the condition does not compare too: the
+// limits a user set stay one setting as the condition changes. An Op of
+// zero is no time condition, its limits kept likewise.
 type Qualifier struct {
 	Op         QualOp
 	MinS, MaxS float64

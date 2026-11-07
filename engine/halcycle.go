@@ -50,6 +50,7 @@ type HALCycle struct {
 	b    hal.Board
 	inst *instrument.Model
 
+	seq     uint64           // the last published frame's sequence number
 	gen     uint64           // the generation committed last
 	cur     instrument.State // the state committed last
 	good    instrument.State // the state last committed without a refusal
@@ -215,13 +216,16 @@ func (c *HALCycle) Frame(ctx context.Context, _ Capture, a Armed) (*sample.Frame
 // TRLC-LINKS: REQ-DSO-011
 func (c *HALCycle) Liveness() bool { return true }
 
-// Publish hands a shown frame to the instrument, the cycle's consumer and
-// the Publish hook.
+// Publish numbers a shown frame (Frame.Seq, from 1: a consumer waits for
+// the frame after the one it holds) and hands it to the instrument, the
+// cycle's consumer and the Publish hook.
 // TRLC-LINKS: REQ-DSO-007, REQ-DSO-020
 func (c *HALCycle) Publish(f *sample.Frame, _ Verdict, publish bool) {
 	if !publish {
 		return
 	}
+	c.seq++
+	f.Seq = c.seq
 	c.mu.Lock()
 	c.latest, c.fresh = f, true
 	c.mu.Unlock()

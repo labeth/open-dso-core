@@ -13,7 +13,12 @@ type Request struct {
 	Depth       int     // samples per channel; 0: auto
 	Mode        AcqMode
 	PretrigFrac float64 // fraction of the record before the trigger
-	Segments    int     // 0 or 1: one record
+	// PretrigRoom is acquired samples the record holds before the trigger
+	// beyond PretrigFrac's share (bounded by the record): room for a
+	// trigger point placed back in software, such as a protocol match's
+	// start the hardware fires at the end of.
+	PretrigRoom int
+	Segments    int // 0 or 1: one record
 	Need        []Feature
 }
 

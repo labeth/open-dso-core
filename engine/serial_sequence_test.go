@@ -19,14 +19,14 @@ func TestMatchSequence(t *testing.T) {
 	if ok, at := MatchSequence(spans, SerialParams{Proto: SerCAN, Bytes: []int{0xaa, 0x0f}}); !ok || at != 11 {
 		t.Fatalf("qualified data: %v %d", ok, at)
 	}
-	if ok, at := MatchSequence(spans, SerialParams{Proto: SerCAN, Pattern: []PatternElem{{4, 0, 0}}}); !ok || at != 4 {
+	if ok, at := MatchSequence(spans, SerialParams{Proto: SerCAN, Pattern: []PatternElem{{Kind: 4, Value: 0, Mask: 0}}}); !ok || at != 4 {
 		t.Fatalf("error: %v %d", ok, at)
 	}
-	if ok, at := MatchSequence(spans, SerialParams{Proto: SerCAN, Pattern: []PatternElem{{2, 0xa0, 0xf0}, {2, 0, 0}, {2, 0xf0, 0xff}}}); !ok || at != 11 {
+	if ok, at := MatchSequence(spans, SerialParams{Proto: SerCAN, Pattern: []PatternElem{{Kind: 2, Value: 0xa0, Mask: 0xf0}, {Kind: 2, Value: 0, Mask: 0}, {Kind: 2, Value: 0xf0, Mask: 0xff}}}); !ok || at != 11 {
 		t.Fatalf("wildcards: %v %d", ok, at)
 	}
 	// A packet boundary breaks contiguity.
-	if ok, _ := MatchSequence(spans, SerialParams{Proto: SerCAN, Pattern: []PatternElem{{4, 0, 0}, {2, 0xaa, 0xff}}}); ok {
+	if ok, _ := MatchSequence(spans, SerialParams{Proto: SerCAN, Pattern: []PatternElem{{Kind: 4, Value: 0, Mask: 0}, {Kind: 2, Value: 0xaa, Mask: 0xff}}}); ok {
 		t.Fatal("matched across a packet boundary")
 	}
 	// UART is not framed: the data before an error still counts, and a long sequence matches.
@@ -46,10 +46,10 @@ func TestMatchSequence(t *testing.T) {
 	rw := func(i int, t string) decode.Span { return decode.Span{I0: i, I1: i, Kind: "rw", Text: t} }
 	start := decode.Span{Kind: "start"}
 	i2c := []decode.Span{start, addr(1, 0x50), rw(2, "W"), data(3, 1), data(4, 2), {Kind: "stop"}, start, addr(10, 0x24), rw(11, "W"), data(12, 1), data(13, 2)}
-	if ok, at := MatchSequence(i2c, SerialParams{Proto: SerI2C, Addr: 0x24, RW: 0, Pattern: []PatternElem{{2, 1, 0xff}, {2, 2, 0xff}}}); !ok || at != 12 {
+	if ok, at := MatchSequence(i2c, SerialParams{Proto: SerI2C, Addr: 0x24, RW: 0, Pattern: []PatternElem{{Kind: 2, Value: 1, Mask: 0xff}, {Kind: 2, Value: 2, Mask: 0xff}}}); !ok || at != 12 {
 		t.Fatalf("I2C address filter: %v %d", ok, at)
 	}
-	if ok, _ := MatchSequence(i2c, SerialParams{Proto: SerI2C, Addr: 0x24, RW: 1, Pattern: []PatternElem{{2, 1, 0xff}}}); ok {
+	if ok, _ := MatchSequence(i2c, SerialParams{Proto: SerI2C, Addr: 0x24, RW: 1, Pattern: []PatternElem{{Kind: 2, Value: 1, Mask: 0xff}}}); ok {
 		t.Fatal("I2C direction ignored")
 	}
 }

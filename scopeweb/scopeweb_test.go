@@ -44,7 +44,7 @@ func newRig(t *testing.T, cfg halfake.Config) *rig {
 		st.Channels = append(st.Channels, hal.Channel{On: true, VoltsDiv: 1, Probe: 1, Impedance: 1e6})
 	}
 	m := instrument.New(st, nil)
-	fo := scopeweb.NewFanout()
+	fo := fanout.NewFrames()
 	m.SetFrames(fo)
 	loop, cycle := engine.NewHALLoop(engine.HALConfig{Board: b, Instrument: m, WaitSlice: 5 * time.Millisecond, IdleWait: 5 * time.Millisecond})
 	ctx, cancel := context.WithCancel(context.Background())

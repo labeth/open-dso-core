@@ -649,6 +649,9 @@ func (t trigger) Program(s hal.TriggerSpec) error {
 		if st.Source.Kind != hal.Analog || st.Source.Index < 0 || st.Source.Index >= t.b.cfg.Channels {
 			return hal.Refuse("trigger source", "this board triggers on its analog channels only")
 		}
+		if len(st.Zones) != 0 && !caps.Has(hal.NodeZone) {
+			return hal.Refuse("zone trigger", "this board has no zone qualifier")
+		}
 	}
 	t.b.staged.trigger = s
 	return nil

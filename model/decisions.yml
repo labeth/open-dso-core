@@ -553,6 +553,7 @@ decisions:
   decision: 'The engine''s HAL cycle assigns the publish sequence.'
   consequences:
   - 'From the core web scope step (S8).'
+  - 'HALCycle.Publish numbers frames from 1; the web scope uses the plain frame fan-out (fanout.NewFrames).'
 
 - id: ADR-WEB-SETTINGS-ALIAS
   title: 'The server translates v1 setting names to v2'

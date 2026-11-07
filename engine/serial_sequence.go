@@ -4,22 +4,11 @@ package engine
 
 import (
 	"github.com/labeth/open-dso-core/decode"
+	"github.com/labeth/open-dso-core/hal/prototrig"
 )
 
-// PatternElem is one trigger pattern token (ADR-PROTOCOL-SEQUENCE-TRIGGER):
-// Kind 2 is a decoded unit (byte, word or ARINC data field) equal to Value
-// under Mask, in the decoder's own units; Mask 0 accepts any value. Kind 4 is
-// a decoder-reported error (CRC, parity, framing, stuffing or coding). Kind 1
-// is the start of a frame as the hardware decoder reports it (a START, SOF,
-// SYNC or the idle gap before an SPI word), so [start, any unit] fires on a
-// frame's first unit. A MIL-1553 unit may also require the command sync
-// (MILCommand in Value and Mask).
-// TRLC-LINKS: REQ-DSO-013
-type PatternElem struct {
-	Kind  int `json:"kind"`
-	Value int `json:"value"`
-	Mask  int `json:"mask"`
-}
+// PatternElem is one trigger pattern token (prototrig.PatternElem).
+type PatternElem = prototrig.PatternElem
 
 // Pattern token kinds.
 const (
