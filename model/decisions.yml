@@ -737,7 +737,7 @@ decisions:
   status: accepted
   date: '2026-11-07'
   context: 'The Bode sweep and its single-bin measurement lived in the CML''s engine.'
-  decision: 'The measurement on any reference and DUT channel, and the sweep run beside the owner loop and served on /api/bode, are in the core; a scope supplies the generator through its HAL.'
+  decision: 'The measurement on any reference and DUT channel, the sweep a HAL scope runs beside its owner loop, and its web serving (bodemode, bodeclear, /api/bode) are in the core.'
   consequences:
   - 'Every scope with a signal source gets Bode; the CML''s engine uses the core measurement.'
 
@@ -745,10 +745,10 @@ decisions:
   title: 'References have a store of their own'
   status: accepted
   date: '2026-11-07'
-  context: 'References were fields of the setup file, sized for two channels.'
-  decision: 'References live in references.json beside the setup file, one entry per channel, for any channel count.'
+  context: 'References are kilobytes a channel and change only when stored or cleared, while the setup file is rewritten on every settled knob; a recalled setup should not bring back the references stored with it.'
+  decision: 'References live in references.json in the scope''s settings store, beside the setup file, with each channel''s screen columns and the V/div, offset and probe they were stored at, for any channel count.'
   consequences:
-  - 'The CML keeps its setup file unchanged; references move to their own file on first save.'
+  - 'Setup writes stay small; references redraw at the same volts and time on any scope.'
 
 - id: ADR-INVERTER-N
   title: 'Invert covers N channels and a scope without it refuses with the reason'
