@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/webserver/wire"
 )
@@ -85,11 +86,16 @@ func (s *Scope) capsDoc() wire.Caps {
 	c.Trigger = wire.CapsTrigger{
 		Sources: sources, Modes: []string{"auto", "normal", sweepSingle}, HoldoffS: [2]float64{0, 10},
 	}
-	if tc.Has(hal.NodeEdge) || len(tc.Nodes) == 0 {
+	trigSrc := hal.Source{}
+	switch {
+	case s.cfg.Instrument != nil:
+		trigSrc = st.Trigger.Source()
+		c.Trigger.Types, c.Trigger.Avail, c.Trigger.Params = trigTypeCaps(tc)
+	case tc.Has(hal.NodeEdge) || len(tc.Nodes) == 0:
 		c.Trigger.Types = []string{"edge"} // the trigger types the shared settings program
 	}
 	if len(st.Channels) > 0 {
-		if g := b.Trigger().LevelGrid(st.Trigger.Source); g.Step > 0 && g.Max > g.Min {
+		if g := b.Trigger().LevelGrid(trigSrc); g.Step > 0 && g.Max > g.Min {
 			c.Trigger.LevelSteps = int((g.Max-g.Min)/g.Step + 0.5)
 		}
 	}
@@ -134,6 +140,30 @@ func (s *Scope) capsDoc() wire.Caps {
 	return c
 }
 
+// trigTypeCaps are the trigger types the instrument state holds on a
+// trigger with caps tc: the names of those that run, every type with why
+// not, and the settings of each that runs.
+// TRLC-LINKS: REQ-DSO-164, REQ-DSO-011
+func trigTypeCaps(tc hal.TrigCaps) (names []string, avail []wire.CapsTrigType, params map[string][]wire.CapsTrigParam) {
+	kinds := [...]string{"number", "int", "choice", "bool", "source", "states"}
+	params = map[string][]wire.CapsTrigParam{}
+	for t := range instrument.NumTrigTypes {
+		ok, why := t.Avail(tc)
+		id := t.String()
+		avail = append(avail, wire.CapsTrigType{ID: id, OK: ok, Why: why})
+		if !ok {
+			continue
+		}
+		names = append(names, id)
+		for _, p := range instrument.TrigParams(t) {
+			params[id] = append(params[id], wire.CapsTrigParam{
+				ID: p.ID, Kind: kinds[p.Kind], Unit: p.Unit, Choices: p.Choices, PerChannel: p.PerChannel,
+			})
+		}
+	}
+	return names, avail, params
+}
+
 // sharedControls are the settings v2 controls of the instrument model.
 var sharedControls = []wire.CapsControl{
 	{Name: "tdiv", Unit: "s", Ladder: "timebase.tdivs"},
@@ -147,6 +177,7 @@ var sharedControls = []wire.CapsControl{
 	{Name: "triglevel", Unit: "V"},
 	{Name: "trigsource"},
 	{Name: "trigslope"},
+	{Name: "trigtype"},
 	{Name: "trigpos"},
 	{Name: "holdoff", Unit: "s"},
 	{Name: "run"},

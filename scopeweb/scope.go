@@ -105,10 +105,11 @@ type Scales interface {
 
 // Scope is the web scope: webserver.Scope over a Config.
 type Scope struct {
-	cfg  Config
-	meas shape.MeasCache
-	caps capsCache
-	fps  fpsMeter
+	cfg      Config
+	meas     shape.MeasCache
+	caps     capsCache
+	fps      fpsMeter
+	refusals *refusals
 }
 
 var _ webserver.Scope = (*Scope)(nil)
@@ -124,7 +125,11 @@ func New(cfg Config) *Scope {
 	if len(cfg.BWLimits) == 0 {
 		cfg.BWLimits = []string{"full"}
 	}
-	return &Scope{cfg: cfg}
+	s := &Scope{cfg: cfg, refusals: &refusals{}}
+	if cfg.Instrument != nil {
+		cfg.Instrument.OnRefused(s.refusals.note)
+	}
+	return s
 }
 
 // WithCaps is the scope serving its capabilities document projected from

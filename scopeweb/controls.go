@@ -61,6 +61,9 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 	v := req.Value
 	var applied any = v
 	edit := func(fn func(st *instrument.State) error) error { return m.Change(fn) }
+	if id, ok := strings.CutPrefix(req.Name, "trig."); ok {
+		return c.trigParam(m, id, req)
+	}
 	switch req.Name {
 	case "run":
 		m.SetRunning(v != 0)
@@ -92,7 +95,10 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 		return v, false, edit(func(st *instrument.State) error { st.DelayS = (0.5 - v) * divs * st.TimeDivS; return nil })
 	case "holdoff":
 		h := max(v, 0)
-		return h, true, edit(func(st *instrument.State) error { st.Trigger.HoldoffS = h; return nil })
+		return h, true, edit(func(st *instrument.State) error {
+			st.Trigger.Running().HoldoffS = h
+			return nil
+		})
 	case "memdepth":
 		d := max(int(v), 0)
 		if lim := c.s.profile().MaxDepth; lim > 0 {
@@ -114,34 +120,45 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 			return nil, false, fmt.Errorf("trigger source %g: not one of this scope's channels", v)
 		}
 		return ch, false, edit(func(st *instrument.State) error {
-			st.Trigger.Source = hal.Source{Kind: hal.Analog, Index: ch}
-			return nil
+			return st.Trigger.SetSource(hal.Source{Kind: hal.Analog, Index: ch}, len(st.Channels))
 		})
 	case "trigslope":
-		return v, false, edit(func(st *instrument.State) error {
-			st.Trigger.Slope = hal.Falling
-			if v != 0 {
-				st.Trigger.Slope = hal.Rising
-			}
-			return nil
-		})
+		sl := hal.Falling
+		switch {
+		case strings.EqualFold(req.Text, "either"):
+			sl = hal.Either
+		case strings.EqualFold(req.Text, "rising"), req.Text == "" && v != 0:
+			sl = hal.Rising
+		}
+		return v, false, edit(func(st *instrument.State) error { return st.Trigger.SetSlope(sl, len(st.Channels)) })
 	case "triglevel":
 		var lv float64
 		err := edit(func(st *instrument.State) error {
-			src := st.Trigger.Source
+			src := st.Trigger.Source()
 			if req.Ch >= 0 && (src.Kind != hal.Analog || src.Index != req.Ch) {
 				return fmt.Errorf("triglevel: the trigger's source is not channel %d", req.Ch)
 			}
 			lv = b.Trigger().LevelGrid(src).Snap(v)
-			st.Trigger.LevelV = lv
-			return nil
+			return st.Trigger.SetLevel(lv, len(st.Channels))
 		})
 		return lv, false, err
 	case "trigtype":
-		if v != 0 && !strings.EqualFold(req.Text, "edge") {
-			return nil, false, errors.New("this scope's shared trigger settings take the edge trigger only")
+		t := instrument.TrigType(v)
+		if req.Text != "" {
+			var ok bool
+			if t, ok = instrument.TrigTypeNamed(strings.ToLower(req.Text)); !ok {
+				return nil, false, fmt.Errorf("trigger type %q: not a trigger type", req.Text)
+			}
+		} else if float64(int(v)) != v {
+			return nil, false, fmt.Errorf("trigger type %g: not a trigger type", v)
 		}
-		return 0.0, false, nil
+		if ok, why := t.Avail(b.Trigger().Caps()); !ok {
+			return nil, false, hal.Refuse("the "+t.String()+" trigger", why)
+		}
+		if err := m.SetTrigTypeOf(t); err != nil {
+			return nil, false, err
+		}
+		return t.String(), false, nil
 	case "triglevelcode":
 		return nil, false, errors.New("the trigger level is set in volts on this scope (triglevel)")
 	case "vdiv":
@@ -320,4 +337,46 @@ func hzOf(name string) float64 {
 		x *= 1e9
 	}
 	return x
+}
+
+// trigParam sets setting id of the running trigger type ("trig.<id>"): a
+// number in value (value_v for volts), a choice, source or state list in
+// text, the channel of a per-channel setting in ch. The reply is the
+// setting as the state now holds it.
+// TRLC-LINKS: REQ-DSO-162, REQ-DSO-011
+func (c controls) trigParam(m *instrument.Model, id string, req webserver.Control) (any, bool, error) {
+	var t instrument.TrigType
+	var got instrument.ParamValue
+	err := m.Change(func(st *instrument.State) error {
+		t = st.Trigger.Type
+		v := instrument.ParamValue{Num: req.Value, Text: req.Text, Ch: max(req.Ch, 0)}
+		if err := st.SetTrigParam(t, id, v); err != nil {
+			return err
+		}
+		var err error
+		got, err = st.TrigParam(t, id, v.Ch)
+		return err
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	return paramJSON(t, id, got), false, nil
+}
+
+// paramJSON is a trigger setting's value as JSON carries it: text for
+// choices, sources and state lists, a number otherwise.
+// TRLC-LINKS: REQ-DSO-162, REQ-DSO-011
+func paramJSON(t instrument.TrigType, id string, v instrument.ParamValue) any {
+	for _, p := range instrument.TrigParams(t) {
+		if p.ID != id {
+			continue
+		}
+		switch p.Kind { //nolint:exhaustive // default: a number
+		case instrument.ParamChoice, instrument.ParamSource, instrument.ParamStates:
+			return v.Text
+		case instrument.ParamBool:
+			return v.Num != 0
+		}
+	}
+	return v.Num
 }

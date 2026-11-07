@@ -39,7 +39,7 @@ func newRig(t *testing.T, cfg halfake.Config) *rig {
 		t.Fatal(err)
 	}
 	n := b.Profile().Channels
-	st := instrument.State{TimeDivS: 1e-6, Running: true, Trigger: instrument.Edge{Source: hal.Source{Kind: hal.Analog}, Slope: hal.Rising}}
+	st := instrument.State{TimeDivS: 1e-6, Running: true}
 	for range n {
 		st.Channels = append(st.Channels, hal.Channel{On: true, VoltsDiv: 1, Probe: 1, Impedance: 1e6})
 	}
