@@ -203,7 +203,12 @@ func drawSpectrogramMark(sf Canvas, p plotArea, sg *Spectrogram, hideCaptions bo
 				xmap[x] = x * sgCols / cols
 			}
 		}
-		var line [MaxW]uint16
+		// The row buffer from the pool, not the stack: a MaxW-word array
+		// puts this frame's slots past the ARM's 4 KB load offsets, and
+		// every access then goes through the literal pool.
+		sc := spanScratchPool.Get().(*spanScratch)
+		defer spanScratchPool.Put(sc)
+		line := &sc.n16
 		for y := range rows {
 			srow := sg.row565(sg.imgRow(y * sgRows / rows))
 			drow := dst[(y0+y)*w+x0 : (y0+y)*w+x0+cols]
@@ -290,8 +295,11 @@ func (sg *Spectrogram) row565(r int) []uint16 {
 	return row
 }
 
-// scaleRow fills out with the pixels of src the columns xmap name.
+// scaleRow fills out with the pixels of src the columns xmap name. Out of
+// line so its slices are registers, not reloaded from the caller's frame.
 // TRLC-LINKS: REQ-SDS-068
+//
+//go:noinline
 func scaleRow(out, src []uint16, xmap []int) {
 	for x, sx := range xmap[:len(out)] {
 		out[x] = src[sx]

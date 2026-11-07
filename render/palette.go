@@ -47,7 +47,21 @@ func chanColor(ch int) Color { return colChans[ch%len(colChans)] }
 
 // chanName is channel ch's name, C1 first.
 // TRLC-LINKS: REQ-SDS-021
-func chanName(ch int) string { return "C" + strconv.Itoa(ch+1) }
+func chanName(ch int) string {
+	if ch >= 0 && ch < MaxChans {
+		return chanNames[ch]
+	}
+	return "C" + strconv.Itoa(ch+1)
+}
+
+// chanNames are the channels' names, made once: the readouts name them
+// every frame.
+var chanNames = func() (n [MaxChans]string) {
+	for i := range n {
+		n[i] = "C" + strconv.Itoa(i+1)
+	}
+	return n
+}()
 
 // tok is the shared palette's colour of that name. A name the
 // palette lacks is a programming error, caught at start and by the tests.
