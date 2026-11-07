@@ -256,13 +256,36 @@ func drawLine(sf Canvas, x0, y0, x1, y1 int, c Color) {
 	err := dx - dy
 	// On screen end to end: write the pixels without the interface call and
 	// per-pixel clip (a sparse trace is one segment per column).
-	if sm := sf.Metrics(); uint(x0) < uint(sm.W) && uint(x1) < uint(sm.W) && uint(y0) < uint(sm.H) && uint(y1) < uint(sm.H) {
-		switch m := sf.(type) {
-		case *Image565:
-			linePx(m.pix, sm.W, x0, y0, x1, y1, pack565(c))
-			return
-		case *Image32:
-			linePx(m.pix, sm.W, x0, y0, x1, y1, m.native(c))
+	switch m := sf.(type) {
+	case *Image565:
+		if w, h := uint(m.m.W), uint(m.m.H); uint(x0) < w && uint(x1) < w && uint(y0) < h && uint(y1) < h {
+			// The loop in line, not linePx: on 32-bit ARM a call passes its
+			// arguments on the stack, and a sparse trace is a short segment
+			// per column.
+			px, p := m.pix, pack565(c)
+			step := sy * int(w)
+			o := y0*int(w) + x0
+			for {
+				px[o] = p
+				if x0 == x1 && y0 == y1 {
+					return
+				}
+				e2 := 2 * err
+				if e2 > -dy {
+					err -= dy
+					x0 += sx
+					o += sx
+				}
+				if e2 < dx {
+					err += dx
+					y0 += sy
+					o += step
+				}
+			}
+		}
+	case *Image32:
+		if w, h := uint(m.m.W), uint(m.m.H); uint(x0) < w && uint(x1) < w && uint(y0) < h && uint(y1) < h {
+			linePx(m.pix, m.m.W, x0, y0, x1, y1, m.native(c))
 			return
 		}
 	}
@@ -486,8 +509,9 @@ func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool,
 	cols := denseColumns(id, sig, left, win, p.w)
 	rows := p.codeRows(z)
 	y := func(v uint8) int { return int(rows[v]) }
-	var top, bot [MaxW]int16
-	var cc [MaxW]Color
+	sc := spanScratchPool.Get().(*spanScratch)
+	defer spanScratchPool.Put(sc)
+	top, bot, cc := &sc.top, &sc.bot, &sc.cc
 	w := min(p.w, MaxW)
 	prevY := -1
 	for x := range w {
@@ -506,6 +530,18 @@ func drawDenseTrace(sf Canvas, p plotArea, id traceID, sig []uint8, held []bool,
 	fillSpans(sf, top[:w], bot[:w], cc[:w])
 }
 
+// spanScratch is a plot's per-column spans and colours: MaxW columns each,
+// too big to clear on the stack for every trace a frame. Every column a
+// caller uses it writes first.
+type spanScratch struct {
+	top, bot [MaxW]int16
+	cc       [MaxW]Color
+	n16      [MaxW]uint16
+	n32      [MaxW]uint32
+}
+
+var spanScratchPool = sync.Pool{New: func() any { return new(spanScratch) }}
+
 // spanBlock is how many columns fillSpans fills as one block.
 const spanBlock = 128
 
@@ -519,13 +555,17 @@ const spanBlock = 128
 func fillSpans(sf Canvas, top, bot []int16, cc []Color) {
 	switch m := sf.(type) {
 	case *Image565:
-		var nc [MaxW]uint16
+		sc := spanScratchPool.Get().(*spanScratch)
+		defer spanScratchPool.Put(sc)
+		nc := &sc.n16
 		for i, c := range cc[:min(len(cc), MaxW)] {
 			nc[i] = pack565(c)
 		}
 		fillSpansPx(m.pix, m.m.W, m.m.H, top, bot, nc[:len(cc)])
 	case *Image32:
-		var nc [MaxW]uint32
+		sc := spanScratchPool.Get().(*spanScratch)
+		defer spanScratchPool.Put(sc)
+		nc := &sc.n32
 		for i, c := range cc[:min(len(cc), MaxW)] {
 			nc[i] = m.native(c)
 		}
@@ -664,7 +704,16 @@ func columnHeld(held []bool, left float64, win, w, x int) bool {
 // denseCols are a dense trace's per-column extremes and last sample.
 type denseCols struct {
 	key          denseKey
-	mn, mx, last [MaxW]uint8
+	mn, mx, last []uint8 // a column each
+}
+
+// grow gives c room for ncols columns: a cache slot keeps the widest it saw.
+// TRLC-LINKS: REQ-SDS-021
+func (c *denseCols) grow(ncols int) {
+	if len(c.mn) < ncols {
+		buf := make([]uint8, 3*ncols)
+		c.mn, c.mx, c.last = buf[:ncols], buf[ncols:2*ncols], buf[2*ncols:]
+	}
 }
 
 type denseKey struct {
@@ -702,6 +751,7 @@ func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseC
 	} else {
 		c = new(denseCols)
 	}
+	c.grow(ncols)
 	n := len(sig)
 	step := float64(win) / float64(ncols)
 	// From a non-negative left every position is non-negative, so the
@@ -742,8 +792,9 @@ func denseColumns(id traceID, sig []uint8, left float64, win, ncols int) *denseC
 // TRLC-LINKS: REQ-SDS-021
 func drawEnvelope(sf Canvas, p plotArea, mn, mx []uint8, cols int, col Color, zoom int) {
 	z := float64(max(zoom, 1))
-	var top, bot [MaxW]int16
-	var cc [MaxW]Color
+	sc := spanScratchPool.Get().(*spanScratch)
+	defer spanScratchPool.Put(sc)
+	top, bot, cc := &sc.top, &sc.bot, &sc.cc
 	w := min(p.w, MaxW)
 	rows := p.codeRows(z)
 	for x := range w {
@@ -856,7 +907,7 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	sheet := ui.Sheet != nil
 	sm := metricsOf(sf)
 	p := plotOf(sm, ui.Layout)
-	p.cpd = codesPerDiv(f)
+	p.setCodesPerDiv(codesPerDiv(f))
 	traces := !sheet && !ui.Layout.HideTraces
 	if traces && decodeStrip(hud) {
 		p = p.aboveStrip()

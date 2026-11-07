@@ -39,7 +39,7 @@ func TestTimedForTakesTheTimingOnce(t *testing.T) {
 // X-Y's tables put every code where the arithmetic did.
 // TRLC-LINKS: REQ-SDS-021
 func TestXYTablesMatchTheArithmetic(t *testing.T) {
-	p := plotArea{top: 20, bot: 400, y0: 14, h: 400, w: 700, m: m800, cpd: defaultCodesPerDiv}
+	p := plotArea{top: 20, bot: 400, y0: 14, h: 400, w: 700, m: m800, cpd: defaultCodesPerDiv, span: 8 * defaultCodesPerDiv}
 	rows := p.codeRows(1)
 	for c := range 256 {
 		if int(rows[c]) != p.sy(float64(c)) {

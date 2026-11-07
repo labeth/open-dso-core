@@ -18,7 +18,8 @@ type plotArea struct {
 	w, y0, h int // x runs 0..w-1, y y0..y0+h-1
 	top, bot int // the trace's +4 and -4 division rows
 	m        *Metrics
-	cpd      float64 // codes a division on the 8-bit view (sy)
+	cpd      float64 // codes a division on the 8-bit view
+	span     float64 // the codes the DivsV divisions span (sy): worked out once, sy runs per column
 }
 
 // plotOf is the plot area a layout leaves. With no pane the trace keeps the
@@ -27,7 +28,8 @@ type plotArea struct {
 // graticule.
 // TRLC-LINKS: REQ-SDS-211
 func plotOf(m *Metrics, l wsview.Layout) plotArea {
-	p := plotArea{w: m.W - max(0, min(l.MenuW, m.W-m.MinPlotW)), y0: max(0, min(l.PlotTop, m.MaxPlotTop)), m: m, cpd: defaultCodesPerDiv}
+	p := plotArea{w: m.W - max(0, min(l.MenuW, m.W-m.MinPlotW)), y0: max(0, min(l.PlotTop, m.MaxPlotTop)), m: m}
+	p.setCodesPerDiv(defaultCodesPerDiv)
 	p.h = m.H - p.y0
 	if p.y0 == 0 {
 		p.top, p.bot = m.TraceTop, m.TraceBot
@@ -77,7 +79,15 @@ func (p plotArea) last() int { return p.y0 + p.h - 1 }
 // fullPlotOf is screen m's whole area (thumbnails and tests).
 // TRLC-LINKS: REQ-SDS-021
 func fullPlotOf(m *Metrics) plotArea {
-	return plotArea{w: m.W, y0: 0, h: m.H, top: m.TraceTop, bot: m.TraceBot, m: m, cpd: defaultCodesPerDiv}
+	p := plotArea{w: m.W, y0: 0, h: m.H, top: m.TraceTop, bot: m.TraceBot, m: m}
+	p.setCodesPerDiv(defaultCodesPerDiv)
+	return p
+}
+
+// setCodesPerDiv sets the codes a division the plot maps.
+// TRLC-LINKS: REQ-SDS-021
+func (p *plotArea) setCodesPerDiv(cpd float64) {
+	p.cpd, p.span = cpd, float64(p.m.DivsV)*cpd
 }
 
 // sy maps a code of the 8-bit view to a row: higher code = higher on
@@ -85,7 +95,7 @@ func fullPlotOf(m *Metrics) plotArea {
 // division (spec 07 §3.4, spec 10 §7.1).
 // TRLC-LINKS: REQ-SDS-021
 func (p plotArea) sy(v float64) int {
-	y := p.bot - int(((v-sample.Mid8)/(float64(p.m.DivsV)*p.cpd)+0.5)*float64(p.bot-p.top)+0.5)
+	y := p.bot - int(((v-sample.Mid8)/p.span+0.5)*float64(p.bot-p.top)+0.5)
 	return min(max(y, p.y0), p.last())
 }
 

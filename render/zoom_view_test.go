@@ -126,7 +126,7 @@ func TestZoomViewCoupledAsTheTrace(t *testing.T) {
 func TestTriggerPointerFollowsZoom(t *testing.T) {
 	const n = 40000
 	f := &sample.Frame{WinPoints: n / 4, TriggerAt: 12000, Snapshot: sample.Settings{TdivS: 1e-3}, Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n}, {Ch: 1, Valid: n}}}
-	p := plotArea{w: 560, m: m800, cpd: defaultCodesPerDiv}
+	p := plotArea{w: 560, m: m800, cpd: defaultCodesPerDiv, span: 8 * defaultCodesPerDiv}
 	for _, tc := range []struct {
 		zoom     int
 		off, pos float64
