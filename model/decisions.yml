@@ -515,3 +515,13 @@ decisions:
   decision: 'CML run control stays out of instrument.State until the UI model decides the run-control semantics.'
   consequences:
   - 'From the owner-loop move (S7).'
+
+- id: ADR-UMBRELLA-REPO
+  title: open-dso is the family's public front door and system model
+  status: accepted
+  date: '2026-11-07'
+  context: Someone arriving at one scope repository saw a scope, not a family; the cross-cutting documentation (architecture, adding a scope, provenance, status) belonged to no single code repository.
+  decision: labeth/open-dso is a public, docs-only repository with the family's README, its documentation and a system-of-systems engineering model that composes the public repositories' models (like atlas-industries' company-portfolio). It holds no code and copies no decision or specification; it links to the single sources.
+  consequences:
+  - Private scopes appear there as planned subsystems and join the family model when they become public.
+  - A GitHub organisation (open-dso/...) remains a later option; it would change every Go module path.
