@@ -108,3 +108,20 @@ func TestRunRestoresTheSetupAcrossARestart(t *testing.T) {
 		t.Fatal("no setup memory")
 	}
 }
+
+// copyRows lays a picture's rows into a wider framebuffer, the rows asked
+// for only.
+// TRLC-LINKS: REQ-DSO-168
+func TestCopyRows(t *testing.T) {
+	src := []byte{1, 2, 3, 4, 5, 6}
+	dst := make([]byte, 12)
+	copyRows(dst, 4, src, 2, 0, 3)
+	if string(dst) != string([]byte{1, 2, 0, 0, 3, 4, 0, 0, 5, 6, 0, 0}) {
+		t.Fatalf("%v", dst)
+	}
+	dst = make([]byte, 12)
+	copyRows(dst, 4, src, 2, 1, 2)
+	if string(dst) != string([]byte{0, 0, 0, 0, 3, 4, 0, 0, 0, 0, 0, 0}) {
+		t.Fatalf("row 1 alone: %v", dst)
+	}
+}
