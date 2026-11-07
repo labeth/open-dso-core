@@ -12,15 +12,7 @@ func Codes8(t *sample.Trace) []uint8 {
 	if t == nil {
 		return nil
 	}
-	if t.Format.Storage != sample.U16 {
-		return t.Codes8[:min(t.Valid, len(t.Codes8))]
-	}
-	words := t.Codes16[:min(t.Valid, len(t.Codes16))]
-	out := make([]uint8, len(words))
-	for i, w := range words {
-		out[i] = t.Format.Code8(uint32(w))
-	}
-	return out
+	return t.View8()
 }
 
 // AutodetectTraces is Autodetect over two traces of any code format.

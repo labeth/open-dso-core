@@ -200,3 +200,16 @@ func TestEightBitView(t *testing.T) {
 		}
 	}
 }
+
+// A 12-bit trace's 8-bit view holds its high bytes, and its codes per
+// division on that view are the words' over 256.
+func TestTraceView8(t *testing.T) {
+	t8 := &Trace{Format: CodeFormat{Bits: 8, Storage: U8, Max: 255, Mid: 128}, Codes8: []uint8{1, 2, 3}, Valid: 2, CodesPerDiv: 25}
+	if v := t8.View8(); len(v) != 2 || &v[0] != &t8.Codes8[0] || t8.CodesPerDiv8() != 25 {
+		t.Errorf("8-bit view %v, %v codes a division", v, t8.CodesPerDiv8())
+	}
+	t12 := &Trace{Format: CodeFormat{Bits: 12, Storage: U16, Shift: 4, Max: 0xFFF0, Mid: 0x8000}, Codes16: []uint16{0x0100, 0x8000, 0xFFF0}, Valid: 3, CodesPerDiv: 7680}
+	if v := t12.View8(); v[0] != 1 || v[1] != 128 || v[2] != 255 || t12.CodesPerDiv8() != 30 {
+		t.Errorf("12-bit view %v, %v codes a division", v, t12.CodesPerDiv8())
+	}
+}

@@ -226,6 +226,23 @@ func (t *Trace) Word(i int) uint32 {
 	return uint32(t.Codes8[i])
 }
 
+// View8 is samples [0, Valid) on the 8-bit view (CodeFormat.Code8): 8-bit
+// codes as they are, no copy; wider words mapped into a new slice.
+func (t *Trace) View8() []uint8 {
+	if t.Format.Storage != U16 {
+		return t.Codes8[:min(t.Valid, len(t.Codes8))]
+	}
+	words := t.Codes16[:min(t.Valid, len(t.Codes16))]
+	out := make([]uint8, len(words))
+	for i, w := range words {
+		out[i] = t.Format.Code8(uint32(w))
+	}
+	return out
+}
+
+// CodesPerDiv8 is the trace's codes per division on the 8-bit view.
+func (t *Trace) CodesPerDiv8() float64 { return t.CodesPerDiv / t.Format.Unit8() }
+
 // Volts returns sample i in volts at the probe tip.
 func (t *Trace) Volts(i int) float64 { return t.Scale.Volts(float64(t.Word(i))) }
 
