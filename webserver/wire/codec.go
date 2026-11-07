@@ -63,7 +63,11 @@ func finiteSeries(v reflect.Value) bool {
 }
 
 // JSONSafe turns v into plain JSON values with every NaN and infinity as
-// null (encoding/json refuses them): structs by their JSON names.
+// null (encoding/json refuses them): structs by their JSON names. A field
+// tagged omitempty is left out when it is an empty slice, map or array or
+// a nil pointer or interface, as encoding/json leaves it out; an omitempty
+// scalar (a false, a zero, an empty string) is still written, as this
+// fallback always wrote it and pages read err and paused from it.
 // TRLC-LINKS: REQ-DSO-274
 func JSONSafe(v reflect.Value) any {
 	switch v.Kind() { //nolint:exhaustive // the kinds that can hold a NaN; every other value encodes as it is
@@ -89,8 +93,12 @@ func JSONSafe(v reflect.Value) any {
 				if tag == "-" {
 					continue
 				}
-				if n, _, _ := strings.Cut(tag, ","); n != "" {
+				n, opts, _ := strings.Cut(tag, ",")
+				if n != "" {
 					name = n
+				}
+				if hasOpt(opts, "omitempty") && emptyRef(v.Field(i)) {
+					continue
 				}
 			}
 			m[name] = JSONSafe(v.Field(i))
@@ -120,4 +128,29 @@ func JSONSafe(v reflect.Value) any {
 		return JSONSafe(v.Elem())
 	}
 	return v.Interface()
+}
+
+// hasOpt reports whether a JSON tag's options name opt.
+// TRLC-LINKS: REQ-DSO-274
+func hasOpt(opts, opt string) bool {
+	for opts != "" {
+		var o string
+		o, opts, _ = strings.Cut(opts, ",")
+		if o == opt {
+			return true
+		}
+	}
+	return false
+}
+
+// emptyRef reports an empty collection or a nil reference.
+// TRLC-LINKS: REQ-DSO-274
+func emptyRef(v reflect.Value) bool {
+	switch v.Kind() { //nolint:exhaustive // scalars are never left out by JSONSafe
+	case reflect.Slice, reflect.Map, reflect.Array:
+		return v.Len() == 0
+	case reflect.Pointer, reflect.Interface:
+		return v.IsNil()
+	}
+	return false
 }

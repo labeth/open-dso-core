@@ -108,20 +108,33 @@ type Settings interface {
 	Set(ctx context.Context, c Control) Applied
 }
 
-// Control is one /api/set request: the control's name, its value and the
-// trigger qualifiers' parameters.
+// Control is one /api/set request: the control's name, the channel of a
+// per-channel control, its value in the control's unit and the trigger
+// qualifiers' parameters. The server hands a scope settings v2 controls
+// only: a v1 name (vdiv1, coupling2, …) arrives as its v2 control with its
+// channel (Translate), and V1 keeps the name it came as.
 type Control struct {
-	Name  string  `json:"control"`
+	Name string `json:"control"`
+	// Ch is the channel of a per-channel control (C1 is 0); -1 when the
+	// request names none.
+	Ch    int     `json:"ch"`
 	Value float64 `json:"value"`
-	Lvl   float64 `json:"lvl"`  // pulse level fraction 0..1
-	Lo    float64 `json:"lo"`   // slope low fraction
-	Hi    float64 `json:"hi"`   // slope high fraction
-	Min   float64 `json:"min"`  // width/time window min, ns
-	Max   float64 `json:"max"`  // width/time window max, ns
-	Cond  int     `json:"cond"` // 0=any 1=less 2=greater 3=inside
-	Std   int     `json:"std"`  // video: 0=PAL 1=NTSC
-	Line  int     `json:"line"` // video: 0=any, else line N
-	Neg   bool    `json:"neg"`  // video: negative sync
+	// ValueV is a level in volts (triglevel's value_v); the server moves
+	// it into Value.
+	ValueV *float64 `json:"value_v,omitempty"`
+	// Text is an enum control's choice by name ("DC", "edge"); empty: Value.
+	Text string `json:"text,omitempty"`
+	// V1 is the v1 name the control was sent as; empty for a v2 body.
+	V1   string  `json:"-"`
+	Lvl  float64 `json:"lvl"`  // pulse level fraction 0..1
+	Lo   float64 `json:"lo"`   // slope low fraction
+	Hi   float64 `json:"hi"`   // slope high fraction
+	Min  float64 `json:"min"`  // width/time window min, ns
+	Max  float64 `json:"max"`  // width/time window max, ns
+	Cond int     `json:"cond"` // 0=any 1=less 2=greater 3=inside
+	Std  int     `json:"std"`  // video: 0=PAL 1=NTSC
+	Line int     `json:"line"` // video: 0=any, else line N
+	Neg  bool    `json:"neg"`  // video: negative sync
 }
 
 // Applied is what a control did: the reply {"ok","applied","err"}.
@@ -226,6 +239,13 @@ type Triggers interface {
 	SetSerial(decode func(v any) error) error
 	// SerialProtocols lists the protocols the trigger takes.
 	SerialProtocols() any
+}
+
+// ZonesV2 is optional on Triggers: zones in volts at the probe tip on any
+// channel (the /api/zones v2 body). It answers how many it installed, or
+// why it refused them.
+type ZonesV2 interface {
+	SetZonesV(z []wire.ZoneV) (int, error)
 }
 
 // Masks is the envelope mask test.

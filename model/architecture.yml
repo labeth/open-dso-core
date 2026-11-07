@@ -133,6 +133,14 @@ architecture:
       the wire types and encoders, frame shaping and the conformance suite.'
     tags:
     - package:webserver
+  - id: FU-DSO-SCOPEWEB
+    name: Web scope
+    group: FG-DSO-UI
+    prose: 'webserver.Scope implemented once over the HAL board, the instrument model, the engine''s frame fan-out
+      and the core engine''s parts: frames in wire v1 and v2, settings v2 over the instrument state, the status, the
+      capabilities from the HAL, records, setups, triggers, masks, Bode, SOUND and the client decode.'
+    tags:
+    - package:scopeweb
   - id: FU-DSO-WEBCLIENT
     name: Web client
     group: FG-DSO-UI

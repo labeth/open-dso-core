@@ -146,12 +146,16 @@ func checkPages(t *testing.T, c client, _ webserver.Scope) {
 // checkClaim checks that a superseded page's frame requests conflict and the
 // current epoch's are served.
 // TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
-func checkClaim(t *testing.T, c client, _ webserver.Scope) {
+func checkClaim(t *testing.T, c client, sc webserver.Scope) {
 	t.Helper()
 	out := c.json(http.MethodGet, "/api/claim", "", http.StatusOK)
 	epoch, _ := out["epoch"].(float64)
 	if rec := c.do(http.MethodGet, fmt.Sprintf("/api/frame.bin?epoch=%d&cols=64", uint64(epoch)-1), ""); rec.Code != http.StatusConflict {
 		t.Fatalf("a superseded page: %d", rec.Code)
+	}
+	if _, only := sc.Frames().(webserver.V2Only); only {
+		c.frame2(fmt.Sprintf("/api/frame.bin?epoch=%d&cols=64&v=2", uint64(epoch)))
+		return
 	}
 	c.frame(fmt.Sprintf("/api/frame.bin?epoch=%d&cols=64", uint64(epoch)))
 }
@@ -183,10 +187,17 @@ func checkSet(t *testing.T, c client, _ webserver.Scope) {
 }
 
 // checkFrames checks v1 frames: a native frame's payload size, a held frame
-// unchanged, raw frames, and clamped column counts.
+// unchanged, raw frames, and clamped column counts; a scope v1 cannot carry
+// serves those requests in v2.
 // TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
-func checkFrames(t *testing.T, c client, _ webserver.Scope) {
+func checkFrames(t *testing.T, c client, sc webserver.Scope) {
 	t.Helper()
+	if _, only := sc.Frames().(webserver.V2Only); only {
+		for _, p := range []string{"/api/frame.bin?cols=100", "/api/frame.bin?raw=1"} {
+			c.frame2(p) // served in v2, which its magic says
+		}
+		return
+	}
 	rep, flags, pay := c.frame("/api/frame.bin?cols=100")
 	if rep.Seq == 0 || flags&wire.FlagUnchanged != 0 {
 		t.Skip("the scope has published no frame")
@@ -194,7 +205,9 @@ func checkFrames(t *testing.T, c client, _ webserver.Scope) {
 	if flags&(wire.FlagEnv|wire.FlagDeep|wire.FlagEmpty|wire.FlagPrecision) == 0 && len(pay) != 2*(rep.Cols-rep.Head-rep.Tail) {
 		t.Fatalf("a native frame of %d columns carries %d bytes", rep.Cols, len(pay))
 	}
-	if again, flags, pay := c.frame(fmt.Sprintf("/api/frame.bin?cols=100&since=%d", rep.Seq)); !again.Unchanged || flags&wire.FlagUnchanged == 0 || len(pay) != 0 {
+	// a running scope may have published a newer frame since: that one, or
+	// the frame held as unchanged
+	if again, flags, pay := c.frame(fmt.Sprintf("/api/frame.bin?cols=100&since=%d", rep.Seq)); again.Seq <= rep.Seq && (!again.Unchanged || flags&wire.FlagUnchanged == 0 || len(pay) != 0) {
 		t.Fatalf("the frame held: %+v flags %#x", again, flags)
 	}
 	if _, flags, _ := c.frame("/api/frame.bin?raw=1"); flags&wire.FlagRaw == 0 {

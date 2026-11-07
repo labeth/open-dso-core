@@ -88,3 +88,35 @@ func TestEncodeFrame2Layout(t *testing.T) {
 		t.Fatal("u16 words in a u8 trace encoded")
 	}
 }
+
+// A v2 frame decodes back to the words and scales it was encoded from.
+// TRLC-LINKS: REQ-DSO-163
+func TestDecodeFrame2(t *testing.T) {
+	var f Frame
+	f.FromSample(cmlLike(true))
+	b, err := EncodeFrame2(&f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := DecodeFrame2(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Traces) != len(f.Traces) || got.Header.Seq != f.Header.Seq {
+		t.Fatalf("%d traces seq %d", len(got.Traces), got.Header.Seq)
+	}
+	for i := range f.Traces {
+		w, g := f.Traces[i], got.Traces[i]
+		if g.Ch != w.Ch || g.Codes.Len() != w.Codes.Len() || g.Scale != w.Scale {
+			t.Fatalf("trace %d: %+v", i, g.TraceHeader)
+		}
+		for k := range w.Codes.Len() {
+			if g.Volts(g.Codes, k) != w.Volts(w.Codes, k) {
+				t.Fatalf("trace %d word %d", i, k)
+			}
+		}
+	}
+	if _, err := DecodeFrame2(b[:9]); err == nil {
+		t.Fatal("a cut frame decoded")
+	}
+}

@@ -11,6 +11,18 @@ type Record struct {
 	TdivS    float64
 	Vpc, Off [2]float64
 	C1, C2   []byte
+	// Chans are the record's channels when they are not exactly C1 and C2
+	// of 8-bit codes: each channel's codes on the 8-bit view and its scale.
+	// With Chans, C1, C2, Vpc and Off are unused.
+	Chans []RecordChan
+}
+
+// RecordChan is one channel of a record: its codes on the 8-bit view
+// (volts = (code-128)*Vpc - Off at the probe tip).
+type RecordChan struct {
+	Ch       int
+	Codes    []byte
+	Vpc, Off float64
 }
 
 // Zone is one zone-trigger rectangle: seconds from the trigger edge by
@@ -20,6 +32,15 @@ type Zone struct {
 	CodeLo, CodeHi int
 	Avoid          bool // the frame must not enter the zone
 	Ch             int
+}
+
+// ZoneV is a zone in the v2 shape: seconds from the trigger edge by volts
+// at the probe tip on a channel.
+type ZoneV struct {
+	DtLoS, DtHiS float64
+	VLo, VHi     float64
+	Avoid        bool
+	Ch           int
 }
 
 // Mask is an envelope mask: a frame fails where a sample of display column
