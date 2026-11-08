@@ -26,6 +26,7 @@ const (
 
 // acquisition is an armed acquisition while it waits.
 type acquisition struct {
+	replay   *replay // the record replayed (nil: the generator)
 	set      setup
 	armedAt  float64 // signal time of the arm
 	scanFrom float64 // the trigger scan's next instant
@@ -41,6 +42,7 @@ type acquisition struct {
 // record is the stored record: the instant it was taken at and the setup
 // it was taken with.
 type record struct {
+	replay *replay // the record replayed when it was taken (nil: none)
 	valid  bool
 	set    setup
 	trigT  float64
@@ -195,7 +197,7 @@ func (a acquirer) Arm() error {
 	if h := b.applied.trigger.HoldoffS; h > 0 {
 		from = max(from, b.lastTrig+h)
 	}
-	b.acq = acquisition{set: b.applied, armedAt: now, scanFrom: from, freeRun: b.applied.trigger.FreeRun || len(b.applied.trigger.Stages) == 0}
+	b.acq = acquisition{set: b.applied, armedAt: now, scanFrom: from, freeRun: b.applied.trigger.FreeRun || len(b.applied.trigger.Stages) == 0, replay: b.rep}
 	b.state = hal.Armed
 	return nil
 }
@@ -245,6 +247,10 @@ func (b *Board) poll() (st hal.Status, ready bool, next time.Duration, err error
 	g := geometryOf(q.set.plan)
 	if !q.found {
 		switch {
+		case q.replay.verbatim(q.set.plan) && !q.freeRun:
+			// the replayed record is the trigger's: it triggered where it
+			// was captured
+			q.found, q.trigT = true, max(now, q.scanFrom)
 		case q.force || q.freeRun:
 			q.found, q.forced, q.trigT = true, true, max(now, q.scanFrom)
 		default:
@@ -287,7 +293,7 @@ func (b *Board) poll() (st hal.Status, ready bool, next time.Duration, err error
 		Triggered: !q.forced, Forced: q.forced && !q.freeRun, Done: true, Coherent: true,
 		Record: hal.RecordID{Epoch: 1, Seq: b.recSeq},
 	}
-	b.rec = record{valid: true, set: q.set, trigT: q.trigT, status: st, free: q.freeRun}
+	b.rec = record{valid: true, set: q.set, trigT: q.trigT, status: st, free: q.freeRun, replay: q.replay}
 	b.state = hal.Ready
 	return st, true, 0, nil
 }

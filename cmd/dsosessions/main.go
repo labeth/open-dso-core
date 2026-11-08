@@ -8,6 +8,15 @@
 //	dsosessions run -target bench  -url http://SCOPE:8080 -bench B.json [-minimal-relay] [-sources run|ask|assume] [-dry-run]
 //	dsosessions diff A.json B.json [-out DIR]
 //	dsosessions pair -profile P -demo D -out DIR     (native and wasm, and their diff)
+//	dsosessions capture -url http://SCOPE:8080 -about WHAT -out C.json [-rows id=text,…] [-decode JSON] [-single]
+//
+// A capture reads the record a stopped scope holds, as it serves it, with
+// the rows that set it up, its decoder and what it reports of the record
+// (session.CaptureFile): -rows first sets sheet rows (time.tdiv=100us),
+// -single then takes one record with SINGLE, and -decode reports the
+// packets with that decoder ({"proto":2,"baud":115200,"ch_a":0}) in place
+// of the panel's. The demo replays it (session.CaptureFile.Replay,
+// simdemo/demotest.Captures) and must report the same.
 //
 // A bench run restores the scope's state after each session, and with
 // -dry-run prints every request and bench action it would make instead.
@@ -58,6 +67,8 @@ func run(cmd string, args []string) error {
 		return cmdDiff(args)
 	case "pair":
 		return cmdPair(ctx, args)
+	case "capture":
+		return cmdCapture(ctx, args)
 	}
 	usage()
 	return nil
@@ -65,7 +76,7 @@ func run(cmd string, args []string) error {
 
 // TRLC-LINKS: REQ-DSO-295
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: dsosessions run|diff|pair [flags] (dsosessions run -h)")
+	fmt.Fprintln(os.Stderr, "usage: dsosessions run|diff|pair|capture [flags] (dsosessions run -h)")
 	os.Exit(2)
 }
 
@@ -430,4 +441,88 @@ func cmdPair(ctx context.Context, args []string) error {
 		return fmt.Errorf("%d fields differ between the native and the WebAssembly demo", d.Count().Diff)
 	}
 	return nil
+}
+
+// cmdCapture records the record a scope holds (session.RecordCapture).
+// TRLC-LINKS: REQ-DSO-295
+func cmdCapture(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("capture", flag.ExitOnError)
+	url := fs.String("url", "", "the scope's web API")
+	about := fs.String("about", "", "what is on the inputs")
+	out := fs.String("out", "", "write the capture here")
+	single := fs.Bool("single", false, "take one record with SINGLE first, and wait until the scope holds it")
+	rows := fs.String("rows", "", "comma-separated sheet rows to set first, id=text (time.tdiv=100us,ch1.vdiv=1V)")
+	decode := fs.String("decode", "", `the decoder the packets are reported with, as JSON ({"proto":2,"baud":115200,"ch_a":0}); default: the panel's`)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *url == "" || *out == "" {
+		return errors.New("capture needs -url and -out")
+	}
+	c := session.NewClient(*url)
+	for kv := range strings.SplitSeq(*rows, ",") {
+		if kv == "" {
+			continue
+		}
+		id, text, ok := strings.Cut(kv, "=")
+		if !ok {
+			return fmt.Errorf("-rows: %q is not id=text", kv)
+		}
+		if err := session.SetRow(ctx, c, id, text); err != nil {
+			return err
+		}
+	}
+	if *single {
+		if err := c.Post(ctx, "/api/panel", map[string]any{"button": "single"}); err != nil {
+			return err
+		}
+		if err := waitStopped(ctx, c, 30*time.Second); err != nil {
+			return err
+		}
+	}
+	f, err := session.RecordCapture(ctx, c, *about)
+	if err != nil {
+		return err
+	}
+	if *decode != "" {
+		var d session.CaptureDecode
+		if err := json.Unmarshal([]byte(*decode), &d); err != nil {
+			return fmt.Errorf("-decode: %w", err)
+		}
+		if err := f.WithDecode(&d); err != nil {
+			return err
+		}
+	}
+	b, err := json.MarshalIndent(f, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(*out, append(b, '\n'), 0o644); err != nil { //nolint:gosec // G306: a capture is the operator's file
+		return err
+	}
+	log.Printf("captured %s %s: %d reported fields, %d rows → %s", f.Scope.Vendor, f.Scope.Model, len(f.Reported), len(f.Rows), *out)
+	return nil
+}
+
+// waitStopped waits until the scope at c has stopped running.
+// TRLC-LINKS: REQ-DSO-295
+func waitStopped(ctx context.Context, c *session.Client, limit time.Duration) error {
+	end := time.Now().Add(limit)
+	for time.Now().Before(end) {
+		var st struct {
+			Running *bool `json:"running"`
+		}
+		if err := c.JSON(ctx, http.MethodGet, "/api/status", nil, &st); err != nil {
+			return err
+		}
+		if st.Running != nil && !*st.Running {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
+	return errors.New("the scope did not take its single record (is its trigger met?)")
 }
