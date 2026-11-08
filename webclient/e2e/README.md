@@ -77,6 +77,12 @@ with a screenshot each; the run continues so one pass surfaces them all.
     ITERS=200 SEED=42 OUT=/tmp/fuzz node fuzz.mjs
     ITERS=19  SEED=42 DEBUG_AT=19 node fuzz.mjs   # replay to a finding with layout diagnostics
     FUZZ_STACK=1 ...                              # page errors recorded with their stacks
+    VIEWPORT=1024x600 CHROMIUM_ARGS=--use-gl=egl ...  # a scope's panel size; EGL WebGL headless
+
+A scope whose caps list more than two channels gets channel 2's actions for
+each further channel, appended to the palette (a two-channel scope's seeds
+replay unchanged), and one more invariant: the page keeps a channel's controls
+for every channel of the caps.
 
 The palette drives the workspaces too: tab switches, a workspace's key again
 (not COMPARE's, which stacks a master), the Y/X/F view letters, SPECTRUM/BUS/

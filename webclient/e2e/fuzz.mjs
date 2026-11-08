@@ -10,6 +10,13 @@
 //   I4  /api/status stays healthy (responds, engine not wedged)
 //   I5  the page body never scrolls horizontally
 //   I6  no 5xx from any API the page calls
+//   I8  the page keeps a channel's controls for every channel the scope's
+//       caps list (a four-channel scope never falls back to two)
+//
+// A scope with more than two channels (its caps) gets the same channel
+// actions for each channel past the second, appended to the palette, so a
+// two-channel scope's seeds replay as before. VIEWPORT=WxH sizes the page
+// (operator.mjs), e.g. 1024x600 for a scope's own panel size.
 //
 // Seeded PRNG (SEED env) + a full action log make every finding reproducible.
 // Findings are appended to OUT/findings.jsonl with a screenshot per failure;
@@ -399,8 +406,21 @@ const ACTIONS = [
   // TRLC-LINKS: REQ-DSO-180
   { name: "ref-show", w: 1, run: async (op) => clickId(op, pick(["refShowA", "refShowB"])) },
 ];
+// chanActions are channel n's actions (n > 2), as channel 2's.
+// TRLC-LINKS: REQ-DSO-180, REQ-DSO-204
+function chanActions(n) {
+  return [
+    { name: `vdiv${n}-random`, w: 3, run: async (op) => `vdiv${n}=` + (await selRandom(op, "vdiv" + n)) },
+    { name: `cpl${n}-random`, w: 2, run: async (op) => `cpl${n}=` + (await selRandom(op, "cpl" + n)) },
+    { name: `probe${n}-random`, w: 1, run: async (op) => `probe${n}=` + (await selRandom(op, "probe" + n)) },
+    { name: `ch${n}-toggle`, w: 3, run: async (op) => clickId(op, "tC" + n) },
+    { name: `offset${n}`, w: 2, run: async (op) => { const v = rfloat(-3.5, 3.5).toFixed(2); await slider(op, "off" + n, v); return `off${n}=` + v; } },
+  ];
+}
 const weighted = [];
-for (const a of ACTIONS) for (let k = 0; k < a.w; k++) weighted.push(a);
+// TRLC-LINKS: REQ-DSO-180
+function weigh(actions) { for (const a of actions) for (let k = 0; k < a.w; k++) weighted.push(a); }
+weigh(ACTIONS);
 
 // ---------- invariants ----------
 // TRLC-LINKS: REQ-DSO-180
@@ -457,6 +477,11 @@ async function checkInvariants(op, act, iter) {
     return out;
   });
   if (bad.length) errs.push({ inv: "I3-badtext", detail: bad.join(" ; ") });
+  // I8 every channel of the caps keeps its controls
+  if (CHANNELS > 2) {
+    const have = await op.page.evaluate(() => document.querySelectorAll('[id^="tC"]').length);
+    if (have < CHANNELS) errs.push({ inv: "I8-channels", detail: `${have} channel toggles on the page, the caps list ${CHANNELS}` });
+  }
   // I5 no horizontal scroll
   const hscroll = await op.page.evaluate(() => document.body.scrollWidth > window.innerWidth + 2);
   if (hscroll) errs.push({ inv: "I5-hscroll", detail: "body scrolls horizontally" });
@@ -466,13 +491,21 @@ async function checkInvariants(op, act, iter) {
 // ---------- driver ----------
 const op = await launch(URL);
 if (!op) { console.log("SKIP: playwright not installed"); process.exit(0); }
+// the scope's channels: its caps once the page has them (a page without
+// caps is a two-channel scope's)
+let CHANNELS = 2;
+try {
+  await op.page.waitForFunction(() => typeof capsServed === "undefined" || capsServed, null, { timeout: 25000 });
+  CHANNELS = await op.page.evaluate(() => (typeof caps !== "undefined" && caps.channels ? caps.channels.length : 2));
+} catch {}
+for (let n = 3; n <= CHANNELS; n++) weigh(chanActions(n));
 // I6: 5xx watcher
 const http5xx = [];
 op.page.on("response", (r) => { if (r.status() >= 500) http5xx.push(`${r.status()} ${r.url().slice(-60)}`); });
 
 const log = [];
 let findings = 0;
-console.log(`fuzz: ${N} iterations, seed ${SEED}, url ${URL}`);
+console.log(`fuzz: ${N} iterations, seed ${SEED}, url ${URL}, ${CHANNELS} channels`);
 const DEBUG_AT = parseInt(process.env.DEBUG_AT || "0", 10);
 for (let i = 1; i <= N; i++) {
   const act = weighted[Math.floor(rng() * weighted.length)];
