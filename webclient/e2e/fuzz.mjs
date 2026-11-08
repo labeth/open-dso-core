@@ -18,6 +18,10 @@
 // two-channel scope's seeds replay as before. VIEWPORT=WxH sizes the page
 // (operator.mjs), e.g. 1024x600 for a scope's own panel size.
 //
+// STALL_MS sets how long I2 waits for the next frame (default 5000): a scope
+// run under an emulator restarts its acquisition several times slower than
+// the unit after a setting change.
+//
 // Seeded PRNG (SEED env) + a full action log make every finding reproducible.
 // Findings are appended to OUT/findings.jsonl with a screenshot per failure;
 // the run CONTINUES after a finding (RUN_ALL-style) so one pass surfaces the
@@ -31,6 +35,7 @@ import { launch } from "./operator.mjs";
 const URL = process.env.SCOPE_URL || "http://192.168.1.209:8080";
 const N = parseInt(process.env.ITERS || "200", 10);
 const SEED = parseInt(process.env.SEED || "1", 10);
+const STALL_MS = Math.max(1000, parseInt(process.env.STALL_MS || "5000", 10));
 const OUT = process.env.OUT || "/tmp/fuzz-findings";
 fs.mkdirSync(OUT, { recursive: true });
 const findingsPath = path.join(OUT, "findings.jsonl");
@@ -459,12 +464,12 @@ async function checkInvariants(op, act, iter) {
     if (!frozen) {
       const s0 = await op.page.evaluate(() => (typeof frame !== "undefined" && frame ? frame.seq : -1));
       let advanced = false;
-      for (let k = 0; k < 25; k++) {
+      for (let k = 0; k < STALL_MS / 200; k++) {
         await op.page.waitForTimeout(200);
         const s1 = await op.page.evaluate(() => (typeof frame !== "undefined" && frame ? frame.seq : -1));
         if (s1 > s0) { advanced = true; break; }
       }
-      if (!advanced) errs.push({ inv: "I2-stalled", detail: `frame.seq stuck at ${s0} for 5s (running, unfrozen)` });
+      if (!advanced) errs.push({ inv: "I2-stalled", detail: `frame.seq stuck at ${s0} for ${STALL_MS / 1000}s (running, unfrozen)` });
     }
   }
   // I3 no NaN/undefined/Infinity in visible readouts
@@ -557,7 +562,7 @@ for (let i = 1; i <= N; i++) {
     findings++;
     const shot = path.join(OUT, `f${String(findings).padStart(2, "0")}-i${i}.png`);
     await op.page.screenshot({ path: shot }).catch(() => {});
-    const rec = { iter: i, seed: SEED, action: act.name, detail, errs, tail: log.slice(-8) };
+    const rec = { iter: i, seed: SEED, at: new Date().toISOString(), action: act.name, detail, errs, tail: log.slice(-8) };
     fs.appendFileSync(findingsPath, JSON.stringify(rec) + "\n");
     console.log(`\n[FINDING ${findings}] iter ${i} action=${act.name} ${detail}`);
     for (const e of errs) console.log(`   ${e.inv}: ${e.detail}`);

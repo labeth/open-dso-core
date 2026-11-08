@@ -255,7 +255,9 @@ export const tone1Mb = [
       { timeout: 90000, why: "Stack master must average 64 captures into REF A" });
     // the acquisition is back to what it was, the mask test counts raw captures
     assert((await op.readText("acq")) === "Normal", `the acquisition should be restored to Normal, reads ${await op.readText("acq")}`);
-    assert((await op.readText("zmMode")) === "Count", `the mask test should be counting, reads ${await op.readText("zmMode")}`);
+    // the scope builds the mask from live captures after the master, then counts
+    await op.readUntil(async () => (await op.readText("zmMode")) === "Count", 10000,
+      `the mask test should be counting once the scope built the mask, reads ${await op.readText("zmMode")}`);
     const meter = await op.readUntil(async () => { const t = await op.readText("zmMeter"); return t && /pass\s+\d/i.test(t) ? t : null; },
       10000, "the mask test never counted a live capture against the master");
     assert(/pass/.test(meter), `mask meter should count passes, got "${meter}"`);

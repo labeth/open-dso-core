@@ -32,6 +32,21 @@ export const maskv = [
   }},
   // TRLC-LINKS: REQ-DSO-208
   { id: "M4", name: "Pulse-width trigger: select PULSE and reveal the qualifier panel", run: async (op) => {
+    // A scope whose caps carry its trigger's settings has the page build its
+    // trigger rows from them (#trigAll, the type in #trigType) in place of the
+    // four-type row and its qualifier panel: PULSE there adds the pulse's
+    // settings to the rows and EDGE takes them away.
+    const built = await op.page.evaluate(() => { const b = document.getElementById("trigAll"); return !!b && !b.hidden && !!document.getElementById("trigType"); });
+    if (built) {
+      const rows = () => op.page.evaluate(() => [...document.querySelectorAll("#trigAll [data-trig]")].map((e) => e.dataset.trig));
+      await op.selectExpect("trigType", "edge", async () => (await op.page.evaluate(() => document.getElementById("trigType").value)) === "edge", { why: "start from EDGE" });
+      const edge = new Set(await rows());
+      await op.selectExpect("trigType", "pulse", async () => (await rows()).some((id) => !edge.has(id)),
+        { timeout: 8000, why: "PULSE must add the pulse's own settings to the trigger rows" });
+      await op.selectExpect("trigType", "edge", async () => (await rows()).every((id) => edge.has(id)),
+        { timeout: 8000, why: "EDGE takes the pulse's settings away" });
+      return;
+    }
     await op.selectExpect("ttype", "1", async () => await op.page.evaluate(() => {
       const q = document.getElementById("qualrow"); return q && getComputedStyle(q).display !== "none";
     }), { why: "PULSE trigger type must reveal the pulse-qualifier controls" });
