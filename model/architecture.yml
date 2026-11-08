@@ -135,6 +135,21 @@ architecture:
       the web server and the health token.'
     tags:
     - package:scopeapp
+  - id: FU-DSO-FSGUARD
+    name: Write guard
+    group: FG-DSO-OPERATIONS
+    prose: 'The one write guard a scope''s programs write files, device nodes and /dev/mem windows through: the
+      mechanism, with the board''s policy naming the writable root, the vendor areas, the boot files, the block
+      devices, one-time programmable storage and register windows that are never written.'
+    tags:
+    - package:fsguard
+  - id: FU-DSO-BOOTTARGET
+    name: Boot target
+    group: FG-DSO-OPERATIONS
+    prose: 'The owner''s choice of what the next power-up runs, this firmware or the vendor''s: the launch hook''s
+      disable file written through the write guard, served as SCPI and web routes and a SYS sheet row.'
+    tags:
+    - package:boottarget
   - id: FU-DSO-RENDER
     name: Display rendering
     group: FG-DSO-UI

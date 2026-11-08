@@ -134,12 +134,23 @@ type display struct {
 	// web is the web server once it is built: whether a page shows the
 	// scope steers the governor.
 	web atomic.Pointer[webserver.Server]
+	// hw feeds the board's hardware waveform renderer the UI's view; nil
+	// without one.
+	hw *hwView
+	// shots are screen captures asked of the loop: over a hardware renderer
+	// the picture is read back on the display goroutine (Display.Capture is
+	// RENDER work). capturing says the loop serves them.
+	shots     chan chan []byte
+	capturing atomic.Bool
 }
 
 // newDisplay is the display of env with cfg.
 // TRLC-LINKS: REQ-DSO-168
 func newDisplay(env *Env, cfg Display) *display {
-	d := &display{env: env, cfg: cfg, eng: cfg.Engine, spect: render.NewSpectrogram(), chans: env.Board.Profile().Channels}
+	d := &display{
+		env: env, cfg: cfg, eng: cfg.Engine, spect: render.NewSpectrogram(), chans: env.Board.Profile().Channels,
+		hw: newHWView(env), shots: make(chan chan []byte),
+	}
 	if d.eng == nil {
 		d.eng = boardEngineOf(env.Board)
 	}
@@ -477,10 +488,16 @@ func (d *display) run(stop <-chan struct{}, scr Screen) { //nolint:gocyclo // th
 	var pictures, govPictures uint64 // full pictures drawn, and as gov last counted
 	var cpu cpuMeter
 	wasBusy := false
+	if d.hw != nil && d.env.Board.Display() != nil {
+		d.capturing.Store(true)
+		defer d.capturing.Store(false)
+	}
 	for {
 		select {
 		case <-stop:
 			return
+		case reply := <-d.shots:
+			reply <- d.capturePNG(back)
 		default:
 		}
 		switch {
@@ -558,6 +575,9 @@ func (d *display) run(stop <-chan struct{}, scr Screen) { //nolint:gocyclo // th
 			}
 		}
 		hud := d.hud()
+		if d.hw != nil {
+			d.hw.tick(&hud, time.Now())
+		}
 		present := false
 		fo.WithFrame(func(f *sample.Frame) {
 			// The publish rate is slower than the render tick, so "fresh"

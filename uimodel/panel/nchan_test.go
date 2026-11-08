@@ -230,7 +230,7 @@ func TestFourChannelRowsReachableThroughSheetsAPI(t *testing.T) {
 	want := map[string]bool{}
 	for _, tb := range sheetTabs {
 		for _, rw := range tb.rows {
-			if !rowShown(rw.id, 2) && rowShown(rw.id, 4) && rw.kind != wsview.Action {
+			if !rowShown(rw.id, rowShape{nch: 2}) && rowShown(rw.id, rowShape{nch: 4}) && rw.kind != wsview.Action {
 				want[rw.id] = true
 			}
 		}

@@ -88,6 +88,8 @@ type row struct {
 	// minChans: a row only a scope with at least this many channels has
 	// (a choice between channels past two); 0 for every scope.
 	minChans int
+	// boot: a row only a scope whose board offers a boot target has.
+	boot bool
 }
 
 // tab is one sheet tab.
@@ -418,6 +420,8 @@ type sv struct {
 	slotUsed       [setupSlots + 1]bool
 	slotSum        [setupSlots + 1]string
 	remoteNotices  bool
+	boot           bool   // the board offers a boot target
+	bootNext       int    // its next power-up: bootOpen or bootVendor
 	autoBusy       bool   // AUTO runs (its sweep's frames need no spectrum)
 	saverMin       int    // the Screen saver row (minutes, 0 = off)
 	offMin         int    // the Screen off row

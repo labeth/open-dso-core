@@ -148,10 +148,12 @@ type View struct {
 	// (0 or missing: 1): the zoom view's vertical zoom. In the main view it
 	// stays 1: a digital step of the ladder (Step.Zoom) is already in the
 	// frames.
-	Gain   []float64
-	StartS float64 // window start relative to the trigger
-	SpanS  float64 // window width
-	Zoom   *View   // nil without a zoom window; a zoom view has no zoom and no mode of its own
+	Gain []float64
+	// StartS is the window's start relative to the trigger and SpanS its
+	// width; a main view with SpanS 0 is the acquisition's window.
+	StartS float64
+	SpanS  float64
+	Zoom   *View // nil without a zoom window; a zoom view has no zoom and no mode of its own
 	// Held: stopped, redraw the stored record at this view's window with
 	// the staged vertical settings, at once rather than at the next Arm.
 	// Refused with no stored record or while acquiring; a held record is

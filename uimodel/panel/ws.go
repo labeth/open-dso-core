@@ -95,6 +95,7 @@ type uiState struct {
 	open  bool              // a settings sheet is open
 	tab   int               // the sheet's tab (index into sheetTabs)
 	nch   int               // the scope's channels (the tabs and rows it has)
+	boot  bool              // the board offers a boot target (the SYS sheet's Next boot row)
 	via   string            // the key that opened it
 	rowAt [numTabs]int      // the remembered row of each tab
 	wsTab [wsview.Count]int // where the sheet was left per workspace (-1: never)
@@ -298,6 +299,7 @@ func (c *Controller) snap() *sv {
 	s.fftSrc, s.stackN, s.stacking = c.fftSrc, c.stackN, c.stack != nil
 	s.slotUsed, s.slotSum = c.slotUsed, c.slotSum
 	s.remoteNotices, s.hasHardcopy = c.remoteNotices, c.hardcopy != nil
+	s.boot, s.bootNext = c.bootTarget != nil, c.bootNextLocked()
 	s.autoBusy = c.autosetBusy
 	s.saverMin, s.offMin, s.screen = c.saverMin, c.offMin, c.screenLocked(s.now)
 	s.ui = c.ui
