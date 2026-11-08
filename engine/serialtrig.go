@@ -122,13 +122,25 @@ func SerialMatchIn(chA, chB []uint8, sampleS float64, p SerialParams, at AnchorS
 	if !res.OK {
 		return false, -1
 	}
+	return SerialMatchSpans(res.Spans, p, at)
+}
+
+// SerialMatchSpans finds a request's match nearest at.target in a decode's
+// spans: SerialMatchIn past the decode, for a caller that marks what its
+// receiver frames by (an SPI word after a gap in the clock) first.
+// TRLC-LINKS: REQ-DSO-013
+func SerialMatchSpans(spans []decode.Span, p SerialParams, at AnchorSpan) (bool, int) {
+	d, ok := LookupSerialDecoder(p.Proto)
+	if !ok {
+		return false, -1
+	}
 	match := d.Match
 	if SequenceNeeded(p) {
 		match = MatchSequence
 	}
-	ok, start := pickSerialMatch(res.Spans, p, match, at)
+	ok, start := pickSerialMatch(spans, p, match, at)
 	if ok && (p.Proto == SerARINC || p.Proto == SerMIL1553) {
-		start = wordOpening(res.Spans, start)
+		start = wordOpening(spans, start)
 	}
 	return ok, start
 }

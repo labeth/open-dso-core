@@ -14,6 +14,9 @@ import (
 type trigDoc struct {
 	Type    string                    `json:"type"`
 	Configs map[string]map[string]any `json:"configs"`
+	// Placed names the types the owner places from the UI model's settings
+	// (TrigConfig.Placed).
+	Placed []string `json:"placed,omitempty"`
 }
 
 // MarshalJSON is the trigger as a stored state carries it.
@@ -47,6 +50,9 @@ func (t Trigger) MarshalJSON() ([]byte, error) {
 			vals[p.ID] = docValue(p, v)
 		}
 		d.Configs[tt.String()] = vals
+		if c.Placed {
+			d.Placed = append(d.Placed, tt.String())
+		}
 	}
 	return json.Marshal(d)
 }
@@ -110,6 +116,14 @@ func (t *Trigger) decode(b []byte, channels int) error {
 			if err := t.setDoc(tt, p, raw, 0, channels); err != nil {
 				return err
 			}
+		}
+	}
+	for i := range t.Configs {
+		t.Configs[i].Placed = false
+	}
+	for _, name := range d.Placed {
+		if tt, ok := TrigTypeNamed(name); ok {
+			t.Configs[tt].Placed = true
 		}
 	}
 	if d.Type != "" {

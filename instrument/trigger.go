@@ -156,6 +156,11 @@ type TrigConfig struct {
 	// NoTime runs the type without its firing stage's time condition, whose
 	// settings are kept: a qualified edge's undelayed forms.
 	NoTime bool
+	// Placed has the owner place a pulse, slope or video trigger from the
+	// UI model's settings (State.Qual: levels as fractions of the swing it
+	// learns from the records) instead of the stage's own levels and
+	// limits; a host interface that sets a level or a limit clears it.
+	Placed bool
 }
 
 // Trigger is the trigger setting: every type's configuration and the type
@@ -338,7 +343,7 @@ func (t Trigger) Equal(o Trigger) bool {
 	}
 	for i := range t.Configs {
 		a, b := &t.Configs[i], &o.Configs[i]
-		if a.HoldoffS != b.HoldoffS || a.Coupling != b.Coupling || a.NoiseReject != b.NoiseReject || a.NoTime != b.NoTime ||
+		if a.HoldoffS != b.HoldoffS || a.Coupling != b.Coupling || a.NoiseReject != b.NoiseReject || a.NoTime != b.NoTime || a.Placed != b.Placed ||
 			len(a.Stages) != len(b.Stages) || !reflect.DeepEqual(a.Stages, b.Stages) {
 			return false
 		}
@@ -418,6 +423,17 @@ func DefaultTrigConfig(t TrigType, channels int) TrigConfig {
 	if channels > 1 {
 		c2.Index = 1
 	}
+	c := defaultConfig(t, c1, c2, channels)
+	switch t { //nolint:exhaustive // the others' levels are their own
+	case TrigPulse, TrigSlope, TrigVideo:
+		c.Placed = true // the UI model's settings, placed on the learned swing
+	}
+	return c
+}
+
+// defaultConfig is DefaultTrigConfig before the placement.
+// TRLC-LINKS: REQ-DSO-011
+func defaultConfig(t TrigType, c1, c2 hal.Source, channels int) TrigConfig {
 	rise := hal.Levels{Slope: hal.Rising}
 	qual := func(op hal.QualOp) *hal.Qualifier { return &hal.Qualifier{Op: op, MinS: 1e-6, MaxS: 2e-6} }
 	two := hal.Levels{High: 0.1, Low: -0.1, Slope: hal.Rising}

@@ -522,7 +522,7 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 		return nil, errors.New("scopeapp: a scope with its own owner builds its web scope")
 	}
 	return scopeweb.New(scopeweb.Config{
-		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, UI: env.UI,
+		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, Product: env.Product, UI: env.UI,
 		Setups: WebSetups{env.Setups}, Parts: WebParts(env), Screen: env.ScreenPNG,
 	}).WithCaps(), nil
 }
@@ -535,6 +535,10 @@ func WebParts(env *Env) scopeweb.Parts {
 	var p scopeweb.Parts
 	if env.HALScope != nil {
 		p.Bode = env.HALScope.Bode()
+		p.Leases = halLeases{env.HALScope.Engine()}
+	}
+	if env.Model != nil && env.HALScope != nil {
+		p.Serial = halSerial{env.Model}
 	}
 	p.Masks = env.MaskTest()
 	return p

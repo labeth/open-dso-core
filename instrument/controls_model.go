@@ -34,15 +34,17 @@ func (m *Model) SetTimebases(tdivs []float64) {
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-009
 func (m *Model) Snapshot() Stats {
 	m.mu.Lock()
-	s, run, last := m.want, m.run, m.last
+	s, run, last, be := m.want, m.run, m.last, m.backends
 	m.mu.Unlock()
 	st := Stats{
 		Running: s.Running, Norm: s.Sweep == hal.NormalSweep || s.Sweep == hal.Single, Single: s.Single,
 		TdivS: s.TimeDivS, DisplayedS: s.TimeDivS, TrigPosFrac: posFrac(s),
 		TrigRising: s.Trigger.Slope() != hal.Falling, TrigSource: s.Trigger.Source().Index,
-		TrigType: int(s.Trigger.running()), TrigQual: qualOf(s), HoldoffS: s.Trigger.Active().HoldoffS,
+		TrigType: int(s.Trigger.running()), TrigQual: s.Qual, HoldoffS: s.Trigger.Active().HoldoffS,
 		AvgCount: s.Averages, EresLen: s.EresLen, ETS: s.ETS, MemDepth: s.Depth,
-		Roll: run == Rolling,
+		Roll:       run == Rolling,
+		SerialMode: s.SerialMode, SerialSet: len(s.Serial.Bytes) > 0 || len(s.Serial.Pattern) > 0,
+		TriggerBackend: be.Trigger, SerialBackend: be.Serial,
 	}
 	for i, md := range acqModes[:4] {
 		if s.Mode == md {
@@ -55,13 +57,14 @@ func (m *Model) Snapshot() Stats {
 	return st
 }
 
-// posFrac is the trigger's place across the screen in state s.
+// posFrac is the trigger's place across the screen in state s: the screen
+// centre DelayS after the trigger puts the trigger left of the centre.
 // TRLC-LINKS: REQ-DSO-008
 func posFrac(s State) float64 {
 	if s.TimeDivS <= 0 {
 		return .5
 	}
-	return .5 + s.DelayS/(10*s.TimeDivS)
+	return .5 - s.DelayS/(10*s.TimeDivS)
 }
 
 // set stages fn's edit, refusals dropped: a setter has no error to give,
@@ -96,7 +99,7 @@ func (m *Model) SetTdiv(tdivS float64) (Timebase, bool) {
 	m.set(func(s *State) {
 		f := posFrac(*s)
 		s.TimeDivS = tdivS
-		s.DelayS = (f - .5) * 10 * tdivS
+		s.DelayS = (.5 - f) * 10 * tdivS
 	})
 	return Timebase{TdivS: tdivS}, true
 }
@@ -105,7 +108,7 @@ func (m *Model) SetTdiv(tdivS float64) (Timebase, bool) {
 // TRLC-LINKS: REQ-DSO-008
 func (m *Model) SetTrigPosFrac(frac float64) {
 	frac = math.Min(1, math.Max(0, frac))
-	m.set(func(s *State) { s.DelayS = (frac - .5) * 10 * s.TimeDivS })
+	m.set(func(s *State) { s.DelayS = (.5 - frac) * 10 * s.TimeDivS })
 }
 
 // SetMemDepth asks for a record depth; the scope plans what it can.
@@ -271,136 +274,34 @@ func (m *Model) SetHoldoff(sec float64) float64 {
 	return sec
 }
 
-// The UI model's qualifier settings give levels as fractions of the
-// source's screen (vertDivs divisions, 0 its bottom) and times in
-// nanoseconds, with the conditions any, < min, > max and in range; the
-// HAL's qualifier compares Shorter with its upper limit and Longer with
-// its lower. A condition maps onto the limit it compares: "< min" is
-// Shorter than min, "> max" Longer than max, so the other limit is the
-// one the panel does not show for that condition.
-const vertDivs = 8
-
-// levelOfFrac is the level at fraction f of channel ch's screen, volts at
-// the tip; fracOfLevel its inverse.
-// TRLC-LINKS: REQ-DSO-011
-func levelOfFrac(s *State, src hal.Source, f float64) float64 {
-	if src.Kind != hal.Analog || src.Index < 0 || src.Index >= len(s.Channels) {
-		return 0
-	}
-	c := s.Channels[src.Index]
-	return (f-.5)*vertDivs*c.VoltsDiv - c.OffsetV
-}
-
-// TRLC-LINKS: REQ-DSO-011
-func fracOfLevel(s *State, src hal.Source, v float64) float64 {
-	if src.Kind != hal.Analog || src.Index < 0 || src.Index >= len(s.Channels) || !(s.Channels[src.Index].VoltsDiv > 0) {
-		return .5
-	}
-	c := s.Channels[src.Index]
-	return .5 + (v+c.OffsetV)/(vertDivs*c.VoltsDiv)
-}
-
-// qualSet sets a stage's time condition from the panel's condition and
-// limits (nanoseconds).
-// TRLC-LINKS: REQ-DSO-011
-func qualSet(st *hal.TrigStage, minNs, maxNs float64, cond int) {
-	q := stageQual(st)
-	q.MinS, q.MaxS = minNs/1e9, maxNs/1e9
-	switch cond {
-	case 1: // < min
-		q.Op, q.MaxS = hal.Shorter, minNs/1e9
-	case 2: // > max
-		q.Op, q.MinS = hal.Longer, maxNs/1e9
-	case 3:
-		q.Op = hal.Inside
-	default:
-		q.Op = 0
-	}
-}
-
-// qualGet is a stage's time condition as the panel's condition and limits.
-// TRLC-LINKS: REQ-DSO-011
-func qualGet(st hal.TrigStage) (minNs, maxNs float64, cond int) {
-	q := st.Qual
-	if q == nil {
-		return 0, 0, 0
-	}
-	minNs, maxNs = q.MinS*1e9, q.MaxS*1e9
-	switch q.Op {
-	case hal.Shorter:
-		return maxNs, maxNs, 1
-	case hal.Longer:
-		return minNs, minNs, 2
-	case hal.Inside, hal.Outside:
-		return minNs, maxNs, 3
-	}
-	return minNs, maxNs, 0
-}
-
-// qualOf is state s's pulse, slope and video settings as the panel reads
-// them.
-// TRLC-LINKS: REQ-DSO-011
-func qualOf(s State) TrigQual {
-	var q TrigQual
-	if c := s.Trigger.Configs[TrigPulse]; len(c.Stages) > 0 {
-		st := c.Stages[0]
-		q.PulseLvl = fracOfLevel(&s, st.Source, st.Levels.High)
-		q.PulseMinNs, q.PulseMaxNs, q.PulseCond = qualGet(st)
-	}
-	if c := s.Trigger.Configs[TrigSlope]; len(c.Stages) > 0 {
-		st := c.Stages[0]
-		q.SlopeLo, q.SlopeHi = fracOfLevel(&s, st.Source, st.Levels.Low), fracOfLevel(&s, st.Source, st.Levels.High)
-		q.SlopeMinNs, q.SlopeMaxNs, q.SlopeCond = qualGet(st)
-	}
-	if c := s.Trigger.Configs[TrigVideo]; len(c.Stages) > 0 && c.Stages[0].Video != nil {
-		v := c.Stages[0].Video
-		q.VideoStd = 1 // NTSC
-		if v.Standard == "pal" {
-			q.VideoStd = 0
-		}
-		if !v.AnyLine {
-			q.VideoLine = v.Line
-		}
-		q.VideoNeg = !v.Positive
-	}
-	return q
-}
-
-// SetPulseParams sets the pulse trigger's level and width condition.
+// SetPulseParams sets the pulse trigger as the UI model gives it: the
+// level a fraction of the source's swing, widths in nanoseconds; the owner
+// places them on the swing it learns (TrigConfig.Placed).
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetPulseParams(lvlFrac, wMinNs, wMaxNs float64, cond int) {
 	m.set(func(s *State) {
-		st := firstStage(&s.Trigger.Configs[TrigPulse])
-		st.Levels.High = levelOfFrac(s, st.Source, lvlFrac)
-		qualSet(st, wMinNs, wMaxNs, cond)
+		s.Qual.PulseLvl, s.Qual.PulseMinNs, s.Qual.PulseMaxNs, s.Qual.PulseCond = lvlFrac, wMinNs, wMaxNs, cond
+		s.Trigger.Configs[TrigPulse].Placed = true
 	})
 }
 
-// SetSlopeParams sets the slope trigger's levels and time condition.
+// SetSlopeParams sets the slope trigger as the UI model gives it.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetSlopeParams(loFrac, hiFrac, tMinNs, tMaxNs float64, cond int) {
 	m.set(func(s *State) {
-		st := firstStage(&s.Trigger.Configs[TrigSlope])
-		st.Levels.Low, st.Levels.High = levelOfFrac(s, st.Source, loFrac), levelOfFrac(s, st.Source, hiFrac)
-		qualSet(st, tMinNs, tMaxNs, cond)
+		q := &s.Qual
+		q.SlopeLo, q.SlopeHi, q.SlopeMinNs, q.SlopeMaxNs, q.SlopeCond = loFrac, hiFrac, tMinNs, tMaxNs, cond
+		s.Trigger.Configs[TrigSlope].Placed = true
 	})
 }
 
 // SetVideoParams sets the video trigger's standard (0 PAL, 1 NTSC), line
-// (0: every line) and sync polarity.
+// (0: every line) and sync polarity as the UI model gives them.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetVideoParams(std, line int, neg bool) {
 	m.set(func(s *State) {
-		st := firstStage(&s.Trigger.Configs[TrigVideo])
-		if st.Video == nil {
-			st.Video = &hal.Video{Field: 1}
-		}
-		v := st.Video
-		v.Standard = "ntsc"
-		if std == 0 {
-			v.Standard = "pal"
-		}
-		v.AnyLine, v.Line, v.Positive = line <= 0, max(line, 1), !neg
+		s.Qual.VideoStd, s.Qual.VideoLine, s.Qual.VideoNeg = std, line, neg
+		s.Trigger.Configs[TrigVideo].Placed = true
 	})
 }
 

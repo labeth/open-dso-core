@@ -1,0 +1,9 @@
+{
+  "name": "caps-refusals",
+  "about": "The features the scope serves and those it refuses, with its reasons, as its capabilities document states them",
+  "relays": false,
+  "signals": {},
+  "steps": [
+    {"check": {"name": "caps", "fields": ["caps."]}}
+  ]
+}

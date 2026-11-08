@@ -19,8 +19,9 @@
 // and protocol lines, linear), fall=S (default rise), noise=VRMS (Gaussian
 // noise added), glitch=EVERY:WIDTH:AMP (a pulse of AMP volts and WIDTH s in
 // the middle of the low part of every EVERY-th period), burst=ON:OFF (ON
-// periods of signal, then OFF periods at the low or mid level), inv=1
-// (invert).
+// periods of signal, then OFF periods at the low or mid level),
+// stretch=EVERY:S (a square's or pulse's high part S longer in every
+// EVERY-th period: a width violation that adds no edge), inv=1 (invert).
 //
 // Protocol lines (freq = bit rate; vpp and offset place the logic levels:
 // low = offset − vpp/2, high = offset + vpp/2): the frame repeats every
@@ -63,6 +64,8 @@ type Signal struct {
 	Duty, Width, Rise, Fall, Noise float64
 	GlitchEvery                    int
 	GlitchW, GlitchA               float64
+	StretchEvery                   int
+	StretchS                       float64
 	BurstOn, BurstOff              int
 	Inv                            bool
 	// BitRate is a protocol line's bit rate (0 for a waveform).
@@ -168,6 +171,15 @@ func (s Signal) v(t float64) float64 {
 		}
 	}
 	v := s.shape(ph)
+	if s.StretchEvery > 0 && s.StretchS > 0 && (s.Kind == kindSquare || s.Kind == kindPulse) {
+		n := int64(k) % int64(s.StretchEvery)
+		if n < 0 {
+			n += int64(s.StretchEvery)
+		}
+		if d := s.duty(); n == 0 && ph >= d && ph < d+s.StretchS*s.Freq {
+			v = s.Offset + s.Vpp/2 // the high part, held on
+		}
+	}
 	if s.Inv {
 		v = 2*s.Offset - v
 	}
@@ -379,6 +391,16 @@ func (s *Signal) waveOptions(opts map[string]string) error {
 			return fmt.Errorf("glitch=%q: want EVERY≥1:WIDTH:AMP", g)
 		}
 		s.GlitchEvery, s.GlitchW, s.GlitchA = e, w, am
+	}
+	if g, ok := opts["stretch"]; ok {
+		delete(opts, "stretch")
+		every, ext, _ := strings.Cut(g, ":")
+		e, e1 := strconv.Atoi(every)
+		w, e2 := strconv.ParseFloat(ext, 64)
+		if e1 != nil || e2 != nil || e < 1 || !(w >= 0) || math.IsInf(w, 0) {
+			return fmt.Errorf("stretch=%q: want EVERY≥1:SECONDS", g)
+		}
+		s.StretchEvery, s.StretchS = e, w
 	}
 	if b, ok := opts["burst"]; ok {
 		delete(opts, "burst")

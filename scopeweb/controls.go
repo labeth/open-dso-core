@@ -143,22 +143,19 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 		})
 		return lv, false, err
 	case "trigtype":
-		t := instrument.TrigType(v)
-		if req.Text != "" {
-			var ok bool
-			if t, ok = instrument.TrigTypeNamed(strings.ToLower(req.Text)); !ok {
-				return nil, false, fmt.Errorf("trigger type %q: not a trigger type", req.Text)
-			}
-		} else if float64(int(v)) != v {
-			return nil, false, fmt.Errorf("trigger type %g: not a trigger type", v)
-		}
-		if ok, why := t.Avail(b.Trigger().Caps()); !ok {
-			return nil, false, hal.Refuse("the "+t.String()+" trigger", why)
-		}
-		if err := m.SetTrigTypeOf(t); err != nil {
-			return nil, false, err
-		}
-		return t.String(), false, nil
+		return c.trigType(m, req)
+	case "pulseparams":
+		m.SetPulseParams(req.Lvl, req.Min, req.Max, req.Cond)
+		return v, false, nil
+	case "slopeparams":
+		m.SetSlopeParams(req.Lo, req.Hi, req.Min, req.Max, req.Cond)
+		return v, false, nil
+	case "videoparams":
+		m.SetVideoParams(req.Std, req.Line, req.Neg)
+		return v, false, nil
+	case "serialmode":
+		m.SetSerialMode(int(v))
+		return v, false, nil
 	case "triglevelcode":
 		return nil, false, errors.New("the trigger level is set in volts on this scope (triglevel)")
 	case "vdiv":
@@ -287,8 +284,8 @@ func (c controls) bodeControl(req webserver.Control, nch int) (ok bool, err erro
 // carry: refused with the reason, not as unknown.
 var otherControls = map[string]struct{}{
 	"ets": {}, "rollstream": {}, "precisionrate": {}, "frameperiod": {}, "decodeview": {}, "stream": {},
-	"serialmode": {}, "zonemode": {}, "maskmode": {}, "maskclear": {}, "bodemode": {}, "bodeclear": {},
-	"pulseparams": {}, "slopeparams": {}, "videoparams": {}, "avgcount": {}, "eres": {}, "eresbits": {},
+	"zonemode": {}, "maskmode": {}, "maskclear": {}, "bodemode": {}, "bodeclear": {},
+	"avgcount": {}, "eres": {}, "eresbits": {},
 }
 
 // acqModes are the v1 acquisition mode numbers.
@@ -435,4 +432,30 @@ func paramJSON(t instrument.TrigType, id string, v instrument.ParamValue) any {
 		}
 	}
 	return v.Num
+}
+
+// trigType picks the trigger type by name (text) or number (value): a type
+// the board's trigger cannot run is refused with the reason.
+// TRLC-LINKS: REQ-DSO-162, REQ-DSO-011
+func (c controls) trigType(m *instrument.Model, req webserver.Control) (any, bool, error) {
+	b, v := c.s.cfg.Board, req.Value
+	t := instrument.TrigType(v)
+	if req.Text != "" {
+		var ok bool
+		if t, ok = instrument.TrigTypeNamed(strings.ToLower(req.Text)); !ok {
+			return nil, false, fmt.Errorf("trigger type %q: not a trigger type", req.Text)
+		}
+	} else if float64(int(v)) != v {
+		return nil, false, fmt.Errorf("trigger type %g: not a trigger type", v)
+	}
+	if ok, why := t.Avail(b.Trigger().Caps()); !ok {
+		return nil, false, hal.Refuse("the "+t.String()+" trigger", why)
+	}
+	if err := m.SetTrigTypeOf(t); err != nil {
+		return nil, false, err
+	}
+	if req.Text == "" {
+		return float64(t), false, nil // the v1 page sends and reads the number
+	}
+	return t.String(), false, nil
 }

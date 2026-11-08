@@ -33,10 +33,12 @@ type Versions struct {
 	Sound  []int `json:"sound,omitempty"`
 }
 
-// Identity names the instrument.
+// Identity names the instrument: Product is the firmware's own name (the
+// line its SYS tab shows, the page's title), Firmware its version.
 type Identity struct {
 	Vendor   string `json:"vendor,omitempty"`
 	Model    string `json:"model,omitempty"`
+	Product  string `json:"product,omitempty"`
 	Firmware string `json:"firmware,omitempty"`
 	Stage    int    `json:"stage,omitempty"`
 }

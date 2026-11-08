@@ -4,6 +4,7 @@ package panel
 
 import (
 	"math"
+	"time"
 
 	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/hal"
@@ -113,6 +114,58 @@ func (e halEngine) Snapshot() instrument.Stats {
 // TrigTypes are the trigger types with whether the board runs them.
 // TRLC-LINKS: REQ-DSO-135, REQ-DSO-011
 func (e halEngine) TrigTypes() []instrument.TypeAvail { return e.Model.TrigTypes() }
+
+// The records the HAL scope's leases ask for, in samples across the screen:
+// as the scope that sets the product's live readout reads them (a bus
+// search's screen of SearchSamples, an evenly sampled view of
+// sampleViewSamples, a spectrum's of spectrumViewSamples), within the
+// board's record.
+const (
+	sampleViewSamples   = 8192
+	spectrumViewSamples = 16384
+	searchViewSamples   = 32768
+)
+
+// LeaseSampleView asks for evenly sampled records for d (autoset, a bus
+// detection's decimated look): a screen of sampleViewSamples.
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-010
+func (e halEngine) LeaseSampleView(d time.Duration) {
+	e.Lease("sample", instrument.RecordNeed{Samples: sampleViewSamples}, d)
+}
+
+// LeaseSearchView asks for the records a bus search reads whole frames of
+// slow buses in, for d.
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-010
+func (e halEngine) LeaseSearchView(d time.Duration) {
+	e.Lease("search", instrument.RecordNeed{Samples: searchViewSamples}, d)
+}
+
+// LeaseSpectrumView asks for records a spectrum is taken of, for d.
+// TRLC-LINKS: REQ-DSO-070, REQ-DSO-010
+func (e halEngine) LeaseSpectrumView(d time.Duration) {
+	e.Lease("spectrum", instrument.RecordNeed{Samples: spectrumViewSamples}, d)
+}
+
+// LeaseBusSamples asks for records sampled every sampleS at the coarsest
+// for a bus decode, for d; sampleS <= 0 ends it.
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-010
+func (e halEngine) LeaseBusSamples(sampleS float64, d time.Duration) {
+	if !(sampleS > 0) {
+		d = 0
+	}
+	e.Lease("bus", instrument.RecordNeed{SampleS: sampleS}, d)
+}
+
+// LeaseRawFor asks for full-rate records for d as holder (the eye, a bus
+// search's full-rate look, super-resolution); d <= 0 ends holder's lease.
+// TRLC-LINKS: REQ-DSO-215, REQ-DSO-010
+func (e halEngine) LeaseRawFor(holder string, d time.Duration) {
+	e.Lease("raw "+holder, instrument.RecordNeed{FullRate: true}, d)
+}
+
+// LeaseDecodeView is the shared full-rate lease.
+// TRLC-LINKS: REQ-DSO-215, REQ-DSO-010
+func (e halEngine) LeaseDecodeView(d time.Duration) { e.LeaseRawFor("", d) }
 
 // channel is channel ch of the wanted state, ok false past the scope's.
 // TRLC-LINKS: REQ-DSO-135
@@ -403,12 +456,15 @@ func (l halLevels) OffsetStagedIn(ch int, st instrument.Stats) float64 { return 
 // halHardware is the board's planner and profile.
 type halHardware struct{ s *HALScope }
 
-// Record is the planner's record at tdivS for every channel the Model has
-// on; the decimation counts the full rate's samples a point stands for.
+// Record is the planner's deepest record at tdivS for every channel the
+// Model has on (what a full-rate lease reads); the decimation counts the
+// full rate's samples a point stands for.
 // TRLC-LINKS: REQ-DSO-214
 func (h halHardware) Record(tdivS float64) (float64, int) {
-	st := h.s.m.State()
-	st.TimeDivS = tdivS
+	st := withTdiv(h.s.m.State(), tdivS)
+	if d := deepestRecord(h.s.b.Profile()); d > st.Depth {
+		st.Depth = d
+	}
 	p, err := h.s.b.Planner().Plan(st.Request())
 	if err != nil || !(p.SampleS > 0) {
 		return 0, 0
@@ -420,9 +476,24 @@ func (h halHardware) Record(tdivS float64) (float64, int) {
 	return p.SampleS, max(0, int(math.Round(math.Log2(p.SampleS/full))))
 }
 
-// withTdiv is s at timebase t.
+// deepestRecord is the deepest record a readout hands the CPU: the
+// profile's record depth, within its raw access (0: unknown).
+// TRLC-LINKS: REQ-DSO-214
+func deepestRecord(p hal.Profile) int {
+	d := p.MaxDepth
+	if r := p.RawAccess.MaxDepth; r > 0 && (d <= 0 || r < d) {
+		d = r
+	}
+	return d
+}
+
+// withTdiv is s at timebase t, the trigger at the same place across the
+// screen (a delay of a slower timebase's screen lies past a fast record).
 // TRLC-LINKS: REQ-DSO-214
 func withTdiv(s instrument.State, t float64) instrument.State {
+	if s.TimeDivS > 0 {
+		s.DelayS *= t / s.TimeDivS
+	}
 	s.TimeDivS = t
 	return s
 }
@@ -443,6 +514,16 @@ func (halHardware) SearchSamples() int { return 32768 }
 // EnvelopePoints is a live envelope's points.
 // TRLC-LINKS: REQ-DSO-214
 func (halHardware) EnvelopePoints() int { return 2048 }
+
+// StreamAbsent is why the board has no gap-free stream ("" when it has
+// one): SOUND's audio and BUS's Stream view need it.
+// TRLC-LINKS: REQ-DSO-273
+func (h halHardware) StreamAbsent() string {
+	if _, ok := h.s.b.Streamer(); ok {
+		return ""
+	}
+	return h.s.b.Profile().AbsentReason("streamer")
+}
 
 // StreamMode is "": a HAL scope streams no decoded bus yet.
 // TRLC-LINKS: REQ-DSO-018

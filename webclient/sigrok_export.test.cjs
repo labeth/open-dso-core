@@ -190,9 +190,9 @@ function unzip(u8) {
     vpc1: 0.25, vpc2: 0.25, off1_v: 0, off2_v: 0,
     dt_s: 2e-9, // 500 MHz -> 2 ticks/sample on the 1 ns scale
   };
-  const v = sigrokVCD(sigrokSeries(f));
+  const v = sigrokVCD(sigrokSeries(f), "open-sds800xhd");
   const want = [
-    "$version open-sds1000cml sigrok export $end",
+    "$version open-sds800xhd sigrok export $end",
     "$timescale 1 ns $end",
     "$scope module libsigrok $end",
     "$var real 64 ! CH1 $end",
@@ -212,6 +212,7 @@ function unzip(u8) {
     "",
   ].join("\n");
   check("vcd: golden (changes only, NaN holds, 2 ticks/sample, final stamp)", v === want, JSON.stringify(v));
+  check("vcd: unnamed firmware on the $version line", sigrokVCD(sigrokSeries(f)).startsWith("$version open-dso sigrok export $end\n"));
 }
 
 // ---- VCD decimation cap (the CSV policy: superres fine grids are interpolation) ----

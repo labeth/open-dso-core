@@ -106,7 +106,7 @@ func (s *Scope) status() any {
 	var seq uint64
 	var f0 struct {
 		tdiv, displayed float64
-		content         string
+		content, band   string
 		winCols, depth  int
 	}
 	s.cfg.Frames.WithFrame(func(f *sample.Frame) {
@@ -117,6 +117,7 @@ func (s *Scope) status() any {
 		f0.tdiv, f0.displayed, f0.winCols, f0.depth = f.Snapshot.TdivS, f.Snapshot.DisplayedS, f.WinPoints, f.Len()
 		if f.Content != 0 {
 			f0.content = f.Content.String()
+			f0.band = bandOf(f)
 		}
 	})
 	fps := s.fps.sample(seq, time.Now())
@@ -140,12 +141,19 @@ func (s *Scope) status() any {
 		"tdivs": p.Timebase.TdivS, "full_rate_tdiv_s": p.Timebase.FullRateTdivS,
 		"trig_pos_frac": pos, "holdoff_s": st.Trigger.Active().HoldoffS,
 		"trig_source": st.Trigger.Source().Index, "trig_rising": st.Trigger.Slope() != hal.Falling,
-		"trig_volts": st.Trigger.LevelV(), "trig_type": int(st.Trigger.Type),
+		"trig_volts": st.Trigger.LevelV(), "trig_type": int(st.Trigger.Type), "trig_qual": st.Qual,
 		"acq_mode": acqModeNumber(st.Mode), "mem_depth": st.Depth, "win_cols": f0.winCols,
-		"band": f0.content, "live_readout": f0.content, "vdiv_live": true, "run_state": run,
+		"band": f0.band, "live_readout": f0.content, "vdiv_live": true, "run_state": run,
 		// the screen's record takes its span to fill: a page waits that long
 		// for a frame at a slow timebase that does not roll
 		"record_s": st.TimeDivS * float64(s.divsH()),
+	}
+	// what decides a pulse, slope, video or serial trigger, or why nothing
+	// can yet (the page says so beside the trigger)
+	if s.cfg.Instrument != nil {
+		snap := s.cfg.Instrument.Snapshot()
+		out["trigger_backend"], out["serial_backend"] = snap.TriggerBackend, snap.SerialBackend
+		out["serial_mode"], out["serial_set"] = snap.SerialMode, snap.SerialSet
 	}
 	// the UI model's panel snapshot: what the display shows, and whether an
 	// Autoset sweep runs, which the page waits out before its next command
@@ -195,7 +203,7 @@ func (s *Scope) status() any {
 	}
 	out["time"] = TimeStatus{TdivS: tdiv, DisplayedS: displayed, PosFrac: pos, DelayS: st.DelayS, HoldoffS: st.Trigger.Active().HoldoffS, Depth: st.Depth}
 	trig := TrigStatus{
-		Type: st.Trigger.Type.String(), Source: st.Trigger.Source().Index, Slope: slope, LevelV: st.Trigger.LevelV(),
+		Type: trigTypeName(st), Source: st.Trigger.Source().Index, Slope: slope, LevelV: st.Trigger.LevelV(),
 		Params: trigParamValues(st),
 	}
 	trig.Refused, trig.RefusedSeq = s.refusals.last()
@@ -209,6 +217,32 @@ func (s *Scope) status() any {
 		out["features"] = map[string]any{"mask": map[string]any{"mode": k.Mode, "pass": k.Pass, "fail": k.Fail, "gen": k.Gen}}
 	}
 	return out
+}
+
+// bandOf is the newest frame's band as the page names what a frame holds:
+// "native-fast" every converter sample, "decimated" evenly sampled, below the
+// full rate, "envelope" min/max pairs. The page's eye and super-resolution
+// take the first two (they fold sampled records).
+// TRLC-LINKS: REQ-DSO-164
+func bandOf(f *sample.Frame) string {
+	switch {
+	case f.Content == sample.PeakPairs || f.Flags.Has(sample.Envelope):
+		return "envelope"
+	case f.Content == sample.RawFullRate:
+		return "native-fast"
+	case f.Content == sample.RawDecimated:
+		return "decimated"
+	}
+	return f.Content.String()
+}
+
+// trigTypeName is the trigger state s runs, by name.
+// TRLC-LINKS: REQ-DSO-164
+func trigTypeName(s instrument.State) string {
+	if s.SerialMode != 0 {
+		return "serial"
+	}
+	return s.Trigger.Type.String()
 }
 
 // sweepSingle is the single-shot sweep's name.

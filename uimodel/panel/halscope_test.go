@@ -139,9 +139,12 @@ func TestHALScopeTrigTypes(t *testing.T) {
 	if st := m.State(); st.Trigger.Type != instrument.TrigPulse || st.TriggerSpec().Stages[0].Node != hal.NodePulse {
 		t.Fatalf("pulse: %+v", st.Trigger.Type)
 	}
+	// The pulse rows' settings are the UI model's, placed on the learned
+	// swing by the owner.
 	m.SetPulseParams(.5, 100, 1000, 3)
-	if q := m.State().TriggerSpec().Stages[0].Qual; q == nil || q.Op != hal.Inside || q.MinS != 100e-9 || q.MaxS != 1000e-9 {
-		t.Fatalf("pulse limits: %+v", q)
+	if st := m.State(); st.Qual.PulseMinNs != 100 || st.Qual.PulseMaxNs != 1000 || st.Qual.PulseCond != 3 ||
+		!st.Trigger.Active().Placed {
+		t.Fatalf("pulse settings: %+v", st.Qual)
 	}
 	if err := m.SetTrigTypeOf(instrument.TrigVideo); err == nil || !strings.Contains(err.Error(), "no video node") {
 		t.Fatalf("video on a board without: %v", err)

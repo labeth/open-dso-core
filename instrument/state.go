@@ -9,7 +9,10 @@
 package instrument
 
 import (
+	"slices"
+
 	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/hal/prototrig"
 )
 
 // State is the instrument's settings.
@@ -32,9 +35,18 @@ type State struct {
 	EresLen  int // the high-resolution filter's length (Mode HighRes)
 	ETS      bool
 	Trigger  Trigger
-	Sweep    hal.Sweep
-	Single   bool
-	Running  bool
+	// Qual is the UI model's pulse, slope and video settings: levels as
+	// fractions of the source's swing, which the owner places on the swing
+	// it learns from the records, for a type whose configuration says so
+	// (TrigConfig.Placed).
+	Qual    TrigQual
+	Sweep   hal.Sweep
+	Single  bool
+	Running bool
+	// SerialMode arms the serial trigger (1) on Serial's bus and match in
+	// place of the trigger type; 0: off.
+	SerialMode int
+	Serial     prototrig.SerialParams
 }
 
 // Clone is s with its own Channels and trigger stages.
@@ -42,6 +54,8 @@ type State struct {
 func (s State) Clone() State {
 	s.Channels = append([]hal.Channel(nil), s.Channels...)
 	s.Trigger = s.Trigger.Clone()
+	s.Serial.Bytes = slices.Clone(s.Serial.Bytes)
+	s.Serial.Pattern = slices.Clone(s.Serial.Pattern)
 	return s
 }
 
@@ -58,7 +72,8 @@ func (s State) Equal(o State) bool {
 	}
 	return s.TimeDivS == o.TimeDivS && s.DelayS == o.DelayS && s.Depth == o.Depth && s.Mode == o.Mode &&
 		s.Averages == o.Averages && s.EresLen == o.EresLen && s.ETS == o.ETS &&
-		s.Trigger.Equal(o.Trigger) && s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running
+		s.Trigger.Equal(o.Trigger) && s.Qual == o.Qual && s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running &&
+		s.SerialMode == o.SerialMode && s.Serial.Equal(&o.Serial)
 }
 
 // Request is what the planner is asked for in state s: the channels that

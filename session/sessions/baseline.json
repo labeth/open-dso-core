@@ -1,0 +1,13 @@
+{
+  "rows": {
+    "ch1.on": "On", "ch2.on": "On",
+    "ch1.probe": "10x", "ch2.probe": "10x",
+    "ch1.coupling": "DC", "ch2.coupling": "DC",
+    "ch1.vdiv": "1V", "ch2.vdiv": "1V",
+    "ch1.offset": "0V", "ch2.offset": "0V",
+    "time.tdiv": "500us", "time.trig_pos": "50 %", "time.zoom": "Off",
+    "trig.type": "Edge", "trig.edge": "C1 Rise", "trig.mode": "Auto", "trig.level": "0V",
+    "acq.mode": "Normal", "view.view": "Y-T", "meas.readouts": "Off", "curs.mode": "Off",
+    "cmp.math": "Off", "bus.protocol": "Off"
+  }
+}

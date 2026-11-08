@@ -145,6 +145,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 		`{"control":"trigtype","value":2}`,
 		`{"control":"trigtype","text":"video"}`,
 		`{"control":"trig.gate_level","value":1}`,
+		`{"control":"trigtype","value":70}`,
 		`{"control":"triglevelcode","value":1000}`,
 		`{"control":"zonemode","value":1}`,
 		`{"control":"tdiv","value":3e-6}`,

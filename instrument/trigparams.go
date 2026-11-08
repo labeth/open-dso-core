@@ -156,6 +156,11 @@ func (t *Trigger) setParam(tt TrigType, id string, v ParamValue, channels int) e
 	if len(c.Stages) == 0 {
 		*c = DefaultTrigConfig(tt, channels)
 	}
+	switch id {
+	case "source", "slope", "coupling", "noise_reject", "holdoff":
+	default:
+		c.Placed = false // the stage's own levels and limits now run
+	}
 	return d.set(c, v, channels)
 }
 

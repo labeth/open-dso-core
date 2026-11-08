@@ -1,0 +1,21 @@
+{
+  "name": "workspace-tour-web",
+  "about": "Every workspace in turn through the web's workspace switch: its view, its F-keys and the time/div it shows",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"check": {"name": "scope", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "lamps"]}},
+    {"workspace": "bus"},
+    {"check": {"name": "bus", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "lamps"]}},
+    {"workspace": "spectrum"},
+    {"check": {"name": "spectrum", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "lamps"]}},
+    {"workspace": "measure"},
+    {"check": {"name": "measure", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "lamps"]}},
+    {"workspace": "compare"},
+    {"check": {"name": "compare", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "lamps"]}},
+    {"workspace": "scope"},
+    {"check": {"name": "back", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "lamps"],
+      "expect": {"row.time.tdiv": {"same_as": "compare"}, "workspace": {"eq": "scope"}}}}
+  ]
+}
