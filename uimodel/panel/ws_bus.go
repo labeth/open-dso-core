@@ -2339,7 +2339,10 @@ func lineEdges(codes []uint8) int {
 	for _, v := range codes {
 		h[v]++
 	}
-	lo, hi := codePercentile(&h, len(codes), 0.02), codePercentile(&h, len(codes), 0.98)
+	// the rails from the outer 0.2 %: a line busy a few percent of the
+	// time (a caliper's frames, 2 ms in 30) keeps its other level on under
+	// 2 % of the samples
+	lo, hi := codePercentile(&h, len(codes), 0.002), codePercentile(&h, len(codes), 0.998)
 	if hi-lo < smallSwingSeen {
 		return 0
 	}
