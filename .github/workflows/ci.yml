@@ -57,6 +57,7 @@ jobs:
   # artifact; a field that differs fails it.
   sessions:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     env:
       PW_VERSION: 1.58.2 # pin: the scope repositories' browser lane uses the same
     steps:
@@ -68,12 +69,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+      - name: Cache Playwright Chromium
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ env.PW_VERSION }}
       - name: Install Playwright + Chromium
+        timeout-minutes: 10
         run: |
           mkdir -p "$HOME/pw" && cd "$HOME/pw"
           npm init -y >/dev/null
           npm install "playwright@${PW_VERSION}"
-          npx playwright install --with-deps chromium
+          # the OS libraries through apt without prompts; the browser from the cache when present
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive npx playwright install-deps chromium
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" != "true" ]; then
+            npx playwright install chromium
+          fi
           echo "PLAYWRIGHT_DIR=$HOME/pw/node_modules" >> "$GITHUB_ENV"
       - name: the session harness and its set
         run: go test ./session/...
