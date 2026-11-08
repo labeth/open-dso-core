@@ -922,3 +922,12 @@ decisions:
   decision: 'Recorded as current behaviour: one ladder step per knob event, so a fast spin never jumps several front-end ranges at once.'
   consequences:
   - 'Owner to decide whether fast turns should move several steps.'
+
+- id: ADR-UPDATE-INTEGRITY
+  title: 'An update image is checked for size and digest before its slot becomes current'
+  status: proposed
+  date: '2026-11-08'
+  context: 'The fault bench installed a bit-flipped SDS800X HD image; it ran, stayed healthy and was confirmed. The owner excludes security and authentication features for their overhead.'
+  decision: 'otactl sends the image''s size and SHA-256; the agent verifies them after writing and before making the slot current, and refuses a mismatch. This guards against corruption in transfer or storage; it is not signing and proves nothing about who built the image.'
+  consequences:
+  - 'One hash over the image per update; to confirm with the owner that this falls outside the excluded security features.'
