@@ -37,6 +37,8 @@
 //	manchester    data=HEX: IEEE 802.3 convention (1 = rising mid-bit), MSB first, idle low, lsb=1
 //	prbs|prbs.clk order=7: a maximal-length sequence as NRZ data and its bit clock
 //
+//	bus.PROTO.ROLE  a line of any bus the core decodes (synth.go)
+//
 // Common protocol option: idle=S (gap after the frame, default 20 bit
 // times), data=HEX (pairs of hex digits, ':' allowed between bytes).
 //
@@ -345,6 +347,14 @@ func Parse(v string) (Signal, error) {
 		if s.Kind == kindSquare || s.Kind == kindPulse {
 			s.line = edgeWave(s.duty(), s.Freq)
 		}
+		return s, nil
+	}
+	if synthKind(s.Kind) {
+		w, period, step, err := buildSynthLine(s.Kind, opts)
+		if err != nil {
+			return Signal{}, err
+		}
+		s.line, s.BitRate, s.Freq = w, 1/step, 1/period
 		return s, nil
 	}
 	w, period, err := buildLine(s.Kind, s.Freq, opts)
