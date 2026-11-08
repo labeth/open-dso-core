@@ -20,7 +20,7 @@ func UARTChar(w *Line, v int, baud float64, parity string, stops int) {
 		w.Add(b, bit)
 	}
 	switch parity {
-	case "even":
+	case parityEven:
 		w.Add(byte(ones&1), bit)
 	case "odd":
 		w.Add(byte(1-ones&1), bit)

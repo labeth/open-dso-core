@@ -15,6 +15,7 @@ func init() {
 		Protocol{
 			Proto: "onewire", Title: "1-Wire", Roles: []string{"dq"}, Payload: payBytes,
 			Defaults: map[string]string{"overdrive": "0"},
+			Variants: []map[string]string{{"overdrive": "0"}, {"overdrive": "1"}},
 			make:     makeOneWire,
 		},
 		Protocol{
@@ -223,7 +224,11 @@ func makeDALI(c *ctx) error {
 	if len(d) > 2 {
 		DALIFrame(w, 8, d[2], 10e-3)
 	}
-	c.done("DALI", 100e3, Truth{Bytes: d}, w)
+	msgs := []string{fmt.Sprintf("A%02X D%02X", d[0], d[1%len(d)])}
+	if len(d) > 2 {
+		msgs = append(msgs, fmt.Sprintf("R%02X", d[2]))
+	}
+	c.done("DALI", 100e3, Truth{Bytes: d, Messages: msgs}, w)
 	return nil
 }
 
@@ -286,9 +291,14 @@ func makePWM(c *ctx) error {
 	for i, v := range p {
 		duties[i] = float64(v) / 100
 	}
+	// whole periods only, a source repeating the bus keeping one period as
+	// an output running on does: the line opens on the last period's low
+	// and ends on its high
 	w := c.line()
-	w.Add(0, 0.3*per)
-	PWMWave(w, per, duties)
+	last := duties[len(duties)-1]
+	w.Add(0, (1-last)*per)
+	PWMWave(w, per, duties[:len(duties)-1])
+	w.Add(1, last*per)
 	var want strings.Builder
 	for i, v := range p[:min(len(p), 7)] {
 		if i > 0 {
@@ -296,7 +306,7 @@ func makePWM(c *ctx) error {
 		}
 		fmt.Fprintf(&want, "%.1f%%", float64(v))
 	}
-	c.done(fmt.Sprintf("PWM %g us", per*1e6), 20/per, Truth{Contains: []string{want.String()}}, w)
+	c.done(fmt.Sprintf("PWM %g us", per*1e6), 80/per, Truth{Contains: []string{want.String()}}, w)
 	return nil
 }
 

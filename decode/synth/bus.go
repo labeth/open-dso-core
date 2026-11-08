@@ -14,6 +14,7 @@ import (
 const (
 	setBaud     = "baud"
 	setParity   = "parity"
+	parityEven  = "even"
 	setRate     = "rate"
 	setMode     = "mode"
 	setBits     = "bits"
@@ -56,6 +57,10 @@ type Truth struct {
 	// Layer is the application layer the bus carries, the one a layer
 	// detection must name ("" none).
 	Layer string
+	// Messages are the bus's messages as the decode's text shows each, for
+	// a bus of several: a record framed to one message (AUTO in BUS frames
+	// the longest) holds a whole one of them and maybe not the rest.
+	Messages []string
 }
 
 // Spec asks for a bus: the protocol, its settings (each protocol's names:
