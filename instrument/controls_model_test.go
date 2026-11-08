@@ -96,6 +96,10 @@ func TestModelControls(t *testing.T) {
 	m.SetTimebases([]float64{1e-6, 2e-6, 5e-6})
 	m.SetTdiv(1e-6)
 	m.SetTrigPosFrac(.25)
+	// a trigger left of the centre: the screen centre comes after it
+	if d := m.State().DelayS; !(d > 0) {
+		t.Fatalf("trigger at a quarter of the screen: delay %g, want the centre after the trigger", d)
+	}
 	if tb, ok := m.SetTdiv(2e-6 * (1 + 1e-9)); !ok || tb.TdivS != 2e-6 {
 		t.Fatalf("SetTdiv: %+v %v", tb, ok)
 	}

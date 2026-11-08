@@ -31,6 +31,25 @@ let capsServed = false;    // the scope served caps
 let capsGenSeen;           // the caps_gen last read
 let capsBusy = false;
 
+// SCOPE_NAME_FALLBACK names the firmware before its caps are read (or when
+// they name none).
+const SCOPE_NAME_FALLBACK = "open-dso";
+
+// scopeName is the firmware's name as its caps give it (identity.product):
+// the page's title and the exports' headers.
+// TRLC-LINKS: REQ-DSO-204
+function scopeName() {
+  const id = caps.identity;
+  return (id && id.product) || SCOPE_NAME_FALLBACK;
+}
+
+// scopeModel is the instrument's model as its caps give it, "" before.
+// TRLC-LINKS: REQ-DSO-204
+function scopeModel() {
+  const id = caps.identity;
+  return (id && id.model) || "";
+}
+
 // chanNums is the channels as the page numbers them (1-based, as c1, vpc1, tC1).
 // TRLC-LINKS: REQ-DSO-204
 function chanNums() { return caps.channels.map((c) => c.ch + 1); }
@@ -183,8 +202,11 @@ function capsApply() {
   trigLists();
   for (const h of CAPS_HOOKS) h();
   // the instrument's name, and why a feature the page shows is missing
-  const brand = document.querySelector(".brand > span");
-  if (brand && caps.identity && caps.identity.model) brand.textContent = caps.identity.model;
+  const name = scopeName(), model = scopeModel();
+  const brand = document.querySelector(".brand > b"), sub = document.querySelector(".brand > span");
+  if (brand) brand.textContent = name;
+  if (sub && model) sub.textContent = model;
+  document.title = model ? name + " / " + model : name;
   const meas = feature("measure");
   for (const id of ["quickBody", "measBody"]) { const el = $(id); if (el) el.title = meas.ok ? "" : meas.why || ""; }
   if (typeof measDomSig !== "undefined") measDomSig = "";

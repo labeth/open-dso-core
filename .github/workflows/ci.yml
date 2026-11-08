@@ -50,3 +50,37 @@ jobs:
           echo "gzipped: $(gzip -9 -c build/demo/dsodemo.wasm | wc -c) bytes"
       - name: test the simulated board, the generator and the demo
         run: go test -short ./hal/simboard/... ./siggen/... ./simdemo/...
+
+  # The recorded sessions (session/sessions) against the native and the
+  # WebAssembly demo of the core's test scope, and their diff: the same
+  # composition in two hosts must answer the same. The diff is the job's
+  # artifact; a field that differs fails it.
+  sessions:
+    runs-on: ubuntu-latest
+    env:
+      PW_VERSION: 1.58.2 # pin: the scope repositories' browser lane uses the same
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install Playwright + Chromium
+        run: |
+          mkdir -p "$HOME/pw" && cd "$HOME/pw"
+          npm init -y >/dev/null
+          npm install "playwright@${PW_VERSION}"
+          npx playwright install --with-deps chromium
+          echo "PLAYWRIGHT_DIR=$HOME/pw/node_modules" >> "$GITHUB_ENV"
+      - name: the session harness and its set
+        run: go test ./session/...
+      - name: native and WebAssembly demo, and their diff
+        run: make sessions TARGET=pair ARGS=-fail-on-diff
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sessions
+          path: build/sessions/

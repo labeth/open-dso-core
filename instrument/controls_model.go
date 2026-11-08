@@ -34,7 +34,7 @@ func (m *Model) SetTimebases(tdivs []float64) {
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-009
 func (m *Model) Snapshot() Stats {
 	m.mu.Lock()
-	s, run, last := m.want, m.run, m.last
+	s, run, last, be := m.want, m.run, m.last, m.backends
 	m.mu.Unlock()
 	st := Stats{
 		Running: s.Running, Norm: s.Sweep == hal.NormalSweep || s.Sweep == hal.Single, Single: s.Single,
@@ -42,7 +42,9 @@ func (m *Model) Snapshot() Stats {
 		TrigRising: s.Trigger.Slope != hal.Falling, TrigSource: s.Trigger.Source.Index,
 		TrigType: s.TrigType, TrigQual: s.Qual, HoldoffS: s.Trigger.HoldoffS,
 		AvgCount: s.Averages, EresLen: s.EresLen, ETS: s.ETS, MemDepth: s.Depth,
-		Roll: run == Rolling,
+		Roll:       run == Rolling,
+		SerialMode: s.SerialMode, SerialSet: len(s.Serial.Bytes) > 0 || len(s.Serial.Pattern) > 0,
+		TriggerBackend: be.Trigger, SerialBackend: be.Serial,
 	}
 	for i, md := range acqModes[:4] {
 		if s.Mode == md {
@@ -55,13 +57,14 @@ func (m *Model) Snapshot() Stats {
 	return st
 }
 
-// posFrac is the trigger's place across the screen in state s.
+// posFrac is the trigger's place across the screen in state s: the screen
+// centre DelayS after the trigger puts the trigger left of the centre.
 // TRLC-LINKS: REQ-DSO-008
 func posFrac(s State) float64 {
 	if s.TimeDivS <= 0 {
 		return .5
 	}
-	return .5 + s.DelayS/(10*s.TimeDivS)
+	return .5 - s.DelayS/(10*s.TimeDivS)
 }
 
 // set stages fn's edit, refusals dropped: a setter has no error to give,
@@ -96,7 +99,7 @@ func (m *Model) SetTdiv(tdivS float64) (Timebase, bool) {
 	m.set(func(s *State) {
 		f := posFrac(*s)
 		s.TimeDivS = tdivS
-		s.DelayS = (f - .5) * 10 * tdivS
+		s.DelayS = (.5 - f) * 10 * tdivS
 	})
 	return Timebase{TdivS: tdivS}, true
 }
@@ -105,7 +108,7 @@ func (m *Model) SetTdiv(tdivS float64) (Timebase, bool) {
 // TRLC-LINKS: REQ-DSO-008
 func (m *Model) SetTrigPosFrac(frac float64) {
 	frac = math.Min(1, math.Max(0, frac))
-	m.set(func(s *State) { s.DelayS = (frac - .5) * 10 * s.TimeDivS })
+	m.set(func(s *State) { s.DelayS = (.5 - frac) * 10 * s.TimeDivS })
 }
 
 // SetMemDepth asks for a record depth; the scope plans what it can.

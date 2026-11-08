@@ -5,6 +5,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"math"
 	"sync"
 	"time"
 
@@ -50,10 +51,15 @@ type HALCycle struct {
 	b    hal.Board
 	inst *instrument.Model
 
-	seq     uint64           // the last published frame's sequence number
-	gen     uint64           // the generation committed last
-	cur     instrument.State // the state committed last
-	good    instrument.State // the state last committed without a refusal
+	seq     uint64                // the last published frame's sequence number
+	gen     uint64                // the generation committed last
+	cur     instrument.State      // the state committed last
+	good    instrument.State      // the state last committed without a refusal
+	need    instrument.RecordNeed // the leased record need committed last
+	ext     []extent              // each channel's learned extent (learn)
+	placed  []bool                // the channels whose extent places the trigger committed
+	replace bool                  // a placing extent moved: the trigger is placed again
+	avg     average               // the average of a board that runs none (halaverage.go)
 	running bool
 
 	mu     sync.Mutex
@@ -75,7 +81,11 @@ func NewHALLoop(cfg HALConfig) (*Loop, *HALCycle) {
 	if cfg.Logf == nil {
 		cfg.Logf = func(string, ...any) {}
 	}
-	c := &HALCycle{cfg: cfg, b: cfg.Board, inst: cfg.Instrument, good: cfg.Instrument.State()}
+	n := cfg.Board.Profile().Channels
+	c := &HALCycle{
+		cfg: cfg, b: cfg.Board, inst: cfg.Instrument, good: cfg.Instrument.State(),
+		ext: make([]extent, n), placed: make([]bool, n),
+	}
 	return NewLoop(LoopConfig{
 		Acquirer:  cfg.Board.Acquirer(),
 		Cycle:     c,
@@ -130,8 +140,9 @@ func (c *HALCycle) Claim(ctx context.Context) bool {
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-1001
 func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 	s, gen := c.inst.Wanted()
-	if gen != c.gen {
+	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need || c.replace {
 		c.stopArmed()
+		c.need, c.replace = need, false
 		c.commitState(s, gen)
 	}
 	if !c.running {
@@ -142,11 +153,11 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 	return Capture{Normal: true, Norm: c.cur.Sweep != hal.Auto}, true
 }
 
-// Watch aborts a waiting capture when the state changed or LONG work was
-// posted.
+// Watch aborts a waiting capture when the state or the leased record need
+// changed or LONG work was posted.
 // TRLC-LINKS: REQ-DSO-008
 func (c *HALCycle) Watch(bool) Interrupt {
-	if c.inst.Generation() != c.gen || c.inst.HasWork() {
+	if c.inst.Generation() != c.gen || c.inst.HasWork() || c.inst.RecordNeed() != c.need || c.replace {
 		return Abort
 	}
 	return Continue
@@ -205,6 +216,10 @@ func (c *HALCycle) Frame(ctx context.Context, _ Capture, a Armed) (*sample.Frame
 	f := fs[0]
 	for _, g := range fs[1:] {
 		f.Traces = append(f.Traces, g.Traces...)
+	}
+	c.learn(f)
+	if c.avg.on {
+		c.avg.add(f)
 	}
 	// A FORCE press the wait had no time to take is this frame's: shown
 	// even in NORMAL.
@@ -322,14 +337,68 @@ func (c *HALCycle) commit(s instrument.State) (instrument.State, error) {
 		}
 		s.Channels[ch] = got
 	}
-	plan, err := c.b.Planner().Plan(s.Request())
+	plan, err := c.b.Planner().Plan(c.request(s))
 	if err != nil {
 		return s, err
 	}
 	if err := c.b.Acquirer().Configure(plan); err != nil {
 		return s, err
 	}
-	return s, c.b.Trigger().Program(s.TriggerSpec())
+	return s, c.programTrigger(s)
+}
+
+// request is what the planner is asked for in state s: the state's own
+// request, as deep as the leased record need asks (RecordNeed) within the
+// board's record. A need the timebase cannot serve at the full rate gets
+// the finest record the board holds.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-010
+func (c *HALCycle) request(s instrument.State) hal.Request {
+	r, avg := c.averaged(s.Request(), s.Averages)
+	if !avg {
+		c.avg.reset()
+	}
+	c.avg.on = avg
+	n := c.need
+	p := c.b.Profile()
+	deepest := p.MaxDepth
+	if p.RawAccess.MaxDepth > 0 && (deepest <= 0 || p.RawAccess.MaxDepth < deepest) {
+		deepest = p.RawAccess.MaxDepth
+	}
+	if deepest <= 0 {
+		return r
+	}
+	want := n.Samples
+	if n.SampleS > 0 && s.TimeDivS > 0 {
+		want = max(want, int(math.Ceil(s.TimeDivS*float64(divsH(p))/n.SampleS)))
+	}
+	if pl, err := c.b.Planner().Plan(r); n.FullRate && err == nil && pl.AcqDecim <= 1 {
+		n.FullRate = false // the record is at the full rate already: it stays as deep
+	}
+	if n.FullRate {
+		// the screen at the full rate and half a screen more, when the
+		// deepest record holds it at the full rate; a timebase no record
+		// holds at the full rate keeps its record (the eye and
+		// super-resolution say which timebase serves them)
+		full := r
+		full.Depth = deepest
+		if pl, err := c.b.Planner().Plan(full); err == nil && pl.AcqDecim <= 1 {
+			want = max(want, pl.WinSamples*3/2)
+		}
+	}
+	if want > r.Depth {
+		r.Depth = min(want, deepest)
+	}
+	return r
+}
+
+// divsH is the screen's horizontal divisions (10 when the profile leaves
+// it out).
+// TRLC-LINKS: REQ-DSO-008
+func divsH(p hal.Profile) int {
+	if p.Display.DivsH > 0 {
+		return p.Display.DivsH
+	}
+	return 10
 }
 
 // stopArmed stops an armed acquisition.

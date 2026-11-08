@@ -261,3 +261,23 @@ func BenchmarkSquare(b *testing.B) {
 		s.Sample(dst, 0.1, 1e-9)
 	}
 }
+
+// stretch holds a pulse's high part longer in every EVERY-th period and
+// adds no edge: the other periods keep their width.
+func TestStretch(t *testing.T) {
+	s, err := Parse("pulse,2500,3.3,1.65,width=100e-6,stretch=7:12e-6")
+	if err != nil {
+		t.Fatal(err)
+	}
+	high := func(t0 float64) bool { return s.V(t0) > 1.65 }
+	T := 1 / 2500.0
+	if !high(105e-6) || high(115e-6) { // period 0 is stretched by 12 us
+		t.Fatal("period 0: want high to 112 us")
+	}
+	if high(T + 105e-6) { // period 1 is not
+		t.Fatal("period 1: want low after 100 us")
+	}
+	if !high(7*T + 110e-6) {
+		t.Fatal("period 7: want stretched")
+	}
+}

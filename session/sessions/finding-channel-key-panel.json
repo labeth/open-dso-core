@@ -1,0 +1,17 @@
+{
+  "name": "finding-channel-key-panel",
+  "about": "The same channel key pressed through the board's panel queue, as the demo's bench page sends it: it turns the trace off, then on again",
+  "relays": false,
+  "needs": ["board-input"],
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"check": {"name": "before", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "mode"]}},
+    {"key": "ch2", "via": "board"},
+    {"check": {"name": "press1", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "sheet.row", "mode", "lamps"],
+      "expect": {"shown.ch2": {"same_as": "before"}, "sheet.open": {"eq": true}, "sheet.tab": {"eq": "ch2"}}}},
+    {"key": "ch2", "via": "board"},
+    {"check": {"name": "press2", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "sheet.row", "mode", "lamps"],
+      "expect": {"shown.ch2": {"same_as": "before"}, "sheet.open": {"eq": false}}}}
+  ]
+}

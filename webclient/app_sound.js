@@ -422,7 +422,7 @@ function sndRender() {
   sndRenderCtx();
   sndRenderReadouts();
   const a = snd.audio, h = snd.hdr;
-  let st = snd.err ? "stream: " + snd.err : snd.paused ? "paused: the scope is in use (its keys took it back)" : !h ? "starting the audio stream…" :
+  let st = snd.unavailable ? "No audio stream: " + snd.unavailable : snd.err ? "stream: " + snd.err : snd.paused ? "paused: the scope is in use (its keys took it back)" : !h ? "starting the audio stream…" :
     !h.active ? "audio stream: " + h.state + (h.err ? " — " + h.err : "") : `gap-free ${(h.rate / 1000).toFixed(1)} kSa/s · ${h.losses || 0} losses`;
   $("sndPaused").hidden = !snd.paused;
   if (a.on && !snd.paused) st += ` · buffer ${(a.stat.fillMs || 0).toFixed(0)} ms · rate ${(((a.stat.ratio || 1) - 1) * 1e6).toFixed(0)} ppm · ${a.stat.under || 0} underruns · ${a.stat.over || 0} overruns${a.mainFrames ? ` · ${a.late || 0} late (block ${a.mainFrames})` : ""} · ${sndLatencyText(snd)}`;
@@ -845,6 +845,10 @@ let sndTimer = 0;
 // SOUND stays paused after a key until it is shown again or Take the scope.
 // TRLC-LINKS: REQ-DSO-274, REQ-DSO-277
 function sndEnter() {
+  // a scope with no audio stream says why (its caps), and nothing is asked
+  const f = feature("sound");
+  snd.unavailable = f.ok ? "" : (f.why || "this scope has no audio stream");
+  if (snd.unavailable) { sndRender(); return; }
   sndTakeScope(snd).catch(() => {});
   sndClientStart(snd);
   sndPoll();

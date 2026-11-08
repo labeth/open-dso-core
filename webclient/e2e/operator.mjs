@@ -21,11 +21,20 @@ export async function launch(url) {
   if (!process.env.PLAYWRIGHT_BROWSERS_PATH && process.env.HOME)
     process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.env.HOME, ".cache/ms-playwright");
   const { chromium } = (await import(pwPath)).default;
-  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
-  const page = await browser.newPage({ viewport: { width: 1500, height: 950 } });
+  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--use-gl=egl"] });
+  const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 } });
+  // The browser demo (DEMO_BENCH: its bench page) runs the firmware in the
+  // bench page's tab: that page stays open, and the web UI at url is its
+  // service worker's, answered by the firmware there.
+  if (process.env.DEMO_BENCH) {
+    const bench = await ctx.newPage();
+    await bench.goto(process.env.DEMO_BENCH, { waitUntil: "load", timeout: 60000 });
+    await bench.waitForFunction(() => window.demoStats && window.demoStats.firstFrameMs > 0, null, { timeout: 120000 });
+  }
+  const page = await ctx.newPage();
   const pageErrors = [];
   page.on("pageerror", (e) => pageErrors.push(process.env.FUZZ_STACK ? (e.stack || e.message) : e.message));
-  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
   // a frame of ANY kind (a slow envelope/roll band has no per-sample c1 array,
   // so don't require c1 — just that the transport is delivering frames)
   await page.waitForFunction(() => typeof frame !== "undefined" && frame && frame.seq > 0, null, { timeout: 25000 });

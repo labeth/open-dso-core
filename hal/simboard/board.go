@@ -7,7 +7,8 @@
 // demand, in the profile's code format, at the profile's sample rate and
 // record depth: the front end is numbers (a V/div ladder, offset, coupling,
 // probe, bandwidth limit, invert), the trigger is software (edge and pulse
-// width on the sampled signal, with hysteresis and holdoff), and an
+// width on the sampled signal, with hysteresis and holdoff, and a decoded
+// bus's match as a scope's hardware receiver finds it), and an
 // acquisition takes the signal's own time, so a slow timebase waits as a
 // scope does. Everything else is absent with a reason, as the HAL's
 // absent-capability rules ask.
@@ -49,6 +50,18 @@ type Config struct {
 	// Depth is the record depth the planner chooses when the request leaves
 	// it to the scope (0: 4096), never more than the profile's.
 	Depth int
+	// RecordScreens is how many screens a live record spans at a timebase
+	// the record decimates, at the depth the planner chooses (a scope
+	// measures and decodes its whole record, not the screen alone); 0 or 1:
+	// the screen. A request's own depth (a lease, a memory depth) reads the
+	// screen alone, as finely as it asks.
+	RecordScreens float64
+	// RecordDepth is the deepest record the board samples, a request's
+	// included, in place of the profile's record and raw-access depths
+	// (0: the profile's): a scope whose raw reads go deeper than its
+	// readout window (a full-rate capture memory) states that depth, and
+	// one whose memory is deeper than a browser samples bounds it.
+	RecordDepth int
 	// FrameInterval is the least time between two records (a scope's
 	// re-arm and readout time); 0: the profile's target frame rate, or a
 	// 30th of a second.
@@ -121,10 +134,13 @@ var absent = map[string]string{
 	"generator":   "the simulated board drives no signal source; its inputs come from the demo's generator",
 }
 
-// swNodes are the trigger nodes the software trigger runs.
+// swNodes are the trigger nodes the software trigger runs: edges, pulse
+// widths and the protocol trigger, a receiver of every bus the core
+// decodes (bustrigger.go).
 var swNodes = map[hal.TrigNode]hal.NodeCaps{
-	hal.NodeEdge:  {Slopes: []hal.Slope{hal.Rising, hal.Falling, hal.Either}},
-	hal.NodePulse: {Slopes: []hal.Slope{hal.Rising, hal.Falling}, QualOps: []hal.QualOp{hal.Shorter, hal.Longer, hal.Inside, hal.Outside}, MinS: 1e-9, MaxS: 10},
+	hal.NodeEdge:     {Slopes: []hal.Slope{hal.Rising, hal.Falling, hal.Either}},
+	hal.NodePulse:    {Slopes: []hal.Slope{hal.Rising, hal.Falling}, QualOps: []hal.QualOp{hal.Shorter, hal.Longer, hal.Inside, hal.Outside}, MinS: 1e-9, MaxS: 10},
+	hal.NodeProtocol: {},
 }
 
 // defaultLadder is 1-2-5 from 2 mV to 10 V a division.
@@ -154,6 +170,9 @@ func New(cfg Config) (*Board, error) {
 	}
 	if len(p.Rates) == 0 {
 		p.Rates = []hal.Rate{{SamplesPerS: 1e9, MaxChannels: p.Channels}}
+	}
+	if cfg.RecordDepth > 0 {
+		p.MaxDepth, p.RawAccess.MaxDepth = cfg.RecordDepth, cfg.RecordDepth
 	}
 	if p.MaxDepth == 0 {
 		p.MaxDepth = 1 << 16
