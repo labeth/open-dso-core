@@ -1567,7 +1567,7 @@ func (c *Controller) foundBusNote(res decode.Result, sampleS, stepped float64, f
 		note += "; layer " + l
 	}
 	if frame != 0 {
-		note += "; " + c.frameBus(decode.EnvelopeFeatureSamples(res)*sampleS, frame == busFrameAuto)
+		note += "; " + c.frameBus(decode.EnvelopeFeatureSamples(res)*sampleS, frame == busFrameAuto, sessionOf(res, sampleS))
 	}
 	return note
 }

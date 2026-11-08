@@ -538,5 +538,9 @@ func decodeFrame(f *sample.Frame, hud HUD) decode.Result {
 // so the strip shares the packet list's decode of the record and its bytes.
 // TRLC-LINKS: REQ-DSO-018
 func decodeParams(hud HUD) framecalc.DecodeParams {
-	return framecalc.Params(hud.DecProto, hud.DecBaud, hud.DecChA, hud.DecChB, hud.DecCPOL, hud.DecCPHA, hud.DecLSB, hud.DecFormat, hud.DecDelayNs, hud.DecParity)
+	p := framecalc.Params(hud.DecProto, hud.DecBaud, hud.DecChA, hud.DecChB, hud.DecCPOL, hud.DecCPHA, hud.DecLSB, hud.DecFormat, hud.DecDelayNs, hud.DecParity)
+	if hud.DecProto == framecalc.ProtoUART { // the framing detection or the S.BUS layer set, as the panel's
+		p.Parity, p.Inverted = hud.DecParity, hud.DecInverted
+	}
+	return p
 }

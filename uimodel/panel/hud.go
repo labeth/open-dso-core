@@ -35,7 +35,7 @@ func (c *Controller) FillHUD(hud *render.HUD) {
 	hud.DecProto, hud.DecBaud = d.DecProto, d.DecBaud
 	hud.DecChA, hud.DecChB = d.DecChA, d.DecChB
 	hud.DecCPOL, hud.DecCPHA, hud.DecLSB = d.DecCPOL, d.DecCPHA, d.DecLSB
-	hud.DecParity = d.DecParity
+	hud.DecParity, hud.DecInverted = d.DecParity, d.DecInverted
 	hud.DecFormat, hud.DecDelayNs = d.DecFormat, d.DecDelayNs
 	rv := c.RefView()
 	for i := range 2 {

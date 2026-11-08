@@ -3,11 +3,14 @@
 package panel
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"testing/synctest"
 	"time"
 
+	"github.com/labeth/open-dso-core/decode"
+	"github.com/labeth/open-dso-core/decode/synth"
 	"github.com/labeth/open-dso-core/dsp"
 	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/framecalc"
@@ -156,13 +159,13 @@ func TestUARTIdleWidth(t *testing.T) {
 // TRLC-LINKS: REQ-DSO-223
 func TestMessageTimebase(t *testing.T) {
 	c, _, _ := newC(t)
-	if td := c.messageTimebase(1e-3, 8.7e-6, 50e-6); td != 200e-6 {
+	if td := c.messageTimebase(1e-3, 0, 8.7e-6, 50e-6); td != 200e-6 {
 		t.Fatalf("a 1 ms message at 50us/div: %g", td)
 	}
-	if td := c.messageTimebase(1e-3, 0.1e-6, 50e-6); td != 200e-6 {
+	if td := c.messageTimebase(1e-3, 0, 0.1e-6, 50e-6); td != 200e-6 {
 		t.Fatalf("bits only a sampled record resolves: %g, want 200us/div", td)
 	}
-	if td := c.messageTimebase(1e-3, 2e-9, 50e-6); td != 50e-6 {
+	if td := c.messageTimebase(1e-3, 0, 2e-9, 50e-6); td != 50e-6 {
 		t.Fatalf("bits no slower timebase resolves: %g", td)
 	}
 }
@@ -332,7 +335,7 @@ func TestAutoMeasuresAMessageTheScreenCut(t *testing.T) {
 	if td := eng.Snapshot().TdivS; td != 2e-3 {
 		t.Fatalf("the timebase went back to 2ms/div: %g", td)
 	}
-	if td := c.messageTimebase(m.longest, 1.0/9600, 2e-3); td != 5e-3 {
+	if td := c.messageTimebase(m.longest, 0, 1.0/9600, 2e-3); td != 5e-3 {
 		t.Fatalf("framed at %g, want 5ms/div (45 ms after the trigger)", td)
 	}
 }
@@ -361,5 +364,113 @@ func TestAutoInBusSetsNormalAcquisition(t *testing.T) {
 	}
 	if c.fe.Coupling(1) != dsp.CoupleDC {
 		t.Fatalf("C2 coupling %d after AUTO in BUS, want DC", c.fe.Coupling(1))
+	}
+}
+
+// AUTO in BUS that finds no bus leaves decode off, whatever was decoded
+// before: the protocol row reads Off, BUS says NO BUS FOUND and the notice
+// says why, so a protocol kept from before never reads as AUTO's verdict.
+// TRLC-LINKS: REQ-DSO-223
+func TestAutoInBusFindingNothingLeavesDecodeOff(t *testing.T) {
+	for name, sig := range map[string]func() *sample.Frame{
+		"a tone": func() *sample.Frame { return toneFrame("") },
+		"flat lines": func() *sample.Frame {
+			f := uartFrame([]string{"x"}, 115200, 1, 20e-9, 200000)
+			for i := range f.Traces {
+				f.Traces[i].Codes8 = make([]uint8, 200000)
+				for k := range f.Traces[i].Codes8 {
+					f.Traces[i].Codes8[k] = 128
+				}
+			}
+			return f
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			c, eng, _ := newEnvRig(t)
+			eng.leased.Store(true)
+			f0 := sig()
+			c.SetFrameSource(func(fn func(*sample.Frame)) {
+				f := *f0
+				f.Snapshot.TdivS = eng.Snapshot().TdivS
+				fn(&f)
+			})
+			set(t, c, "bus.protocol", "I2C")
+			c.mu.Lock()
+			c.ui.ws = wsview.Bus
+			c.mu.Unlock()
+			press(t, c, "auto")
+			s := c.snap()
+			if s.decProto != framecalc.ProtoOff || !s.ui.busFailed || c.AutosetBusy() {
+				t.Fatalf("protocol %d failed %v busy %v note %q", s.decProto, s.ui.busFailed, c.AutosetBusy(), s.ui.busNote)
+			}
+			if p := rowText(c, "bus.protocol"); p != "Off" || !strings.Contains(s.ui.busNote, "decode stays off") {
+				t.Fatalf("the row reads %q, the note %q", p, s.ui.busNote)
+			}
+		})
+	}
+}
+
+// A session bus's message is its session, as the record that found the bus
+// shows it: a cJTAG escape with its IR and DR scans, a SWIM command with
+// its count, address and bytes; the record's last one, which it may cut,
+// is left out. Another bus has none.
+// TRLC-LINKS: REQ-DSO-223
+func TestSessionOfASessionBus(t *testing.T) {
+	for _, tc := range []struct {
+		proto       string
+		least, most float64
+	}{{"cjtag", 400e-6, 700e-6}, {"swim", 400e-6, 600e-6}, {"uart", 0, 0}} {
+		b, err := synth.Make(synth.Spec{Proto: tc.proto}, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sr := b.NaturalSR
+		if b, err = synth.Make(synth.Spec{Proto: tc.proto}, sr); err != nil {
+			t.Fatal(err)
+		}
+		c1 := b.Lines[0].Codes()
+		c2 := make([]uint8, len(c1))
+		for i := range c2 {
+			c2[i] = c1[0]
+		}
+		if len(b.Lines) > 1 {
+			c2 = b.Lines[1].Codes()
+		}
+		c1, c2 = slices.Concat(c1, c1, c1), slices.Concat(c2, c2, c2)
+		res, st := decode.AutodetectFast(c1, c2, 1/sr, "hex")
+		if s := sessionOf(res, st); s < tc.least || s > tc.most {
+			t.Errorf("%s (%s): session %g s, want %g..%g", tc.proto, res.Proto, s, tc.least, tc.most)
+		}
+	}
+}
+
+// A frame-start trigger fires into its message (a frame start and the unit
+// after it): AUTO in BUS frames the message with that lead before the
+// trigger, moving the trigger right as far as half the screen, on the
+// fastest timebase that holds both. USB PD's SOP and header are a third of
+// a millisecond-long message.
+// TRLC-LINKS: REQ-DSO-223
+func TestMessageLeadBeforeTheTrigger(t *testing.T) {
+	b, err := synth.Make(synth.Spec{Proto: "usbpd"}, 10e6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c1 := b.Lines[0].Codes()
+	res := decode.USBPD(c1, 1e-7, decode.USBPDCfg{})
+	m := msgsOf(res, 1e-7, len(c1))
+	if m.lead < 90e-6 || m.lead > 110e-6 || m.longest < 300e-6 {
+		t.Fatalf("USB PD: longest %g s, lead %g s", m.longest, m.lead)
+	}
+	c, _, _ := newC(t)
+	td := c.messageTimebase(m.longest, m.lead, 1.7e-6, 50e-6)
+	pos := busTrigPosFor(m.lead, td)
+	if pre := pos * 10 * td; pre < 1.1*m.lead || pre+(m.longest-m.lead)*1.05 > 10*td || pos > busTrigPosMax {
+		t.Fatalf("framed at %g s/div, trigger at %g: %g s before it", td, pos, pre)
+	}
+	if busTrigPosFor(0, td) != busTrigPos {
+		t.Fatal("no lead: the trigger stays near the left")
+	}
+	if u := msgsOf(decode.UART(c1, 1e-7, decode.UARTCfg{}), 1e-7, len(c1)); u.lead != 0 {
+		t.Fatalf("a UART's idle trigger fires at its message's start: lead %g", u.lead)
 	}
 }
