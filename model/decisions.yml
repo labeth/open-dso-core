@@ -967,3 +967,39 @@ decisions:
   decision: 'At the capture''s sample interval the simulated record is the capture with its format, scale and trigger; elsewhere a repeating signal. Captures carry the scope''s v2 raw frame and its reported fields, compared exactly.'
   consequences:
   - 'Bench captures from the real CML are the evidence of agreement; replay across code formats is refused.'
+
+- id: ADR-GUARD-POLICY-FROM-BOARD
+  title: 'The write guard is core mechanism with a board''s policy'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The SDS800X HD''s write guard lived in its ota module, so its app depended on ota, against ADR-APP-AND-AGENT-MODULES.'
+  decision: 'core fsguard holds the mechanism (roots, symlink resolution, refusal); a board supplies the policy: its root, forbidden trees, devices and windows, and NoLinks to refuse writes through any symlink below the root.'
+  consequences:
+  - 'The SDS800X HD app no longer requires ota; its policy lives in app/hdguard; the CML may adopt the guard later.'
+
+- id: ADR-BOOT-TARGET-CAPABILITY
+  title: 'Next boot target is an optional HAL capability with one shared row'
+  status: accepted
+  date: '2026-11-08'
+  context: 'A scope that can boot either firmware needs one switch reachable from the panel, SCPI and the web.'
+  decision: 'hal.BootTarget is optional; core boottarget serves SCPI and the web over it, and the SYS sheet''s Next boot row appears only on a board that offers it.'
+  consequences:
+  - 'The CML''s sheets and goldens are unchanged.'
+
+- id: ADR-RENDERER-VIEW-VIA-OWNER
+  title: 'The UI''s view reaches a hardware renderer through the owner'
+  status: accepted
+  date: '2026-11-08'
+  context: 'Renderer.Configure is owner work, and sending the live window raced the timebase commit.'
+  decision: 'The display loop builds the view the UI shows (Y-T or X-Y, held window when stopped, zoom window) and posts it to the owner only when it changes; a live main view carries no window (the acquisition''s).'
+  consequences:
+  - 'A refused view is retried a few times and reported.'
+
+- id: ADR-SCREEN-READBACK-UNDER-UI
+  title: 'Screen capture composites the UI over the board''s read-back'
+  status: accepted
+  date: '2026-11-08'
+  context: 'A scope whose traces are drawn by hardware cannot be captured from the UI canvas alone.'
+  decision: 'On the display goroutine, Display.Capture''s read-back is composited under the UI canvas; without read-back the headless render is used.'
+  consequences:
+  - 'The CML''s capture path is unchanged; the SDS800X HD captures at its native 1024x600.'
