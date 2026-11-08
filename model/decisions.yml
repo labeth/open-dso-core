@@ -1156,3 +1156,12 @@ decisions:
     reported, every action stays reachable by taps and sheets.'
   - 'To review with the owner: the bar''s order and sizes, the 1-2-5 snap of the box, the TOOLS button.'
 
+
+- id: ADR-INSTRUMENT-CLAMPS
+  title: 'The instrument model clamps settings as the SDS1000CML+ does, on every scope'
+  status: accepted
+  date: '2026-11-08'
+  context: 'Moving the CML''s settings into the core model met different limits.'
+  decision: 'Holdoff 0-10 s (not a number turns it off, +Inf gives 10 s); averages 1-256; ERES length 1-64 and odd; pulse and slope level fractions 0-1 with each pair ordered; a qualifier condition in two bits; a video standard other than NTSC is PAL and a negative line means every line; an unknown trigger type is edge.'
+  consequences:
+  - 'The SDS800X HD and the demo follow the CML''s limits.'
