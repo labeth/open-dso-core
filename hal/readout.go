@@ -20,7 +20,11 @@ type Window struct {
 	Role        Role
 	Channels    []int // a board that reads every acquired channel discards the rest
 	StartSample int64 // acquired samples, relative to the trigger
-	Span        int64 // acquired samples covered
+	// Span is the acquired samples covered. 0: the board's own main
+	// window (StartSample unused), at least the plan's screen
+	// (WinSamples) where the request placed it about the trigger; a board
+	// may deliver its whole record.
+	Span int64
 	// Points is how many samples to deliver; Span/Points is the readout
 	// compression. 0: what the board delivers for Span (a board that cannot
 	// resample to any count), reported back in the frame. For PeakPairs it
