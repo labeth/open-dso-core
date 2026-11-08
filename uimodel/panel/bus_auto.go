@@ -292,6 +292,12 @@ func msgsOf(res decode.Result, sampleS float64, valid int) busMsgs {
 				m.lead = max(m.lead, float64(triggerAt(res.Spans, p)-p.I0)*sampleS)
 			}
 		}
+		// SWD's line reset, a packet of its own (its ones from wherever the
+		// record opens), and the transfer after it are one message: the
+		// frame-start trigger fires ahead of the reset
+		if res.Proto == "swd" && i+1 < len(ps) && ps[i+1].Complete && opensWith(res.Spans, p, "LINERESET") {
+			m.longest = max(m.longest, float64(ps[i+1].I1-p.I0)*sampleS)
+		}
 		if i > 0 {
 			if g := float64(p.I0-ps[i-1].I1) * sampleS; g > 0 && (m.idle == 0 || g < m.idle) {
 				m.idle = g
@@ -350,6 +356,17 @@ func triggerAt(spans []decode.Span, p Packet) int {
 		}
 	}
 	return p.I0
+}
+
+// opensWith reports packet p's first span reading text.
+// TRLC-LINKS: REQ-DSO-223
+func opensWith(spans []decode.Span, p Packet, text string) bool {
+	for _, s := range spans {
+		if s.I0 >= p.I0 && s.Kind != "gap" {
+			return s.Text == text
+		}
+	}
+	return false
 }
 
 // uartIdle is the idle-gap width the pulse qualifier triggers after: midway

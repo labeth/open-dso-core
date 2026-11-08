@@ -470,6 +470,17 @@ func TestMessageLeadBeforeTheTrigger(t *testing.T) {
 	if busTrigPosFor(0, td) != busTrigPos {
 		t.Fatal("no lead: the trigger stays near the left")
 	}
+	// SWD's line reset, a packet of its own, fires with the transfer after
+	// it: the message is both
+	sw, err := synth.Make(synth.Spec{Proto: "swd", Set: map[string]string{"rate": "1M"}}, 1e8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	swc, swd := sw.Lines[0].Codes(), sw.Lines[1].Codes()
+	sm := msgsOf(decode.SWD(swc, swd, 1e-8, decode.ClockedCfg{}), 1e-8, len(swc))
+	if sm.longest < 90e-6 {
+		t.Fatalf("SWD: longest %g s, want the line reset and a transfer", sm.longest)
+	}
 	if u := msgsOf(decode.UART(c1, 1e-7, decode.UARTCfg{}), 1e-7, len(c1)); u.lead != 0 {
 		t.Fatalf("a UART's idle trigger fires at its message's start: lead %g", u.lead)
 	}
