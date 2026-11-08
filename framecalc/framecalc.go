@@ -429,6 +429,7 @@ func DetectPair(f *sample.Frame, format string, pair [2]int) decode.Result {
 			res.Spans[i].I1 *= k
 		}
 		res.SPB *= float64(k)
+		res.Feature *= float64(k) // a stepper's STEP pulse, a PWM line's narrowest run: samples too
 	}
 	if f.Content == sample.PeakPairs && f.Flags.Has(sample.Ordered) && res.Proto == "off" && res.Error == "no protocol matched" {
 		// a bus the envelope cannot resolve is not found either (a 115200 Bd
