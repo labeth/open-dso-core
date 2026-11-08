@@ -5,6 +5,7 @@ package decode
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 )
 
@@ -62,6 +63,12 @@ func recoverManchester(sl sliced, s0, T float64, ieee bool, lastEdgeX float64) (
 		centre := s0 + (float64(k)+0.5)*T
 		if centre > limit {
 			break
+		}
+		// a cell the record opens inside of, its first quarter before the
+		// first sample (a boundary half a period before the first edge):
+		// the cells start after it
+		if s0+(float64(k)+0.25)*T < 0 {
+			continue
 		}
 		// Sample the first and third quarter of the cell: they straddle the
 		// mid-cell transition, so their levels give its direction.
@@ -256,6 +263,18 @@ func decodeManchesterAt(sl sliced, T float64, cfg ManchesterCfg, bits int, colTi
 		atEdge := len(segs) > 1 && ((sgIdx == 0 && s0e < 2.5*T) || (sgIdx == len(segs)-1 && float64(sl.n)-lastE < 2.5*T))
 		if run < 3 && atEdge {
 			continue
+		}
+		// A frame the record opens inside (its first edge at the record's
+		// start) but holds to its end ends on a whole word: its words are
+		// counted from that end, the cells the cut left of the first one
+		// dropped (a record opening within the preamble begins at any of
+		// its bits). Not past a coding violation, which restarts the words.
+		if sgIdx == 0 && s0e < 2.5*T && (sgIdx < len(segs)-1 || float64(sl.n)-lastE >= 2.5*T) &&
+			!slices.ContainsFunc(cells, func(c mCell) bool { return c.Bit < 0 }) {
+			if skip := len(cells) % bits; skip > 0 && len(cells)-skip >= bits {
+				cells = cells[skip:]
+				run = max(0, run-skip)
+			}
 		}
 		if frames > 0 { // separate frames in the transcript
 			spans = append(spans, Span{cells[0].I0, cells[0].I0, "", "gap", 0})

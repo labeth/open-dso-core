@@ -23,7 +23,8 @@ func synthCodes(b synth.Bus) (c1, c2 []uint8) {
 // TestSynthBusesDecode: every generator's bus, in each of its variants, is
 // named by the detection the scope runs (AutodetectFast) as its protocol
 // (or a name its Truth allows) and decodes to its ground truth: the bytes
-// it wrote, as the decoder reports them, and the tokens it must show.
+// it wrote, as the decoder reports them, and the tokens and messages it
+// must show.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestSynthBusesDecode(t *testing.T) {
 	ps := synth.Protocols()
@@ -52,7 +53,7 @@ func TestSynthBusesDecode(t *testing.T) {
 				if b.Truth.Bytes != nil && !slices.Equal(r.Bytes, b.Truth.Bytes) {
 					t.Errorf("%s: bytes % x, want % x (%s)", b.Name, r.Bytes, b.Truth.Bytes, r.Text)
 				}
-				for _, w := range b.Truth.Contains {
+				for _, w := range slices.Concat(b.Truth.Contains, b.Truth.Messages) {
 					if !strings.Contains(r.Text, w) {
 						t.Errorf("%s: text %q lacks %q", b.Name, r.Text, w)
 					}

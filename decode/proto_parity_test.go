@@ -185,6 +185,16 @@ func protoParityVectors(add parityAdd, add2 parityAdd2, corrupt func([]uint8) []
 		}, 12)
 		fs := bitsToCodes(dp)
 		bases = append(bases, base{"usbls", 1 / 120e6, cfg{}, fs, func(c []uint8) Result { return USBLS(c, 1/120e6, USBLSCfg{}) }})
+		// packets two and three bit times apart: split at their EOPs
+		for _, gap := range []float64{2, 3} {
+			dp, _ := oracleUSBFSWave(120e6, [][]int{
+				usblsPacketBits(0xD, usblsTokenBits(0x15, 0xE)),
+				usblsPacketBits(0x3, usblsDataBits([]int{0x80, 0x06, 0x00, 0x01, 0x00, 0x7E}, 0)),
+				usblsPacketBits(0x2, nil),
+			}, gap)
+			c := bitsToCodes(dp)
+			bases = append(bases, base{"usbls", 1 / 120e6, cfg{}, c, func(c []uint8) Result { return USBLS(c, 1/120e6, USBLSCfg{}) }})
+		}
 	}
 
 	// ---- clocked two-line: clean, and each line corrupted in turn

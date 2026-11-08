@@ -8,6 +8,8 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/labeth/open-dso-core/decode/synth"
 )
 
 // decode_break_canfd_test.go — adversarial red-team suite for CANFD.
@@ -75,10 +77,7 @@ func canFDBRSFrameB(id, dlc int, data []int) (wire []int, split int) {
 	}
 	stuffed, realIdx := canStuffTrackedB(bits)
 	split = realIdx[16] // BRS is the 17th input bit; last one at nominal rate
-	wire = append([]int{}, stuffed...)
-	for range 30 {
-		wire = append(wire, 1) // recessive tail (FD best-effort path stops at data)
-	}
+	wire = append(append([]int{}, stuffed...), synth.CANFDTrailer(stuffed, len(stuffed)-len(bits), len(data))...)
 	return wire, split
 }
 

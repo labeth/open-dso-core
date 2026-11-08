@@ -2,6 +2,8 @@
 
 package decode
 
+import "strings"
+
 // AutodetectFast is Autodetect on a strided copy of long records: the
 // decoders need only a few samples per bit, and on the scope's ARM a full
 // Autodetect of a 500 k-sample screen takes 14 s. A record that idles
@@ -18,6 +20,18 @@ func AutodetectFast(c1, c2 []uint8, colTimeS float64, format string) (Result, fl
 		// the whole record. Nor PWM: an output runs on, with no idle to cut,
 		// so PWM read off the cut record is a burst's steady edges (a MIDI
 		// message's bits), judged on the whole record (pwmFillsRecord).
+		// Nor a clocked bus framed by its quiet (a caliper's 24 clocks after
+		// 10 ms of it, PS/2's characters), which the cut shortens to two
+		// blocks: its bursts read as another clocked bus's there (SPI bytes,
+		// PDI instructions), so a two-line find is weighed against the whole
+		// record's, read at the cut's stride.
+		if res.OK && (strings.Contains(res.Src, " DATA ") || strings.Contains(res.Src, " SDA ")) {
+			k := max(1, int(st/colTimeS+0.5))
+			w := Autodetect(everyK(c1, k), everyK(c2, k), colTimeS*float64(k), format)
+			if w.OK && w.Proto != res.Proto && scoreResult(w) > scoreResult(res) {
+				return w, colTimeS * float64(k)
+			}
+		}
 		if res.OK && res.Proto != "" && res.Proto != "off" && res.Proto != protoPWM {
 			k := int(st/colTimeS + 0.5)
 			back := func(i int) int { return uncompact(i*k, keep) / k }
@@ -157,18 +171,21 @@ func autodetectStrided(c1, c2 []uint8, colTimeS float64, format string) (Result,
 	if stride <= 1 {
 		return Autodetect(c1, c2, colTimeS, format), colTimeS
 	}
-	pick := func(c []uint8) []uint8 {
-		if c == nil {
-			return nil
-		}
-		out := make([]uint8, 0, len(c)/stride+1)
-		for i := 0; i < len(c); i += stride {
-			out = append(out, c[i])
-		}
-		return out
-	}
 	st := colTimeS * float64(stride)
-	return Autodetect(pick(c1), pick(c2), st, format), st
+	return Autodetect(everyK(c1, stride), everyK(c2, stride), st, format), st
+}
+
+// everyK is every k-th sample of c (nil stays nil).
+// TRLC-LINKS: REQ-DSO-018
+func everyK(c []uint8, k int) []uint8 {
+	if c == nil || k <= 1 {
+		return c
+	}
+	out := make([]uint8, 0, len(c)/k+1)
+	for i := 0; i < len(c); i += k {
+		out = append(out, c[i])
+	}
+	return out
 }
 
 // activeBlock is the samples a block of activeBlocks spans; activeShare

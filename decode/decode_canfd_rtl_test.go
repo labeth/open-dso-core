@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/labeth/open-dso-core/decode/synth"
 	"github.com/labeth/open-dso-core/testenv"
 )
 
@@ -87,10 +88,7 @@ func canFDBRSFrame(id, dlc int, data []int) (wire []int, switchAt int) {
 		}
 		destuffed++
 	}
-	wire = append(wire, stuffed...)
-	for range 24 {
-		wire = append(wire, 1)
-	}
+	wire = append(append(wire, stuffed...), synth.CANFDTrailer(stuffed, len(stuffed)-len(bits), len(data))...)
 	return wire, switchAt
 }
 

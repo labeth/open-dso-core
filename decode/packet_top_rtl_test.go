@@ -169,7 +169,7 @@ func TestPacketImageTopRTL(t *testing.T) {
 		fd := canFDStdFrame(0x2A5, 11, payload)
 		wire := append(append(append(ones(20), a...), fd...), ones(10)...)
 		r := runPacketTop(t, dir, image, bitsEntries(wire, 210, 40), 500, 1|6<<8, 32000, 32000, 0, seqArgs("can-seq", dataElements(payload), true, false)...)
-		dataEnd := int64(20+len(a)+len(fd)-24) * 500
+		dataEnd := int64(20+len(a)+len(fd)-canFDTrailerLen(len(payload))) * 500
 		if r.trigger < dataEnd-500 || r.trigger > dataEnd+2000 {
 			t.Fatalf("trigger at %d, FD data ends at %d", r.trigger, dataEnd)
 		}

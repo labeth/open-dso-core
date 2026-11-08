@@ -85,8 +85,9 @@ type canReader struct {
 	stuffed     int
 	stuffErr    bool // a stuff bit was NOT the opposite of its 5-run (6 same = violation)
 	bits        []int
-	li0, li1    int // sample span of the last raw bit read
-	ei          int // next edge to consider for resynchronization
+	wire        []int // the bits as sent while record is set, stuff bits among them (CAN FD's CRC)
+	li0, li1    int   // sample span of the last raw bit read
+	ei          int   // next edge to consider for resynchronization
 }
 
 // canResync re-synchronizes the bit clock as a CAN controller does: an edge
@@ -140,6 +141,9 @@ func (r *canReader) next() (int, bool) {
 			return -1, false
 		}
 		r.stuffed++
+		if r.record {
+			r.wire = append(r.wire, sv)
+		}
 		if sv == r.runVal { // 6 consecutive identical bits => bit-stuff violation
 			r.stuffErr = true // (e.g. an all-dominant / aliased-constant "bus" is not a legal frame)
 		}
@@ -156,6 +160,7 @@ func (r *canReader) next() (int, bool) {
 	}
 	if r.record {
 		r.bits = append(r.bits, v)
+		r.wire = append(r.wire, v)
 	}
 	return v, true
 }
@@ -189,8 +194,9 @@ type canFrame struct {
 	crcOK bool // a classic frame whose CRC checks, without a stuffing violation
 }
 
-// CANFD decodes classic CAN (fully) and CAN-FD base frames (best-effort:
-// ID + control + DLC + data with dynamic destuffing) on one sliced logic line.
+// CANFD decodes classic CAN and CAN-FD base frames (ID, control, DLC, data
+// with dynamic destuffing, the stuff count and CRC-17/21: canFDTrailer) on
+// one sliced logic line.
 // TRLC-LINKS: REQ-DSO-018
 func CANFD(codes []uint8, colTimeS float64, cfg CANFDCfg) Result {
 	S := sliceChannel(codes, cfg.Threshold, cfg.HaveThr)
@@ -531,13 +537,11 @@ func decodeCANOneFrame(sl sliced, cfg CANFDCfg, sofStart, spb, dataSpb float64) 
 	}
 
 	if fd {
-		// CAN-FD uses a stuff-count field, a longer CRC with fixed stuff bits, and
-		// a distinct CRC-delimiter/ACK form. We stop here (best-effort): ID + DLC +
-		// data are recovered with correct dynamic destuffing, and the frame is
-		// flagged FD. Classic CRC/ACK parsing below would misread FD trailers.
+		spans, toks = canFDTrailer(r, spb, nBytes, spans, toks)
 		fr.spans, fr.toks, fr.bytes = spans, toks, bytes
 		fr.endI = int(math.Round(r.pos))
 		fr.ok = true
+		fr.crcOK = len(spans) > 0 && spans[len(spans)-1].Kind == "crc"
 		return fr
 	}
 
@@ -583,4 +587,101 @@ func decodeCANOneFrame(sl sliced, cfg CANFDCfg, sofStart, spb, dataSpb float64) 
 	fr.endI = int(math.Round(r.pos))
 	fr.ok = true
 	return fr
+}
+
+// canFDTrailer reads a CAN FD frame's CRC field after its data (ISO
+// 11898-1): dynamic stuffing ends with the data; a fixed stuff bit, the
+// complement of the bit before it, opens the stuff count (the dynamic stuff
+// bits modulo 8, Gray coded, and an even parity bit) and follows every four
+// bits of the stuff count and the CRC; CRC-17 for up to 16 data bytes,
+// CRC-21 past that, over the bits as sent from SOF through the stuff count
+// (canFDCRC). The CRC span is "crc" when the stuff count, the fixed stuff
+// bits and the CRC all check, a frame error otherwise; a record that ends
+// inside the field adds nothing. The bit rate returns to the nominal one
+// at the CRC delimiter.
+// TRLC-LINKS: REQ-DSO-018
+func canFDTrailer(r *canReader, spb float64, nBytes int, spans []Span, toks []string) ([]Span, []string) {
+	width := 17
+	if nBytes > 16 {
+		width = 21
+	}
+	stuffs := r.stuffed
+	r.stuffOn, r.record = false, false
+	prev := 0
+	if n := len(r.wire); n > 0 {
+		prev = r.wire[n-1]
+	}
+	fixedOK := true
+	var field []int
+	c0, c1 := -1, -1
+	for k := range 4 + width {
+		if k%4 == 0 {
+			fsb, ok := r.readRaw()
+			if !ok {
+				return spans, toks
+			}
+			fixedOK = fixedOK && fsb == 1-prev
+		}
+		b, ok := r.readRaw()
+		if !ok {
+			return spans, toks
+		}
+		if k == 4 {
+			c0 = r.li0
+		}
+		c1 = r.li1
+		field = append(field, b)
+		prev = b
+	}
+	sc, crc := 0, 0
+	for _, b := range field[:4] {
+		sc = sc<<1 | b
+	}
+	for _, b := range field[4:] {
+		crc = crc<<1 | b
+	}
+	n := stuffs % 8
+	g := n ^ n>>1
+	scOK := sc>>1 == g && (sc^sc>>1^sc>>2^sc>>3)&1 == 0
+	want := canFDCRC(append(r.wire, field[:4]...), width)
+	text, kind := fmt.Sprintf("%05X", crc), "crc"
+	if !scOK || !fixedOK || crc != want || r.stuffErr {
+		text, kind = "!"+text, kindFrameError
+	}
+	spans = append(spans, Span{c0, c1, "CRC:" + text, kind, crc})
+	toks = append(toks, "CRC:"+text)
+	r.spb = spb
+	if _, ok := r.readRaw(); !ok { // CRC delimiter
+		return spans, toks
+	}
+	if ack, a0, a1, ok := r.readField(1); ok {
+		if ack == 0 {
+			spans = append(spans, Span{a0, a1, "ACK", "ack", 0})
+			toks = append(toks, "ACK")
+		} else {
+			spans = append(spans, Span{a0, a1, "NAK", "nak", 1})
+			toks = append(toks, "NAK")
+		}
+	}
+	return spans, toks
+}
+
+// canFDCRC is CAN FD's CRC-17 or CRC-21 (by width) from a register of a one
+// and zeros over the bits as sent.
+// TRLC-LINKS: REQ-DSO-018
+func canFDCRC(bits []int, width int) int {
+	poly := 0x1685B
+	if width == 21 {
+		poly = 0x102899
+	}
+	mask := 1<<width - 1
+	crc := 1 << (width - 1)
+	for _, b := range bits {
+		next := ((crc >> (width - 1)) & 1) ^ (b & 1)
+		crc = (crc << 1) & mask
+		if next != 0 {
+			crc ^= poly
+		}
+	}
+	return crc
 }

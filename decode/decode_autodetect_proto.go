@@ -46,6 +46,10 @@ func timingOf(sl sliced, colTimeS float64) lineTiming {
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func near(v, want, frac float64) bool { return math.Abs(v-want) <= frac*want }
 
+// oneWireOverdriveBaud is 1-Wire's overdrive rate, the bit rate a decode's
+// settings carry for an overdrive bus (standard speed is about 16 kbit/s).
+const oneWireOverdriveBaud = 142000
+
 // considerLines tries the single-line protocols beyond the first ten on
 // line k, those its timing allows. uartBaud is a UART decode's rate on the
 // line (0 none): MIDI is named only on a line at its 31250 Bd. sl is the
@@ -72,6 +76,14 @@ func considerLines(codes []uint8, sl *sliced, colTimeS float64, format string, u
 	}
 	if t.maxLow >= 40 && t.minRun <= 20 {
 		consider(OneWire(codes, colTimeS, OneWireCfg{Format: format}))
+	}
+	// an overdrive bus resets with a low of 48 to 80 us and keeps slots of
+	// 10 us, SDQ's bit time: its resets, presence pulses and ROM commands
+	// tell it from SDQ, read from the first slot at overdrive speed
+	if t.maxLow >= 40 && t.maxLow < 440 && t.minRun <= 3 {
+		r := OneWire(codes, colTimeS, OneWireCfg{Overdrive: true, Format: format})
+		r.Baud = oneWireOverdriveBaud // the settings a decode reads overdrive by
+		consider(r)
 	}
 	if t.maxLow >= 40 && t.minRun <= 1.5 && t.minRun >= 0.1 {
 		consider(WS281x(codes, colTimeS, WS281xCfg{Format: format}))

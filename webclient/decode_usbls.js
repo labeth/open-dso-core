@@ -25,7 +25,6 @@ const usbPIDName = {
 function decodeUSBLS(dp, colTimeS, cfg) {
   cfg = cfg || {};
   const minSPB = 4;       // samples per bit floor
-  const eopCells = 2;     // EOP ~ 2 bit-times of SE0 trailing every packet
   const splitK = 10;      // inter-packet idle: a gap wider than this many bit periods
   const S = sliceChannel(dp, cfg);
   if (!S.ok) return fail("usbls", S.reason);
@@ -97,7 +96,8 @@ function decodeUSBLS(dp, colTimeS, cfg) {
   // Segment edges into PACKETS on the inter-packet idle. Within a packet bit
   // stuffing guarantees a transition at least every ~7 bit periods; the EOP then
   // the idle line open a much wider gap, so split where consecutive edges are
-  // more than splitK bit periods apart.
+  // more than splitK bit periods apart. Packets closer than that are split at
+  // their EOPs (usbSplits).
   const segs = [];
   let segStart = 0;
   for (let k = 1; k < S.edges.length; k++) {
@@ -105,114 +105,22 @@ function decodeUSBLS(dp, colTimeS, cfg) {
   }
   segs.push([segStart, S.edges.length - 1]);
 
-  const n = S.n;
-  // TRLC-LINKS: REQ-DSO-018
-  const clampI = i => (i < 0 ? 0 : (i >= n ? n - 1 : i));
-  // TRLC-LINKS: REQ-DSO-018
-  const cellStart = (x0, k) => clampI(Math.round(x0 + k * T));
-  // TRLC-LINKS: REQ-DSO-018
-  const cellEnd = (x0, k) => clampI(Math.round(x0 + (k + 1) * T) - 1);
-
   const spans = [], bytes = [], toks = [];
   let packets = 0;
   for (let sgIdx = 0; sgIdx < segs.length; sgIdx++) {
-    const sg = segs[sgIdx];
-    if (sg[1] <= sg[0]) continue;              // a lone edge carries no packet
-    const x0 = S.edges[sg[0]].x, x1 = S.edges[sg[1]].x;
-    let nCells = Math.round((x1 - x0) / T);
-    if (nCells < 8 + 8 + eopCells) continue;   // SYNC + PID + EOP minimum
-    if (nCells > n) nCells = n;                // safety cap
-    // A record that ends mid-transmission leaves the trailing packet with no
-    // EOP/idle to close it — require trailing idle on the last segment.
-    if (sgIdx === segs.length - 1 && (n - 1 - S.edges[sg[1]].i) < 2 * T) continue;
-
-    // NRZI-decode the cells: idle level seeds the first comparison, then a level
-    // change vs the previous cell = 0, no change = 1.
-    let idleX = x0 - 0.5 * T;
-    if (idleX < 0) idleX = 0;
-    if (idleX > n - 1) idleX = n - 1;
-    let prev = logicAt(S, idleX);
-    if (prev < 0) prev = 0;
-    const rawBits = [], rawCell = [];
-    // Re-synchronize the cell grid on edges (a USB receiver's DPLL): an edge
-    // within 0.4 bit of a cell boundary re-anchors the grid (free-running, a
-    // 1 % bit-time error slips bits).
-    // The grid, not a count fixed up front, says where the packet ends (its
-    // last cell starts before the last edge).
-    let ax = x0, ak = 0, ei = sg[0];
-    for (let k = 0; k < nCells + eopCells; k++) {
-      const xs = ax + (k - ak) * T;
-      if (xs > x1 - 0.5 * T) break;
-      while (ei <= sg[1] && S.edges[ei].x < xs - 0.4 * T) ei++;
-      if (ei <= sg[1] && Math.abs(S.edges[ei].x - xs) <= 0.4 * T) { ax = S.edges[ei].x; ak = k; }
-      const lv = logicAt(S, ax + (k - ak + 0.5) * T);
-      if (lv < 0) break;                       // ran off the captured region
-      const b = (lv !== prev) ? 0 : 1;
-      prev = lv;
-      rawBits.push(b); rawCell.push(k);
-    }
-    // Strip the trailing EOP cells (SE0 reads as an extended idle bound here).
-    if (rawBits.length < eopCells + 16) continue;
-    rawBits.length -= eopCells;
-    rawCell.length -= eopCells;
-
-    // De-stuff: the 0 inserted after six consecutive 1s is dropped. Track each
-    // kept bit's raw cell so spans map back to sample indices.
-    const bitsArr = [], cellOf = [];
-    let ones = 0, stuffCell = -1;
-    for (let i = 0; i < rawBits.length; i++) {
-      if (ones === 6) {
-        if (rawBits[i] !== 0) { stuffCell = rawCell[i]; break; }
-        ones = 0; continue;                // drop the stuffed 0
+    const sg = segs[sgIdx], last = sgIdx === segs.length - 1;
+    for (const sub of usbSplits(S, T, sg)) {
+      const p = usbSegment(S, T, sub, last && sub[1] === sg[1]);
+      if (!p) continue;
+      if (packets > 0) {                       // separate packets in the transcript
+        spans.push({ i0: p.spans[0].i0, i1: p.spans[0].i0, text: "", kind: "gap" });
+        toks.push("|");
       }
-      bitsArr.push(rawBits[i]); cellOf.push(rawCell[i]);
-      if (rawBits[i] === 1) ones++; else ones = 0;
+      packets++;
+      for (const x of p.spans) spans.push(x);
+      for (const x of p.toks) toks.push(x);
+      for (const x of p.bytes) bytes.push(x);
     }
-    if (bitsArr.length < 16) continue;
-    // SYNC must be 00000001; anything else is a partial/garbage frame — drop it.
-    let syncOK = bitsArr[7] === 1;
-    for (let i = 0; i < 7; i++) if (bitsArr[i] !== 0) syncOK = false;
-    if (!syncOK) continue;
-    // PID = 8 bits LSB-first: low nibble = PID, high nibble = its complement.
-    let pidByte = 0;
-    for (let i = 0; i < 8; i++) pidByte |= bitsArr[8 + i] << i;
-    const pid4 = pidByte & 0xF, check = (pidByte >> 4) & 0xF;
-    const name = usbPIDName[pid4] || ("PID" + pid4.toString(16).toUpperCase());
-    const pidBad = check !== (~pid4 & 0xF);
-
-    if (packets > 0) {                         // separate packets in the transcript
-      spans.push({ i0: cellStart(x0, cellOf[0]), i1: cellStart(x0, cellOf[0]), text: "", kind: "gap" });
-      toks.push("|");
-    }
-    packets++;
-    spans.push({ i0: cellStart(x0, cellOf[0]), i1: cellEnd(x0, cellOf[7]), text: "SYNC", kind: "start" });
-    const pidText = pidBad ? "!" + name : name, pidKind = pidBad ? "frame-error" : "addr";
-    spans.push({ i0: cellStart(x0, cellOf[8]), i1: cellEnd(x0, cellOf[15]), text: pidText, kind: pidKind, val: pid4 });
-    toks.push(pidText);
-
-    // Payload bytes (data + CRC) after the PID, LSB-first. A DATA packet's
-    // last two bytes are its CRC16: a mismatch marks them as errors.
-    const nBytes = (bitsArr.length - 16) >> 3;
-    const payload = [];
-    for (let b = 0; b < nBytes; b++) {
-      const base = 16 + b * 8;
-      let val = 0;
-      for (let i = 0; i < 8; i++) val |= bitsArr[base + i] << i;
-      payload.push(val);
-    }
-    let crcBad = (pid4 & 3) === 3 && nBytes >= 2 && usbCRC16(payload.slice(0, nBytes - 2)) !== (payload[nBytes - 2] | payload[nBytes - 1] << 8);
-    if (((pid4 & 3) === 1 || pid4 === 0x4) && nBytes === 2) { // token: 11 bits and their CRC5
-      const w = payload[0] | (payload[1] << 8);
-      crcBad = usbCRC5(w & 0x7ff) !== (w >> 11);
-    }
-    for (let b = 0; b < nBytes; b++) {
-      const base = 16 + b * 8, val = payload[b];
-      const bad = crcBad && b >= nBytes - 2;
-      const text = bad ? "!" + hex2(val) : hex2(val);
-      spans.push({ i0: cellStart(x0, cellOf[base]), i1: cellEnd(x0, cellOf[base + 7]), text, kind: bad ? "crc-error" : "data", val });
-      toks.push(text); bytes.push(val);
-    }
-    if (stuffCell >= 0) { spans.push({ i0: cellStart(x0, stuffCell), i1: cellEnd(x0, stuffCell), text: "STUFF!", kind: "frame-error", val: 0 }); toks.push("STUFF!"); }
   }
   if (packets === 0) return fail("usbls", "no USB packet (SYNC+PID) found");
 
@@ -220,6 +128,134 @@ function decodeUSBLS(dp, colTimeS, cfg) {
   if (colTimeS > 0) baud = snapRate(Math.round(1 / (T * colTimeS)), [1.5e6, 12e6]);
   return { ok: true, error: null, proto: "usbls", spans, text: toks.join(" "), bytes,
     meta: { bitrate: baud, samplesPerBit: T, threshold: S.threshold, lowRail: S.lowRail, highRail: S.highRail } };
+}
+
+// usbSplits splits a segment of packets closer than splitK bit times apart at
+// their EOPs: on the line idling at J an EOP is a K-level run of two bit times
+// or more and a J run of two or more, then the next packet's SYNC; the split
+// stands only where the packet before it checks whole (Go usbSplits).
+// TRLC-LINKS: REQ-DSO-018
+function usbSplits(S, T, sg) {
+  const e = S.edges, jDir = e[sg[1]].dir, out = [];
+  let start = sg[0];
+  for (let k = start + 1; k + 8 <= sg[1]; k++) {
+    if (e[k].dir !== jDir || e[k].x - e[k - 1].x < 1.5 * T || e[k + 1].x - e[k].x < 1.5 * T || e[k + 8].x - e[k + 7].x < 1.5 * T) continue;
+    let sync = true;
+    for (let j = 1; j <= 6 && sync; j++) sync = Math.abs(e[k + 1 + j].x - e[k + j].x - T) <= 0.4 * T;
+    if (!sync) continue;
+    const p = usbSegment(S, T, [start, k], false);
+    if (p && p.valid) { out.push([start, k]); start = k + 1; k += 7; }
+  }
+  out.push([start, sg[1]]);
+  return out;
+}
+
+// usbSegment decodes the packet whose edges are sg (last: the record's last
+// segment, which needs idle after it): { spans, toks, bytes, valid }, or null
+// (Go usbSegment).
+// TRLC-LINKS: REQ-DSO-018
+function usbSegment(S, T, sg, last) {
+  const eopCells = 2;     // EOP ~ 2 bit-times of SE0 trailing every packet
+  const n = S.n;
+  // TRLC-LINKS: REQ-DSO-018
+  const clampI = i => (i < 0 ? 0 : (i >= n ? n - 1 : i));
+  // TRLC-LINKS: REQ-DSO-018
+  const cellStart = (x0, k) => clampI(Math.round(x0 + k * T));
+  // TRLC-LINKS: REQ-DSO-018
+  const cellEnd = (x0, k) => clampI(Math.round(x0 + (k + 1) * T) - 1);
+  const spans = [], bytes = [], toks = [];
+  if (sg[1] <= sg[0]) return null;              // a lone edge carries no packet
+  const x0 = S.edges[sg[0]].x, x1 = S.edges[sg[1]].x;
+  let nCells = Math.round((x1 - x0) / T);
+  if (nCells < 8 + 8 + eopCells) return null;   // SYNC + PID + EOP minimum
+  if (nCells > n) nCells = n;                // safety cap
+  // A record that ends mid-transmission leaves the trailing packet with no
+  // EOP/idle to close it — require trailing idle on the last segment.
+  if (last && (n - 1 - S.edges[sg[1]].i) < 2 * T) return null;
+
+  // NRZI-decode the cells: idle level seeds the first comparison, then a level
+  // change vs the previous cell = 0, no change = 1.
+  let idleX = x0 - 0.5 * T;
+  if (idleX < 0) idleX = 0;
+  if (idleX > n - 1) idleX = n - 1;
+  let prev = logicAt(S, idleX);
+  if (prev < 0) prev = 0;
+  const rawBits = [], rawCell = [];
+  // Re-synchronize the cell grid on edges (a USB receiver's DPLL): an edge
+  // within 0.4 bit of a cell boundary re-anchors the grid (free-running, a
+  // 1 % bit-time error slips bits).
+  // The grid, not a count fixed up front, says where the packet ends (its
+  // last cell starts before the last edge).
+  let ax = x0, ak = 0, ei = sg[0];
+  for (let k = 0; k < nCells + eopCells; k++) {
+    const xs = ax + (k - ak) * T;
+    if (xs > x1 - 0.5 * T) break;
+    while (ei <= sg[1] && S.edges[ei].x < xs - 0.4 * T) ei++;
+    if (ei <= sg[1] && Math.abs(S.edges[ei].x - xs) <= 0.4 * T) { ax = S.edges[ei].x; ak = k; }
+    const lv = logicAt(S, ax + (k - ak + 0.5) * T);
+    if (lv < 0) break;                       // ran off the captured region
+    const b = (lv !== prev) ? 0 : 1;
+    prev = lv;
+    rawBits.push(b); rawCell.push(k);
+  }
+  // Strip the trailing EOP cells (SE0 reads as an extended idle bound here).
+  if (rawBits.length < eopCells + 16) return null;
+  rawBits.length -= eopCells;
+  rawCell.length -= eopCells;
+
+  // De-stuff: the 0 inserted after six consecutive 1s is dropped. Track each
+  // kept bit's raw cell so spans map back to sample indices.
+  const bitsArr = [], cellOf = [];
+  let ones = 0, stuffCell = -1;
+  for (let i = 0; i < rawBits.length; i++) {
+    if (ones === 6) {
+      if (rawBits[i] !== 0) { stuffCell = rawCell[i]; break; }
+      ones = 0; continue;                    // drop the stuffed 0
+    }
+    bitsArr.push(rawBits[i]); cellOf.push(rawCell[i]);
+    if (rawBits[i] === 1) ones++; else ones = 0;
+  }
+  if (bitsArr.length < 16) return null;
+  // SYNC must be 00000001; anything else is a partial/garbage frame — drop it.
+  let syncOK = bitsArr[7] === 1;
+  for (let i = 0; i < 7; i++) if (bitsArr[i] !== 0) syncOK = false;
+  if (!syncOK) return null;
+  // PID = 8 bits LSB-first: low nibble = PID, high nibble = its complement.
+  let pidByte = 0;
+  for (let i = 0; i < 8; i++) pidByte |= bitsArr[8 + i] << i;
+  const pid4 = pidByte & 0xF, check = (pidByte >> 4) & 0xF;
+  const name = usbPIDName[pid4] || ("PID" + pid4.toString(16).toUpperCase());
+  const pidBad = check !== (~pid4 & 0xF);
+
+  spans.push({ i0: cellStart(x0, cellOf[0]), i1: cellEnd(x0, cellOf[7]), text: "SYNC", kind: "start" });
+  const pidText = pidBad ? "!" + name : name, pidKind = pidBad ? "frame-error" : "addr";
+  spans.push({ i0: cellStart(x0, cellOf[8]), i1: cellEnd(x0, cellOf[15]), text: pidText, kind: pidKind, val: pid4 });
+  toks.push(pidText);
+
+  // Payload bytes (data + CRC) after the PID, LSB-first. A DATA packet's
+  // last two bytes are its CRC16: a mismatch marks them as errors.
+  const nBytes = (bitsArr.length - 16) >> 3;
+  const payload = [];
+  for (let b = 0; b < nBytes; b++) {
+    const base = 16 + b * 8;
+    let val = 0;
+    for (let i = 0; i < 8; i++) val |= bitsArr[base + i] << i;
+    payload.push(val);
+  }
+  let crcBad = (pid4 & 3) === 3 && nBytes >= 2 && usbCRC16(payload.slice(0, nBytes - 2)) !== (payload[nBytes - 2] | payload[nBytes - 1] << 8);
+  if (((pid4 & 3) === 1 || pid4 === 0x4) && nBytes === 2) { // token: 11 bits and their CRC5
+    const w = payload[0] | (payload[1] << 8);
+    crcBad = usbCRC5(w & 0x7ff) !== (w >> 11);
+  }
+  for (let b = 0; b < nBytes; b++) {
+    const base = 16 + b * 8, val = payload[b];
+    const bad = crcBad && b >= nBytes - 2;
+    const text = bad ? "!" + hex2(val) : hex2(val);
+    spans.push({ i0: cellStart(x0, cellOf[base]), i1: cellEnd(x0, cellOf[base + 7]), text, kind: bad ? "crc-error" : "data", val });
+    toks.push(text); bytes.push(val);
+  }
+  if (stuffCell >= 0) { spans.push({ i0: cellStart(x0, stuffCell), i1: cellEnd(x0, stuffCell), text: "STUFF!", kind: "frame-error", val: 0 }); toks.push("STUFF!"); }
+  return { spans, toks, bytes, valid: !pidBad && !crcBad && stuffCell < 0 };
 }
 
 // usbCRC5 is the USB token CRC (decode_usbls.go usbCRC5).

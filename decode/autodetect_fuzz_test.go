@@ -43,6 +43,7 @@ type fuzzCase struct {
 var autoAlike = map[string][]string{
 	"lin": {"uart"}, "dmx512": {"uart"}, "midi": {"uart"}, "modbus": {"uart"}, "mil1553": {"manchester"},
 	"ook": {"manchester"}, "em4100": {"manchester"}, // an Oregon sensor's and a tag's bits are Manchester
+	"pdi": {"uart"}, // PDI's data line is a synchronous USART's 8E2 characters
 }
 
 // cleanNamesIt reports a mutation whose cut and decimation alone (no noise,
