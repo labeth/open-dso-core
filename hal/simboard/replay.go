@@ -45,8 +45,13 @@ func (b *Board) Replay(f *sample.Frame) error {
 			return hal.Refuse("replay", fmt.Sprintf("the record's channel %d is not on this scope", t.Ch+1))
 		}
 		if t.Format != b.profile.Format {
-			return hal.Refuse("replay", fmt.Sprintf("the record's C%d words are %d-bit %v; this scope stores %d-bit %v",
-				t.Ch+1, t.Format.Bits, t.Format.Storage, b.profile.Format.Bits, b.profile.Format.Storage))
+			nt, ok := codesWithPrecision(t, b.profile.Format)
+			if !ok {
+				return hal.Refuse("replay", fmt.Sprintf("the record's C%d words are %d-bit %v with %d fraction bits; this scope stores %d-bit %v",
+					t.Ch+1, t.Format.Bits, t.Format.Storage, t.Format.Frac, b.profile.Format.Bits, b.profile.Format.Storage))
+			}
+			*t = nt
+			f.Flags.Set(sample.Precision, true)
 		}
 		if t.Valid <= 0 || !(t.Scale.PerCode != 0) {
 			return hal.Refuse("replay", fmt.Sprintf("the record's C%d has no samples or no scale", t.Ch+1))
@@ -61,6 +66,40 @@ func (b *Board) Replay(f *sample.Frame) error {
 	return nil
 }
 
+// codesWithPrecision is trace t, whose words are the codes of format conv
+// with fraction bits below them (a scope's precision words beside its
+// 8-bit codes, as wire v2 carries them: the code format with the fraction
+// bits added, its mid, rails and scale stated in the finer words), as the
+// scope held it: its codes rounded to conv's (a half rounds up, as the
+// scope rounds its Q8.8 words), the words kept beside them as its
+// precision words, its scale in codes again. ok is false for words that
+// are not conv's codes so refined, or a format whose codes are not 8-bit
+// words (precision words sit beside 8-bit codes).
+// TRLC-LINKS: REQ-DSO-1001
+func codesWithPrecision(t *sample.Trace, conv sample.CodeFormat) (sample.Trace, bool) {
+	tf := t.Format
+	if conv.Storage != sample.U8 || tf.Storage != sample.U16 || tf.Bits != conv.Bits || tf.Shift != conv.Shift || tf.Frac <= conv.Frac {
+		return sample.Trace{}, false
+	}
+	fr := tf.Frac - conv.Frac
+	if tf.Mid != conv.Mid<<fr || tf.Min != conv.Min<<fr || tf.Max != conv.Max<<fr || tf.Validate() != nil {
+		return sample.Trace{}, false
+	}
+	n := min(t.Valid, len(t.Codes16))
+	k := float64(uint32(1) << fr)
+	out := sample.Trace{
+		Ch: t.Ch, Format: conv, Valid: n,
+		Codes8: make([]uint8, n), Precision: slices.Clone(t.Codes16[:n]), PrecisionFrac: fr,
+		Scale:       sample.Scale{Zero: t.Scale.Zero / k, PerCode: t.Scale.PerCode * k, OffsetV: t.Scale.OffsetV},
+		CodesPerDiv: t.CodesPerDiv / k,
+	}
+	half := uint32(1) << (fr - 1)
+	for i, w := range out.Precision {
+		out.Codes8[i] = uint8(min((uint32(w)+half)>>fr, conv.Max)) //nolint:gosec // G115: clamped to conv's 8-bit rail
+	}
+	return out, true
+}
+
 // StopReplay returns every channel to the generator.
 // TRLC-LINKS: REQ-DSO-1001
 func (b *Board) StopReplay() {
@@ -70,14 +109,25 @@ func (b *Board) StopReplay() {
 }
 
 // verbatim reports whether plan p takes the replayed record word for
-// word: its sample interval is the record's (to a part in a million) and
-// it is not a peak-detect record.
+// word: at the record's own time/div (to a part in a million) the board
+// holds what the scope held there, whatever record it plans itself (a
+// scope's peak-detect display readout of a deeper record among them);
+// at another, a plan whose sample interval is the record's takes a
+// record of samples. A peak-detect plan takes only a record of pairs.
 // TRLC-LINKS: REQ-DSO-1001
 func (r *replay) verbatim(p hal.Plan) bool {
-	if r == nil || p.Content.Has(sample.PeakPairs) {
+	if r == nil {
 		return false
 	}
-	return math.Abs(p.SampleS-r.f.SampleS) <= 1e-6*r.f.SampleS
+	pairs := r.f.Content == sample.PeakPairs
+	if p.Content.Has(sample.PeakPairs) && !pairs {
+		return false
+	}
+	near := func(a, b float64) bool { return math.Abs(a-b) <= 1e-6*b }
+	if td := r.f.Snapshot.TdivS; td > 0 && near(p.Request.TimePerDivS, td) {
+		return true
+	}
+	return !pairs && near(p.SampleS, r.f.SampleS)
 }
 
 // volts is channel ch's captured tip voltage at signal time t, held
@@ -94,6 +144,9 @@ func (r *replay) volts(ch int, t float64) (float64, bool) {
 		ph += r.periodS
 	}
 	i := min(int(ph/r.f.SampleS), tr.Valid-1)
+	if len(tr.Precision) > i && tr.PrecisionFrac > 0 {
+		return tr.Scale.Volts(math.Ldexp(float64(tr.Precision[i]), -int(tr.PrecisionFrac))), true
+	}
 	return tr.Scale.Volts(float64(tr.Word(i))), true
 }
 
@@ -152,6 +205,9 @@ func (r *replay) fill(w hal.Window, rec record, chans []int, divs int, f *sample
 			out.Codes16 = slices.Clone(t.Codes16[a:z])
 		} else {
 			out.Codes8 = slices.Clone(t.Codes8[a:z])
+		}
+		if len(t.Precision) >= z {
+			out.Precision, out.PrecisionFrac = slices.Clone(t.Precision[a:z]), t.PrecisionFrac
 		}
 		f.Traces = append(f.Traces, out)
 	}

@@ -309,12 +309,53 @@ func (f *CaptureFile) ReplayReport(ctx context.Context, c *Client) (Snapshot, *s
 	return s, rec, err
 }
 
+// edgeWindowFields are the measurements a scope takes of the full-rate
+// windows it reads around an envelope record's edges (measure.Result's
+// WithEdgeDetail), by the flag that marks each set as theirs: the raw
+// record does not hold those windows.
+var edgeWindowFields = map[string][]string{
+	"edge_shape":    {"rise_s", "fall_s", "overshoot", "preshoot"},
+	"window_mean":   {"vmean", "vrms", "vrms_ac", "env_aliased"},
+	"window_timing": {"period", "freq", "duty", "pos_width_s", "neg_width_s", "has_timing", "env_timing"},
+}
+
+// FromEdgeWindows are the reported fields the scope measured on its edge
+// windows rather than on the record (edgeWindowFields, by their flags)
+// where the replay in got had no such windows (its flag is not set): the
+// record alone cannot reproduce them. Where the replay sets the flag too,
+// its fields are compared like any other.
+// TRLC-LINKS: REQ-DSO-295
+func (f *CaptureFile) FromEdgeWindows(got Snapshot) []string {
+	var out []string
+	for k, w := range f.Reported {
+		ch, flag, ok := strings.Cut(strings.TrimPrefix(k, "fmeas."), ".")
+		set := edgeWindowFields[flag]
+		if !ok || !strings.HasPrefix(k, "fmeas.") || set == nil || w.V != true || got[k].V == true {
+			continue
+		}
+		out = append(out, k)
+		for _, name := range set {
+			if _, ok := f.Reported["fmeas."+ch+"."+name]; ok {
+				out = append(out, "fmeas."+ch+"."+name)
+			}
+		}
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
 // Mismatches lists the reported fields got differs from the capture's in,
-// exactly: the same record through the same code reports the same.
+// exactly: the same record through the same code reports the same. The
+// fields the scope measured on edge windows the replay did not have
+// (FromEdgeWindows) are not compared.
 // TRLC-LINKS: REQ-DSO-295
 func (f *CaptureFile) Mismatches(got Snapshot) []string {
 	var out []string
+	skip := f.FromEdgeWindows(got)
 	for _, k := range slices.Sorted(maps.Keys(f.Reported)) {
+		if _, found := slices.BinarySearch(skip, k); found {
+			continue
+		}
 		w, g := f.Reported[k], got[k]
 		switch {
 		case w.Num != nil || g.Num != nil:

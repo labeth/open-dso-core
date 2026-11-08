@@ -62,7 +62,9 @@ func Captures(t *testing.T, profileYAML, demoJSON []byte, dir string, recipes []
 			for _, m := range bad {
 				t.Error(m)
 			}
-			t.Logf("%s: %d reported fields replayed exactly (%d packets)", f.About, len(got), len(asList(got["packets"].V)))
+			windows := f.FromEdgeWindows(got)
+			t.Logf("%s: %d reported fields replayed exactly (%d packets); %d measured on the scope's edge windows, not the record %v",
+				f.About, len(f.Reported)-len(windows), len(asList(got["packets"].V)), len(windows), windows)
 		})
 	}
 }

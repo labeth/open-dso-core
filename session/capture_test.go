@@ -2,6 +2,7 @@ package session
 
 import (
 	"encoding/binary"
+	"slices"
 	"testing"
 
 	"github.com/labeth/open-dso-core/measure"
@@ -71,5 +72,36 @@ func TestCaptureOfV1Scope(t *testing.T) {
 	}
 	if v, ok := numOf(s["fmeas.ch2.vpp"]); !ok || v != 1 {
 		t.Errorf("ch2 vpp %v", s["fmeas.ch2.vpp"])
+	}
+}
+
+// What a scope measured on its edge windows, which its raw record does not
+// hold, is left out of a replay's comparison while the replay has no such
+// windows (its flag unset), and compared like the rest once it has; every
+// other field is compared exactly.
+// TRLC-LINKS: REQ-DSO-295
+func TestEdgeWindowFieldsOfAReplay(t *testing.T) {
+	f := &CaptureFile{Reported: Snapshot{
+		"fmeas.ch1.edge_shape": {V: true}, "fmeas.ch1.rise_s": num(4e-9), "fmeas.ch1.overshoot": num(13),
+		"fmeas.ch1.freq": num(1e5), "fmeas.ch2.edge_shape": {V: false}, "fmeas.ch2.rise_s": num(0),
+	}}
+	got := Snapshot{
+		"fmeas.ch1.edge_shape": {V: false}, "fmeas.ch1.rise_s": num(0), "fmeas.ch1.overshoot": num(0),
+		"fmeas.ch1.freq": num(1e5), "fmeas.ch2.edge_shape": {V: false}, "fmeas.ch2.rise_s": num(0),
+	}
+	want := []string{"fmeas.ch1.edge_shape", "fmeas.ch1.overshoot", "fmeas.ch1.rise_s"}
+	if w := f.FromEdgeWindows(got); !slices.Equal(w, want) {
+		t.Fatalf("edge-window fields %v, want %v", w, want)
+	}
+	if bad := f.Mismatches(got); len(bad) != 0 {
+		t.Fatalf("mismatches %v", bad)
+	}
+	got["fmeas.ch1.freq"] = num(2e5)
+	if bad := f.Mismatches(got); len(bad) != 1 {
+		t.Fatalf("a record's own field differing: mismatches %v", bad)
+	}
+	got["fmeas.ch1.freq"], got["fmeas.ch1.edge_shape"] = num(1e5), Value{V: true}
+	if w, bad := f.FromEdgeWindows(got), f.Mismatches(got); len(w) != 0 || len(bad) != 2 {
+		t.Fatalf("a replay with edge windows: skipped %v, mismatches %v", w, bad)
 	}
 }
