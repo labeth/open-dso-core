@@ -182,7 +182,8 @@ func (b *Board) hBus(w http.ResponseWriter, r *http.Request) {
 // turns a knob ({"panel":"tdiv","detents":-1}) by the panel's own names,
 // presses a key or turns a knob by the UI model's name the panel sends
 // ({"key":"run"}, {"knob":"tdiv","steps":-1}), or touches the screen
-// ({"touch":{"x":100,"y":200}}). The board's key table (Config.KeyTable)
+// ({"touch":{"x":100,"y":200}}, a tap; with "gesture" down, move
+// or up and a contact "id", one report of a finger). The board's key table (Config.KeyTable)
 // makes the events the real panel makes: a press alone or with its
 // release, a turn split into the steps one event of that knob carries, a
 // shared knob acting on the channel whose key was pressed last.
@@ -197,6 +198,7 @@ func (b *Board) hInput(w http.ResponseWriter, r *http.Request) {
 		Touch   *struct {
 			X, Y    int
 			Gesture string
+			ID      int `json:"id"`
 		} `json:"touch"`
 	}
 	if err := decode(r, &req); err != nil {
@@ -213,11 +215,11 @@ func (b *Board) hInput(w http.ResponseWriter, r *http.Request) {
 			fail(w, errors.New("this scope has no touch screen"))
 			return
 		}
-		g := req.Touch.Gesture
-		if g == "" {
-			g = "tap"
+		evs = touchEvents(req.Touch.X, req.Touch.Y, req.Touch.ID, req.Touch.Gesture)
+		if evs == nil {
+			fail(w, fmt.Errorf("touch gesture %q: want tap, down, move or up", req.Touch.Gesture))
+			return
 		}
-		evs = []hal.InputEvent{{Source: hal.FromTouch, Kind: hal.TouchEvent, TouchX: req.Touch.X, TouchY: req.Touch.Y, Gesture: g, Down: true}}
 	case evs == nil && req.Panel == "" && req.Key == "" && req.Knob == "":
 		fail(w, errors.New(`want {"panel":…} or {"panel":…,"detents":n}, {"key":…}, {"knob":…,"steps":n} or {"touch":{"x":…,"y":…}}`))
 		return
@@ -229,6 +231,29 @@ func (b *Board) hInput(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	reply(w, map[string]any{"ok": true, "events": len(evs)})
+}
+
+// touchEvents are the events of a finger on the screen as a touch screen
+// reports them: a tap (the default) goes down and up at (x, y); "down",
+// "move" and "up" are one report of contact id. Nil for another gesture.
+// TRLC-LINKS: REQ-DSO-1001, REQ-DSO-299
+func touchEvents(x, y, id int, gesture string) []hal.InputEvent {
+	ev := hal.InputEvent{Source: hal.FromTouch, Kind: hal.TouchEvent, TouchX: x, TouchY: y, Contact: id, Down: true}
+	switch gesture {
+	case "", "tap":
+		up := ev
+		up.Down = false
+		return []hal.InputEvent{ev, up}
+	case "down":
+		return []hal.InputEvent{ev}
+	case "move":
+		ev.Gesture = hal.TouchMove
+		return []hal.InputEvent{ev}
+	case "up":
+		ev.Down = false
+		return []hal.InputEvent{ev}
+	}
+	return nil
 }
 
 // inputEvents are the events a hand on control panel (detents for a knob)

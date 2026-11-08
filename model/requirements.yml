@@ -5109,3 +5109,22 @@ requirements:
   verificationCriteria: The demo matrix passes on every scope's site in a headless browser; the composition test fails on
     any difference from the device main without a stated reason; the panel check fails on any key the board does not
     produce; replayed captures give exactly the reported fields; native and browser sessions agree field for field.
+- id: REQ-DSO-299
+  title: Touch-first layout on a touch screen without F-keys
+  text: The instrument shall lay the same workspaces, views, sheets and rows out for a finger on a scope whose profile
+    has a touch screen and no F-keys - readouts that open their sheets, a touch bar with the workspaces, the
+    workspace's views and the actions, sheet rows with their own touch controls - reach every choice an F-key or a
+    knob job reaches by a tap, and act on the waveform's view alone (box zoom, pinch, two-finger pan, double-tap
+    reset) without changing any setting.
+  status: implemented
+  realizes:
+  - CAP-DSO-FRONT-PANEL
+  category: functional
+  appliesTo:
+  - FU-DSO-RENDER
+  - FU-DSO-PANEL
+  verificationMethods:
+  - test
+  verificationCriteria: Touch goldens for every workspace and an open sheet; panel tests reach every workspace, view
+    and sheet by touch and show no engine or front-end call from any gesture; the simulator's ui area and the demo
+    matrix drive taps and multi-touch gestures and read no setting row changed by a gesture.

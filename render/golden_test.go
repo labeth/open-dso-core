@@ -119,3 +119,25 @@ func goldenCheck(t *testing.T, name string, got []byte) {
 	}
 	rendertest.Check(t, filepath.Join("testdata", "golden", dir), base, got, rendertest.MaxDiffPixels, *updateGolden)
 }
+
+// The touch-first layout's scenes on the SDS800X HD's 1024×600 panel: drawn
+// by the CPU (the browser demo), and as the UI over the hardware plane.
+// TRLC-LINKS: REQ-DSO-299
+func TestGoldenTouch(t *testing.T) {
+	for _, s := range rendertest.TouchScenes() {
+		t.Run(s.Name, func(t *testing.T) {
+			sf := render.NewImage32(&render.Metrics1024x600, hal.XRGB8888)
+			s.Draw(sf)
+			goldenCheck(t, "1024x600touch/"+s.Name, render.EncodePNG(sf))
+		})
+		t.Run(s.Name+"_over_hw", func(t *testing.T) {
+			sf := render.NewImage32(&render.Metrics1024x600, hal.ARGB8888)
+			sf.SetUnder(hdPlane)
+			s.Draw(sf)
+			goldenCheck(t, "1024x600touch/"+s.Name+"_over_hw", render.EncodePNG(sf))
+		})
+	}
+}
+
+// hdPlane is the SDS800X HD's waveform plane (its board's Renderer.Area).
+var hdPlane = image.Rect(19, 50, 1019, 530)
