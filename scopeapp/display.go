@@ -28,9 +28,9 @@ type Display struct {
 	// the scope running without its display. nil: the board's framebuffer
 	// (hal.Display), none when it has none.
 	Open func() (Screen, error)
-	// Engine is what the loop asks of the acquisition; nil: an owner that
-	// shares no core with the display (a 20th of a second between
-	// pictures, nothing paced).
+	// Engine is what the loop asks of the acquisition; nil: the board's
+	// (boardEngine): the profile's display cadence, and the pace forwarded
+	// to a board that shares its core with the display (PacedBoard).
 	Engine DisplayEngine
 	// HUD is the heads-up state of the next picture; nil: the UI model's
 	// HUD over the instrument state.
@@ -72,27 +72,56 @@ type DisplayEngine interface {
 	NoteLCDFrame()
 }
 
-// freeEngine is an owner that shares no core with the display.
-type freeEngine struct{}
+// PacedBoard is a board whose acquisition shares a core with the display:
+// while the display falls behind, the loop asks each record to take at
+// least d (0: the board's own frame interval).
+type PacedBoard interface {
+	SetDisplayPace(d time.Duration)
+}
+
+// boardEngine is the display's view of a HAL board's acquisition: the
+// profile's fixed display cadence (Budget.DisplayHz; none: hudPeriod), and
+// the pace handed to a PacedBoard.
+type boardEngine struct {
+	period time.Duration
+	pace   PacedBoard // nil: a board that shares no core with the display
+}
+
+// boardEngineOf is the display engine of board b.
+// TRLC-LINKS: REQ-DSO-168
+func boardEngineOf(b hal.Board) boardEngine {
+	e := boardEngine{period: hudPeriod}
+	if hz := b.Profile().Budget.DisplayHz; hz > 0 {
+		e.period = time.Duration(float64(time.Second) / hz)
+	}
+	if p, ok := b.(PacedBoard); ok {
+		e.pace = p
+	}
+	return e
+}
 
 // TRLC-LINKS: REQ-DSO-168
-func (freeEngine) RenderPeriod() time.Duration { return hudPeriod }
+func (e boardEngine) RenderPeriod() time.Duration { return e.period }
 
 // TRLC-LINKS: REQ-DSO-168
-func (freeEngine) SetDisplayPace(time.Duration) {}
+func (e boardEngine) SetDisplayPace(d time.Duration) {
+	if e.pace != nil {
+		e.pace.SetDisplayPace(d)
+	}
+}
 
 // TRLC-LINKS: REQ-DSO-168
-func (freeEngine) QuietRLock() {}
+func (boardEngine) QuietRLock() {}
 
 // TRLC-LINKS: REQ-DSO-168
-func (freeEngine) QuietRUnlock() {}
+func (boardEngine) QuietRUnlock() {}
 
 // TRLC-LINKS: REQ-DSO-168
-func (freeEngine) NoteLCDFrame() {}
+func (boardEngine) NoteLCDFrame() {}
 
-// hudPeriod is the display's tick over a hardware waveform renderer: the
-// renderer draws the traces at its own rate, so the readouts, menus and
-// markers need no more.
+// hudPeriod is the display's tick on a board whose profile states no
+// cadence: over a hardware waveform renderer the renderer draws the traces
+// at its own rate, so the readouts, menus and markers need no more.
 const hudPeriod = 50 * time.Millisecond
 
 // display is the display loop's state shared with the headless picture.
@@ -112,7 +141,7 @@ type display struct {
 func newDisplay(env *Env, cfg Display) *display {
 	d := &display{env: env, cfg: cfg, eng: cfg.Engine, spect: render.NewSpectrogram(), chans: env.Board.Profile().Channels}
 	if d.eng == nil {
-		d.eng = freeEngine{}
+		d.eng = boardEngineOf(env.Board)
 	}
 	return d
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/hal/keytable"
 	"github.com/labeth/open-dso-core/siggen"
 )
 
@@ -33,6 +34,8 @@ func (b *Board) bench() hal.Extension {
 		{Pattern: "POST /api/sim/bus", Handler: http.HandlerFunc(b.hBus)},
 		{Pattern: "POST /api/sim/input", Handler: http.HandlerFunc(b.hInput)},
 		{Pattern: "GET /api/sim/screen.rgba", Handler: http.HandlerFunc(b.hScreen)},
+		{Pattern: "POST /api/sim/replay", Handler: http.HandlerFunc(b.hReplay)},
+		{Pattern: "DELETE /api/sim/replay", Handler: http.HandlerFunc(b.hReplay)},
 	}}
 }
 
@@ -70,7 +73,16 @@ func (b *Board) hState(w http.ResponseWriter, _ *http.Request) {
 		"ok": true, "lamps": nonNil(b.Lamps()), "signals": b.sig.Specs(), "channels": b.profile.Channels,
 		"screen": map[string]any{"w": b.profile.Display.W, "h": b.profile.Display.H, "seq": seq, "touch": b.profile.Display.Touch},
 		"keys":   nonNil(b.profile.Inputs.Keys), "knobs": nonNil(b.profile.Inputs.Knobs),
+		"keytable": b.keys, "selected": b.selected(),
 	})
+}
+
+// selected is the channel the panel's shared controls act on (1-based).
+// TRLC-LINKS: REQ-DSO-1001
+func (b *Board) selected() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return max(b.sel, 1)
 }
 
 // nonNil is s, or an empty list for nil, so the JSON is a list.
@@ -166,16 +178,23 @@ func (b *Board) hBus(w http.ResponseWriter, r *http.Request) {
 	reply(w, map[string]any{"ok": true, "signals": b.sig.Specs()})
 }
 
-// hInput presses a key ({"key":"run"}), turns a knob ({"knob":"tdiv",
-// "steps":-1}) or touches the screen ({"touch":{"x":100,"y":200}}), as the
-// panel's hand does: the event goes to the board's input queue.
+// hInput is a hand on the panel: it presses a key ({"panel":"run"}) or
+// turns a knob ({"panel":"tdiv","detents":-1}) by the panel's own names,
+// presses a key or turns a knob by the UI model's name the panel sends
+// ({"key":"run"}, {"knob":"tdiv","steps":-1}), or touches the screen
+// ({"touch":{"x":100,"y":200}}). The board's key table (Config.KeyTable)
+// makes the events the real panel makes: a press alone or with its
+// release, a turn split into the steps one event of that knob carries, a
+// shared knob acting on the channel whose key was pressed last.
 // TRLC-LINKS: REQ-DSO-1001
 func (b *Board) hInput(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Key   string `json:"key"`
-		Knob  string `json:"knob"`
-		Steps int    `json:"steps"`
-		Touch *struct {
+		Panel   string `json:"panel"`
+		Detents int    `json:"detents"`
+		Key     string `json:"key"`
+		Knob    string `json:"knob"`
+		Steps   int    `json:"steps"`
+		Touch   *struct {
 			X, Y    int
 			Gesture string
 		} `json:"touch"`
@@ -184,15 +203,11 @@ func (b *Board) hInput(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	var evs []hal.InputEvent
+	evs, err := b.inputEvents(req.Panel, req.Detents, req.Key, req.Knob, req.Steps)
 	switch {
-	case req.Key != "":
-		evs = []hal.InputEvent{
-			{Source: hal.FromPanel, Kind: hal.KeyEvent, Key: req.Key, Down: true},
-			{Source: hal.FromPanel, Kind: hal.KeyEvent, Key: req.Key},
-		}
-	case req.Knob != "" && req.Steps != 0:
-		evs = []hal.InputEvent{{Source: hal.FromPanel, Kind: hal.KnobEvent, Knob: req.Knob, Steps: max(-100, min(100, req.Steps))}}
+	case err != nil:
+		fail(w, err)
+		return
 	case req.Touch != nil:
 		if !b.profile.Display.Touch {
 			fail(w, errors.New("this scope has no touch screen"))
@@ -203,8 +218,8 @@ func (b *Board) hInput(w http.ResponseWriter, r *http.Request) {
 			g = "tap"
 		}
 		evs = []hal.InputEvent{{Source: hal.FromTouch, Kind: hal.TouchEvent, TouchX: req.Touch.X, TouchY: req.Touch.Y, Gesture: g, Down: true}}
-	default:
-		fail(w, errors.New(`want {"key":…}, {"knob":…,"steps":n} or {"touch":{"x":…,"y":…}}`))
+	case evs == nil && req.Panel == "" && req.Key == "" && req.Knob == "":
+		fail(w, errors.New(`want {"panel":…} or {"panel":…,"detents":n}, {"key":…}, {"knob":…,"steps":n} or {"touch":{"x":…,"y":…}}`))
 		return
 	}
 	for _, ev := range evs {
@@ -213,7 +228,51 @@ func (b *Board) hInput(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	reply(w, map[string]any{"ok": true})
+	reply(w, map[string]any{"ok": true, "events": len(evs)})
+}
+
+// inputEvents are the events a hand on control panel (detents for a knob)
+// or on the control that sends key or knob makes, through the key table;
+// none for no control.
+// TRLC-LINKS: REQ-DSO-1001
+func (b *Board) inputEvents(panel string, detents int, key, knob string, steps int) ([]hal.InputEvent, error) {
+	t := b.keys
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	press := func(k keytable.Key) []hal.InputEvent {
+		evs, sel := k.Press(b.sel)
+		b.sel = sel
+		return evs
+	}
+	turn := func(k keytable.Knob, n int) ([]hal.InputEvent, error) {
+		if n == 0 {
+			return nil, fmt.Errorf("%s: a turn of no detents", k.Panel)
+		}
+		return k.Turn(max(-1000, min(1000, n)), b.sel), nil
+	}
+	switch {
+	case panel != "":
+		if k, ok := t.Key(panel); ok {
+			return press(k), nil
+		}
+		if k, ok := t.Knob(panel); ok {
+			return turn(k, detents)
+		}
+		return nil, fmt.Errorf("%s: this panel has no such control", panel)
+	case key != "":
+		k, err := t.KeyNamed(key, b.sel)
+		if err != nil {
+			return nil, err
+		}
+		return press(k), nil
+	case knob != "":
+		k, err := t.KnobNamed(knob, b.sel)
+		if err != nil {
+			return nil, err
+		}
+		return turn(k, steps)
+	}
+	return nil, nil
 }
 
 // hScreen is the next picture as raw RGBA rows (?after=N waits up to a

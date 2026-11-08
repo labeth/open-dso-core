@@ -1,0 +1,196 @@
+{
+  "format": "open-dso capture 1",
+  "about": "C1: a 1 MHz square, 2 Vpp about 0 V",
+  "scope": {
+    "vendor": "open-dso",
+    "model": "TEST2",
+    "product": "test-scope",
+    "firmware": "test"
+  },
+  "rows": {
+    "ch1.coupling": "DC",
+    "ch1.offset": "0V",
+    "ch1.on": "On",
+    "ch1.probe": "1x",
+    "ch1.vdiv": "500mV",
+    "ch2.coupling": "DC",
+    "ch2.offset": "0V",
+    "ch2.on": "On",
+    "ch2.probe": "1x",
+    "ch2.vdiv": "500mV",
+    "time.tdiv": "1us",
+    "trig.edge": "C1 Rise",
+    "trig.level": "0V"
+  },
+  "frame": "RFNGMg8DAAB7InNlcSI6MiwicmF3Ijp0cnVlLCJmbGFncyI6WyJvcmRlcmVkIl0sInNhbXBsZV9zIjo2ZS05LCJhY3FfZGVjaW0iOjMsInRyaWdnZXJfYXQiOjgzNCwidHJpZ19raW5kIjoiaGFyZHdhcmUtZWRnZSIsInRkaXZfcyI6MC4wMDAwMDEsImRpc3BsYXllZF9zZGl2X3MiOjAuMDAwMDAxLCJjb2xzIjoxNjY3LCJjb2xfc3Bhbl9zIjowLjAwMDAxMDAwMiwiY2FwdHVyZV9kZXB0aCI6MTY2Nywid2luX2NvbHMiOjE2NjcsImVkZ2VfeCI6ODM0LCJlZGdlX2ZyYWMiOi0xLCJ3aW5fZnJhYyI6MSwicHRwIjoxMDAsImludGVycCI6ZmFsc2UsIm5vcm0iOnRydWUsInRyaWdkIjp0cnVlLCJjb2hlcmVudCI6dHJ1ZSwidHJhY2VzIjpbeyJjaCI6MCwiZm10Ijp7ImJpdHMiOjgsInN0b3JhZ2UiOiJ1OCIsInNoaWZ0IjowLCJmcmFjIjowLCJtaWQiOjEyOCwibWluIjowLCJtYXgiOjI1NX0sInNjYWxlIjp7Inplcm8iOjEyOCwicGVyX2NvZGVfdiI6MC4wMiwib2ZmX3YiOjAsImNvZGVzX3Blcl9kaXYiOjI1fX0seyJjaCI6MSwiZm10Ijp7ImJpdHMiOjgsInN0b3JhZ2UiOiJ1OCIsInNoaWZ0IjowLCJmcmFjIjowLCJtaWQiOjEyOCwibWluIjowLCJtYXgiOjI1NX0sInNjYWxlIjp7Inplcm8iOjEyOCwicGVyX2NvZGVfdiI6MC4wMiwib2ZmX3YiOjAsImNvZGVzX3Blcl9kaXYiOjI1fX1dLCJzZWdzIjpbeyJjaCI6MCwicm9sZSI6InJhdyIsInN0b3JhZ2UiOiJ1OCIsIm4iOjE2NjcsImF0IjowfSx7ImNoIjoxLCJyb2xlIjoicmF3Iiwic3RvcmFnZSI6InU4IiwibiI6MTY2NywiYXQiOjE2NzJ9XX0ATrCysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKyUE5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OsLKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrJQTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTrCysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKyslBOTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OsLKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrJQTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk6wsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKyslBOTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OsLKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKyUE5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk6wsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKyslBOTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTrCysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKyUE5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk6wsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrJQTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTrCysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKyUE5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk5OTk4AAAAAAHt7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7e3t7enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6enp6eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4AAAAAAA=",
+  "reported": {
+    "fmeas.ch1.duty": {
+      "v": 49.98000000000001,
+      "num": 49.98000000000001
+    },
+    "fmeas.ch1.edge_shape": {
+      "v": false
+    },
+    "fmeas.ch1.env_aliased": {
+      "v": false
+    },
+    "fmeas.ch1.env_timing": {
+      "v": false
+    },
+    "fmeas.ch1.fall_s": {
+      "v": 4.897959183673464e-9,
+      "num": 4.897959183673464e-9
+    },
+    "fmeas.ch1.freq": {
+      "v": 1000000,
+      "num": 1000000
+    },
+    "fmeas.ch1.has_timing": {
+      "v": true
+    },
+    "fmeas.ch1.neg_width_s": {
+      "v": 5e-7,
+      "num": 5e-7
+    },
+    "fmeas.ch1.overshoot": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch1.period": {
+      "v": 0.000001,
+      "num": 0.000001
+    },
+    "fmeas.ch1.pos_width_s": {
+      "v": 4.998000000000001e-7,
+      "num": 4.998000000000001e-7
+    },
+    "fmeas.ch1.preshoot": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch1.rise_s": {
+      "v": 4.897959183673469e-9,
+      "num": 4.897959183673469e-9
+    },
+    "fmeas.ch1.vampl": {
+      "v": 2,
+      "num": 2
+    },
+    "fmeas.ch1.vbase": {
+      "v": -1,
+      "num": -1
+    },
+    "fmeas.ch1.vmax": {
+      "v": 1,
+      "num": 1
+    },
+    "fmeas.ch1.vmean": {
+      "v": -0.0005998800239950697,
+      "num": -0.0005998800239950697
+    },
+    "fmeas.ch1.vmin": {
+      "v": -1,
+      "num": -1
+    },
+    "fmeas.ch1.vpp": {
+      "v": 2,
+      "num": 2
+    },
+    "fmeas.ch1.vrms": {
+      "v": 0.9995295834153064,
+      "num": 0.9995295834153064
+    },
+    "fmeas.ch1.vrms_ac": {
+      "v": 0.9995294034025876,
+      "num": 0.9995294034025876
+    },
+    "fmeas.ch1.vtop": {
+      "v": 1,
+      "num": 1
+    },
+    "fmeas.ch2.duty": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.edge_shape": {
+      "v": false
+    },
+    "fmeas.ch2.env_aliased": {
+      "v": false
+    },
+    "fmeas.ch2.env_timing": {
+      "v": false
+    },
+    "fmeas.ch2.fall_s": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.freq": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.has_timing": {
+      "v": false
+    },
+    "fmeas.ch2.neg_width_s": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.overshoot": {
+      "v": 100,
+      "num": 100
+    },
+    "fmeas.ch2.period": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.pos_width_s": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.preshoot": {
+      "v": 100,
+      "num": 100
+    },
+    "fmeas.ch2.rise_s": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.vampl": {
+      "v": 0.02,
+      "num": 0.02
+    },
+    "fmeas.ch2.vbase": {
+      "v": -0.14,
+      "num": -0.14
+    },
+    "fmeas.ch2.vmax": {
+      "v": -0.1,
+      "num": -0.1
+    },
+    "fmeas.ch2.vmean": {
+      "v": -0.13630473905218962,
+      "num": -0.13630473905218962
+    },
+    "fmeas.ch2.vmin": {
+      "v": -0.16,
+      "num": -0.16
+    },
+    "fmeas.ch2.vpp": {
+      "v": 0.06,
+      "num": 0.06
+    },
+    "fmeas.ch2.vrms": {
+      "v": 0.13752024446048924,
+      "num": 0.13752024446048924
+    },
+    "fmeas.ch2.vrms_ac": {
+      "v": 0.01824378656932862,
+      "num": 0.01824378656932862
+    },
+    "fmeas.ch2.vtop": {
+      "v": -0.12,
+      "num": -0.12
+    }
+  }
+}

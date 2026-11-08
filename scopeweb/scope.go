@@ -3,6 +3,7 @@
 package scopeweb
 
 import (
+	"slices"
 	"time"
 
 	"github.com/labeth/open-dso-core/hal"
@@ -43,10 +44,10 @@ type Config struct {
 	// the firmware's name (the page's title).
 	Version string
 	Product string
-	// Probes are the probe factors a channel offers (default 1, 10, 100),
-	// BWLimits the bandwidth limits by name (default "full"): the HAL
-	// front end takes any value and refuses at commit, so the lists the
-	// page offers are the scope's data.
+	// Probes are the probe factors a channel offers, BWLimits the
+	// bandwidth limits by name: the HAL front end takes any value and
+	// refuses at commit, so the lists the page offers are the scope's data
+	// (default: the board profile's, else 1, 10, 100 and "full").
 	Probes   []float64
 	BWLimits []string
 	// CapsEdit, when set, completes the capabilities document with what the
@@ -120,13 +121,30 @@ var _ webserver.Scope = (*Scope)(nil)
 // (WithCaps serves one).
 // TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
 func New(cfg Config) *Scope {
+	return &Scope{cfg: cfg.Resolved()}
+}
+
+// Resolved is cfg with its defaults filled in: the vertical lists from the
+// board's profile, else 1, 10, 100 and "full".
+// TRLC-LINKS: REQ-DSO-161
+func (cfg Config) Resolved() Config {
+	var v hal.VerticalSpec
+	if cfg.Board != nil {
+		v = cfg.Board.Profile().Vertical
+	}
+	if len(cfg.Probes) == 0 {
+		cfg.Probes = slices.Clone(v.Probes)
+	}
 	if len(cfg.Probes) == 0 {
 		cfg.Probes = []float64{1, 10, 100}
 	}
 	if len(cfg.BWLimits) == 0 {
+		cfg.BWLimits = slices.Clone(v.BWLimits)
+	}
+	if len(cfg.BWLimits) == 0 {
 		cfg.BWLimits = []string{"full"}
 	}
-	return &Scope{cfg: cfg}
+	return cfg
 }
 
 // WithCaps is the scope serving its capabilities document projected from
