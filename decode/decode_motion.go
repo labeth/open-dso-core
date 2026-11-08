@@ -4,6 +4,7 @@ package decode
 
 import (
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -82,7 +83,7 @@ func decodeQuadrature(a, b lineIn, colTimeS float64, cfg ClockedCfg) Result {
 // lines (sigrok's stepper_motor): each rising edge of STEP is a step, up
 // (1, "F") with DIR high and down ("R") with it low, and the position after
 // it; a step after STEP rested two step periods or more opens a motion
-// ("sof"). Baud is the steps a second, Feature the shortest STEP pulse,
+// ("sof"). Baud is the steps a second, Feature the STEP pulse (the median),
 // Cover DIR's edges a step. OK needs two steps.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
 func Stepper(a, b []uint8, colTimeS float64, cfg ClockedCfg) Result {
@@ -142,7 +143,7 @@ func decodeSteps(proto string, a, b lineIn, colTimeS float64, cfg ClockedCfg, qu
 	ph := phase()
 	prevA := 0.0 // the last edge of A (the record's start first)
 	open := false
-	pulse := math.Inf(1) // the shortest STEP high
+	var pulses []float64 // the STEP highs
 	riseX := -1.0
 	lastA := -1.0      // the last edge of A, for B's place in its half cycle
 	bMid, bAll := 0, 0 // B's edges, those a quarter cycle from A's
@@ -182,7 +183,7 @@ func decodeSteps(proto string, a, b lineIn, colTimeS float64, cfg ClockedCfg, qu
 		if e.dir > 0 {
 			riseX = e.x
 		} else if riseX >= 0 {
-			pulse = math.Min(pulse, e.x-riseX)
+			pulses = append(pulses, e.x-riseX)
 		}
 		lastA = e.x
 		prevA = e.x
@@ -236,8 +237,11 @@ func decodeSteps(proto string, a, b lineIn, colTimeS float64, cfg ClockedCfg, qu
 		OK: steps >= 2, Proto: proto, Spans: spans, Text: strings.Join(toks, " "), Bytes: units,
 		Thr: A.threshold, SPB: T, Baud: int(math.Round(1 / (T * colTimeS))),
 	}
-	if !quad && !math.IsInf(pulse, 1) {
-		res.Feature = pulse
+	// a driver's STEP pulses are one width, its timer's: the median, a
+	// noise spike on the line read as a pulse of its own left out
+	if !quad && len(pulses) > 0 {
+		slices.Sort(pulses)
+		res.Feature = pulses[len(pulses)/2]
 	}
 	switch {
 	case quad && bAll > 0 && 10*len(B.edges) >= 9*len(A.edges):

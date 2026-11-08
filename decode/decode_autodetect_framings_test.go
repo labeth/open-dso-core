@@ -232,3 +232,21 @@ func TestAutodetectI2CIsNoSWD(t *testing.T) {
 		}
 	}
 }
+
+// A stepper's STEP pulses are one width: a noise spike read as a pulse of
+// its own does not make its feature (what the search reads the timebase
+// by) a spike's width.
+// TRLC-LINKS: REQ-DSO-018
+func TestStepperFeatureIsItsPulse(t *testing.T) {
+	b, sr := synthBus(t, synth.Spec{Proto: "stepper"}, 1e7)
+	step, dir := repeated(b, 2)
+	for i := 1000; i < len(step); i += 20000 { // spikes of two samples here and there
+		if step[i] < 128 && step[i+1] < 128 {
+			step[i], step[i+1] = 255, 255
+		}
+	}
+	r := Stepper(step, dir, 1/sr, ClockedCfg{})
+	if want := 50e-6 * sr; !r.OK || r.Feature < 0.9*want || r.Feature > 1.1*want {
+		t.Errorf("feature %g samples, want the STEP pulse's %g", r.Feature, want)
+	}
+}

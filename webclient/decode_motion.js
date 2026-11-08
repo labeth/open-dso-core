@@ -67,7 +67,8 @@ function decodeSteps(proto, a, b, colTimeS, cfg, quad) {
   // TRLC-LINKS: REQ-DSO-018, REQ-DSO-250
   const phase = () => { const g = la | (lb << 1); return g ^ (g >> 1); };
   let ph = phase();
-  let prevA = 0, open = false, ia = 0, ib = 0, steps = 0, pulse = Infinity, riseX = -1, lastA = -1, bMid = 0, bAll = 0;
+  const pulses = []; // the STEP highs
+  let prevA = 0, open = false, ia = 0, ib = 0, steps = 0, riseX = -1, lastA = -1, bMid = 0, bAll = 0;
   while (ia < A.edges.length || (quad && ib < B.edges.length)) {
     const useA = ia < A.edges.length && (!quad || ib >= B.edges.length || A.edges[ia].x <= B.edges[ib].x);
     if (!useA) {
@@ -88,7 +89,7 @@ function decodeSteps(proto, a, b, colTimeS, cfg, quad) {
     const e = A.edges[ia++];
     if (e.x - prevA >= 2 * T) open = true;
     if (e.dir > 0) riseX = e.x;
-    else if (riseX >= 0) pulse = Math.min(pulse, e.x - riseX);
+    else if (riseX >= 0) pulses.push(e.x - riseX);
     lastA = e.x;
     prevA = e.x;
     la = e.dir > 0 ? 1 : 0;
@@ -116,7 +117,7 @@ function decodeSteps(proto, a, b, colTimeS, cfg, quad) {
   }
   const res = { ok: steps >= 2, proto, spans, text: toks.join(" "), bytes: units,
     meta: { threshold: A.threshold, spb: T, baud: Math.round(1 / (T * colTimeS)) } };
-  if (!quad && pulse !== Infinity) res.meta.feature = pulse;
+  if (!quad && pulses.length > 0) res.meta.feature = pulses.sort((p, q) => p - q)[pulses.length >> 1]; // the median (Go)
   if (quad && bAll > 0 && 10 * B.edges.length >= 9 * A.edges.length) res.meta.cover = bMid / bAll;
   else if (!quad && B.ok && steps > 0) res.meta.cover = B.edges.length / steps;
   if (!res.ok) res.error = "too few steps";
