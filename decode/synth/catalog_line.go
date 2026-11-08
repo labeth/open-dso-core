@@ -307,6 +307,7 @@ func makePWM(c *ctx) error {
 		fmt.Fprintf(&want, "%.1f%%", float64(v))
 	}
 	c.done(fmt.Sprintf("PWM %g us", per*1e6), 80/per, Truth{Contains: []string{want.String()}}, w)
+	c.bus.Continuous = true
 	return nil
 }
 

@@ -36,6 +36,9 @@ type Bus struct {
 	Lines []*Line  // one per role, written in step
 	// Period is the bus's length in seconds: a signal source repeats it.
 	Period float64
+	// Continuous is a bus a source repeats with no idle between: an output
+	// that runs on (PWM), whose period a pause would break.
+	Continuous bool
 	// SR is the sample rate the lines were written at (0: steps only), and
 	// NaturalSR the rate the decoders' own tests read this bus at.
 	SR, NaturalSR float64
