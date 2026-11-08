@@ -913,3 +913,12 @@ decisions:
   decision: 'Recorded as the product''s current behaviour; the demo matches it.'
   consequences:
   - 'Owner to decide whether leaving BUS should restore the previous timebase or the UI should say why it changed.'
+
+- id: ADR-LADDER-KNOBS-ONE-STEP
+  title: 'Ladder knobs move one step per event'
+  status: proposed
+  date: '2026-11-08'
+  context: 'S/DIV and V/DIV turns move one ladder step whatever the detent count, while offset, trigger level and position honour the count; a session expected n steps for n detents.'
+  decision: 'Recorded as current behaviour: one ladder step per knob event, so a fast spin never jumps several front-end ranges at once.'
+  consequences:
+  - 'Owner to decide whether fast turns should move several steps.'
