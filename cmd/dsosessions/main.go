@@ -6,20 +6,27 @@
 //	dsosessions run -target url    -url http://127.0.0.1:8080 -out run.json
 //	dsosessions run -target simlab -url http://127.0.0.1:8080 -bench-url http://127.0.0.1:8090 -out hd.json
 //	dsosessions run -target bench  -url http://SCOPE:8080 -bench B.json [-minimal-relay] [-sources run|ask|assume] [-dry-run]
-//	dsosessions diff A.json B.json [-out DIR]
+//	dsosessions diff A.json B.json [-out DIR] [-sessions DIR]   (under the sessions' tolerances as they are now)
 //	dsosessions pair -profile P -demo D -out DIR     (native and wasm, and their diff)
 //	dsosessions capture -url http://SCOPE:8080 -about WHAT -out C.json [-rows id=text,…] [-decode JSON] [-single]
 //
 // A capture reads the record a stopped scope holds, as it serves it, with
 // the rows that set it up, its decoder and what it reports of the record
-// (session.CaptureFile): -rows first sets sheet rows (time.tdiv=100us),
-// -single then takes one record with SINGLE, and -decode reports the
-// packets with that decoder ({"proto":2,"baud":115200,"ch_a":0}) in place
-// of the panel's. The demo replays it (session.CaptureFile.Replay,
-// simdemo/demotest.Captures) and must report the same.
+// (session.CaptureFile): -rows first sets sheet rows (time.tdiv=100us), a
+// running scope then takes one record with SINGLE and the capture waits
+// for it to stop (-single takes a fresh one on a stopped scope too), and
+// -decode reports the packets with that decoder
+// ({"proto":2,"baud":115200,"ch_a":0}) in place of the panel's. A scope
+// that serves frame wire v1 alone has its raw record kept in v2 as a v1
+// scope serves it there (wire.RawV2). The demo replays it
+// (session.CaptureFile.Replay, simdemo/demotest.Captures) and must report
+// the same.
 //
-// A bench run restores the scope's state after each session, and with
-// -dry-run prints every request and bench action it would make instead.
+// Every run restores the scope's state after each session, so each
+// session starts from the state the run started in on every target, as on
+// the bench; -restore=false keeps what each session leaves, except on the
+// bench. A bench run with -dry-run prints every request and bench action
+// it would make instead.
 package main
 
 import (
@@ -103,7 +110,7 @@ func (f *runFlags) register(fs *flag.FlagSet) {
 	fs.StringVar(&f.tmp, "browser-tmp", defaultTmp(), "the browser's temporary directory, on a real disk (wasm)")
 	fs.BoolVar(&f.minimalRelay, "minimal-relay", false, "skip every session and start or restore that clicks front-end relays")
 	fs.BoolVar(&f.dryRun, "dry-run", false, "print every request and bench action instead of making it (bench, url)")
-	fs.BoolVar(&f.restore, "restore", false, "restore the scope's state after each session (always on for bench)")
+	fs.BoolVar(&f.restore, "restore", true, "restore the scope's state after each session, so every target starts each session from the state it started the run in (always on for bench)")
 	fs.DurationVar(&f.settle, "settle", 20*time.Second, "the longest wait for the panel to settle after a step")
 }
 
@@ -361,6 +368,7 @@ func readRun(path string) (*session.Run, error) {
 func cmdDiff(args []string) error {
 	fs := flag.NewFlagSet("diff", flag.ExitOnError)
 	out := fs.String("out", "", "write diff.json and diff.md into this directory")
+	dir := fs.String("sessions", filepath.Join(session.Dir(), "sessions"), "the sessions directory whose tolerances the runs are compared under (\"\": each run's own)")
 	_ = fs.Parse(args) // ExitOnError
 	if fs.NArg() != 2 {
 		return errors.New("diff takes two run files")
@@ -372,6 +380,13 @@ func cmdDiff(args []string) error {
 	b, err := readRun(fs.Arg(1))
 	if err != nil {
 		return err
+	}
+	if *dir != "" {
+		defs, _, err := session.Load(*dir)
+		if err != nil {
+			return err
+		}
+		a = a.WithTolerances(defs)
 	}
 	return writeDiff(session.Compare(a, b), *out)
 }
@@ -450,7 +465,7 @@ func cmdCapture(ctx context.Context, args []string) error {
 	url := fs.String("url", "", "the scope's web API")
 	about := fs.String("about", "", "what is on the inputs")
 	out := fs.String("out", "", "write the capture here")
-	single := fs.Bool("single", false, "take one record with SINGLE first, and wait until the scope holds it")
+	single := fs.Bool("single", false, "take a fresh record with SINGLE first even when the scope is stopped (a running scope always takes one)")
 	rows := fs.String("rows", "", "comma-separated sheet rows to set first, id=text (time.tdiv=100us,ch1.vdiv=1V)")
 	decode := fs.String("decode", "", `the decoder the packets are reported with, as JSON ({"proto":2,"baud":115200,"ch_a":0}); default: the panel's`)
 	if err := fs.Parse(args); err != nil {
@@ -472,13 +487,10 @@ func cmdCapture(ctx context.Context, args []string) error {
 			return err
 		}
 	}
-	if *single {
-		if err := c.Post(ctx, "/api/panel", map[string]any{"button": "single"}); err != nil {
-			return err
-		}
-		if err := waitStopped(ctx, c, 30*time.Second); err != nil {
-			return err
-		}
+	// A running scope is stopped on one record first, so the record holds
+	// still between the reads.
+	if err := session.StopForCapture(ctx, c, *single, 30*time.Second); err != nil {
+		return err
 	}
 	f, err := session.RecordCapture(ctx, c, *about)
 	if err != nil {
@@ -502,27 +514,4 @@ func cmdCapture(ctx context.Context, args []string) error {
 	}
 	log.Printf("captured %s %s: %d reported fields, %d rows → %s", f.Scope.Vendor, f.Scope.Model, len(f.Reported), len(f.Rows), *out)
 	return nil
-}
-
-// waitStopped waits until the scope at c has stopped running.
-// TRLC-LINKS: REQ-DSO-295
-func waitStopped(ctx context.Context, c *session.Client, limit time.Duration) error {
-	end := time.Now().Add(limit)
-	for time.Now().Before(end) {
-		var st struct {
-			Running *bool `json:"running"`
-		}
-		if err := c.JSON(ctx, http.MethodGet, "/api/status", nil, &st); err != nil {
-			return err
-		}
-		if st.Running != nil && !*st.Running {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(200 * time.Millisecond):
-		}
-	}
-	return errors.New("the scope did not take its single record (is its trigger met?)")
 }

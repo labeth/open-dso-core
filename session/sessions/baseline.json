@@ -8,6 +8,10 @@
     "time.tdiv": "500us", "time.trig_pos": "50 %", "time.zoom": "Off",
     "trig.type": "Edge", "trig.edge": "C1 Rise", "trig.mode": "Auto", "trig.level": "0V",
     "acq.mode": "Normal", "view.view": "Y-T", "meas.readouts": "Off", "curs.mode": "Off",
+    "meas.freq": "Off", "meas.period": "Off", "meas.pkpk": "Off", "meas.duty": "Off",
+    "meas.max": "Off", "meas.min": "Off", "meas.mean": "Off", "meas.rms": "Off", "meas.acrms": "Off",
+    "meas.ampl": "Off", "meas.top": "Off", "meas.base": "Off", "meas.rise": "Off", "meas.fall": "Off",
+    "meas.pwid": "Off", "meas.nwid": "Off", "meas.ovsh": "Off", "meas.prsh": "Off",
     "cmp.math": "Off", "bus.protocol": "Off"
   }
 }

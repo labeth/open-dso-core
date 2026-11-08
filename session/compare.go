@@ -328,6 +328,48 @@ func tolName(c *Checkpoint, f string) string {
 	return best
 }
 
+// WithTolerances is r with each checkpoint's tolerances taken from the
+// session of its name in defs, where defs has that checkpoint: a run kept
+// from before a session's tolerance was corrected compares under the
+// session as it is now. r's own sessions are left as they were.
+// TRLC-LINKS: REQ-DSO-295
+func (r *Run) WithTolerances(defs []*Session) *Run {
+	by := map[string]*Session{}
+	for _, s := range defs {
+		by[s.Name] = s
+	}
+	out := *r
+	out.Sessions = make([]*Played, len(r.Sessions))
+	for i, p := range r.Sessions {
+		out.Sessions[i] = p
+		cur := by[p.Session.Name]
+		if cur == nil || p.Session == nil {
+			continue
+		}
+		ps := *p
+		sess := *p.Session
+		sess.Steps = make([]*Step, len(p.Session.Steps))
+		for j, st := range p.Session.Steps {
+			sess.Steps[j] = st
+			if st.Check == nil {
+				continue
+			}
+			for _, cs := range cur.Steps {
+				if cs.Check != nil && cs.Check.Name == st.Check.Name {
+					step, check := *st, *st.Check
+					check.Tol = cs.Check.Tol
+					step.Check = &check
+					sess.Steps[j] = &step
+					break
+				}
+			}
+		}
+		ps.Session = &sess
+		out.Sessions[i] = &ps
+	}
+	return &out
+}
+
 // checkpoint is the session's checkpoint named name.
 // TRLC-LINKS: REQ-DSO-295
 func (s *Session) checkpoint(name string) *Checkpoint {

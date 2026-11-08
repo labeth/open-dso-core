@@ -106,6 +106,39 @@ var ReplayRows = []string{
 	"trig.edge", "trig.level",
 }
 
+// StopForCapture takes one record with SINGLE when the scope at c runs (or
+// always, with single), and waits up to limit for it to stop holding it.
+// TRLC-LINKS: REQ-DSO-295
+func StopForCapture(ctx context.Context, c *Client, single bool, limit time.Duration) error {
+	st, err := readStatus(ctx, c)
+	if err != nil {
+		return err
+	}
+	if !single && (st.Running == nil || !*st.Running) {
+		return nil
+	}
+	if err := c.Post(ctx, "/api/panel", map[string]any{"button": "single"}); err != nil {
+		return err
+	}
+	end := time.Now().Add(limit)
+	for {
+		st, err := readStatus(ctx, c)
+		if err != nil {
+			return err
+		}
+		if st.Running != nil && !*st.Running {
+			return nil
+		}
+		if time.Now().After(end) {
+			return errors.New("the scope did not take its single record (is its trigger met?)")
+		}
+		sleep(ctx, 200*time.Millisecond)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+	}
+}
+
 // RecordCapture reads the record the scope at c holds, stopped, and what
 // it reports of it. A running scope is refused: its record would move
 // between the reads.
@@ -152,8 +185,8 @@ func recordOf(ctx context.Context, c *Client, dec *CaptureDecode) ([]byte, Snaps
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(raw) < 4 || string(raw[:4]) != string(wire.FrameMagic2[:]) {
-		return nil, nil, errors.New("the scope serves no v2 raw frame")
+	if raw, err = rawAsV2(raw); err != nil {
+		return nil, nil, err
 	}
 	shown, _, err := c.Do(ctx, http.MethodGet, "/api/frame.bin?v=2&cols=1024", nil)
 	if err != nil {
@@ -182,7 +215,27 @@ func recordOf(ctx context.Context, c *Client, dec *CaptureDecode) ([]byte, Snaps
 	return raw, s, nil
 }
 
-// headerSeq is a v2 frame's sequence number.
+// rawAsV2 is a served raw record in wire v2: as served, or a v1 scope's
+// raw shape (a scope that serves frame wire v1 alone) as a v1 scope serves
+// it in v2 (wire.RawV2), so a capture holds one format whichever wire the
+// scope serves.
+// TRLC-LINKS: REQ-DSO-295
+func rawAsV2(raw []byte) ([]byte, error) {
+	if len(raw) >= 4 && string(raw[:4]) == string(wire.FrameMagic2[:]) {
+		return raw, nil
+	}
+	rf, err := wire.DecodeRawFrame(raw)
+	if err != nil {
+		return nil, fmt.Errorf("the scope serves no raw record: %w", err)
+	}
+	if rf.Unchanged || rf.Empty {
+		return nil, errors.New("the scope holds no record")
+	}
+	return wire.RawV2(rf)
+}
+
+// headerSeq is a frame's sequence number, v2 or v1 (both carry it in the
+// JSON header after an 8-byte prefix).
 // TRLC-LINKS: REQ-DSO-295
 func headerSeq(b []byte) uint64 {
 	if len(b) < 8 {
@@ -198,23 +251,37 @@ func headerSeq(b []byte) uint64 {
 	return h.Seq
 }
 
-// allMeasures adds every measurement a v2 frame header's traces carry.
+// allMeasures adds every measurement a frame header carries: a v2
+// header's traces' or a v1 header's m1 and m2.
 // TRLC-LINKS: REQ-DSO-295
 func allMeasures(s Snapshot, b []byte) {
-	if len(b) < 8 || string(b[:4]) != string(wire.FrameMagic2[:]) {
-		s["fmeas."] = na("not a v2 frame")
-		return
-	}
-	n := int(binary.LittleEndian.Uint32(b[4:8]))
 	var h struct {
 		Traces []struct {
 			Ch   int            `json:"ch"`
 			Meas map[string]any `json:"meas"`
 		} `json:"traces"`
+		M1 map[string]any `json:"m1"`
+		M2 map[string]any `json:"m2"`
 	}
-	if 8+n > len(b) || json.Unmarshal(b[8:8+n], &h) != nil {
-		s["fmeas."] = na("an unreadable v2 frame header")
+	v2 := len(b) >= 8 && string(b[:4]) == string(wire.FrameMagic2[:])
+	if !v2 && (len(b) < 8 || b[0] != wire.BinMagic) {
+		s["fmeas."] = na("an unknown frame format")
 		return
+	}
+	n := int(binary.LittleEndian.Uint32(b[4:8]))
+	if 8+n > len(b) || json.Unmarshal(b[8:8+n], &h) != nil {
+		s["fmeas."] = na("an unreadable frame header")
+		return
+	}
+	if !v2 {
+		for ch, m := range []map[string]any{h.M1, h.M2} {
+			if m != nil {
+				h.Traces = append(h.Traces, struct {
+					Ch   int            `json:"ch"`
+					Meas map[string]any `json:"meas"`
+				}{ch, m})
+			}
+		}
 	}
 	for _, t := range h.Traces {
 		for _, k := range slices.Sorted(maps.Keys(t.Meas)) {

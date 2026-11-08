@@ -2,6 +2,12 @@
 
 package wire
 
+import (
+	"encoding/binary"
+	"encoding/json"
+	"errors"
+)
+
 // FromReply fills f from a v1 reply: the two-channel 8-bit frame a v1 scope
 // builds, at 25 codes a division about code 128 (volts = (code − 128)·vpc −
 // off). Its -1 margins become each trace's head and tail, its envelope the
@@ -105,4 +111,73 @@ func codes8(c []int16) []uint8 {
 		out[i] = uint8(v & 0xff)
 	}
 	return out
+}
+
+// DecodeRawFrame reads a v1 raw-shape frame as EncodeRawFrame wrote it.
+// TRLC-LINKS: REQ-DSO-163
+func DecodeRawFrame(b []byte) (RawFrame, error) {
+	if len(b) < 8 || b[0] != BinMagic {
+		return RawFrame{}, errors.New("not a v1 frame")
+	}
+	flags := b[1]
+	if flags&FlagRaw == 0 {
+		return RawFrame{}, errors.New("not a raw-shape frame")
+	}
+	n := int(binary.LittleEndian.Uint32(b[4:8]))
+	if n < 0 || 8+n > len(b) {
+		return RawFrame{}, errors.New("a short frame header")
+	}
+	var rf RawFrame
+	if err := json.Unmarshal(b[8:8+n], &rf.Header); err != nil {
+		return RawFrame{}, err
+	}
+	rf.Unchanged, rf.Empty, rf.Precision = flags&FlagUnchanged != 0, flags&FlagEmpty != 0, flags&FlagPrecision != 0
+	rf.Payload = append([]byte(nil), b[8+n:]...)
+	return rf, nil
+}
+
+// Reply is the raw frame as the v1 reply it carries: its codes in C1 and
+// C2, and with precision its Q8.8 words in Q1 and Q2 beside the codes they
+// round to (FromReply then reads the words).
+// TRLC-LINKS: REQ-DSO-163
+func (f RawFrame) Reply() FrameReply {
+	rep := f.Header
+	if f.Unchanged {
+		return rep
+	}
+	if f.Precision {
+		n := len(f.Payload) / 4
+		rep.Q1, rep.Q2 = make([]uint16, n), make([]uint16, n)
+		rep.C1, rep.C2 = make([]int16, n), make([]int16, n)
+		for i := range n {
+			q1 := binary.LittleEndian.Uint16(f.Payload[2*i:])
+			q2 := binary.LittleEndian.Uint16(f.Payload[2*(n+i):])
+			rep.Q1[i], rep.Q2[i] = q1, q2
+			rep.C1[i], rep.C2[i] = roundQ88(q1), roundQ88(q2)
+		}
+		rep.FractionBits = 8
+		return rep
+	}
+	n := len(f.Payload) / 2
+	rep.C1, rep.C2 = make([]int16, n), make([]int16, n)
+	for i := range n {
+		rep.C1[i], rep.C2[i] = int16(f.Payload[i]), int16(f.Payload[n+i])
+	}
+	return rep
+}
+
+// roundQ88 is a Q8.8 word's nearest code.
+// TRLC-LINKS: REQ-DSO-163
+func roundQ88(q uint16) int16 {
+	return int16(min((uint32(q)+0x80)>>8, 255))
+}
+
+// RawV2 is a v1 raw-shape frame (DecodeRawFrame) in wire v2, as a scope
+// that builds v1 replies serves ?v=2&raw=1: its reply's traces, marked raw.
+// TRLC-LINKS: REQ-DSO-163
+func RawV2(f RawFrame) ([]byte, error) {
+	var v2 Frame
+	v2.FromReply(f.Reply())
+	v2.Header.Raw = true
+	return EncodeFrame2(&v2)
 }
