@@ -282,6 +282,13 @@ func (s Snapshot) measures(ctx context.Context, c *Client, since uint64) {
 		s["fmeas."] = na("no frame: " + err.Error())
 		return
 	}
+	s.measuresOf(b)
+}
+
+// measuresOf adds the measurements of each channel a served frame's
+// header carries: a v2 header's traces' or a v1 header's m1 and m2.
+// TRLC-LINKS: REQ-DSO-295
+func (s Snapshot) measuresOf(b []byte) {
 	per := map[int]map[string]any{}
 	switch {
 	case len(b) >= 8 && string(b[:4]) == string(wire.FrameMagic2[:]):

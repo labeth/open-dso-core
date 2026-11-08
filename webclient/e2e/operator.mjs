@@ -21,8 +21,12 @@ export async function launch(url) {
   if (!process.env.PLAYWRIGHT_BROWSERS_PATH && process.env.HOME)
     process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(process.env.HOME, ".cache/ms-playwright");
   const { chromium } = (await import(pwPath)).default;
-  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--use-gl=egl"] });
-  const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 } });
+  // CHROMIUM_ARGS adds browser flags; VIEWPORT=WxH sizes the page (default
+  // 1500x950).
+  const extra = (process.env.CHROMIUM_ARGS || "").split(/\s+/).filter((a) => a && a !== "--use-gl=egl");
+  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--use-gl=egl", ...extra] });
+  const [vw, vh] = (process.env.VIEWPORT || "1500x950").split("x").map(Number);
+  const ctx = await browser.newContext({ viewport: { width: vw || 1500, height: vh || 950 } });
   // The browser demo (DEMO_BENCH: its bench page) runs the firmware in the
   // bench page's tab: that page stays open, and the web UI at url is its
   // service worker's, answered by the firmware there.

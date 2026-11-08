@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/hal/keytable"
 	"github.com/labeth/open-dso-core/hal/simboard"
 	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/profile"
@@ -62,9 +63,15 @@ type Demo struct {
 		ChannelsOn []int   `json:"channels_on"` // 1-based
 		TrigLevelV float64 `json:"trig_level"`  // the edge trigger's level on C1
 	} `json:"start"`
-	// Panel is the front panel's layout for the page; the demo does not
-	// read it.
+	// Panel is the front panel's layout for the page, by the panel's own
+	// control names (the key table's); the demo checks it against the key
+	// table (CheckPanel).
 	Panel json.RawMessage `json:"panel"`
+	// KeyTable is the board's key table (the scope's board states it, and
+	// the scope's test keeps it here): the simulated board makes the
+	// events the real panel makes; empty: the profile's names, a key
+	// pressed and released.
+	KeyTable keytable.Table `json:"keytable"`
 }
 
 // ParseDemo reads a demo file.
@@ -109,11 +116,23 @@ func Board(profileYAML []byte, d Demo, o Options) (*simboard.Board, error) {
 	if err != nil {
 		return nil, err
 	}
+	if !d.KeyTable.Empty() {
+		if err := d.KeyTable.CheckProfile(p.Inputs); err != nil {
+			return nil, fmt.Errorf("demo file: key table: %w", err)
+		}
+		if err := d.CheckPanel(); err != nil {
+			return nil, fmt.Errorf("demo file: %w", err)
+		}
+	}
+	if p.Budget.DisplayHz > maxDisplayHz {
+		p.Budget.DisplayHz = maxDisplayHz
+	}
 	b, err := simboard.New(simboard.Config{
 		Profile: p, Identity: id, CodesPerDiv: d.CodesPerDiv,
 		LevelStepsPerDiv: d.LevelStepsPerDiv, OffsetStepsPerDiv: d.OffsetStepsPerDiv,
 		Ladder: d.Ladder, Depth: d.Depth, RecordDepth: d.RecordDepth, RecordScreens: d.RecordScreens,
 		Stored: o.Stored, Persist: o.Persist, OnPresent: o.OnPresent, OnLamps: o.OnLamps,
+		KeyTable: d.KeyTable,
 	})
 	if err != nil {
 		return nil, err
@@ -165,6 +184,14 @@ func Run(ctx context.Context, profileYAML []byte, d Demo, o Options) error {
 	if err != nil {
 		return err
 	}
+	return scopeapp.Run(ctx, b, Compose(d, o, b))
+}
+
+// Compose is the demo's composition: a device main's (scopeapp.Run over
+// the board, every part the core's) with the host's parts a browser tab
+// has. Where it differs from a scope's device main, Differences says why.
+// TRLC-LINKS: REQ-DSO-295
+func Compose(d Demo, o Options, b *simboard.Board) scopeapp.Options {
 	logf := o.Logf
 	if logf == nil {
 		logf = func(string, ...any) {}
@@ -173,62 +200,22 @@ func Run(ctx context.Context, profileYAML []byte, d Demo, o Options) error {
 	if product == "" {
 		product = d.Name + " demo"
 	}
-	return scopeapp.Run(ctx, b, scopeapp.Options{
-		Logf: logf, Product: product, Version: o.Version,
+	return scopeapp.Options{
+		Logf: logf, Name: d.Name, Product: product, Version: o.Version,
 		Defaults: d.Defaults, Check: check,
 		Listen: o.Listen, Serve: o.Serve,
-		Display: scopeapp.Display{Engine: pacer{b: b, period: displayPeriod(b.Profile().Budget.DisplayHz)}},
 		Started: func(env *scopeapp.Env) {
 			if o.Started != nil {
 				o.Started(b, env)
 			}
 		},
-	})
+	}
 }
-
-// pacer is what the display loop asks of the simulated acquisition: its
-// cadence, and a least time between records while the display falls
-// behind. In a browser the demo has one thread, so without it the
-// acquisition takes every turn and the screen starves.
-type pacer struct {
-	b      *simboard.Board
-	period time.Duration
-}
-
-// RenderPeriod implements scopeapp.DisplayEngine.
-// TRLC-LINKS: REQ-DSO-168
-func (p pacer) RenderPeriod() time.Duration { return p.period }
-
-// SetDisplayPace implements scopeapp.DisplayEngine.
-// TRLC-LINKS: REQ-DSO-168
-func (p pacer) SetDisplayPace(d time.Duration) { p.b.SetPace(d) }
-
-// QuietRLock implements scopeapp.DisplayEngine: the simulated acquisition
-// has no load-sensitive window.
-// TRLC-LINKS: REQ-DSO-168
-func (pacer) QuietRLock() {}
-
-// QuietRUnlock implements scopeapp.DisplayEngine.
-// TRLC-LINKS: REQ-DSO-168
-func (pacer) QuietRUnlock() {}
-
-// NoteLCDFrame implements scopeapp.DisplayEngine.
-// TRLC-LINKS: REQ-DSO-168
-func (pacer) NoteLCDFrame() {}
 
 // maxDisplayHz bounds the demo's display cadence: the page shows at most
-// this many pictures a second.
+// this many pictures a second (the browser host's presentEvery), and every
+// picture is drawn on the one thread the demo shares with the acquisition.
 const maxDisplayHz = 30
-
-// displayPeriod is the display's tick at the scope's fixed cadence, no
-// faster than maxDisplayHz.
-// TRLC-LINKS: REQ-DSO-168
-func displayPeriod(hz float64) time.Duration {
-	if hz <= 0 || hz > maxDisplayHz {
-		hz = maxDisplayHz
-	}
-	return time.Duration(float64(time.Second) / hz)
-}
 
 // check refuses a state no board could take.
 // TRLC-LINKS: REQ-DSO-295

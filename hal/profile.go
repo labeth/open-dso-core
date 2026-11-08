@@ -15,6 +15,7 @@ type Profile struct {
 	RawAccess  RawAccess      `yaml:"raw_access"` // how much raw data reaches the CPU
 	Triggers   TrigCaps       `yaml:"triggers"`   // the nodes any image can have; Images narrow it
 	Display    DisplaySpec    `yaml:"display"`
+	Vertical   VerticalSpec   `yaml:"vertical"` // the front end's offered lists
 	Inputs     InputSpec      `yaml:"inputs"`
 	Supervisor SupervisorSpec `yaml:"supervisor"`
 	Options    OptSet         `yaml:"options"` // optional hardware fitted
@@ -83,6 +84,15 @@ const (
 	XRGB8888             // 32-bit, alpha ignored
 	ARGB8888             // an overlay plane over a hardware renderer: alpha 0 shows the waveform
 )
+
+// VerticalSpec is what the front end offers a channel beyond its ladder:
+// the probe factors and the bandwidth limits by name ("full", "20M"). The
+// front end takes any value and refuses at commit, so the lists the
+// product offers are the scope's data; empty: 1, 10, 100 and "full".
+type VerticalSpec struct {
+	Probes   []float64 `yaml:"probes"`
+	BWLimits []string  `yaml:"bw_limits"`
+}
 
 // InputSpec is the front panel's controls, by core name.
 type InputSpec struct {
