@@ -13,6 +13,7 @@ import (
 	"github.com/labeth/open-dso-core/decode/synth"
 	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/instrument"
+	"github.com/labeth/open-dso-core/siggen"
 )
 
 // synthRecord is bus spec repeating as a signal source repeats it (its
@@ -237,5 +238,37 @@ func TestDMXRateUARTIsWeak(t *testing.T) {
 	u1, u2, us, _ := synthRecord(t, synth.Spec{Proto: "uart", Set: map[string]string{"baud": "115200", "parity": "even"}}, 3)
 	if r, _ := decode.AutodetectFast(u1, u2, us, "hex"); r.Proto != protoUART || dmxRateUART(r) {
 		t.Fatalf("a 115200 Bd UART: %s %d Bd", r.Proto, r.Baud)
+	}
+}
+
+// A UART's idle trigger does not hang on where the record starts: a
+// screen that cuts a message and misframes its characters from the middle
+// (run on through the idle into the next message) reads its idle as no
+// longer than the characters' high times; one that shows no idle between
+// two messages says so (idle 0), and AUTO reads a slower screen.
+// TRLC-LINKS: REQ-DSO-223
+func TestUARTIdleWhereverTheScreenStarts(t *testing.T) {
+	s, err := siggen.Parse("uart,9600,3.3,1.65,data=68656c6c6f")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const n = 20000
+	for _, tdiv := range []float64{500e-6, 1e-3, 2e-3} {
+		dt := 10 * tdiv / n
+		for ph := range 20 {
+			c := make([]uint8, n)
+			t0 := float64(ph) / 20 / s.Freq
+			for i := range c {
+				c[i] = uint8(56 + 144*s.V(t0+float64(i)*dt)/3.3)
+			}
+			m := msgsOf(decode.UART(c, dt, decode.UARTCfg{Baud: 9600}), dt, n)
+			idle := uartIdle(m) > 0
+			switch {
+			case tdiv >= 2e-3 && !idle:
+				t.Errorf("%g s/div from %d/20: no idle trigger (idle %g s, high %g s)", tdiv, ph, m.idle, m.highRun)
+			case !idle && m.idle > 0:
+				t.Errorf("%g s/div from %d/20: an idle of %g s read as no longer than a character's %g s", tdiv, ph, m.idle, m.highRun)
+			}
+		}
 	}
 }

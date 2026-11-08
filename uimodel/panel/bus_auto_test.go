@@ -328,7 +328,7 @@ func TestAutoMeasuresAMessageTheScreenCut(t *testing.T) {
 	if m := c.measureMsgs(); m.longest != 0 {
 		t.Fatalf("2ms/div's 20 ms screen holds the 27.5 ms message whole: %g", m.longest)
 	}
-	m := c.measureSlower(busMsgs{}, 1.0/9600)
+	m := c.measureSlower(busMsgs{}, 1.0/9600, false)
 	if !(m.longest > 27e-3 && m.longest < 28e-3) {
 		t.Fatalf("measured on a slower timebase: %g s, want 27.5 ms", m.longest)
 	}

@@ -330,7 +330,10 @@ func msgsOf(res decode.Result, sampleS float64, valid int) busMsgs {
 			for pi < len(ps) && ps[pi].I1 < sp.I0 {
 				pi++
 			}
-			if pi == prevPkt && prevEnd >= 0 {
+			// a complete message's: one the record cuts may open with
+			// characters misframed from its middle, run on through the idle
+			// into the next message, and that idle read as inside one
+			if pi == prevPkt && prevEnd >= 0 && pi < len(ps) && ps[pi].Complete {
 				gap = max(gap, float64(sp.I0-prevEnd)*sampleS)
 			}
 			prevEnd, prevPkt = sp.I1, pi
@@ -786,9 +789,10 @@ const (
 // bus's shortest feature (readableFeature samples), up to messageRecords
 // new records at each; the timebase goes back
 // after, messageTimebase choosing the fastest that shows the message. m
-// when no step measures one.
+// when no step measures one. idle asks for a record that also shows the
+// idle between two messages (uartIdle reads it).
 // TRLC-LINKS: REQ-DSO-223
-func (c *Controller) measureSlower(m busMsgs, featureS float64) busMsgs {
+func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMsgs {
 	if len(c.tdivs) == 0 || !(featureS > 0) {
 		return m
 	}
@@ -841,7 +845,7 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64) busMsgs {
 			// a screen of slow frames takes its own time to capture
 			l := c.detectWith(true, true, accept, decodeAt, decimatedWait+time.Duration(20*at*float64(time.Second)))
 			if l.found && l.sampleS > 0 {
-				if got := msgsOf(l.res, l.sampleS, valid); got.longest > 0 {
+				if got := msgsOf(l.res, l.sampleS, valid); got.longest > 0 && (!idle || got.idle > 0) {
 					got.startPulse(line, anaPackets(l.res, valid), l.sampleS)
 					return got
 				}
@@ -887,8 +891,14 @@ func sessionOf(res decode.Result, sampleS float64) float64 {
 // TRLC-LINKS: REQ-DSO-223
 func (c *Controller) frameBus(featureS float64, auto bool, session float64) string {
 	m := c.measureMsgs()
-	if auto && m.longest == 0 {
-		m = c.measureSlower(m, featureS)
+	// A UART's frame start is the idle between its messages: a screen that
+	// holds a message and no idle between two (where the trigger fell in a
+	// message shorter than the screen) is read again slower, one that shows
+	// it, so the trigger AUTO chooses does not hang on where the record
+	// started (the idle trigger one AUTO, the edge the next).
+	uartNoIdle := c.snap().decProto == framecalc.ProtoUART && m.longest > 0 && m.idle == 0
+	if auto && (m.longest == 0 || uartNoIdle) {
+		m = c.measureSlower(m, featureS, uartNoIdle)
 	}
 	m.longest = max(m.longest, session)
 	note, lead, own := c.frameTriggerAt(m)
