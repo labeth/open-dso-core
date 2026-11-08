@@ -152,9 +152,11 @@ function detectPeaks(spec, opts) {
   // TRLC-LINKS: REQ-DSO-070
   const dbAt = k => 20 * Math.log10(mags[k] / peak + 1e-12);
   const cand = [];
-  for (let k = 2; k < half - 2; k++) {
+  // from bin 1: a tone with one period in the window (bin 1 has DC below it
+  // and no bin two below)
+  for (let k = 1; k < half - 2; k++) {
     if (mags[k] > mags[k-1] && mags[k] >= mags[k+1] &&
-        mags[k] > mags[k-2] && mags[k] >= mags[k+2] && dbAt(k) > floorDb) {
+        (k < 2 || mags[k] > mags[k-2]) && mags[k] >= mags[k+2] && dbAt(k) > floorDb) {
       const a = Math.log(mags[k-1] + 1e-12), b = Math.log(mags[k] + 1e-12), c = Math.log(mags[k+1] + 1e-12);
       let d = 0.5 * (a - c) / (a - 2 * b + c || -1e-9); if (Math.abs(d) > 1) d = 0;
       const db = dbAt(k);

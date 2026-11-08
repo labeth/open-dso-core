@@ -159,9 +159,35 @@ function wireChannel(n) {
   rng.oninput = () => { offDragging = true; lbl.textContent = eng(+rng.value, "V"); };
   // TRLC-LINKS: REQ-DSO-204
   rng.onchange = () => { offDragging = false; sendChan("offset", n, +rng.value / probeOf(n)); };
-  const tog = $("tC" + n), key = "c" + n;
+  const tog = $("tC" + n);
+  // A scope whose status says each channel's on/off (on1, on2, …) has the
+  // toggle switch the channel itself, as its key does; otherwise the toggle
+  // only shows or hides the trace on this page.
   // TRLC-LINKS: REQ-DSO-204
-  tog.onclick = () => { view[key] = !view[key]; tog.classList.toggle("on", view[key]); tog.textContent = view[key] ? "On" : "Off"; redraw(); };
+  tog.onclick = () => {
+    const on = !view["c" + n];
+    showChan(n, on);
+    if (chanOnServed(n)) {
+      tog._userAt = performance.now();
+      sendBody({ control: "on", ch: n - 1, value: on ? 1 : 0 }, chanName(n) + " on");
+    }
+    redraw();
+  };
+}
+
+// chanOnServed reports whether the scope's status carries channel n's
+// on/off, so the page's toggle follows and sets the scope's channel.
+// TRLC-LINKS: REQ-DSO-204
+function chanOnServed(n) { return !!st && typeof st["on" + n] === "boolean"; }
+
+// showChan shows or hides channel n's trace and sets its toggle.
+// TRLC-LINKS: REQ-DSO-204
+function showChan(n, on) {
+  const tog = $("tC" + n);
+  view["c" + n] = on;
+  if (!tog) return;
+  tog.classList.toggle("on", on);
+  tog.textContent = on ? "On" : "Off";
 }
 for (const n of [1, 2]) wireChannel(n);
 // TRLC-LINKS: REQ-DSO-204

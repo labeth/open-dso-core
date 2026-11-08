@@ -229,3 +229,20 @@ func BenchmarkPeaks(b *testing.B) {
 		Harmonics(Peaks(db, 100, 8), 0)
 	}
 }
+
+// A square with one or two periods in the window (a fast signal on a short
+// screen: 1 MHz at 100 or 200 ns/div) still has its fundamental in the peak
+// table: bin 1 has no bin two below it to be compared with.
+// TRLC-LINKS: REQ-DSO-216
+func TestPeaksFewPeriods(t *testing.T) {
+	for _, cyc := range []float64{1, 2} {
+		ps, _, binHz := peaksOf(tones(1024, squareComps(cyc, 60, 15), 0, 1, false), 8)
+		found := false
+		for _, p := range ps {
+			found = found || math.Abs(p.Freq/binHz-cyc) < 0.5
+		}
+		if !found {
+			t.Errorf("%g period(s) in the window: no peak at the fundamental: %+v", cyc, ps)
+		}
+	}
+}
