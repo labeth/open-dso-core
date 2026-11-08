@@ -1084,3 +1084,12 @@ decisions:
   decision: 'Left as is; since the trigger-firing model cuts the record at the firing edge, a flat autoset window may already be gone.'
   consequences:
   - 'To confirm with one simlab e2e rerun; owner to decide if the generator should change.'
+
+- id: ADR-REPLAY-PRECISION-WORDS
+  title: 'A replayed CML record keeps its precision words beside the rounded codes'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The CML serves raw records as Q8.8 words: 8-bit codes with a per-converter offset-correction fraction that its measurements use.'
+  decision: 'The replay turns the words back into the 8-bit codes the scope held, rounded as the scope rounds them, and keeps the Q8.8 words as precision words; at the capture''s own time/div the record is the capture word for word.'
+  consequences:
+  - 'Replayed measurements equal the scope''s exactly; edge shape on peak-pair records, which the scope measures on full-rate windows it does not serve, is named and not compared.'
