@@ -86,7 +86,8 @@ type HUD struct {
 	DecChA, DecChB   int // channel roles (0=C1,1=C2)
 	DecCPOL, DecCPHA bool
 	DecLSB           bool                 // SPI least significant bit first
-	DecParity        string               // Modbus RTU's framing ("": found by the decoder)
+	DecParity        string               // Modbus RTU's framing ("": found by the decoder), a UART's ("": none)
+	DecInverted      bool                 // a UART idling low (S.BUS)
 	DecDelayNs       float64              // SPI's data delay in use after the sampling edge (ns)
 	DecFormat        int                  // byte display: 0=hex,1=ascii,2=both
 	Ref              [2][MaxChans][]uint8 // saved reference waveforms (REF A/B) per channel, one code per column; nil if unset

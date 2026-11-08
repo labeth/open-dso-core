@@ -110,9 +110,36 @@ func CANWire(f CANFrame) (wire []int, nStuff, txCRC int) {
 	return wire, nStuff, txCRC
 }
 
-// CANFDFrame is a CAN FD base-format frame's bits through its data field,
-// stuffed, and a recessive tail where the stuff count, CRC and
-// acknowledgement would follow (no bit-rate switch).
+// CANFDCRC is CAN FD's CRC (ISO 11898-1): CRC-17 (x^17+x^16+x^14+x^13+
+// x^11+x^6+x^4+x^3+x+1) for up to 16 data bytes, CRC-21 (x^21+x^20+x^13+
+// x^11+x^7+x^4+x^3+1) past that, each from a register of a one and zeros,
+// over the bits as sent from SOF through the stuff count, the dynamic stuff
+// bits among them and the fixed ones not.
+// TRLC-LINKS: REQ-DSO-018
+func CANFDCRC(bits []int, width int) int {
+	poly := 0x1685B
+	if width == 21 {
+		poly = 0x102899
+	}
+	mask := 1<<width - 1
+	crc := 1 << (width - 1)
+	for _, b := range bits {
+		next := ((crc >> (width - 1)) & 1) ^ (b & 1)
+		crc = (crc << 1) & mask
+		if next != 0 {
+			crc ^= poly
+		}
+	}
+	return crc
+}
+
+// CANFDFrame is a CAN FD base-format frame's bits on the wire, as ISO
+// 11898-1 sends them (no bit-rate switch): SOF through the data field with
+// dynamic stuffing; the stuff count (the dynamic stuff bits modulo 8, Gray
+// coded, and an even parity bit) and the CRC with a fixed stuff bit, the
+// previous bit's complement, before the stuff count and after every four
+// bits; the CRC delimiter, an acknowledged ACK slot, the ACK delimiter, the
+// end of frame and the intermission.
 // TRLC-LINKS: REQ-DSO-018
 func CANFDFrame(id, dlc int, data []int) []int {
 	var bits []int
@@ -129,9 +156,35 @@ func CANFDFrame(id, dlc int, data []int) []int {
 		bits = append(bits, BitsMSB(d, 8)...)
 	}
 	stuffed, _, _ := CANStuff(bits)
-	wire := append([]int{}, stuffed...)
-	for range 24 {
-		wire = append(wire, 1)
+	return append(append([]int{}, stuffed...), CANFDTrailer(stuffed, len(stuffed)-len(bits), len(data))...)
+}
+
+// CANFDTrailer is what follows a CAN FD frame's data field on the wire
+// (CANFDFrame tells what), for the frame sent as stuffed (SOF through the
+// data, nStuff of them dynamic stuff bits) with nBytes data bytes.
+// TRLC-LINKS: REQ-DSO-018
+func CANFDTrailer(stuffed []int, nStuff, nBytes int) []int {
+	n := nStuff % 8
+	g := n ^ n>>1
+	sc := append(BitsMSB(g, 3), (g^g>>1^g>>2)&1)
+	width := 17
+	if nBytes > 16 {
+		width = 21
+	}
+	field := slices.Concat(sc, BitsMSB(CANFDCRC(slices.Concat(stuffed, sc), width), width))
+	var wire []int
+	prev := stuffed[len(stuffed)-1]
+	for k, b := range field {
+		if k%4 == 0 {
+			prev = 1 - prev
+			wire = append(wire, prev) // fixed stuff bit
+		}
+		wire = append(wire, b)
+		prev = b
+	}
+	wire = append(wire, 1, 0, 1) // CRC delimiter, ACK slot (acknowledged), ACK delimiter
+	for range 7 + 3 {
+		wire = append(wire, 1) // end of frame (7) and intermission (3)
 	}
 	return wire
 }

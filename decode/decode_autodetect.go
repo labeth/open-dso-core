@@ -280,6 +280,12 @@ func scoreResult(r Result) float64 { //nolint:gocyclo // one self-contained rule
 			return -1e9
 		}
 		c := kinds(kindStart, kindFrameError)
+		// A frame is a preamble and data: frames of one word each, between
+		// idles, are a line's bursts read at a few samples a half bit (an
+		// I2C SDA line at two samples a bit read "00 | 00 | 00 | 00")
+		if c[0] >= 2 && len(r.Bytes) <= c[0] {
+			return -1e9
+		}
 		return float64(len(r.Bytes)*8 + c[0]*10 - c[1]*30)
 	case protoSENT:
 		// OK already gates on >=1 CRC-4-valid frame; score by validated frames.
@@ -305,8 +311,8 @@ func scoreResult(r Result) float64 { //nolint:gocyclo // one self-contained rule
 		}
 		return float64(c[0]*300 + c[1]*4 - c[2]*20)
 	case protoCANFD:
-		// Require a CRC-15-validated classic frame (FD trailers are best-effort
-		// and carry no verified CRC here — never auto-claim CAN on those alone).
+		// Require a CRC-validated frame: a classic frame's CRC-15, an FD
+		// frame's stuff count and CRC-17/21.
 		c := kinds("crc", kindFrameError)
 		if c[0] == 0 {
 			return -1e9
@@ -344,11 +350,14 @@ func scoreResult(r Result) float64 { //nolint:gocyclo // one self-contained rule
 		return float64(good*150 + c[0]*50 - c[1]*40)
 	case protoUSBLS:
 		// A valid PID (nibble + matching complement) spans "addr"; bad -> error.
-		c := kinds(kindAddr, kindFrameError)
+		// A CRC that fails weighs as much: the line idling low (D+ at low
+		// speed, D- at full speed) hides each EOP in its idle and reads the
+		// packets' last bits off, the line idling high reads them whole.
+		c := kinds(kindAddr, kindFrameError, "crc-error")
 		if c[0] == 0 {
 			return -1e9
 		}
-		return float64(c[0]*120 + len(r.Bytes)*4 - c[1]*30)
+		return float64(c[0]*120 + len(r.Bytes)*4 - c[1]*30 - c[2]*30)
 	case protoFlexRay:
 		// The header note span is "addr" only when the header CRC-11 verified.
 		c := kinds(kindAddr, kindFrameError)
@@ -637,7 +646,7 @@ func levelRunStats(s *sliced) (median, longest, at int) {
 // the two channels (c1=index 0, c2=index 1) and returns the best-scoring decoded
 // Result, formatted per `format`. A Result with Proto=="off" means nothing matched.
 // TRLC-LINKS: REQ-DSO-018
-func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //nolint:gocyclo // Autodetect's stages run in order on its shared state and closures
+func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //nolint:gocyclo,funlen // Autodetect's stages run in order on its shared state and closures
 	chans := [2][]uint8{c1, c2}
 	// The helpers below take the channels' figures by address: copies of
 	// them as arguments were merged by the compiler (go1.26) into the stack
@@ -672,9 +681,21 @@ func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //noli
 	// clocks, and an SPI stream holds one, every parity checking, one time
 	// in a few hundred places. Neither is named; a longer record shows more
 	// transfers or a line reset.
+	// I2C read off the pair, its acknowledged transfers each ended by a
+	// STOP: an I2C bus's, which an SWD reading of the same pair (SDA as
+	// SWDIO) frames as transfers whose parities check, a repeated message
+	// read as one transfer again and again
+	var i2cBest Result
+	i2cScore, i2cAcked := 0.0, 0
 	settle := func() Result {
 		if best.Proto == protoSWD && spiBytes >= 8 && swdWholeReads(best) < 2 && !strings.Contains(best.Text, "LINERESET") {
 			return Result{Proto: "off", Error: "one SWD transfer or SPI bytes: show more of the signal"}
+		}
+		if best.Proto == protoSWD && i2cAcked >= 2 && !strings.Contains(best.Text, "LINERESET") {
+			if i2cScore > 0 {
+				return i2cBest
+			}
+			return Result{Proto: "off", Error: "I2C transfers read as SWD: show more of the signal"}
 		}
 		return best
 	}
@@ -727,6 +748,10 @@ func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //noli
 					uartBaud[k] = float64(ru.Baud)
 				}
 				consider(ru, chName(k), line(k))
+				if rp, ok := uartWithParity(chans[k], colTimeS, format, ru); ok {
+					uartBaud[k] = float64(rp.Baud)
+					consider(rp, chName(k), line(k))
+				}
 			}
 		}
 	} else {
@@ -865,6 +890,11 @@ func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //noli
 			if r.OK && !i2cAddressesMove(r) {
 				continue
 			}
+			i2cAcked = max(i2cAcked, i2cAckedTransfers(r))
+			if sc := scoreResult(r); sc > i2cScore {
+				i2cScore, i2cBest = sc, r
+				i2cBest.Src, i2cBest.Roles = "SCL "+chName(ord[0])+" SDA "+chName(ord[1]), Roles{ChA: ord[0], ChB: ord[1]}
+			}
 			consider(r, "SCL "+chName(ord[0])+" SDA "+chName(ord[1]), Roles{ChA: ord[0], ChB: ord[1]})
 		}
 		if clockedPair {
@@ -918,6 +948,31 @@ func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //noli
 		}
 	}
 	return settle()
+}
+
+// uartWithParity reads a line whose 8N1 reading n misframes as 8E1 and as
+// 8O1: a parity bit sits where 8N1 reads the stop bit, so half the
+// characters of an 8E1 line misframe as 8N1. A framing is kept only clean
+// at a rate UARTs use, eight characters and more, every parity and stop bit
+// checked - a line that is no parity UART passes both checks one time in
+// some hundreds a character. A clean 8N1 reading is not tried again.
+// TRLC-LINKS: REQ-DSO-018
+func uartWithParity(codes []uint8, colTimeS float64, format string, n Result) (Result, bool) {
+	if n.OK && len(n.Bytes) >= 2 && !slices.ContainsFunc(n.Spans, func(s Span) bool { return s.Kind == kindFrameError }) {
+		return Result{}, false
+	}
+	for _, p := range []string{parityEven, parityOdd} {
+		r := UART(codes, colTimeS, UARTCfg{Bits: 8, Parity: p, Format: format})
+		if !r.OK || len(r.Bytes) < 8 || !nearStandardBaud(float64(r.Baud), 0.03) {
+			continue
+		}
+		if slices.ContainsFunc(r.Spans, func(s Span) bool { return s.Kind == kindFrameError || s.Kind == kindParityError }) {
+			continue
+		}
+		r.Parity = p
+		return r, true
+	}
+	return Result{}, false
 }
 
 // StandardBaud reports whether baud is a rate UARTs use (within 3 %).

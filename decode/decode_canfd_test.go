@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/labeth/open-dso-core/decode/synth"
 )
 
 // ---- CAN waveform synthesis (mirrors the decoder's stuffing + CRC exactly) ----
@@ -107,9 +109,9 @@ func canExtFrame(id29, dlc int, data []int) (crcInput, wire []int) {
 	return crcInput, wire
 }
 
-// canFDStdFrame builds a CAN-FD base-format frame through the data field. FD
-// dynamic stuffing covers SOF..data; the trailing recessive run stands in for
-// the (unparsed) stuff-count/CRC/ACK/EOF that the best-effort FD path skips.
+// canFDStdFrame builds a CAN-FD base-format frame as ISO 11898-1 sends it:
+// dynamic stuffing over SOF..data, then the stuff count, the CRC-17/21 with
+// its fixed stuff bits, the ACK and the end of frame (synth.CANFDTrailer).
 // TRLC-LINKS: REQ-DSO-018
 func canFDStdFrame(id, dlc int, data []int) []int {
 	var bits []int
@@ -126,11 +128,20 @@ func canFDStdFrame(id, dlc int, data []int) []int {
 		bits = append(bits, canBitsMSB(d, 8)...)
 	}
 	stuffed, _, _ := canStuffCore(bits)
-	wire := append([]int{}, stuffed...)
-	for range 24 {
-		wire = append(wire, 1) // recessive tail (skipped by the FD best-effort path)
+	return append(append([]int{}, stuffed...), synth.CANFDTrailer(stuffed, len(stuffed)-len(bits), len(data))...)
+}
+
+// canFDTrailerLen is the wire bits after an FD frame's data field of
+// nBytes bytes (synth.CANFDTrailer): the stuff count and CRC with a fixed
+// stuff bit every four bits from the first, the delimiter, ACK slot and
+// delimiter, the end of frame and the intermission.
+// TRLC-LINKS: REQ-DSO-018
+func canFDTrailerLen(nBytes int) int {
+	field := 4 + 17
+	if nBytes > 16 {
+		field = 4 + 21
 	}
-	return wire
+	return field + (field+3)/4 + 3 + 10
 }
 
 // canRender lays a wire bit sequence out as sampled codes at spb samples/bit,

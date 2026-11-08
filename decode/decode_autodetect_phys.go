@@ -251,7 +251,7 @@ func scorePhys(r Result) float64 { //nolint:gocyclo,funlen // one self-contained
 		return float64(60 * min(data, 10))
 	case protoSDCard:
 		good := frames - c[1]
-		if good < 2 || c[1]*2 > frames {
+		if good < 2 || c[1]*2 > frames || !sdCardAnswers(r) {
 			return -1e9
 		}
 		return float64(good*400 + n*3)
@@ -475,4 +475,26 @@ func pdiErrorsFromFirstGood(spans []Span) int {
 		}
 	}
 	return errs
+}
+
+// sdCardAnswers reports an SD bus's CMD line: the card answers the host's
+// commands on it (every one but CMD0 has a response). A card in SPI mode
+// answers on MISO, so its MOSI holds the same command tokens bit for bit
+// and no response: two commands that want an answer and none on the line
+// are an SPI bus's data.
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
+func sdCardAnswers(r Result) bool {
+	asks, answers := 0, 0
+	for _, s := range r.Spans {
+		t := strings.TrimPrefix(s.Text, "!")
+		switch {
+		case strings.HasPrefix(t, "CMD") || strings.HasPrefix(t, "ACMD"):
+			if t != "CMD0" {
+				asks++
+			}
+		case len(t) == 2 && t[0] == 'R' && t[1] >= '1' && t[1] <= '7':
+			answers++
+		}
+	}
+	return answers > 0 || asks < 2
 }

@@ -234,6 +234,10 @@ func (c *Controller) takeBusFrame() int {
 // characters and a character's high bits), all in seconds (0: not seen).
 type busMsgs struct {
 	longest, idle, highRun float64
+	// lead is how far into a message its frame-start trigger fires (a
+	// frame start and the unit after it: USB PD's SOP and header), the
+	// longest of the complete messages' (0: at its start)
+	lead float64
 }
 
 // measureMsgs measures the bus's messages on a sampled record decoded with
@@ -280,9 +284,19 @@ func msgsOf(res decode.Result, sampleS float64, valid int) busMsgs {
 		m.longest = decode.MessageMaxS(res) // whether or not a whole one fell on the record
 	}
 	ps := anaPackets(res, valid)
+	sofUnit := sofThenUnit(framecalc.ProtoOf(res.Proto))
 	for i, p := range ps {
 		if p.Complete {
 			m.longest = max(m.longest, float64(p.I1-p.I0)*sampleS)
+			if sofUnit {
+				m.lead = max(m.lead, float64(triggerAt(res.Spans, p)-p.I0)*sampleS)
+			}
+		}
+		// SWD's line reset, a packet of its own (its ones from wherever the
+		// record opens), and the transfer after it are one message: the
+		// frame-start trigger fires ahead of the reset
+		if res.Proto == "swd" && i+1 < len(ps) && ps[i+1].Complete && opensWith(res.Spans, p, "LINERESET") {
+			m.longest = max(m.longest, float64(ps[i+1].I1-p.I0)*sampleS)
 		}
 		if i > 0 {
 			if g := float64(p.I0-ps[i-1].I1) * sampleS; g > 0 && (m.idle == 0 || g < m.idle) {
@@ -310,6 +324,49 @@ func msgsOf(res decode.Result, sampleS float64, valid int) busMsgs {
 		m.highRun = gap + 10*bit
 	}
 	return m
+}
+
+// sofThenUnit reports a bus whose frame-start trigger is a frame start and
+// the unit after it (sofPattern).
+// TRLC-LINKS: REQ-DSO-223
+func sofThenUnit(proto int) bool {
+	_, pat, _, ok := sofPattern(proto)
+	return ok && len(pat) == 2 && pat[0].Kind == 1
+}
+
+// triggerAt is where a frame-start trigger of a frame start and a unit
+// fires in packet p: the end of the first unit after its first frame-start
+// span ("sof", or a sync: "start"), p's start when it holds none.
+// TRLC-LINKS: REQ-DSO-223
+func triggerAt(spans []decode.Span, p Packet) int {
+	sof := false
+	for _, s := range spans {
+		if s.I0 < p.I0 || s.Kind == "gap" {
+			continue
+		}
+		if s.I0 > p.I1 {
+			break
+		}
+		if s.Kind == "sof" || s.Kind == "start" {
+			sof = true
+			continue
+		}
+		if sof {
+			return min(s.I1, p.I1)
+		}
+	}
+	return p.I0
+}
+
+// opensWith reports packet p's first span reading text.
+// TRLC-LINKS: REQ-DSO-223
+func opensWith(spans []decode.Span, p Packet, text string) bool {
+	for _, s := range spans {
+		if s.I0 >= p.I0 && s.Kind != "gap" {
+			return s.Text == text
+		}
+	}
+	return false
 }
 
 // uartIdle is the idle-gap width the pulse qualifier triggers after: midway
@@ -456,9 +513,18 @@ func (c *Controller) idleTrigger(ch int, w float64) {
 // decodes its sampled records at a lower frame rate (busRawFrames; a sped-up
 // DCF77 minute at 20ms/div). tdiv itself when none does.
 // TRLC-LINKS: REQ-DSO-223
-func (c *Controller) messageTimebase(msg, featureS, tdiv float64) float64 {
+func (c *Controller) messageTimebase(msg, lead, featureS, tdiv float64) float64 {
 	after := (1 - busTrigPos) * 10
-	if !(msg > 0) || msg <= after*tdiv || len(c.tdivs) == 0 {
+	if !(msg > 0) || len(c.tdivs) == 0 || (lead == 0 && msg <= after*tdiv) {
+		return tdiv
+	}
+	// the message after the trigger, and its lead before it on the
+	// screen's left (the trigger at busTrigPos, or later: busTrigPosFor)
+	fits := func(t float64) bool {
+		pre := busTrigPosFor(lead, t) * 10 * t
+		return lead*1.1 <= pre && pre+(msg-lead)*1.05 <= 10*t
+	}
+	if fits(tdiv) {
 		return tdiv
 	}
 	window := 12.5 // the serial trigger's wider window
@@ -468,7 +534,7 @@ func (c *Controller) messageTimebase(msg, featureS, tdiv float64) float64 {
 		slices.Sort(tds)
 	}
 	for _, t := range tds {
-		if t < tdiv*0.999 || msg*1.05 > after*t {
+		if t < tdiv*0.999 || !fits(t) {
 			continue
 		}
 		if featureS > 0 && featureS/(window*t/float64(c.hw.EnvelopePoints())) < framecalc.MinEnvelopeFeature &&
@@ -478,6 +544,22 @@ func (c *Controller) messageTimebase(msg, featureS, tdiv float64) float64 {
 		return t
 	}
 	return tdiv
+}
+
+// busTrigPosMax is the latest AUTO in BUS puts the trigger: half the
+// screen, the message's lead before it.
+const busTrigPosMax = 0.5
+
+// busTrigPosFor is where AUTO in BUS puts the trigger on a timebase of
+// tdiv for a bus whose frame-start trigger fires lead seconds into its
+// message (msgsOf): near the left (busTrigPos), or as far right as the lead
+// needs, up to half the screen.
+// TRLC-LINKS: REQ-DSO-223
+func busTrigPosFor(lead, tdiv float64) float64 {
+	if !(lead > 0) || !(tdiv > 0) {
+		return busTrigPos
+	}
+	return min(busTrigPosMax, max(busTrigPos, lead*1.1/(10*tdiv)))
 }
 
 // messageLooks is how many timebases up the ladder AUTO in BUS measures a
@@ -564,23 +646,51 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64) busMsgs {
 	return m
 }
 
+// sessionProtos are the buses whose later frames read only after the
+// frame that opens their session: a cJTAG escape and its scans (the scan
+// format), a SWIM command and its count, address and bytes (read or
+// written), a 1-Wire reset and its ROM command (a Read ROM's eight bytes).
+// A screen that cuts a session reads its opening alone as a whole message,
+// so the session is measured on the record that found it.
+var sessionProtos = map[string]bool{"cjtag": true, "swim": true, "onewire": true}
+
+// sessionOf is the longest session of a session bus (sessionProtos) on
+// the search's decode, its samples sampleS apart; the last one is left out,
+// the record may cut it. 0 for another bus.
+// TRLC-LINKS: REQ-DSO-223
+func sessionOf(res decode.Result, sampleS float64) float64 {
+	if !sessionProtos[res.Proto] || !res.OK || !(sampleS > 0) {
+		return 0
+	}
+	ps := anaPackets(res, 0)
+	longest := 0.0
+	for i, p := range ps {
+		if i < len(ps)-1 && p.Complete {
+			longest = max(longest, float64(p.I1-p.I0)*sampleS)
+		}
+	}
+	return longest
+}
+
 // frameBus finishes AUTO in BUS and BUS entry's detection once the bus is
 // filled in: the frame-start trigger, and for AUTO the trigger near the left
-// and a timebase that shows a whole message. It returns what the notice adds.
+// and a timebase that shows a whole message (session: a session bus's, as
+// the search measured it). It returns what the notice adds.
 // TRLC-LINKS: REQ-DSO-223
-func (c *Controller) frameBus(featureS float64, auto bool) string {
+func (c *Controller) frameBus(featureS float64, auto bool, session float64) string {
 	m := c.measureMsgs()
 	if auto && m.longest == 0 {
 		m = c.measureSlower(m, featureS)
 	}
+	m.longest = max(m.longest, session)
 	note := c.frameTrigger(m)
 	if auto {
-		_ = c.setTrigPos(busTrigPos)
 		td := c.eng.Snapshot().TdivSet()
-		t := c.messageTimebase(m.longest, featureS, td)
+		t := c.messageTimebase(m.longest, m.lead, featureS, td)
+		_ = c.setTrigPos(busTrigPosFor(m.lead, t))
 		// where AUTO's framing came from, in the log
-		c.logf("panel: bus auto: longest message %s, feature %s: %s/div framed at %s/div", si(m.longest, "s"), si(featureS, "s"),
-			si(td, "s"), si(t, "s"))
+		c.logf("panel: bus auto: longest message %s (%s before its trigger), feature %s: %s/div framed at %s/div",
+			si(m.longest, "s"), si(m.lead, "s"), si(featureS, "s"), si(td, "s"), si(t, "s"))
 		if math.Abs(t-td) > 1e-3*td {
 			c.setTdivNearest(t)
 			note += ", " + si(t, "s") + "/div for a whole message"

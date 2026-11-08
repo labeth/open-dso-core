@@ -696,7 +696,7 @@ func BenchmarkStreamStatus(b *testing.B) {
 func BenchmarkMessageTimebase(b *testing.B) {
 	c, _, _ := newC(&testing.T{})
 	for b.Loop() {
-		c.messageTimebase(3e-3, 8e-6, 100e-6)
+		c.messageTimebase(3e-3, 0, 8e-6, 100e-6)
 	}
 }
 

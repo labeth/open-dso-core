@@ -60,7 +60,22 @@ func makePS2(c *ctx) error {
 	for _, v := range d {
 		PS2Frame(l, v, false, false, 80e-6, 300e-6)
 	}
-	c.done("PS/2", 1e6, Truth{Bytes: d}, l.A, l.B)
+	// the messages are a key's scan codes: a make code, or F0 and the
+	// code (its break)
+	var msgs []string
+	brk := false
+	for _, v := range d {
+		if v == 0xF0 {
+			brk = true
+			continue
+		}
+		m := fmt.Sprintf("%02X", v)
+		if brk {
+			m = "F0 " + m
+		}
+		msgs, brk = append(msgs, m), false
+	}
+	c.done("PS/2", 1e6, Truth{Bytes: d, Messages: msgs}, l.A, l.B)
 	return nil
 }
 
@@ -74,7 +89,8 @@ func makeSWD(c *ctx) error {
 	s.Transfer(false, true, 0, 1, uint32(d[0]), false, 2) //nolint:gosec // G115: a 32-bit word
 	s.Transfer(false, false, 8, 1, 0x000000F0, false, 2)
 	s.Transfer(true, true, 0xC, 1, 0x12345678, false, 2)
-	c.done("SWD", 20/per, Truth{Contains: []string{"LINERESET", fmt.Sprintf("RDP0 OK %08X", d[0]&0xffffffff), "WDP8 OK 000000F0", "RAPC OK 12345678"}}, s.P.A, s.P.B)
+	want := []string{"LINERESET", fmt.Sprintf("RDP0 OK %08X", d[0]&0xffffffff), "WDP8 OK 000000F0", "RAPC OK 12345678"}
+	c.done("SWD", 20/per, Truth{Contains: want, Messages: want[1:]}, s.P.A, s.P.B)
 	return nil
 }
 
@@ -92,7 +108,7 @@ func makeMDIO(c *ctx) error {
 		MDIOFrame(l, per, 32, 1, o.op, phy, o.reg, v, 0)
 		want = append(want, fmt.Sprintf("%s %02X.%02X %04X", map[int]string{1: "WR", 2: "RD"}[o.op], phy, o.reg, v))
 	}
-	c.done("MDIO", 10/per, Truth{Contains: []string{strings.Join(want, " ")}}, l.A, l.B)
+	c.done("MDIO", 10/per, Truth{Contains: []string{strings.Join(want, " ")}, Messages: want}, l.A, l.B)
 	return nil
 }
 

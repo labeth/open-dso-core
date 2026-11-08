@@ -117,10 +117,7 @@ func MillerMessage(w *Line, bits []int, period, pause, idle float64) {
 		}
 		prev = b
 	}
-	level := byte(0)
-	if k := len(w.Bits); k > 0 {
-		level = w.Bits[k-1]
-	}
+	level := w.Last() // as sampled or as steps: a source samples the steps itself
 	cur := 0.0
 	for _, t := range at {
 		if pause > 0 {

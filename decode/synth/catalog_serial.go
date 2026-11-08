@@ -19,7 +19,7 @@ func init() {
 		Protocol{
 			Proto: protoUART, Title: "UART", Roles: []string{"tx"}, Payload: payBytes,
 			Defaults: map[string]string{setBaud: "115200", setParity: "none", "stop": "1"},
-			Variants: []map[string]string{{setBaud: "9600"}, {setBaud: "115200"}, {setBaud: "1M"}},
+			Variants: []map[string]string{{setBaud: "9600"}, {setBaud: "115200", setParity: parityEven}, {setBaud: "1M"}},
 			make:     makeUART,
 		},
 		Protocol{
@@ -59,13 +59,13 @@ func init() {
 		Protocol{
 			Proto: "canfd", Title: "CAN", Roles: []string{"rx"}, Payload: payBytes,
 			Defaults: map[string]string{setBaud: "500k", "id": "0x123", "ext": "0", "fd": "0"},
-			Variants: []map[string]string{{setBaud: "500k"}, {setBaud: "125k", "ext": "1", "id": "0x18DAF110"}, {setBaud: "1M"}},
+			Variants: []map[string]string{{setBaud: "500k"}, {setBaud: "125k", "ext": "1", "id": "0x18DAF110"}, {setBaud: "1M", "fd": "1"}},
 			make:     makeCAN,
 		},
 		Protocol{
 			Proto: "usbls", Title: "USB", Roles: []string{"j", "k"}, Payload: payBytes,
-			Defaults: map[string]string{"speed": "low", "addr": "0", "ep": "0"},
-			Variants: []map[string]string{{"speed": "low"}, {"speed": "full"}},
+			Defaults: map[string]string{"speed": "low", "addr": "0", "ep": "0", "gap": "40"},
+			Variants: []map[string]string{{"speed": "low"}, {"speed": "full"}, {"speed": "full", "gap": "3"}},
 			make:     makeUSB,
 		},
 		Protocol{
@@ -277,7 +277,7 @@ func makeUSB(c *ctx) error {
 	USBWave(p, rate, 0, 0, [][]int{
 		USBPacketBits(setup, USBTokenBits(c.integer("addr"), c.integer("ep"))),
 		USBPacketBits(data0, USBDataBits(d, 0)),
-	}, 40)
+	}, c.num("gap")) // bit times of idle between packets: two at the least
 	var hex strings.Builder
 	hex.WriteString("DATA0")
 	for _, v := range d {

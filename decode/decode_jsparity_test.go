@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/labeth/open-dso-core/decode/synth"
 	"github.com/labeth/open-dso-core/testenv"
 )
 
@@ -96,6 +97,15 @@ func TestJSDecoderParity(t *testing.T) {
 			add("manchester", w, ct, jsCfg{"ieee": tc.ieee, "msb": true, "bits": 8},
 				Manchester(w, ct, ManchesterCfg{IEEE: tc.ieee, MSB: true}))
 		}
+		// a record opening inside the preamble, at each of a byte's bits
+		if b, err := synth.Make(synth.Spec{Proto: "manchester"}, 40e6); err == nil {
+			c := b.Lines[0].Codes()
+			for k := range 8 {
+				cut := c[400+40*(8+k)+13:]
+				add("manchester", cut, 1/40e6, jsCfg{"ieee": true, "msb": true, "bits": 8},
+					Manchester(cut, 1/40e6, ManchesterCfg{IEEE: true, MSB: true}))
+			}
+		}
 	}
 
 	// ---- MIL-1553: auto inference including a 0xAAAA payload and spb=5.
@@ -154,6 +164,24 @@ func TestJSDecoderParity(t *testing.T) {
 		cut := two[len(codes)/3:]
 		ct2 := 1.0 / (float64(spb) * 506000.0)
 		add("canfd", cut, ct2, jsCfg{"dominantLow": true}, CANFD(cut, ct2, CANFDCfg{DominantLow: true}))
+		// CAN FD frames to their CRC-17 and CRC-21: clean, a CRC bit
+		// flipped, and cut inside the CRC field
+		for _, n := range []int{4, 20} {
+			data := make([]int, n)
+			for i := range data {
+				data[i] = (i*53 + 7) & 0xff
+			}
+			dlc := map[int]int{4: 4, 20: 11}[n]
+			fd := canFDStdFrame(0x2A5, dlc, data)
+			fc := canRender(fd, spb, true, 8*spb, 8*spb)
+			add("canfd", fc, ct, jsCfg{"dominantLow": true}, CANFD(fc, ct, CANFDCfg{DominantLow: true}))
+			bad := append([]int{}, fd...)
+			bad[len(bad)-20] ^= 1
+			bc := canRender(bad, spb, true, 8*spb, 8*spb)
+			add("canfd", bc, ct, jsCfg{"dominantLow": true}, CANFD(bc, ct, CANFDCfg{DominantLow: true}))
+			short := fc[:len(fc)-(8+22)*spb]
+			add("canfd", short, ct, jsCfg{"dominantLow": true}, CANFD(short, ct, CANFDCfg{DominantLow: true}))
+		}
 	}
 
 	// ---- ARINC 429: a complete word (auto bit-rate, pulse-count gate).

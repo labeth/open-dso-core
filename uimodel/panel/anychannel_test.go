@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/labeth/open-dso-core/decode/synth"
 	"github.com/labeth/open-dso-core/framecalc"
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/settings"
@@ -167,5 +168,31 @@ func TestLiveValuesMoveSheetsSeq(t *testing.T) {
 	c.publish()
 	if s2 := c.PanelStatus().SheetsSeq; s2 != s1 {
 		t.Fatalf("SheetsSeq moved within liveEvery: %d -> %d", s1, s2)
+	}
+}
+
+// A bus busy a few percent of the time on C3 and C4 (a caliper's frames,
+// 2 ms in 30, its data line at its other level for under 2 % of the
+// samples) is the pair the search reads, not one of its lines beside an
+// idle C1.
+// TRLC-LINKS: REQ-DSO-214
+func TestBusPairFindsASparseBus(t *testing.T) {
+	c, _, _ := halRig(t, 4)
+	b, err := synth.Make(synth.Spec{Proto: "caliper"}, 1e5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clk, data := b.Lines[0].Codes(), b.Lines[1].Codes()
+	n := len(clk)
+	f := sample.View8Frame(frame12(n, 100, 2, 2, 30, 1e-5))
+	idle := make([]uint8, n)
+	for i := range idle {
+		idle[i] = 128
+	}
+	for ch, codes := range [][]uint8{idle, idle, clk, data} {
+		f.Traces[ch].Codes8, f.Traces[ch].Valid = codes, n
+	}
+	if p := c.busPair(f); p != [2]int{2, 3} {
+		t.Fatalf("pair %v, want C3 and C4", p)
 	}
 }

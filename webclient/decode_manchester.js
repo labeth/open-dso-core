@@ -30,6 +30,7 @@ function recoverManchester(S, s0, T, ieee, lastEdgeX) {
     const centre = s0 + (k + 0.5) * T;
     if (centre > limit) break;
     // First and third quarter straddle the mid-cell transition.
+    if (s0 + (k + 0.25) * T < 0) continue;   // a cell the record opens inside of (Go recoverManchester)
     const l1 = logicAt(S, s0 + (k + 0.25) * T);
     const l2 = logicAt(S, s0 + (k + 0.75) * T);
     if (l1 < 0 || l2 < 0) break;               // ran off the captured region
@@ -146,6 +147,16 @@ function decodeManchesterAt(S, T, cfg, bits, colTimeS) {
     }
     const atEdge = segs.length > 1 && ((sgIdx === 0 && s0e < 2.5 * T) || (sgIdx === segs.length - 1 && S.n - lastE < 2.5 * T));
     if (run < 3 && atEdge) continue;
+    // A frame the record opens inside but holds to its end ends on a whole
+    // word: its words count from that end (Go decodeManchesterAt).
+    if (sgIdx === 0 && s0e < 2.5 * T && (sgIdx < segs.length - 1 || S.n - lastE >= 2.5 * T) &&
+        !cells.some((c) => c.bit < 0)) {
+      const skip = cells.length % bits;
+      if (skip > 0 && cells.length - skip >= bits) {
+        cells = cells.slice(skip);
+        run = Math.max(0, run - skip);
+      }
+    }
     if (frames > 0) {                          // separate frames in the transcript
       spans.push({ i0: cells[0].i0, i1: cells[0].i0, text: "", kind: "gap" });
       toks.push("|");

@@ -121,10 +121,7 @@ func DSIFrame(w *Line, v int, idle float64) {
 // idle seconds.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-253
 func QiPacket(w *Line, b []int, badCk bool, idle float64) {
-	l := &BMCLine{W: w, Bit: 500e-6}
-	if k := len(w.Bits); k > 0 {
-		l.Lvl = w.Bits[k-1]
-	}
+	l := &BMCLine{W: w, Bit: 500e-6, Lvl: w.Last()}
 	for range 11 {
 		l.Put(1)
 	}

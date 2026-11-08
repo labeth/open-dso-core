@@ -2,8 +2,8 @@
 // CAN / CAN-FD decoder — the JS twin of Go internal/decode/decode_canfd.go.
 // Kept algorithm-faithful (same slicing/destuffing/CRC) so the web overlay and
 // the on-device LCD agree byte-for-byte. Classic CAN is decoded fully; CAN-FD
-// base frames are best-effort (ID + control + DLC + data with dynamic
-// destuffing, flagged FD). A single sliced logic line: dominant = logic 0,
+// base frames to their CRC-17/21 (ISO 11898-1: stuff count and fixed stuff
+// bits), flagged FD. A single sliced logic line: dominant = logic 0,
 // recessive = logic 1; dominantLow (default true) maps dominant to the LOW rail.
 //
 // Depends on sliceChannel / logicAt / fmtByte from decode.js (loaded first in
@@ -92,13 +92,14 @@ function canNext(r) {
     if (sv < 0) return -1;
     if (sv === r.runVal) r.stuffErr = true; // 6th identical bit = a stuff violation
     r.stuffed++;
+    if (r.record) r.wire.push(sv);
     r.runVal = sv; r.runLen = 1;
   }
   const v = canReadRaw(r);
   if (v < 0) return -1;
   if (v === r.runVal) r.runLen++;
   else { r.runVal = v; r.runLen = 1; }
-  if (r.record) r.bits.push(v);
+  if (r.record) { r.bits.push(v); r.wire.push(v); }
   return v;
 }
 
@@ -183,7 +184,7 @@ function canInferSPB(S) {
 // TRLC-LINKS: REQ-DSO-018
 function canOneFrame(S, dominantLow, sofStart, spb, dataSpb) {
   const r = { S, dominantLow, pos: sofStart, spb, runVal: -1, runLen: 0,
-    stuffOn: true, record: true, stuffed: 0, stuffErr: false, bits: [], li0: -1, li1: -1 };
+    stuffOn: true, record: true, stuffed: 0, stuffErr: false, bits: [], wire: [], li0: -1, li1: -1 };
   const fail = { ok: false };
   const spans = [], toks = [];
 
@@ -261,8 +262,9 @@ function canOneFrame(S, dominantLow, sofStart, spb, dataSpb) {
   }
 
   if (fd) {
-    // Best-effort: FD stuff-count / longer CRC / distinct ACK form are not parsed.
-    return { ok: true, spans, toks, bytes, endI: Math.round(r.pos) };
+    canFDTrailer(r, spb, nBytes, spans, toks);
+    const crcOK = spans.length > 0 && spans[spans.length - 1].kind === "crc";
+    return { ok: true, spans, toks, bytes, endI: Math.round(r.pos), crcOK };
   }
 
   // Classic CRC-15 over the recorded SOF..data bits.
@@ -287,6 +289,66 @@ function canOneFrame(S, dominantLow, sofStart, spb, dataSpb) {
   }
 
   return { ok: true, spans, toks, bytes, endI: Math.round(r.pos), crcOK };
+}
+
+// canFDCRC: CAN FD's CRC-17 or CRC-21 (by width) from a register of a one and
+// zeros over the bits as sent (Go canFDCRC).
+// TRLC-LINKS: REQ-DSO-018
+function canFDCRC(bits, width) {
+  const poly = width === 21 ? 0x102899 : 0x1685B;
+  const mask = (1 << width) - 1;
+  let crc = 1 << (width - 1);
+  for (let k = 0; k < bits.length; k++) {
+    const next = ((crc >> (width - 1)) & 1) ^ (bits[k] & 1);
+    crc = (crc << 1) & mask;
+    if (next) crc ^= poly;
+  }
+  return crc;
+}
+
+// canFDTrailer reads a CAN FD frame's stuff count and CRC after its data, the
+// fixed stuff bits checked, then the delimiter and ACK at the nominal rate
+// (Go canFDTrailer).
+// TRLC-LINKS: REQ-DSO-018
+function canFDTrailer(r, spb, nBytes, spans, toks) {
+  const width = nBytes > 16 ? 21 : 17;
+  const stuffs = r.stuffed;
+  r.stuffOn = false; r.record = false;
+  let prev = r.wire.length > 0 ? r.wire[r.wire.length - 1] : 0;
+  let fixedOK = true;
+  const field = [];
+  let c0 = -1, c1 = -1;
+  for (let k = 0; k < 4 + width; k++) {
+    if (k % 4 === 0) {
+      const fsb = canReadRaw(r);
+      if (fsb < 0) return;
+      fixedOK = fixedOK && fsb === 1 - prev;
+      prev = fsb;
+    }
+    const b = canReadRaw(r);
+    if (b < 0) return;
+    if (k === 4) c0 = r.li0;
+    c1 = r.li1;
+    field.push(b);
+    prev = b;
+  }
+  let sc = 0, crc = 0;
+  for (let k = 0; k < 4; k++) sc = (sc << 1) | field[k];
+  for (let k = 4; k < field.length; k++) crc = (crc << 1) | field[k];
+  const n = stuffs % 8, g = n ^ (n >> 1);
+  const scOK = (sc >> 1) === g && ((sc ^ (sc >> 1) ^ (sc >> 2) ^ (sc >> 3)) & 1) === 0;
+  const want = canFDCRC(r.wire.concat(field.slice(0, 4)), width);
+  let text = crc.toString(16).toUpperCase().padStart(5, "0"), kind = "crc";
+  if (!scOK || !fixedOK || crc !== want || r.stuffErr) { text = "!" + text; kind = "frame-error"; }
+  spans.push({ i0: c0, i1: c1, text: "CRC:" + text, kind, val: crc });
+  toks.push("CRC:" + text);
+  r.spb = spb;
+  if (canReadRaw(r) < 0) return; // CRC delimiter
+  const ackF = canReadField(r, 1);
+  if (ackF.ok) {
+    if (ackF.val === 0) { spans.push({ i0: ackF.i0, i1: ackF.i1, text: "ACK", kind: "ack", val: 0 }); toks.push("ACK"); }
+    else { spans.push({ i0: ackF.i0, i1: ackF.i1, text: "NAK", kind: "nak", val: 1 }); toks.push("NAK"); }
+  }
 }
 
 // TRLC-LINKS: REQ-DSO-018
