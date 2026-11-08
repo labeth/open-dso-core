@@ -127,3 +127,34 @@ func TestModelControls(t *testing.T) {
 		t.Fatalf("snapshot %+v", st)
 	}
 }
+
+// Every SINGLE press is a fresh shot (Shots), also while one is armed; the
+// owner's stop changes only the run control, a spent shot disarmed, a
+// failed mask test's stop leaving it armed; the mode a shot replaced is
+// kept for RUN until the user picks one.
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-014
+func TestShotsAndOwnerStop(t *testing.T) {
+	m := New(State{Channels: make([]hal.Channel, 2), Running: true, Sweep: hal.Auto}, nil)
+	m.SetSingle()
+	n, gen := m.Shots(), m.Generation()
+	m.SetSingle()
+	if m.Shots() != n+1 || m.Generation() != gen {
+		t.Fatalf("a second press: shots %d (was %d), generation %d (was %d)", m.Shots(), n, m.Generation(), gen)
+	}
+	if sw, set := m.SingleReplaced(); !set || sw != hal.Auto {
+		t.Fatalf("replaced %v %v", sw, set)
+	}
+	m.SetTdiv(1e-3)
+	m.OwnerStop(false)
+	if s := m.State(); s.Running || !s.Single || s.TimeDivS != 1e-3 {
+		t.Fatalf("a mask stop: %+v", s)
+	}
+	m.OwnerStop(true)
+	if s := m.State(); s.Running || s.Single {
+		t.Fatalf("a spent shot: %+v", s)
+	}
+	m.SetNorm(true)
+	if _, set := m.SingleReplaced(); set {
+		t.Fatal("the user's mode kept the replaced one")
+	}
+}

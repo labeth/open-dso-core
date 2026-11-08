@@ -92,6 +92,10 @@ func (x *FrameMask) SetMaskMode(m int) {
 	x.mode.Store(int32(m))
 }
 
+// ResumeRun releases the stop-on-fail latch: the run started again.
+// TRLC-LINKS: REQ-DSO-014
+func (x *FrameMask) ResumeRun() { x.stopped.Store(false) }
+
 // MaskMode is the test's mode.
 // TRLC-LINKS: REQ-DSO-014
 func (x *FrameMask) MaskMode() int { return int(x.mode.Load()) }
