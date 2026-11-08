@@ -117,7 +117,15 @@ func makeOneWire(c *ctx) error {
 		OneWireByte(w, v, od)
 	}
 	w.Idle(100e-6)
-	c.done("1-Wire", 2e6*map[bool]float64{true: 5, false: 1}[od], Truth{Bytes: append([]int{0xCC, 0x44, 0x33}, rom...)}, w)
+	var romText strings.Builder
+	romText.WriteString("RDROM")
+	for _, v := range rom {
+		fmt.Fprintf(&romText, " %02X", v)
+	}
+	c.done("1-Wire", 2e6*map[bool]float64{true: 5, false: 1}[od], Truth{
+		Bytes:    append([]int{0xCC, 0x44, 0x33}, rom...),
+		Messages: []string{"SKIP 44", romText.String()}, // a transaction each: a reset, its ROM command and the bytes after
+	}, w)
 	return nil
 }
 
