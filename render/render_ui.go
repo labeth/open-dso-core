@@ -261,7 +261,9 @@ func drawScopeChrome(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 			x = tx - 38
 		}
 	}
-	DrawText(sf, x, 2, "SCOPE", colTrig, 1)
+	if !hud.UI.Layout.Touch { // the touch bar names the workspace
+		DrawText(sf, x, 2, "SCOPE", colTrig, 1)
+	}
 	sp := hud.UI.Scope
 	if sp == nil || sp.AdjustTag == "" {
 		return
@@ -273,7 +275,7 @@ func drawScopeChrome(sf Canvas, p plotArea, f *sample.Frame, hud HUD) {
 	y := p.m.H - 9
 	if hud.DecProto != 0 { // above the decode strip's label
 		y = p.m.H - 47
-	} else if hud.numChans() > 2 { // the channels' readouts fill the bottom row
+	} else if hud.numChans() > 2 || hud.UI.Layout.Touch { // the channels' readouts fill the bottom row
 		y -= 12
 	}
 	fillRect(sf, 158, y-2, TextWidth(sp.AdjustTag, 1)+4, 11, colBG)

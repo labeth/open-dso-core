@@ -22,7 +22,7 @@ h2 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: u
   border: 6px solid #0c0f13; box-shadow: inset 0 0 0 1px #000; }
 #screen:not(.up) { visibility: hidden; }
 #screen { width: 100%; height: 100%; display: block; image-rendering: auto; user-select: none; }
-#screen.touch { cursor: crosshair; }
+#screen.touch { cursor: crosshair; touch-action: none; }
 .screenmsg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   color: var(--dim); font-size: 13px; pointer-events: none; text-align: center; padding: 20px; }
 .ripple { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;

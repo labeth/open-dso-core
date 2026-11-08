@@ -145,6 +145,19 @@ type uiState struct {
 	masterSrc    int
 	masterT      time.Time
 	hasMaster    bool
+
+	// The touch-first layout's state the view shows (touch.go): a selection
+	// box being drawn, each tab's first row shown and the focus it followed,
+	// a row's open chooser (its row, presets or options, first choice
+	// shown), and the knobs' jobs offered as buttons.
+	tBox         wsview.Box
+	tBoxOn       bool
+	tScroll      [numTabs]int
+	tFocus       [numTabs]int
+	tChoose      string
+	tChoosePre   bool
+	tChooseFirst int
+	tTools       bool
 }
 
 // Notice durations.

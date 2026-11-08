@@ -522,12 +522,17 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	// trigger readout right-aligned.
 	n := hud.numChans()
 	tx := topBarTimeX(sm, hud)
+	touch := hud.UI.Layout.Touch // the readout bar above carries the top bar's readouts
 	if f != nil && f.Cond.NoiseGain > 1 {
 		label := fmt.Sprintf("Ideal +%.2f bits (not ENOB)", math.Log2(f.Cond.NoiseGain))
 		if f.Cond.PassbandHz > 0 {
 			label += "  pass " + fmtFreq(f.Cond.PassbandHz) + fmt.Sprintf("  FPGA /%d", f.AcqDecim)
 		}
 		DrawText(sf, tx, 14, label, colInfo, 1)
+	}
+	if touch {
+		drawBottomReadouts(sf, f, hud)
+		return
 	}
 	for ch := range n {
 		c := hud.Ch[ch]
@@ -575,7 +580,15 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	// the trigger readout (starts ≥ ~670) — clear of the trace band, readouts
 	// and the menu panel in every view. No network → nothing.
 	DrawStatusSlot(sf, hud)
+	drawBottomReadouts(sf, f, hud)
+}
 
+// drawBottomReadouts is the bottom quick readouts: each shown channel's
+// peak-to-peak and frequency.
+// TRLC-LINKS: REQ-DSO-021
+func drawBottomReadouts(sf Canvas, f *sample.Frame, hud HUD) {
+	sm := metricsOf(sf)
+	n := hud.numChans()
 	if f == nil || f.Len() == 0 || hud.UI.Layout.HideBottom {
 		return
 	}
@@ -608,11 +621,23 @@ func topBarTimeX(sm *Metrics, hud HUD) int { return 4 + max(hud.numChans(), 2)*s
 // qualified trigger's tag) and the acquisition state.
 // TRLC-LINKS: REQ-DSO-021
 func trigReadout(hud HUD) string {
+	what, state := trigParts(hud)
+	return "T " + what + " " + state
+}
+
+// stateStop is the trigger readout's state while the acquisition is
+// stopped.
+const stateStop = "STOP"
+
+// trigParts are the trigger readout's two parts: what triggers ("C1 ^
+// 200mV", or the qualified trigger's tag) and the acquisition state.
+// TRLC-LINKS: REQ-DSO-021
+func trigParts(hud HUD) (what, state string) {
 	edge := "^"
 	if !hud.TrigRising {
 		edge = "v"
 	}
-	state := "AUTO"
+	state = "AUTO"
 	if hud.Norm {
 		state = "NORM"
 	}
@@ -620,9 +645,9 @@ func trigReadout(hud HUD) string {
 	case hud.Single && hud.Running:
 		state = "SNGL" // armed, waiting for the single trigger
 	case !hud.Running && hud.Single:
-		state = "STOP" // (should not persist: single clears on capture)
+		state = stateStop // (should not persist: single clears on capture)
 	case !hud.Running:
-		state = "STOP"
+		state = stateStop
 	case hud.Roll:
 		state = "ROLL" // untriggered scrolling view (slow timebase)
 	case hud.Waiting:
@@ -632,11 +657,10 @@ func trigReadout(hud HUD) string {
 	case hud.Norm:
 		state = "WAIT"
 	}
-	readout := fmt.Sprintf("T C%d %s %s %s", hud.TrigSrc+1, edge, fmtVolt(hud.TrigLvlV), state)
 	if tag := trigTag(hud); tag != "" {
-		readout = fmt.Sprintf("T %s %s", tag, state)
+		return tag, state
 	}
-	return readout
+	return fmt.Sprintf("C%d %s %s", hud.TrigSrc+1, edge, fmtVolt(hud.TrigLvlV)), state
 }
 
 // TRLC-LINKS: REQ-DSO-021

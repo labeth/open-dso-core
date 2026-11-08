@@ -143,24 +143,102 @@ function drawScreen(rgba, w, ht) {
   stats.pictures++;
 }
 
-// TRLC-LINKS: REQ-DSO-298
+// The screen of a touch scope takes fingers: each pointer is one contact,
+// its down, moves and up sent as the touch screen reports them, so a tap,
+// a drag (a selection box), two fingers (a pinch or a pan) and a double tap
+// reach the firmware as on the scope. With a mouse, Ctrl+wheel pinches about
+// the pointer and Shift+drag moves two fingers together.
+// TRLC-LINKS: REQ-DSO-298, REQ-DSO-299
 function wireScreen() {
   const c = $('#screen');
   if (!demo.touch) return;
   c.classList.add('touch');
-  c.addEventListener('click', async (e) => {
-    if (!screenUp) return;
+  let chain = Promise.resolve();
+  // TRLC-LINKS: REQ-DSO-299
+  const send = (x, y, gesture, id) => {
+    chain = chain.then(async () => {
+      const res = await api('/api/sim/input', { touch: { x, y, gesture, id } });
+      if (!res.ok) flash(`touch: ${res.err}`, true);
+    });
+    return chain;
+  };
+  // TRLC-LINKS: REQ-DSO-299
+  const at = (e) => {
     const r = c.getBoundingClientRect();
-    const x = Math.round((e.clientX - r.left) / r.width * c.width);
-    const y = Math.round((e.clientY - r.top) / r.height * c.height);
+    return [Math.round((e.clientX - r.left) / r.width * c.width), Math.round((e.clientY - r.top) / r.height * c.height)];
+  };
+  // TRLC-LINKS: REQ-DSO-299
+  const ripple = (e) => {
+    const r = c.getBoundingClientRect();
     const rip = h('div', { class: 'ripple' });
     rip.style.left = `${e.clientX - r.left}px`;
     rip.style.top = `${e.clientY - r.top}px`;
     c.parentElement.append(rip);
     setTimeout(() => rip.remove(), 500);
-    const res = await api('/api/sim/input', { touch: { x, y } });
-    if (!res.ok) flash(`touch: ${res.err}`, true);
+  };
+  const fingers = new Map(); // pointerId -> {id, pair, last, x, y, timer}
+  // TRLC-LINKS: REQ-DSO-299
+  const freeId = () => { for (let i = 0; ; i++) if (![...fingers.values()].some((f) => f.id === i || f.pair === i)) return i; };
+  const pairDX = 30; // Shift+drag: the two fingers' distance from the pointer
+  // TRLC-LINKS: REQ-DSO-299
+  const moveTo = (f, x, y) => {
+    f.x = x; f.y = y;
+    if (f.timer) return;
+    const due = Math.max(0, 40 - (performance.now() - f.last));
+    f.timer = setTimeout(() => {
+      f.timer = 0; f.last = performance.now();
+      if (f.pair >= 0) { send(f.x - pairDX, f.y, 'move', f.id); send(f.x + pairDX, f.y, 'move', f.pair); } else send(f.x, f.y, 'move', f.id);
+    }, due);
+  };
+  c.addEventListener('pointerdown', (e) => {
+    if (!screenUp) return;
+    e.preventDefault();
+    c.setPointerCapture(e.pointerId);
+    ripple(e);
+    const [x, y] = at(e);
+    const f = { id: freeId(), pair: -1, last: performance.now(), x, y, timer: 0 };
+    fingers.set(e.pointerId, f);
+    if (e.shiftKey && e.pointerType === 'mouse') {
+      f.pair = f.id + 1;
+      send(x - pairDX, y, 'down', f.id);
+      send(x + pairDX, y, 'down', f.pair);
+      return;
+    }
+    send(x, y, 'down', f.id);
   });
+  c.addEventListener('pointermove', (e) => {
+    const f = fingers.get(e.pointerId);
+    if (f) moveTo(f, ...at(e));
+  });
+  // TRLC-LINKS: REQ-DSO-299
+  const up = (e) => {
+    const f = fingers.get(e.pointerId);
+    if (!f) return;
+    fingers.delete(e.pointerId);
+    clearTimeout(f.timer);
+    const [x, y] = at(e);
+    if (f.pair >= 0) {
+      send(x - pairDX, y, 'move', f.id); send(x + pairDX, y, 'move', f.pair);
+      send(x - pairDX, y, 'up', f.id); send(x + pairDX, y, 'up', f.pair);
+      return;
+    }
+    if (x !== f.x || y !== f.y) send(x, y, 'move', f.id);
+    send(x, y, 'up', f.id);
+  };
+  c.addEventListener('pointerup', up);
+  c.addEventListener('pointercancel', up);
+  c.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey || !screenUp) return;
+    e.preventDefault(); // Ctrl+wheel: a pinch about the pointer, out for a wheel turned up
+    const [x, y] = at(e);
+    const a = freeId(), b = a + 1, d0 = 60, d1 = e.deltaY < 0 ? 150 : 24;
+    send(x - d0, y, 'down', a); send(x + d0, y, 'down', b);
+    for (let k = 1; k <= 3; k++) {
+      const d = Math.round(d0 + (d1 - d0) * k / 3);
+      send(x - d, y, 'move', a); send(x + d, y, 'move', b);
+    }
+    send(x - d1, y, 'up', a); send(x + d1, y, 'up', b);
+  }, { passive: false });
 }
 
 // ---------------------------------------------------------------- front panel

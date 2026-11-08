@@ -23,9 +23,20 @@ type Display = uimodel.Display
 // TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
 func (c *Controller) Snapshot() (Display, wsview.View) { return c.displayAndView(c.snap()) }
 
-// view builds the UI snapshot from one state read.
+// view builds the UI snapshot from one state read: laid out for the
+// F-keys, or for touch (touchView).
 // TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
 func (c *Controller) view(s *sv) wsview.View {
+	if m := c.touchLayout(); m != nil {
+		return c.touchView(s, m)
+	}
+	return c.keysView(s)
+}
+
+// keysView is the view laid out for the F-keys: the rail, the F-key column
+// of an open menu, the full-screen sheet.
+// TRLC-LINKS: REQ-DSO-211, REQ-DSO-212
+func (c *Controller) keysView(s *sv) wsview.View {
 	u := &s.ui
 	if u.ws != wsview.Bus || !u.busEye {
 		c.endEyeRaw() // the eye left: nothing waits for its raw record

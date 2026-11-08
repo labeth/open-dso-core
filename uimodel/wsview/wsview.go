@@ -84,6 +84,42 @@ type Layout struct {
 	HideMeas         bool // no MEAS boxes (the MEASURE pane shows them)
 	HideViewCaptions bool // the analysis views' captions are in the pane
 	Sheet            bool // a full-screen settings sheet is open
+	// Touch is the touch-first layout (a scope with a touch screen and no
+	// F-keys): no rail and no F-key column; a bar of readouts on top that
+	// open their sheets, a touch bar at the bottom (Bar), and a sheet as a
+	// panel of touch-sized rows (render's touch geometry).
+	Touch bool
+}
+
+// Btn is one button of the touch bar: its id (what a tap runs), its label,
+// and how it is drawn.
+type Btn struct {
+	ID    string
+	Label string
+	Sel   bool // selected or lit (filled amber)
+	Dim   bool // offered, nothing to do now
+	Col   Col  // the label's colour when neither selected nor dim (0: Text)
+}
+
+// TouchBar is the touch-first layout's bottom bar: the workspaces, the
+// workspace's views as a segmented control (or a menu's choices when one
+// is up), and the actions the panel's keys also run.
+type TouchBar struct {
+	Views   []Btn  // the workspace's views, the active one selected
+	Keys    []Btn  // a menu's choices (the picker, the match editor): they replace Views
+	Actions []Btn  // right end: AUTO, RUN/STOP, SINGLE, Menu
+	Zoom    string // "Zoom 10x" while the view is zoomed: a reset target over the plot ("" none)
+}
+
+// Box is a selection box being drawn on the plot, in screen pixels.
+type Box struct{ X0, Y0, X1, Y1 int }
+
+// Chooser is the touch sheet's list of choices for one row: an enum's
+// options or a number's presets, each a large target.
+type Chooser struct {
+	Title string
+	Opts  []Opt
+	First int // the first option shown (a long list pages)
 }
 
 // Key is one F-key label: a choice in a menu (sheet, picker, editor).
@@ -133,6 +169,8 @@ type View struct {
 	Meas     *MeasPane
 	Cmp      *CmpPane
 	Sound    *SoundPane
+	Bar      *TouchBar // the touch-first layout's bottom bar
+	Box      *Box      // a selection box being drawn (touch-first layout)
 }
 
 // VisualPane is BUS's Visual view: the frame's decode drawn as what the bus
@@ -448,4 +486,10 @@ type Sheet struct {
 	Sub       *Sub
 	ThumbView int // the mini view: 0 Y-T, 1 X-Y, 2 FFT, 3 Bode, 4 spectrogram
 	FFTCh     int
+	// The touch panel: the first row shown (rows scroll under a finger),
+	// a row's open chooser, and the menu's choices (a sub-mode's) as
+	// buttons along its foot.
+	Scroll int
+	Choose *Chooser
+	Keys   []Btn
 }

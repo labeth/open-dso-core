@@ -2,7 +2,10 @@
 
 package render
 
-import "strconv"
+import (
+	"image"
+	"strconv"
+)
 
 // MatchView is the serial trigger's match editor (a full-screen keyboard),
 // mirrored from panel.MatchEditorView.
@@ -28,8 +31,15 @@ func drawMatchEditor(sf Canvas, m MatchView) {
 		return
 	}
 	sm := metricsOf(sf)
-	H := sm.H
-	areaW := sm.W - 116 // left of the softkey column
+	drawMatchEditorIn(sf, m, sm.W-116, sm.H, nil) // left of the softkey column
+}
+
+// drawMatchEditorIn draws the match editor in the area areaW wide down to
+// row bottom; add, when given, takes each key's cell (the touch layout's
+// targets).
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-214
+func drawMatchEditorIn(sf Canvas, m MatchView, areaW, bottom int, add func(r image.Rectangle, id string)) {
+	H := bottom
 	fillRect(sf, 0, 12, areaW, H-12, colBG)
 	DrawText(sf, 6, 16, "SERIAL MATCH  "+m.Proto+"  keys: "+m.Set+"  "+strconv.Itoa(len(m.Toks))+"/32 units", colTrig, 1)
 
@@ -126,11 +136,18 @@ func drawMatchEditor(sf Canvas, m MatchView) {
 				bg, fg = colTrig, colBG
 			}
 			fillRect(sf, x0+1, y0+1, cw-2, ch-2, bg)
+			if add != nil {
+				add(image.Rect(x0, y0, x0+cw, y0+ch), "mkey:"+strconv.Itoa(r)+":"+strconv.Itoa(c))
+			}
 			tw := TextWidth(label, ks)
 			DrawText(sf, x0+(cw-tw)/2, y0+(ch-8*ks)/2, label, fg, ks)
 		}
 	}
-	DrawText(sf, 6, H-36, "Adjust: key  push: type it   Position: cursor  push: clear   Menu On/Off: discard", colDim, 1)
+	hint := "Adjust: key  push: type it   Position: cursor  push: clear   Menu On/Off: discard"
+	if add != nil {
+		hint = "Tap a key to type it   Delete, OK and Cancel below   the knobs work too"
+	}
+	DrawText(sf, 6, H-36, hint, colDim, 1)
 	DrawText(sf, 6, H-24, "hex: 2 digits a byte, ? = any nibble   ?? any byte   ERR decode error", colDim, 1)
 	if m.Msg != "" {
 		DrawText(sf, 6, H-12, m.Msg, colTrig, 1)

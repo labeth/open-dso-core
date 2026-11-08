@@ -208,9 +208,20 @@ type InputEvent struct {
 	Knob           string
 	Steps          int // signed knob steps
 	TouchX, TouchY int
-	Gesture        string // "tap", "drag", "pinch"
-	Down           bool
+	// Gesture is what a touch event reports: "" a contact starting (Down)
+	// or ending (not Down), TouchMove a contact that moved while down. A
+	// board that reports only taps sends a start and an end; the UI model
+	// tells taps, drags and pinches apart from these.
+	Gesture string
+	// Contact names the finger a touch event is of: the slot a multi-touch
+	// screen reports it in (0 for the first or only contact). Two contacts
+	// down at once are a two-finger gesture.
+	Contact int
+	Down    bool
 }
+
+// TouchMove is the Gesture of a touch event whose contact moved while down.
+const TouchMove = "move"
 
 // InputSource is where an event came from.
 type InputSource int

@@ -423,7 +423,10 @@ func buildUI(env *Env, o Options) error {
 	if spec.W > 0 && spec.H > 0 {
 		m := metricsFor(spec)
 		pc.SetScreen(m.W, m.H)
-		if spec.Touch {
+		switch {
+		case panel.TouchFirst(env.Board.Profile()): // a touch screen and no F-keys
+			pc.SetTouchLayout(m)
+		case spec.Touch:
 			pc.SetTouchKeys(func(x, y int) string { return render.TouchKey(m, x, y) })
 		}
 	}

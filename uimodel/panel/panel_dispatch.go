@@ -109,7 +109,11 @@ func (c *Controller) Input(ev hal.InputEvent) {
 		}
 		c.lcdKnob(ev.Knob, dir, steps)
 	case hal.TouchEvent:
-		if !ev.Down || c.noteInput(true) {
+		if m := c.touchLayout(); m != nil {
+			c.touchEvent(m, ev)
+			return
+		}
+		if !ev.Down || ev.Gesture == hal.TouchMove || c.noteInput(true) {
 			return
 		}
 		c.touch(ev.TouchX, ev.TouchY)
