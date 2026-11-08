@@ -649,9 +649,10 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64) busMsgs {
 // sessionProtos are the buses whose later frames read only after the
 // frame that opens their session: a cJTAG escape and its scans (the scan
 // format), a SWIM command and its count, address and bytes (read or
-// written). A screen that cuts a session reads its opening alone as a
-// whole message, so the session is measured on the record that found it.
-var sessionProtos = map[string]bool{"cjtag": true, "swim": true}
+// written), a 1-Wire reset and its ROM command (a Read ROM's eight bytes).
+// A screen that cuts a session reads its opening alone as a whole message,
+// so the session is measured on the record that found it.
+var sessionProtos = map[string]bool{"cjtag": true, "swim": true, "onewire": true}
 
 // sessionOf is the longest session of a session bus (sessionProtos) on
 // the search's decode, its samples sampleS apart; the last one is left out,

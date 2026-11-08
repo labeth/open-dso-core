@@ -1098,7 +1098,50 @@ func (c *Controller) findBus(auto AutoSource, wanted func() bool) (decode.Result
 			return r, s, true, stepped
 		}
 	}
+	// A bus the decimated record named but did not resolve (an I2C bus at
+	// 200 kHz read at four samples a half bit, under decimatedFeature), and
+	// that no other look found (the full-rate record a few bits of it), is
+	// looked for where a decimated record resolves it: the slowest faster
+	// timebase reading its shortest feature at decimatedFeature samples.
+	if !found && dec.found && !c.waitingForTrigger(c.snap()) {
+		if r, s, ok, stepped := c.findResolved(dec, auto, wanted); ok {
+			return r, s, true, stepped
+		}
+	}
 	return res, sampleS, found, at
+}
+
+// findResolved looks for the bus a decimated look named but did not
+// resolve on the slowest faster timebase whose record reads its shortest
+// feature at decimatedFeature samples, and keeps it where it stands there.
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-222
+func (c *Controller) findResolved(dec look, auto AutoSource, wanted func() bool) (decode.Result, float64, bool, float64) {
+	featureS := decode.FeatureSamples(dec.res) * dec.sampleS
+	prev := c.snap().st.TdivSet()
+	if !(featureS > 0) || !(prev > 0) {
+		return decode.Result{}, 0, false, 0
+	}
+	tds := slices.Clone(c.tdivs)
+	slices.Sort(tds)
+	at := 0.0
+	for _, t := range tds {
+		if t < prev*0.999 && featureS/c.recordSampleS(t) >= decimatedFeature {
+			at = t // the slowest so far
+		}
+	}
+	if at == 0 {
+		return decode.Result{}, 0, false, 0
+	}
+	c.setTdivNearest(at)
+	set := c.snap().st.TdivSet()
+	accept := func(f *sample.Frame, _ bool) bool {
+		return f.Snapshot.TdivS == 0 || math.Abs(f.Snapshot.TdivS-set) <= 1e-3*set
+	}
+	if l := c.detectWith(true, true, accept, auto, decimatedWait); l.found && l.res.Proto == dec.res.Proto && decimatedStands(l.res) && wanted() {
+		return l.res, l.sampleS, true, set
+	}
+	c.setTdivNearest(prev)
+	return decode.Result{}, 0, false, 0
 }
 
 // fewUARTBytes is the bytes a UART find must hold for the search to end on

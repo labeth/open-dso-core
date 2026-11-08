@@ -412,14 +412,14 @@ func TestAutoInBusFindingNothingLeavesDecodeOff(t *testing.T) {
 
 // A session bus's message is its session, as the record that found the bus
 // shows it: a cJTAG escape with its IR and DR scans, a SWIM command with
-// its count, address and bytes; the record's last one, which it may cut,
+// its count, address and bytes, a 1-Wire reset with its Read ROM; the record's last one, which it may cut,
 // is left out. Another bus has none.
 // TRLC-LINKS: REQ-DSO-223
 func TestSessionOfASessionBus(t *testing.T) {
 	for _, tc := range []struct {
 		proto       string
 		least, most float64
-	}{{"cjtag", 400e-6, 700e-6}, {"swim", 400e-6, 600e-6}, {"uart", 0, 0}} {
+	}{{"cjtag", 400e-6, 700e-6}, {"swim", 400e-6, 600e-6}, {"onewire", 4e-3, 8e-3}, {"uart", 0, 0}} {
 		b, err := synth.Make(synth.Spec{Proto: tc.proto}, 0)
 		if err != nil {
 			t.Fatal(err)
