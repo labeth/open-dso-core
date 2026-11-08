@@ -1,0 +1,14 @@
+{
+  "name": "measure-square",
+  "about": "Frequency, peak-to-peak and duty of a 10 MHz 3.3 V square on C1, from the MEAS rows and the frame",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V", "meas.freq": "C1", "meas.pkpk": "C1", "meas.duty": "C1"}},
+  "steps": [
+    {"workspace": "measure"},
+    {"check": {"name": "readings",
+      "fields": ["workspace", "view", "meas.", "fmeas.ch1.", "row.time.tdiv"],
+      "tol": {"meas.": "rel:0.05", "fmeas.": "rel:0.05", "meas.pkpk.": "rel:0.15", "fmeas.ch1.vpp": "rel:0.15", "fmeas.ch1.vmax": "abs:0.4", "fmeas.ch1.vmin": "abs:0.4", "fmeas.ch1.vmean": "abs:0.3", "fmeas.ch1.vrms": "rel:0.15"},
+      "expect": {"workspace": {"eq": "measure"}}}}
+  ]
+}

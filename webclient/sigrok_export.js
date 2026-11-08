@@ -259,16 +259,17 @@ const SIGROK_VCD_CAP = 131072; // points before stride-decimation — the CSV ex
 // fine grid is interpolation, and >1M per-point text changes block the UI for
 // seconds (and load just as badly in GTKWave) for sub-sample rows that carry
 // no new data. The decimated rate keeps the time axis true and a $comment
-// records what was dropped; .sr and WAV are binary and stay verbatim.
+// records what was dropped; .sr and WAV are binary and stay verbatim. name
+// is the firmware's on the $version line.
 // TRLC-LINKS: REQ-DSO-069
-function sigrokVCD(series) {
+function sigrokVCD(series, name = "open-dso") {
   const step = series.n > SIGROK_VCD_CAP ? Math.ceil(series.n / SIGROK_VCD_CAP) : 1;
   const rate = series.rateHz / step;
   const rows = Math.ceil(series.n / step);
   const ts = sigrokVcdTimescale(rate);
   // TRLC-LINKS: REQ-DSO-069
   const id = (i) => String.fromCharCode(33 + i); // '!' onward, like sigrok
-  const lines = ["$version open-sds1000cml sigrok export $end"];
+  const lines = ["$version " + name + " sigrok export $end"];
   if (step > 1) lines.push("$comment decimated " + step + "x of " + series.n + " points $end");
   for (const c of series.ch) if (c.inverted) lines.push("$comment " + c.name + " inverted as displayed $end");
   lines.push("$timescale " + sigrokVcdPeriod(ts) + " $end", "$scope module libsigrok $end");

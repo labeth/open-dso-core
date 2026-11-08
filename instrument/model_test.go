@@ -27,12 +27,16 @@ func TestEqualSeesEveryField(t *testing.T) {
 		f := reflect.ValueOf(&s).Elem().Field(i)
 		change, ok := map[reflect.Kind]func(){
 			reflect.Slice: func() { s.Channels[1].Invert = true },
-			reflect.Struct: func() { // its last field, a number
-				g := f.Field(f.NumField() - 1)
-				if g.Kind() == reflect.Float64 {
-					g.SetFloat(g.Float() + 1)
-				} else {
-					g.SetInt(g.Int() + 1)
+			reflect.Struct: func() { // its last field that is a number
+				for k := f.NumField() - 1; k >= 0; k-- {
+					switch g := f.Field(k); g.Kind() { //nolint:exhaustive // numbers only
+					case reflect.Float64:
+						g.SetFloat(g.Float() + 1)
+						return
+					case reflect.Int:
+						g.SetInt(g.Int() + 1)
+						return
+					}
 				}
 			},
 			reflect.Bool:    func() { f.SetBool(!f.Bool()) },

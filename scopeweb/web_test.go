@@ -141,7 +141,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 		`{"control":"vdiv","ch":1,"value":0.3}`,
 		`{"control":"vdiv","ch":4,"value":1}`,
 		`{"control":"probe","ch":0,"value":7}`,
-		`{"control":"trigtype","value":2}`,
+		`{"control":"trigtype","value":7}`,
 		`{"control":"triglevelcode","value":1000}`,
 		`{"control":"zonemode","value":1}`,
 		`{"control":"tdiv","value":3e-6}`,

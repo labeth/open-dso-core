@@ -1,0 +1,14 @@
+{
+  "name": "scope-autoset",
+  "about": "AUTO in SCOPE on a 10 MHz 3.3 V square on C1: the time/div, V/div and trigger level it picks",
+  "relays": true,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "1ms"}},
+  "steps": [
+    {"key": "auto"},
+    {"check": {"name": "autoset",
+      "fields": ["workspace", "view", "row.time.tdiv", "row.ch1.vdiv", "row.ch1.on", "row.trig.edge", "row.trig.level", "row.trig.mode", "fmeas.ch1.freq", "run.running"],
+      "tol": {"row.time.tdiv": "ratio:2.5", "row.ch1.vdiv": "ratio:2.5", "row.trig.level": "abs:0.4", "fmeas.ch1.freq": "rel:0.02"},
+      "expect": {"row.trig.edge": {"contains": "C1"}, "run.running": {"eq": true}}}}
+  ]
+}

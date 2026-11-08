@@ -38,7 +38,14 @@ func (c *Controller) soundPane() *wsview.SoundPane {
 	p.Again = "F3 again: " + viewName(nextSpecView(viewSound))
 	p.Right = fmt.Sprintf("tuner C%d", set.Ch+1)
 	in := ss.info
+	_, streams := c.eng.(soundEngine)
 	switch {
+	case !streams:
+		why := "this scope's engine has no audio stream"
+		if a, ok := c.hw.(interface{ StreamAbsent() string }); ok && a.StreamAbsent() != "" {
+			why = a.StreamAbsent()
+		}
+		p.Caption, p.State = "no audio stream", "no audio stream: "+why
 	case in.Active:
 		p.Caption = fmt.Sprintf("gap-free stream %.1f kSa/s", in.RateHz/1000)
 		if in.Losses > 0 {

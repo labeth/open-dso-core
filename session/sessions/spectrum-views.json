@@ -1,0 +1,15 @@
+{
+  "name": "spectrum-views",
+  "about": "SPECTRUM's F-key again cycles its views; each view's name and F-keys",
+  "relays": false,
+  "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
+  "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
+  "steps": [
+    {"workspace": "spectrum"},
+    {"check": {"name": "spectrum", "fields": ["workspace", "view", "fkeys", "again"]}},
+    {"key": "f3"},
+    {"check": {"name": "again1", "fields": ["workspace", "view", "fkeys", "again"]}},
+    {"key": "f3"},
+    {"check": {"name": "again2", "fields": ["workspace", "view", "fkeys", "again"]}}
+  ]
+}

@@ -138,10 +138,24 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 		})
 		return lv, false, err
 	case "trigtype":
-		if v != 0 && !strings.EqualFold(req.Text, "edge") {
-			return nil, false, errors.New("this scope's shared trigger settings take the edge trigger only")
+		t := int(v)
+		if t < 0 || t > 3 {
+			return nil, false, errors.New("trigtype is 0 edge, 1 pulse, 2 slope or 3 video")
 		}
-		return 0.0, false, nil
+		m.SetTrigType(t)
+		return float64(t), false, nil
+	case "pulseparams":
+		m.SetPulseParams(req.Lvl, req.Min, req.Max, req.Cond)
+		return v, false, nil
+	case "slopeparams":
+		m.SetSlopeParams(req.Lo, req.Hi, req.Min, req.Max, req.Cond)
+		return v, false, nil
+	case "videoparams":
+		m.SetVideoParams(req.Std, req.Line, req.Neg)
+		return v, false, nil
+	case "serialmode":
+		m.SetSerialMode(int(v))
+		return v, false, nil
 	case "triglevelcode":
 		return nil, false, errors.New("the trigger level is set in volts on this scope (triglevel)")
 	case "vdiv":
@@ -244,8 +258,8 @@ func (c controls) bodeControl(req webserver.Control, nch int) (ok bool, err erro
 // carry: refused with the reason, not as unknown.
 var otherControls = map[string]struct{}{
 	"ets": {}, "rollstream": {}, "precisionrate": {}, "frameperiod": {}, "decodeview": {}, "stream": {},
-	"serialmode": {}, "zonemode": {}, "maskmode": {}, "maskclear": {}, "bodemode": {}, "bodeclear": {},
-	"pulseparams": {}, "slopeparams": {}, "videoparams": {}, "avgcount": {}, "eres": {}, "eresbits": {},
+	"zonemode": {}, "maskmode": {}, "maskclear": {}, "bodemode": {}, "bodeclear": {},
+	"avgcount": {}, "eres": {}, "eresbits": {},
 }
 
 // acqModes are the v1 acquisition mode numbers.
