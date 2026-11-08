@@ -1094,3 +1094,12 @@ decisions:
   decision: 'The replay turns the words back into the 8-bit codes the scope held, rounded as the scope rounds them, and keeps the Q8.8 words as precision words; at the capture''s own time/div the record is the capture word for word.'
   consequences:
   - 'Replayed measurements equal the scope''s exactly; edge shape on peak-pair records, which the scope measures on full-rate windows it does not serve, is named and not compared.'
+
+- id: ADR-SINGLE-AFTER-MASK-STOP
+  title: 'SINGLE after a mask stop-on-fail leaves the stop mark shown'
+  status: proposed
+  date: '2026-11-08'
+  context: 'On the CML, RUN releases a mask test''s stop-on-fail latch and clears its HUD mark; SINGLE does not. Moving run control into the core keeps that.'
+  decision: 'Kept as the CML does it: RUN releases the latch, SINGLE does not.'
+  consequences:
+  - 'Owner to decide whether SINGLE should also release it (it resumes acquisition); a small visible change.'
