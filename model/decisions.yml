@@ -1189,3 +1189,24 @@ decisions:
   - 'Behaviour is the SDS1000CML+''s: values read back exactly as before, applied one commit point later.'
   - 'When the CML runs HALCycle the queue and the engine''s copies go; the model''s state is already complete for it.'
   - 'The HUD and web status words still come from the engine''s flags; RunState gains words only when the HUD reads the model.'
+
+- id: ADR-HAL-STOPPED-RECORD
+  title: 'The HAL cycle shows a stopped record whole on a board whose readout places it'
+  status: proposed
+  date: '2026-11-08'
+  context: 'The SDS1000CML+ shows the whole stored record when it stops (ADR-RUN-CONTROL-CML-RULES) and reads its
+    live frames as a screen envelope its board places; the HAL cycle read only the board''s own main window
+    (Span 0) and showed the last live frame when stopped. The HAL had no way to ask a board for its whole record.'
+  decision: 'hal.ScreenRequest gains Record: the whole stored record, raw, as one window. On a board whose readout
+    is a hal.ScreenReader, HALCycle reads live frames through its screen window (an envelope unless a lease needs
+    the samples) and, once the run stops, reads the stored record whole and holds it: a finished SINGLE shows its
+    live frame and then its record, a STOP lets the capture it lands in finish (forced after 100 ms without a
+    trigger, as the CML''s stop wait) and shows that record whole, a mask stop-on-fail shows the failing record
+    whole, and an average stays shown. A setting committed while stopped shows the held record again with the
+    same ContentID, without reading the board. A board without a ScreenReader behaves as before.'
+  consequences:
+  - 'The SDS800X HD, the simulated board and the demo keep their behaviour until their readouts place windows;
+    the SDS1000CML+ board answers Record now and its own owner keeps reading the record as before until it runs
+    HALCycle.'
+  - 'The CML waits 100 ms plus the record''s pretrigger time before forcing; the HAL cycle does not know the
+    pretrigger time and waits 100 ms from the STOP.'

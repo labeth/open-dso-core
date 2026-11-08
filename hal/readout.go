@@ -74,17 +74,20 @@ type Readout interface {
 // trigger point placed back in software, a protocol match's start), the
 // margins the board's reads need, and, with Envelope, compressed to the
 // board's display envelope (peak pairs) where the window holds more
-// samples than the display needs.
+// samples than the display needs. With Record the window is the whole
+// stored record instead, uncompressed: what a stopped scope shows (the
+// other fields are then unused).
 type ScreenRequest struct {
 	PosFrac  float64
 	PreRoom  int
 	Envelope bool
+	Record   bool
 }
 
 // ScreenReader is optional on a Readout: the screen window of the stored
 // record (ScreenRequest), as a Window the owner reads with Read, beside
 // the detail windows it plans from it. ANY on the owner's goroutine, in
-// AcqState Ready.
+// AcqState Ready, or Idle with a stored record for a Record window.
 type ScreenReader interface {
 	ScreenWindow(r ScreenRequest) (Window, error)
 }
