@@ -38,6 +38,7 @@ export const maskv = [
     // settings to the rows and EDGE takes them away.
     const built = await op.page.evaluate(() => { const b = document.getElementById("trigAll"); return !!b && !b.hidden && !!document.getElementById("trigType"); });
     if (built) {
+      // TRLC-LINKS: REQ-DSO-208
       const rows = () => op.page.evaluate(() => [...document.querySelectorAll("#trigAll [data-trig]")].map((e) => e.dataset.trig));
       await op.selectExpect("trigType", "edge", async () => (await op.page.evaluate(() => document.getElementById("trigType").value)) === "edge", { why: "start from EDGE" });
       const edge = new Set(await rows());
