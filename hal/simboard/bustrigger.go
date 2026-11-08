@@ -106,6 +106,7 @@ func (b *Board) scanBus(q *acquisition, bus *prototrig.Bus, now float64) {
 		chB = chA
 	}
 	va, vb := b.viewOf(chA, q.set.channels[chA]), b.viewOf(chB, q.set.channels[chB])
+	va.rep, vb.rep = q.replay, q.replay
 	back := busBack(va, vb)
 	step := busStep(va, vb, p, q.set.plan.SampleS)
 	from := q.scanFrom

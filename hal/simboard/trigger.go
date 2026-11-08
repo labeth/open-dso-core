@@ -20,6 +20,8 @@ const (
 // volts through the probe setting, the coupling and the invert, at the
 // probe tip.
 type view struct {
+	rep    *replay // a replayed record's channel in place of the generator
+	n      int     // the channel
 	sig    siggen.Signal
 	ch     hal.Channel
 	dc     float64 // the mean AC coupling removes
@@ -30,7 +32,7 @@ type view struct {
 // viewOf is channel ch's signal under setting c.
 // TRLC-LINKS: REQ-DSO-1001
 func (b *Board) viewOf(ch int, c hal.Channel) view {
-	v := view{sig: b.sig.Signal(ch), ch: c, scale: c.Probe, ground: c.Coupling == hal.GND}
+	v := view{sig: b.sig.Signal(ch), ch: c, scale: c.Probe, ground: c.Coupling == hal.GND, n: ch}
 	if v.scale == 0 {
 		v.scale = 1
 	}
@@ -48,6 +50,9 @@ func (b *Board) viewOf(ch int, c hal.Channel) view {
 func (v view) volts(t float64) float64 {
 	if v.ground {
 		return 0
+	}
+	if x, ok := v.rep.volts(v.n, t); ok {
+		return x - v.dc // captured at the tip: the probe is already in it
 	}
 	return (v.sig.V(t) - v.dc) * v.scale
 }
@@ -117,6 +122,7 @@ func (b *Board) scan(q *acquisition, now float64) {
 	}
 	ch := st.Source.Index
 	v := b.viewOf(ch, q.set.channels[ch])
+	v.rep = q.replay
 	if q.set.trigger.Coupling == hal.TrigAC && !v.ground {
 		v.dc = meanOf(v.sig)
 	}

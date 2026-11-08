@@ -1,0 +1,214 @@
+{
+  "format": "open-dso capture 1",
+  "about": "C1: UART 115200 8N1 sending 48 69 20 55 aa 0f f0 0a, 3.3 V logic",
+  "scope": {
+    "vendor": "open-dso",
+    "model": "TEST2",
+    "product": "test-scope",
+    "firmware": "test"
+  },
+  "rows": {
+    "ch1.coupling": "DC",
+    "ch1.offset": "0V",
+    "ch1.on": "On",
+    "ch1.probe": "1x",
+    "ch1.vdiv": "1V",
+    "ch2.coupling": "DC",
+    "ch2.offset": "0V",
+    "ch2.on": "On",
+    "ch2.probe": "1x",
+    "ch2.vdiv": "500mV",
+    "time.tdiv": "100us",
+    "trig.edge": "C1 Rise",
+    "trig.level": "1.66V"
+  },
+  "decode": {
+    "proto": 2,
+    "baud": 115200,
+    "ch_a": 0
+  },
+  "frame": "RFNGMg8DAAB7InNlcSI6MywicmF3Ijp0cnVlLCJmbGFncyI6WyJvcmRlcmVkIl0sInNhbXBsZV9zIjo0LjllLTcsImFjcV9kZWNpbSI6MjQ1LCJ0cmlnZ2VyX2F0IjoxMDIxLCJ0cmlnX2tpbmQiOiJoYXJkd2FyZS1lZGdlIiwidGRpdl9zIjowLjAwMDEsImRpc3BsYXllZF9zZGl2X3MiOjAuMDAwMSwiY29scyI6MjA0MSwiY29sX3NwYW5fcyI6MC4wMDEwMDAwOSwiY2FwdHVyZV9kZXB0aCI6MjA0MSwid2luX2NvbHMiOjIwNDEsImVkZ2VfeCI6MTAyMSwiZWRnZV9mcmFjIjotMSwid2luX2ZyYWMiOjEsInB0cCI6ODMsImludGVycCI6ZmFsc2UsIm5vcm0iOnRydWUsInRyaWdkIjp0cnVlLCJjb2hlcmVudCI6dHJ1ZSwidHJhY2VzIjpbeyJjaCI6MCwiZm10Ijp7ImJpdHMiOjgsInN0b3JhZ2UiOiJ1OCIsInNoaWZ0IjowLCJmcmFjIjowLCJtaWQiOjEyOCwibWluIjowLCJtYXgiOjI1NX0sInNjYWxlIjp7Inplcm8iOjEyOCwicGVyX2NvZGVfdiI6MC4wNCwib2ZmX3YiOjAsImNvZGVzX3Blcl9kaXYiOjI1fX0seyJjaCI6MSwiZm10Ijp7ImJpdHMiOjgsInN0b3JhZ2UiOiJ1OCIsInNoaWZ0IjowLCJmcmFjIjowLCJtaWQiOjEyOCwibWluIjowLCJtYXgiOjI1NX0sInNjYWxlIjp7Inplcm8iOjEyOCwicGVyX2NvZGVfdiI6MC4wMiwib2ZmX3YiOjAsImNvZGVzX3Blcl9kaXYiOjI1fX1dLCJzZWdzIjpbeyJjaCI6MCwicm9sZSI6InJhdyIsInN0b3JhZ2UiOiJ1OCIsIm4iOjIwNDEsImF0IjowfSx7ImNoIjoxLCJyb2xlIjoicmF3Iiwic3RvcmFnZSI6InU4IiwibiI6MjA0MSwiYXQiOjIwNDh9XX0A09PT09PT09PT09PT09PT09PT09PT09PT09PT09OAgICAgICAgICAgICAgICAgIDT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDT09PT09PT09PT09PT09PT09OAgICAgICAgICAgICAgICAgIDT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09OAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgIDT09PT09PT09PT09PT09PT09OAgICAgICAgICAgICAgICAgIDT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09OAgICAgICAgICAgICAgICAgIDT09PT09PT09PT09PT09PT09OAgICAgICAgICAgICAgICAgIDT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PTgICAgICAgICAgICAgICAgICA09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09OAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgNPT09PT09PT09PT09PT09PT04CAgICAgICAgICAgICAgICAgICAgICAgICAgAAAAAAAAACJioqKioqKiouLi4uLi4uMjIyMjIyMjY2NjY2NjY2Ojo6Ojo6Ojo+Pj4+Pj4+PkJCQkJCQkJCRkZGRkZGRkZGSkpKSkpKSkpKSk5OTk5OTk5OTk5SUlJSUlJSUlJSVlZWVlZWVlZWVlZWWlpaWlpaWlpaWlpaWlpeXl5eXl5eXl5eXl5eXl5eXmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiXl5eXl5eXl5eXl5eXl5eXl5aWlpaWlpaWlpaWlpaVlZWVlZWVlZWVlZWUlJSUlJSUlJSUlJOTk5OTk5OTk5OSkpKSkpKSkpKSkZGRkZGRkZGQkJCQkJCQkJCPj4+Pj4+Pj46Ojo6Ojo6OjY2NjY2NjYyMjIyMjIyMi4uLi4uLi4qKioqKioqJiYmJiYmJiIiIiIiIiIeHh4eHh4eGhoaGhoaFhYWFhYWFhISEhISEhIODg4ODg4KCgoKCgoKBgYGBgYGAgICAgICAf39/f39/fn5+fn5+fn19fX19fXx8fHx8fHx7e3t7e3t7enp6enp6eXl5eXl5eXh4eHh4eHh3d3d3d3d3dnZ2dnZ2dnV1dXV1dXV0dHR0dHR0dHNzc3Nzc3NycnJycnJycnFxcXFxcXFxcHBwcHBwcHBwb29vb29vb29ubm5ubm5ubm5ubW1tbW1tbW1tbWxsbGxsbGxsbGxsa2tra2tra2tra2trampqampqampqampqamlpaWlpaWlpaWlpaWlpaWlpaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2doaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhpaWlpaWlpaWlpaWlpaWlpaWpqampqampqampqampqa2tra2tra2tra2trbGxsbGxsbGxsbG1tbW1tbW1tbW1ubm5ubm5ubm5ub29vb29vb29vcHBwcHBwcHBxcXFxcXFxcXJycnJycnJyc3Nzc3Nzc3N0dHR0dHR0dXV1dXV1dXZ2dnZ2dnZ3d3d3d3d3eHh4eHh4eHl5eXl5eXl6enp6enp6e3t7e3t7fHx8fHx8fH19fX19fX5+fn5+fn5/f39/f3+AgICAgICAgYGBgYGBgoKCgoKCgoODg4ODg4OEhISEhISFhYWFhYWFhoaGhoaGh4eHh4eHh4iIiIiIiIiJiYmJiYmJioqKioqKiouLi4uLi4uMjIyMjIyMjI2NjY2NjY2Ojo6Ojo6Ojo+Pj4+Pj4+PkJCQkJCQkJCQkZGRkZGRkZGRkpKSkpKSkpKSk5OTk5OTk5OTk5SUlJSUlJSUlJSUlZWVlZWVlZWVlZWVlpaWlpaWlpaWlpaWlpaXl5eXl5eXl5eXl5eXl5eXmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiXl5eXl5eXl5eXl5eXl5eXl5aWlpaWlpaWlpaWlpaWlZWVlZWVlZWVlZWVlJSUlJSUlJSUlJSTk5OTk5OTk5OTkpKSkpKSkpKSkZGRkZGRkZGRkJCQkJCQkJCPj4+Pj4+Pj46Ojo6Ojo6OjY2NjY2NjY2MjIyMjIyMi4uLi4uLi4uKioqKioqKiYmJiYmJiYiIiIiIiIeHh4eHh4eGhoaGhoaGhYWFhYWFhYSEhISEhIODg4ODg4OCgoKCgoKBgYGBgYGBgICAgICAf39/f39/f35+fn5+fn19fX19fX18fHx8fHx7e3t7e3t7enp6enp6enl5eXl5eXh4eHh4eHh3d3d3d3d3dnZ2dnZ2dnV1dXV1dXV1dHR0dHR0dHNzc3Nzc3NzcnJycnJycnFxcXFxcXFxcXBwcHBwcHBwb29vb29vb29vbm5ubm5ubm5ubW1tbW1tbW1tbWxsbGxsbGxsbGxsa2tra2tra2tra2trampqampqampqampqamppaWlpaWlpaWlpaWlpaWlpaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnaGhoaGhoaGhoaGhoaGhoaGhoaGhoaGhoaWlpaWlpaWlpaWlpaWlpaWpqampqampqampqampqa2tra2tra2tra2trbGxsbGxsbGxsbGxtbW1tbW1tbW1tbm5ubm5ubm5ub29vb29vb29vcHBwcHBwcHBwcXFxcXFxcXFycnJycnJyc3Nzc3Nzc3N0dHR0dHR0dHV1dXV1dXV2dnZ2dnZ2d3d3d3d3d3h4eHh4eHh5eXl5eXl6enp6enp6e3t7e3t7e3x8fHx8fH19fX19fX1+fn5+fn5/f39/f39/gICAgICAgYGBgYGBgYKCgoKCgoODg4ODg4OEhISEhISEhYWFhYWFhoaGhoaGhoeHh4eHh4eIiIiIiIiJiYmJiYmJAAAAAAAAAA==",
+  "reported": {
+    "fmeas.ch1.duty": {
+      "v": 76.82662165420787,
+      "num": 76.82662165420787
+    },
+    "fmeas.ch1.edge_shape": {
+      "v": false
+    },
+    "fmeas.ch1.env_aliased": {
+      "v": false
+    },
+    "fmeas.ch1.env_timing": {
+      "v": false
+    },
+    "fmeas.ch1.fall_s": {
+      "v": 3.919999999999986e-7,
+      "num": 3.919999999999986e-7
+    },
+    "fmeas.ch1.freq": {
+      "v": 38385.26006013691,
+      "num": 38385.26006013691
+    },
+    "fmeas.ch1.has_timing": {
+      "v": true
+    },
+    "fmeas.ch1.neg_width_s": {
+      "v": 0.000017395,
+      "num": 0.000017395
+    },
+    "fmeas.ch1.overshoot": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch1.period": {
+      "v": 0.000026051666666666663,
+      "num": 0.000026051666666666663
+    },
+    "fmeas.ch1.pos_width_s": {
+      "v": 0.000020014615384615385,
+      "num": 0.000020014615384615385
+    },
+    "fmeas.ch1.preshoot": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch1.rise_s": {
+      "v": 3.919999999999986e-7,
+      "num": 3.919999999999986e-7
+    },
+    "fmeas.ch1.vampl": {
+      "v": 3.3200000000000003,
+      "num": 3.3200000000000003
+    },
+    "fmeas.ch1.vbase": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch1.vmax": {
+      "v": 3.3200000000000003,
+      "num": 3.3200000000000003
+    },
+    "fmeas.ch1.vmean": {
+      "v": 1.7746790788829003,
+      "num": 1.7746790788829003
+    },
+    "fmeas.ch1.vmin": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch1.vpp": {
+      "v": 3.3200000000000003,
+      "num": 3.3200000000000003
+    },
+    "fmeas.ch1.vrms": {
+      "v": 2.4273307442314547,
+      "num": 2.4273307442314547
+    },
+    "fmeas.ch1.vrms_ac": {
+      "v": 1.6560340301052299,
+      "num": 1.6560340301052299
+    },
+    "fmeas.ch1.vtop": {
+      "v": 3.3200000000000003,
+      "num": 3.3200000000000003
+    },
+    "fmeas.ch2.duty": {
+      "v": 50.5386875612145,
+      "num": 50.5386875612145
+    },
+    "fmeas.ch2.edge_shape": {
+      "v": false
+    },
+    "fmeas.ch2.env_aliased": {
+      "v": false
+    },
+    "fmeas.ch2.env_timing": {
+      "v": false
+    },
+    "fmeas.ch2.fall_s": {
+      "v": 0.00014798,
+      "num": 0.00014798
+    },
+    "fmeas.ch2.freq": {
+      "v": 1998.8406724100025,
+      "num": 1998.8406724100025
+    },
+    "fmeas.ch2.has_timing": {
+      "v": true
+    },
+    "fmeas.ch2.neg_width_s": {
+      "v": 0.00024720499999999996,
+      "num": 0.00024720499999999996
+    },
+    "fmeas.ch2.overshoot": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.period": {
+      "v": 0.0005002899999999999,
+      "num": 0.0005002899999999999
+    },
+    "fmeas.ch2.pos_width_s": {
+      "v": 0.00025284,
+      "num": 0.00025284
+    },
+    "fmeas.ch2.preshoot": {
+      "v": 0,
+      "num": 0
+    },
+    "fmeas.ch2.rise_s": {
+      "v": 0.00014748999999999999,
+      "num": 0.00014748999999999999
+    },
+    "fmeas.ch2.vampl": {
+      "v": 1,
+      "num": 1
+    },
+    "fmeas.ch2.vbase": {
+      "v": -0.5,
+      "num": -0.5
+    },
+    "fmeas.ch2.vmax": {
+      "v": 0.5,
+      "num": 0.5
+    },
+    "fmeas.ch2.vmean": {
+      "v": 0.000019598236158913098,
+      "num": 0.000019598236158913098
+    },
+    "fmeas.ch2.vmin": {
+      "v": -0.5,
+      "num": -0.5
+    },
+    "fmeas.ch2.vpp": {
+      "v": 1,
+      "num": 1
+    },
+    "fmeas.ch2.vrms": {
+      "v": 0.3539050714641361,
+      "num": 0.3539050714641361
+    },
+    "fmeas.ch2.vrms_ac": {
+      "v": 0.3539050709214894,
+      "num": 0.3539050709214894
+    },
+    "fmeas.ch2.vtop": {
+      "v": 0.5,
+      "num": 0.5
+    },
+    "packets": {
+      "v": [
+        "0ff00a (cut)",
+        "48692055aa0f (cut)"
+      ]
+    },
+    "packets.count": {
+      "v": 2,
+      "num": 2
+    },
+    "packets.text": {
+      "v": "\\x0f\\xf0\\x0aHi U\\xaa\\x0f"
+    }
+  }
+}

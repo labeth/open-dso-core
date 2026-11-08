@@ -91,13 +91,14 @@ async function waitFor(fn, ms, every = 300) {
 }
 // workspace switches the scope's workspace on its function keys: the F-key
 // whose label names it, as the LCD's workspace bar shows (the remote's
-// workspace request where the bar is not up).
+// workspace request where the bar is not up, or the panel has no F-keys: a
+// touch screen's workspace bar is touched, not pressed).
 const wsLabel = { scope: "SCOP", bus: "BUS", spectrum: "SPEC", measure: "MEAS", compare: "COMP" };
 async function workspace(id) {
   const p = await panel();
   if (p.WorkspaceID === id) return;
   const i = p.Mode === "workspace" ? (p.FKeys || []).findIndex((f) => f.Label === wsLabel[id]) : -1;
-  if (i >= 0) await key(`f${i + 1}`);
+  if (i >= 0 && (await bench.$(`button[data-key="f${i + 1}"]`))) await key(`f${i + 1}`);
   else await api("/api/panel", { workspace: id });
   await waitFor(async () => (await panel()).WorkspaceID === id, 5000);
 }
