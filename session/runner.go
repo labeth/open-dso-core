@@ -286,6 +286,14 @@ func (t *Target) setRow(ctx context.Context, id, text string, value any) error {
 	return nil
 }
 
+// rowSettle lets one row's change reach the acquisition before the next
+// row is set: a row read in the next one's terms (a trigger level on the
+// grid of the probe factor just set) is then read as the scope reads it.
+// TRLC-LINKS: REQ-DSO-295
+func (t *Target) rowSettle(ctx context.Context) {
+	_ = t.settle(ctx, 5*time.Second)
+}
+
 // sleep waits d or until ctx ends.
 // TRLC-LINKS: REQ-DSO-295
 func sleep(ctx context.Context, d time.Duration) {
@@ -441,6 +449,7 @@ func (t *Target) start(ctx context.Context, s *Session, base Baseline) error {
 			return err
 		}
 		if !t.dry() { // a row may move others (a probe factor scales the V/div)
+			t.rowSettle(ctx)
 			cur = t.rowTexts(ctx)
 		}
 	}
@@ -543,6 +552,7 @@ func (t *Target) restore(ctx context.Context, sr *Played, before *savedState) {
 			if err := t.setRow(ctx, id, want, nil); err != nil {
 				left = append(left, fmt.Sprintf("%s %q: %v", id, want, err))
 			}
+			t.rowSettle(ctx)
 			cur = t.rowTexts(ctx) // a row may move others (a probe factor scales the V/div)
 		}
 	}
