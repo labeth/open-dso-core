@@ -40,8 +40,17 @@ await bench.waitForFunction(() => window.demoStats && (window.demoStats.firstFra
 const loadMs = Date.now() - t0;
 const ui = await ctx.newPage();
 ui.on("pageerror", (e) => errors.push(`web UI: ${e.message}`));
-await ui.goto(uiURL, { waitUntil: "domcontentloaded", timeout: 60000 });
-await ui.waitForFunction(() => typeof frame !== "undefined" && frame && frame.seq > 0, null, { timeout: 60000 });
+// the web UI's first frame; a tab opened while the service worker still
+// takes the engine's port is loaded again once
+for (let tries = 0; ; tries++) {
+  await ui.goto(uiURL, { waitUntil: "domcontentloaded", timeout: 60000 });
+  try {
+    await ui.waitForFunction(() => typeof frame !== "undefined" && frame && frame.seq > 0, null, { timeout: 60000 });
+    break;
+  } catch (e) {
+    if (tries > 0) throw e;
+  }
+}
 
 // ---------------------------------------------------------------- the bench's hands
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
