@@ -39,8 +39,10 @@ type Config struct {
 	Instrument *instrument.Model
 	// Frames is the engine's fan-out.
 	Frames FrameSource
-	// Version is the firmware's version as the page shows it.
+	// Version is the firmware's version as the page shows it; Product
+	// the firmware's name (the page's title).
 	Version string
+	Product string
 	// Probes are the probe factors a channel offers (default 1, 10, 100),
 	// BWLimits the bandwidth limits by name (default "full"): the HAL
 	// front end takes any value and refuses at commit, so the lists the

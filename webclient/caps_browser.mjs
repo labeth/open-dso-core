@@ -80,6 +80,8 @@ const out = await page.evaluate(() => {
     cursorRows: [...document.querySelectorAll("#curBody th")].map((th) => th.textContent),
     vgCells: document.querySelector(".vg").children.length,
     brand: document.querySelector(".brand > span").textContent,
+    brandName: document.querySelector(".brand > b").textContent,
+    title: document.title,
   };
 });
 // ---- the parts that follow the caps' channels, on the last channel ----

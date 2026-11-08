@@ -38,6 +38,17 @@ repository:
 maskviol drives a low-duty pulse, a hard case for AUTO, so its batch is the
 least stable of the six.
 
+## The browser demo
+
+The workflows also run against the browser demo, whose simulated board takes
+each source from its signal generator (`demo_sources.mjs`; the burst has no
+generator setting and its workflows skip with the reason):
+
+    DEMO_SOURCE=1 RUN_ALL=1 SCOPE_URL=http://127.0.0.1:8090/ node run.mjs uart
+
+For the WebAssembly build, `DEMO_BENCH` names the site's bench page, which
+runs the firmware in its tab, and `SCOPE_URL` the site's `ui/`.
+
 ## Contract
 
 `operator.mjs` primitives assert every control ACTUALLY responded and THROW

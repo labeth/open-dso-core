@@ -1,0 +1,18 @@
+{
+  "name": "bus-auto-i2c",
+  "about": "AUTO in BUS on an I2C bus at 200 kHz (SCL on C2, SDA on C1) writing to 0x24 finds I2C and decodes the write",
+  "relays": true,
+  "signals": {
+    "C1": {"kind": "i2c", "line": "sda", "rate": 200e3, "vpp": 3.3, "offset": 1.65, "hex": "55aa0ff0", "opts": {"addr": "0x24", "rw": "w"}},
+    "C2": {"kind": "i2c", "line": "scl", "rate": 200e3, "vpp": 3.3, "offset": 1.65, "hex": "55aa0ff0", "opts": {"addr": "0x24", "rw": "w"}}
+  },
+  "start": {"rows": {"trig.level": "1.65V", "trig.edge": "C2 Rise"}},
+  "steps": [
+    {"workspace": "bus"},
+    {"key": "auto"},
+    {"check": {"name": "found",
+      "fields": ["workspace", "view", "row.bus.protocol", "row.bus.scl", "row.bus.sda", "decode.auto", "packets", "row.time.tdiv"],
+      "tol": {"packets": "present", "row.time.tdiv": "ratio:2.5"},
+      "expect": {"row.bus.protocol": {"eq": "I2C"}, "row.bus.scl": {"eq": "CH2"}, "packets": {"contains": "@24W 55aa0ff0"}}}}
+  ]
+}

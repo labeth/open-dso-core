@@ -63,6 +63,8 @@ type pageRun struct {
 	CursorRows    []string                   `json:"cursorRows"`
 	VgCells       int                        `json:"vgCells"`
 	Brand         string                     `json:"brand"`
+	BrandName     string                     `json:"brandName"`
+	Title         string                     `json:"title"`
 	VertOver      int                        `json:"vertOver"`
 	Areas         pageAreas                  `json:"areas"`
 	AllGroups     []string                   `json:"allGroups"`
@@ -176,7 +178,7 @@ func TestCapsBrowser(t *testing.T) {
 	a, b := plain, served
 	a.CapsServed, a.Wire, a.Requests = b.CapsServed, b.Wire, nil
 	b.Requests = nil
-	b.Brand = a.Brand
+	b.Brand, b.BrandName, b.Title = a.Brand, a.BrandName, a.Title
 	if !reflect.DeepEqual(a, b) {
 		ja, _ := json.Marshal(a)
 		jb, _ := json.Marshal(b)
@@ -236,8 +238,11 @@ func TestCapsBrowser(t *testing.T) {
 	if !slices.ContainsFunc(w.Requests, func(r string) bool { return strings.HasPrefix(r, `POST /api/set {"control":"vdiv","ch":3,`) }) {
 		t.Fatalf("C4's V/div was not set by channel: %v", w.Requests)
 	}
-	if w.Brand != "fake four-channel 12-bit" {
-		t.Fatalf("brand %q", w.Brand)
+	if w.Brand != "fake four-channel 12-bit" || w.BrandName != "fake firmware" || w.Title != "fake firmware / fake four-channel 12-bit" {
+		t.Fatalf("brand %q %q, title %q", w.BrandName, w.Brand, w.Title)
+	}
+	if plain.BrandName != "open-dso" || plain.Title != "open-dso" {
+		t.Fatalf("without caps: brand %q, title %q", plain.BrandName, plain.Title)
 	}
 	checkTwoChannelAreas(t, plain)
 	checkFourChannelAreas(t, w)
