@@ -46,6 +46,13 @@ type Demo struct {
 	OffsetStepsPerDiv float64   `json:"offset_steps_per_div"`
 	Ladder            []float64 `json:"ladder"`
 	Depth             int       `json:"depth"`
+	// RecordDepth is the deepest record the simulated board samples (a
+	// full-rate capture memory deeper than the profile's readout window, or
+	// a memory bounded for a browser); 0: the profile's.
+	RecordDepth int `json:"record_depth"`
+	// RecordScreens is how many screens a live record spans where the
+	// timebase decimates (simboard.Config.RecordScreens).
+	RecordScreens float64 `json:"record_screens"`
 	// Signals are the inputs' signals at start, by input name ("C1").
 	Signals map[string]string `json:"signals"`
 	// Start is the instrument's power-on state.
@@ -105,7 +112,7 @@ func Board(profileYAML []byte, d Demo, o Options) (*simboard.Board, error) {
 	b, err := simboard.New(simboard.Config{
 		Profile: p, Identity: id, CodesPerDiv: d.CodesPerDiv,
 		LevelStepsPerDiv: d.LevelStepsPerDiv, OffsetStepsPerDiv: d.OffsetStepsPerDiv,
-		Ladder: d.Ladder, Depth: d.Depth,
+		Ladder: d.Ladder, Depth: d.Depth, RecordDepth: d.RecordDepth, RecordScreens: d.RecordScreens,
 		Stored: o.Stored, Persist: o.Persist, OnPresent: o.OnPresent, OnLamps: o.OnLamps,
 	})
 	if err != nil {

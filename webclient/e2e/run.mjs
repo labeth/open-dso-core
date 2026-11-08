@@ -15,6 +15,13 @@ if (!list.length) { console.log(`no workflows for source ${SRC}`); process.exit(
 
 const op = await launch(URL);
 if (!op) { console.log("SKIP: playwright not installed"); process.exit(0); }
+// The browser demo (DEMO_SOURCE=1): the source is set on its generator, not
+// flashed; a source it cannot make skips its workflows with the reason.
+if (process.env.DEMO_SOURCE === "1" && SRC) {
+  const { applySource } = await import("./demo_sources.mjs");
+  const why = await applySource(op.page, SRC);
+  if (why) { console.log(`SKIP: ${SRC}: ${why}`); await op.close(); process.exit(0); }
+}
 
 let pass = 0, fail = 0;
 const failures = [];

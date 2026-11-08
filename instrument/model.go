@@ -19,18 +19,20 @@ import (
 // what the board applied, what it refused, the run state and every frame
 // it publishes. Every method is safe for concurrent use.
 type Model struct {
-	mu      sync.Mutex
-	want    State
-	gen     uint64 // bumped by every change of want
-	check   func(State) error
-	run     RunState
-	force   bool
-	posted  []func(ctx context.Context)
-	refused []func(error)
-	frames  FrameSource
-	last    *sample.Frame
-	runMem  runMemory // the trigger mode an armed single shot replaced
-	tdivs   []float64 // the timebase ladder SetTdiv snaps to
+	mu       sync.Mutex
+	want     State
+	gen      uint64 // bumped by every change of want
+	check    func(State) error
+	run      RunState
+	force    bool
+	posted   []func(ctx context.Context)
+	refused  []func(error)
+	frames   FrameSource
+	last     *sample.Frame
+	runMem   runMemory // the trigger mode an armed single shot replaced
+	tdivs    []float64 // the timebase ladder SetTdiv snaps to
+	leases   map[string]lease
+	backends Backends
 }
 
 // FrameSource gives a reader the newest published frame: the engine's

@@ -9,7 +9,10 @@
 package instrument
 
 import (
+	"slices"
+
 	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/hal/prototrig"
 )
 
 // State is the instrument's settings.
@@ -33,6 +36,10 @@ type State struct {
 	Sweep    hal.Sweep
 	Single   bool
 	Running  bool
+	// SerialMode arms the serial trigger (1) on Serial's bus and match in
+	// place of the trigger type; 0: off.
+	SerialMode int
+	Serial     prototrig.SerialParams
 }
 
 // Edge is the edge trigger's setting.
@@ -49,6 +56,8 @@ type Edge struct {
 // TRLC-LINKS: REQ-DSO-008
 func (s State) Clone() State {
 	s.Channels = append([]hal.Channel(nil), s.Channels...)
+	s.Serial.Bytes = slices.Clone(s.Serial.Bytes)
+	s.Serial.Pattern = slices.Clone(s.Serial.Pattern)
 	return s
 }
 
@@ -66,7 +75,8 @@ func (s State) Equal(o State) bool {
 	return s.TimeDivS == o.TimeDivS && s.DelayS == o.DelayS && s.Depth == o.Depth && s.Mode == o.Mode &&
 		s.Averages == o.Averages && s.EresLen == o.EresLen && s.ETS == o.ETS &&
 		s.Trigger == o.Trigger && s.TrigType == o.TrigType && s.Qual == o.Qual &&
-		s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running
+		s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running &&
+		s.SerialMode == o.SerialMode && s.Serial.Equal(&o.Serial)
 }
 
 // Request is what the planner is asked for in state s: the channels that

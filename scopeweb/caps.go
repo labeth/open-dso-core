@@ -41,7 +41,7 @@ func (s *Scope) capsDoc() wire.Caps {
 	st := s.state()
 	n := p.Channels
 	c := wire.Caps{
-		Identity: wire.Identity{Vendor: p.Identity.Vendor, Model: p.Identity.Model, Firmware: s.cfg.Version, Stage: p.Stage},
+		Identity: wire.Identity{Vendor: p.Identity.Vendor, Model: p.Identity.Model, Product: s.cfg.Product, Firmware: s.cfg.Version, Stage: p.Stage},
 	}
 	if !s.v1Wire() {
 		c.Wire.Frame = []int{2}
@@ -157,6 +157,18 @@ var sharedControls = []wire.CapsControl{
 	{Name: "acqmode"},
 }
 
+// streamWhy is why a feature fed by a gap-free stream is absent: the
+// board's own reason when it has no streamer, else why.
+// TRLC-LINKS: REQ-DSO-164
+func (s *Scope) streamWhy(p hal.Profile, why string) string {
+	if b := s.cfg.Board; b != nil {
+		if _, ok := b.Streamer(); !ok {
+			return p.AbsentReason("streamer")
+		}
+	}
+	return why
+}
+
 // features is every optional feature, ok or why not.
 // TRLC-LINKS: REQ-DSO-164
 func (s *Scope) features(p hal.Profile) map[string]wire.Feature {
@@ -176,7 +188,7 @@ func (s *Scope) features(p hal.Profile) map[string]wire.Feature {
 		"superres":      why(raw, "needs full-rate raw records"),
 		"record":        why(true, ""),
 		"client_decode": why(parts.ClientDecode != nil, noEngine),
-		"sound":         why(parts.Sound != nil, noEngine),
+		"sound":         why(parts.Sound != nil, s.streamWhy(p, noEngine)),
 		"bode":          why(parts.Bode != nil, noEngine),
 		"mask":          why(parts.Masks != nil, noEngine),
 		"zones":         why(parts.Zones != nil, noEngine),

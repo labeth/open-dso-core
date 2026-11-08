@@ -545,11 +545,17 @@ func (c *Controller) frameCopy(ok func(*sample.Frame) bool) *sample.Frame {
 // for use inside OnFrame.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
 func (c *Controller) decodeOnScreen() (decode.Result, float64, bool) {
+	return c.decodeOnScreenIf(searchable)
+}
+
+// decodeOnScreenIf is decodeOnScreen of a frame ok accepts.
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-214
+func (c *Controller) decodeOnScreenIf(ok func(*sample.Frame) bool) (decode.Result, float64, bool) {
 	if c.frameFn == nil {
 		return decode.Result{}, 0, false
 	}
 	p := decodeParamsOf(c.snap())
-	f := c.frameCopy(searchable)
+	f := c.frameCopy(ok)
 	if f == nil {
 		return decode.Result{}, 0, false
 	}
