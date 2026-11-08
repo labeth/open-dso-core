@@ -195,8 +195,8 @@ func Validate(p hal.Profile) error {
 		}
 	}
 	for _, part := range slices.Sorted(maps.Keys(p.Absent)) {
-		if !slices.Contains(hal.OptionalParts, part) {
-			return fmt.Errorf("absent.%s: not an optional part (%s)", part, strings.Join(hal.OptionalParts, ", "))
+		if !slices.Contains(hal.OptionalParts, part) && !slices.Contains(hal.TriggerParts, part) {
+			return fmt.Errorf("absent.%s: not an optional part (%s)", part, strings.Join(slices.Concat(hal.OptionalParts, hal.TriggerParts), ", "))
 		}
 	}
 	return nil
