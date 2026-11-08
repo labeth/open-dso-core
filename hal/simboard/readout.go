@@ -289,9 +289,10 @@ func (b *Board) trace(t *sample.Trace, ch int, v view, t0, dt float64, n int, wa
 	}
 }
 
-// bandLimit passes vs, sampled dt apart from t0, through a single-pole
+// bandLimit passes vs, sampled dt apart from t0, through the front end's
 // low-pass at the channel's bandwidth (the scope's, or its limit), started
-// early enough to have settled at the first sample.
+// early enough to have settled at the first sample: a single pole, or the
+// second-order response of Config.EdgeOvershoot.
 // TRLC-LINKS: REQ-DSO-1001
 func (b *Board) bandLimit(vs []float64, v view, t0, dt float64) {
 	fc := b.profile.Bandwidth
@@ -299,6 +300,10 @@ func (b *Board) bandLimit(vs []float64, v view, t0, dt float64) {
 		fc = lim
 	}
 	if fc <= 0 || v.ground {
+		return
+	}
+	if over := b.cfg.EdgeOvershoot; over > 0 && over < 1 {
+		ringLimit(vs, v, t0, dt, fc, over)
 		return
 	}
 	tau := 1 / (2 * math.Pi * fc)
@@ -313,6 +318,50 @@ func (b *Board) bandLimit(vs []float64, v view, t0, dt float64) {
 	}
 	for i, x := range vs {
 		y += a * (x - y)
+		vs[i] = y
+	}
+}
+
+// ringLimit is bandLimit's second-order low-pass: -3 dB at fc, damped so a
+// step overshoots by the fraction over, as a scope's front end rings on a
+// fast edge. The input is held over sub-steps of a quarter of the ringing
+// period (exact for a held input), so an edge between two samples rings
+// from where it is; it is deterministic, a function of the signal alone.
+// TRLC-LINKS: REQ-DSO-1001
+func ringLimit(vs []float64, v view, t0, dt, fc, over float64) {
+	lo := math.Log(over)
+	zeta := -lo / math.Sqrt(math.Pi*math.Pi+lo*lo)
+	z2 := zeta * zeta
+	wn := 2 * math.Pi * fc / math.Sqrt(1-2*z2+math.Sqrt(4*z2*z2-4*z2+2))
+	sigma, wd := zeta*wn, wn*math.Sqrt(1-z2)
+	if dt > 8/sigma {
+		return // samples this far apart see the edges settled
+	}
+	sub := max(1, int(math.Ceil(dt*wd/(math.Pi/2))))
+	h := dt / float64(sub)
+	// One held sub-step: x' = Φx + Γu, x = (y, y').
+	e, c, sn := math.Exp(-sigma*h), math.Cos(wd*h), math.Sin(wd*h)
+	p11, p12 := e*(c+sigma/wd*sn), e*sn/wd
+	p21, p22 := -e*wn*wn/wd*sn, e*(c-sigma/wd*sn)
+	g1, g2 := 1-p11, -p21
+	warm := min(int(math.Ceil(10/sigma/dt)), 4096)
+	start := t0 - float64(warm)*dt
+	y, yd := v.volts(start), 0.0
+	step := func(t float64) {
+		u := v.volts(t)
+		y, yd = p11*y+p12*yd+g1*u, p21*y+p22*yd+g2*u
+	}
+	for i := warm; i >= 1; i-- {
+		for k := range sub {
+			step(t0 - float64(i)*dt + (float64(k)+0.5)*h)
+		}
+	}
+	for i := range vs {
+		if i > 0 {
+			for k := range sub {
+				step(t0 + float64(i-1)*dt + (float64(k)+0.5)*h)
+			}
+		}
 		vs[i] = y
 	}
 }

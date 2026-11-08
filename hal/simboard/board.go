@@ -46,6 +46,15 @@ type Config struct {
 	// LevelStepsPerDiv and OffsetStepsPerDiv are how finely the trigger
 	// level and the offset step (one knob detent); 0: one code.
 	LevelStepsPerDiv, OffsetStepsPerDiv float64
+	// EdgeOvershoot is the front end's step response at its bandwidth: a
+	// second-order low-pass whose step overshoots by this fraction (a
+	// scope's ringing on a fast edge); 0: a single pole, no overshoot.
+	EdgeOvershoot float64
+	// LevelStepV is the trigger level's step in volts at the BNC where the
+	// scope's level is a DAC's code (a fixed step whatever the V/div, so a
+	// knob detent's codes follow the V/div as on the scope); 0: the
+	// LevelStepsPerDiv grid.
+	LevelStepV float64
 	// Ladder is the V/div ladder at 1x; nil: 1-2-5 from 2 mV to 10 V.
 	Ladder []float64
 	// Depth is the record depth the planner chooses when the request leaves
@@ -192,13 +201,23 @@ func New(cfg Config) (*Board, error) {
 	// simulated.
 	p.Display.HWRenderer, p.Display.Area = false, hal.Rect{}
 	p.Triggers = softwareCaps(p.Triggers)
+	// The scope's own reasons stand for the parts it lacks; the board's
+	// reasons name what the simulation lacks beyond them. The counter is
+	// simulated where the scope has one.
 	p.Absent = maps.Clone(p.Absent)
 	if p.Absent == nil {
 		p.Absent = map[string]string{}
 	}
-	maps.Copy(p.Absent, absent)
-	delete(p.Absent, "counter")
-	p.Options = hal.OptCounter
+	for part, why := range absent {
+		if p.Absent[part] == "" {
+			p.Absent[part] = why
+		}
+	}
+	p.Options = 0
+	if p.Absent["counter"] == "" {
+		delete(p.Absent, "counter")
+		p.Options = hal.OptCounter
+	}
 	if cfg.Identity.Model == "" {
 		cfg.Identity = hal.Identity{Vendor: "open-dso", Model: "simulated", Serial: "SIM0"}
 	}
@@ -323,9 +342,14 @@ func (b *Board) Stacker() (hal.Stacker, bool) { return nil, false }
 func (b *Board) Segments() (hal.Segments, bool) { return nil, false }
 
 // Counter implements hal.Board: the trigger source's repetition rate, as
-// the generator knows it.
+// the generator knows it; absent where the scope has no counter.
 // TRLC-LINKS: REQ-DSO-1001
-func (b *Board) Counter() (hal.Counter, bool) { return counter{b}, true }
+func (b *Board) Counter() (hal.Counter, bool) {
+	if !b.profile.Options.Has(hal.OptCounter) {
+		return nil, false
+	}
+	return counter{b}, true
+}
 
 // LogicProbe implements hal.Board: absent.
 // TRLC-LINKS: REQ-DSO-1001

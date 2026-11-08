@@ -179,7 +179,7 @@ func TestFrontEnd(t *testing.T) {
 		{"dc", hal.Channel{On: true, VoltsDiv: 0.2}, 0.5},
 		{"offset", hal.Channel{On: true, VoltsDiv: 0.2, OffsetV: -0.4}, 0.5},
 		{"invert", hal.Channel{On: true, VoltsDiv: 0.2, Invert: true}, -0.5},
-		{"probe 10x", hal.Channel{On: true, VoltsDiv: 2, Probe: 10}, 5},
+		{"probe 10x", hal.Channel{On: true, VoltsDiv: 2, Probe: 10}, 0.5}, // the generator is at the tip
 		{"ground", hal.Channel{On: true, VoltsDiv: 0.2, Coupling: hal.GND}, 0},
 		{"ac", hal.Channel{On: true, VoltsDiv: 0.2, Coupling: hal.AC}, 0},
 	} {
