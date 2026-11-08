@@ -310,6 +310,11 @@ func rowModel(s *sv, r *row) RowModel {
 	m := RowModel{ID: r.id, Label: r.label, Available: r.relevant(s), Help: r.help, Section: r.hdr, Text: r.valueText(s)}
 	if !m.Available {
 		m.Why = r.why
+		if r.whyOf != nil {
+			if w := r.whyOf(s); w != "" {
+				m.Why = w
+			}
+		}
 	}
 	switch r.kind {
 	case wsview.Enum:
