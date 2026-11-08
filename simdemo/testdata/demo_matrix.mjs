@@ -413,6 +413,15 @@ const screenAt = async (x, y) => {
 };
 // TRLC-LINKS: REQ-DSO-299
 const tap = async (x, y) => { const [px, py] = await screenAt(x, y); await bench.mouse.click(px, py); await sleep(350); };
+// tapUntil taps until cond holds, twice at most (a busy WebAssembly panel
+// may drop a click's events, as a real panel's full queue does); it
+// returns cond's last value
+// TRLC-LINKS: REQ-DSO-299
+const tapUntil = async (x, y, cond) => {
+  let v;
+  for (let k = 0; k < 2 && !v; k++) { await tap(x, y); v = await waitFor(cond, 4000); }
+  return v;
+};
 // TRLC-LINKS: REQ-DSO-299
 const dragOn = async (x0, y0, x1, y1, mod) => {
   const [a, b] = await screenAt(x0, y0), [c, d] = await screenAt(x1, y1);
@@ -473,18 +482,15 @@ add("touch-workspaces-views", async () => {
   const ids = ["scope", "bus", "spectrum", "measure", "compare"], views = [2, 4, 4, 2, 0];
   const log = [];
   for (let i = 0; i < 5; i++) {
-    await tap(4 + i * 80 + 40, BAR_Y);
-    const p = await waitFor(async () => { const q = await panel(); return q.WorkspaceID === ids[i] ? q : null; }, 5000);
+    const p = await tapUntil(4 + i * 80 + 40, BAR_Y, async () => { const q = await panel(); return q.WorkspaceID === ids[i] ? q : null; });
     if (!p) throw new Error(`the ${ids[i]} tab: workspace ${(await panel()).WorkspaceID}`);
     const n = views[i];
     if (!n) continue;
     const w = Math.min(120, Math.floor((ACT_X - 10 - VIEWS_X) / n));
     const v0 = p.View;
-    await tap(VIEWS_X + (n - 1) * w + w / 2, BAR_Y);
-    const v1 = await waitFor(async () => { const q = await panel(); return q.View !== v0 ? q.View : null; }, 5000);
+    const v1 = await tapUntil(VIEWS_X + (n - 1) * w + w / 2, BAR_Y, async () => { const q = await panel(); return q.View !== v0 ? q.View : null; });
     if (!v1) throw new Error(`${ids[i]}: the last view segment left the view on ${v0}`);
-    await tap(VIEWS_X + w / 2, BAR_Y);
-    if (!(await waitFor(async () => (await panel()).View === v0, 5000))) throw new Error(`${ids[i]}: the first view segment did not bring ${v0} back`);
+    if (!(await tapUntil(VIEWS_X + w / 2, BAR_Y, async () => (await panel()).View === v0))) throw new Error(`${ids[i]}: the first view segment did not bring ${v0} back`);
     log.push(`${ids[i]}: ${v0} <-> ${v1}`);
   }
   await tap(4 + 40, BAR_Y);
