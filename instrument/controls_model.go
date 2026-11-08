@@ -272,9 +272,7 @@ type TypeAvail struct {
 // SetHoldoff stages the running type's holdoff (0: off) and returns it.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetHoldoff(sec float64) float64 {
-	if !(sec > 0) || math.IsInf(sec, 0) {
-		sec = 0
-	}
+	sec = ClampHoldoff(sec)
 	m.set(func(s *State) { s.Trigger.Running().HoldoffS = sec })
 	return sec
 }
@@ -285,7 +283,8 @@ func (m *Model) SetHoldoff(sec float64) float64 {
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetPulseParams(lvlFrac, wMinNs, wMaxNs float64, cond int) {
 	m.set(func(s *State) {
-		s.Qual.PulseLvl, s.Qual.PulseMinNs, s.Qual.PulseMaxNs, s.Qual.PulseCond = lvlFrac, wMinNs, wMaxNs, cond
+		wMinNs, wMaxNs = OrderPair(wMinNs, wMaxNs)
+		s.Qual.PulseLvl, s.Qual.PulseMinNs, s.Qual.PulseMaxNs, s.Qual.PulseCond = ClampFrac(lvlFrac), wMinNs, wMaxNs, ClampCond(cond)
 		s.Trigger.Configs[TrigPulse].Placed = true
 	})
 }
@@ -295,7 +294,9 @@ func (m *Model) SetPulseParams(lvlFrac, wMinNs, wMaxNs float64, cond int) {
 func (m *Model) SetSlopeParams(loFrac, hiFrac, tMinNs, tMaxNs float64, cond int) {
 	m.set(func(s *State) {
 		q := &s.Qual
-		q.SlopeLo, q.SlopeHi, q.SlopeMinNs, q.SlopeMaxNs, q.SlopeCond = loFrac, hiFrac, tMinNs, tMaxNs, cond
+		loFrac, hiFrac = OrderPair(ClampFrac(loFrac), ClampFrac(hiFrac))
+		tMinNs, tMaxNs = OrderPair(tMinNs, tMaxNs)
+		q.SlopeLo, q.SlopeHi, q.SlopeMinNs, q.SlopeMaxNs, q.SlopeCond = loFrac, hiFrac, tMinNs, tMaxNs, ClampCond(cond)
 		s.Trigger.Configs[TrigSlope].Placed = true
 	})
 }
@@ -304,6 +305,10 @@ func (m *Model) SetSlopeParams(loFrac, hiFrac, tMinNs, tMaxNs float64, cond int)
 // (0: every line) and sync polarity as the UI model gives them.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetVideoParams(std, line int, neg bool) {
+	if std != 1 {
+		std = 0
+	}
+	line = max(line, 0)
 	m.set(func(s *State) {
 		s.Qual.VideoStd, s.Qual.VideoLine, s.Qual.VideoNeg = std, line, neg
 		s.Trigger.Configs[TrigVideo].Placed = true
@@ -321,11 +326,11 @@ func (m *Model) SetAcqMode(md int) {
 
 // SetAvgCount sets the average's frame count.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-012
-func (m *Model) SetAvgCount(n int) { m.set(func(s *State) { s.Averages = max(n, 1) }) }
+func (m *Model) SetAvgCount(n int) { m.set(func(s *State) { s.Averages = ClampAverages(n) }) }
 
 // SetEresLen sets the high-resolution filter's length.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-012
-func (m *Model) SetEresLen(l int) { m.set(func(s *State) { s.EresLen = max(l, 1) }) }
+func (m *Model) SetEresLen(l int) { m.set(func(s *State) { s.EresLen = ClampEresLen(l) }) }
 
 // SetETS switches equivalent-time sampling.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-012
