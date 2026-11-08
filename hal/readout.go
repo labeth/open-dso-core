@@ -50,7 +50,10 @@ type ReadLimits struct {
 type Readout interface {
 	// Read fills dst[i] for each window × segment, row-major (windows
 	// vary fastest), each frame sized by the caller or left for the board
-	// to size. A window whose Want the board cannot deliver is a
+	// to size. A frame leaves the board conditioned: its calibration and
+	// its filters applied and stated in Frame.Cond, so the core only
+	// filters further what the user asks. A window whose Want the board
+	// cannot deliver is a
 	// *Refusal, never another content kind. A Main window that does not
 	// fill its frame is an error; any other window's frame is cut to what
 	// it got, so a detail window that misses does not cost the frame.
@@ -63,4 +66,25 @@ type Readout interface {
 	Export(ctx context.Context, rec RecordID, ch int, dst *sample.Trace) error
 	// Limits says what one Read can do. ANY.
 	Limits() ReadLimits
+}
+
+// ScreenRequest asks for the window a board reads of its stored record to
+// show the armed plan's screen while running: the screen with the trigger
+// at PosFrac of it, PreRoom acquired samples more before it (room for a
+// trigger point placed back in software, a protocol match's start), the
+// margins the board's reads need, and, with Envelope, compressed to the
+// board's display envelope (peak pairs) where the window holds more
+// samples than the display needs.
+type ScreenRequest struct {
+	PosFrac  float64
+	PreRoom  int
+	Envelope bool
+}
+
+// ScreenReader is optional on a Readout: the screen window of the stored
+// record (ScreenRequest), as a Window the owner reads with Read, beside
+// the detail windows it plans from it. ANY on the owner's goroutine, in
+// AcqState Ready.
+type ScreenReader interface {
+	ScreenWindow(r ScreenRequest) (Window, error)
 }
