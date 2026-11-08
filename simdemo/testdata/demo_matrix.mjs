@@ -155,8 +155,9 @@ const buses = [
   { id: "can-rx", name: /^CAN 500kb\/s/, bus: { kind: "can", lines: { rx: "C1" }, rate: 500e3, vpp: 3.3, offset: 1.65, opts: { data: "deadbeef" } }, hex: "deadbeef" },
   { id: "lin", name: /^LIN 19200/, bus: { kind: "lin", lines: { tx: "C1" }, rate: 19200, vpp: 12, offset: 6, opts: { data: "0102" } }, hex: "0102" },
   { id: "manchester", name: /^Manch 1Mb\/s/, bus: { kind: "manchester", lines: { tx: "C1" }, rate: 1e6, vpp: 3.3, offset: 1.65, opts: { data: "a5f0" } }, hex: "a5f0" },
-  // a PRBS and its bit clock read as a clocked bus; the bus is what AUTO names
-  { id: "prbs-clock", name: /^SPI/, bus: { kind: "prbs", lines: { data: "C1", clk: "C2" }, rate: 2e6, vpp: 3.3, offset: 1.65, opts: { order: "7" } } },
+  // a PRBS and its bit clock read as a clocked bus (SPI, or an SD card's
+  // clock and command line): any bus AUTO names and triggers on
+  { id: "prbs-clock", name: /^(?!no bus)\S/, bus: { kind: "prbs", lines: { data: "C1", clk: "C2" }, rate: 2e6, vpp: 3.3, offset: 1.65, opts: { order: "7" } } },
 ];
 for (const b of buses) {
   add(`bus-auto-${b.id}`, async () => {
