@@ -38,6 +38,13 @@
 // instead of running its own goroutine on it. The one exception is a
 // running stream's transfer goroutine (see Streamer).
 //
+// A front-end setting is the one staged value that also reaches the
+// hardware without an Arm: while nothing is armed (stopped, or between
+// captures), the board applies it at the owner's next commit point
+// (Platform.Service), so a stopped scope's relays follow its controls and
+// its stored record is redrawn at once; an armed capture never sees one
+// change under it. The next Arm is a commit arm all the same.
+//
 // Acquirer.Stop is the user's STOP, not a step of the cycle. Arm is one
 // call for two kinds of arm: the board runs a commit arm (start delay,
 // pending calibration) when something staged differs from what is applied

@@ -300,6 +300,55 @@ func (s *suite) stageCommit(t *testing.T) {
 	}
 }
 
+// stageIdle: a front-end setting staged while a capture is armed waits; at
+// a commit point with nothing armed the board applies it.
+// TRLC-LINKS: REQ-DSO-1001
+func (s *suite) stageIdle(t *testing.T) {
+	t.Helper()
+	fe := s.b.FrontEnd()
+	ch := s.req.Channels[0]
+	applied := fe.Get(ch)
+	var to float64
+	for _, st := range fe.Ladder(ch) {
+		if st.VoltsDiv != applied.VoltsDiv && (to == 0 || math.Abs(math.Log(st.VoltsDiv/applied.VoltsDiv)) < math.Abs(math.Log(to/applied.VoltsDiv))) {
+			to = st.VoltsDiv
+		}
+	}
+	if to == 0 {
+		t.Skip("the ladder has one step")
+	}
+	spec, err := s.unreachable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.commit(spec); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.b.Acquirer().Arm(); err != nil {
+		t.Fatalf("Arm: %v", err)
+	}
+	defer s.restore(t, ch)
+	c := applied
+	c.VoltsDiv = to
+	staged, err := fe.Set(ch, c)
+	if err != nil {
+		t.Fatalf("Set(%d, %g V/div): %v", ch, to, err)
+	}
+	if s.b.Acquirer().State() == hal.Armed {
+		s.b.Platform().Service()
+		if g := fe.Get(ch); g.VoltsDiv != applied.VoltsDiv {
+			t.Errorf("a commit point under an armed capture applied %g V/div; want it staged until nothing is armed", g.VoltsDiv)
+		}
+	}
+	if err := s.b.Acquirer().Stop(); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	s.b.Platform().Service()
+	if g := fe.Get(ch); g.VoltsDiv != staged.VoltsDiv {
+		t.Errorf("Get after a commit point with nothing armed reads %g V/div; want the staged %g", g.VoltsDiv, staged.VoltsDiv)
+	}
+}
+
 // restore stages channel ch's starting setting again and commits it with
 // a record.
 // TRLC-LINKS: REQ-DSO-1001

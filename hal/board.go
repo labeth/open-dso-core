@@ -43,9 +43,11 @@ type Platform interface {
 	// Handover is what the supervisor gave this process. ANY.
 	Handover() Handover
 	// Service runs board housekeeping at each commit point and on every
-	// Readout yield. Called as a yield it does only what is safe in the
-	// middle of a read (a board's lamp latch, not its DAC writes, which
-	// wait for the next commit point). OWNER.
+	// Readout yield. At a commit point with nothing armed it applies the
+	// front-end settings staged since (FrontEnd.Set). Called as a yield it
+	// does only what is safe in the middle of a read (a board's lamp
+	// latch, not its DAC writes, which wait for the next commit point).
+	// OWNER.
 	Service()
 	// Worker is the board's acquisition-worker entry when the app re-execs
 	// itself; nil when the board has none. ANY.

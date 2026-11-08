@@ -26,9 +26,16 @@ func (p platform) BringUp(ctx context.Context) (hal.Identity, error) {
 // TRLC-LINKS: REQ-DSO-1001
 func (p platform) Handover() hal.Handover { return hal.Handover{FDs: map[string]int{}} }
 
-// Service has no housekeeping to do.
+// Service applies the front-end settings staged while nothing is armed.
 // TRLC-LINKS: REQ-DSO-1001
-func (p platform) Service() {}
+func (p platform) Service() {
+	b := p.b
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if (b.state == hal.Idle || b.state == hal.Ready) && !slices.Equal(b.staged.channels, b.applied.channels) {
+		b.applied.channels = slices.Clone(b.staged.channels) // a setting staged while nothing is armed applies now
+	}
+}
 
 // Worker is none.
 // TRLC-LINKS: REQ-DSO-1001

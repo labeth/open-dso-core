@@ -48,7 +48,8 @@ type Board struct {
 	calls   []string
 
 	staged, applied setup
-	stopped         bool // a user STOP since the last Arm
+	armed           setup // what the last Arm committed: its records'
+	stopped         bool  // a user STOP since the last Arm, or a setting applied while nothing was armed
 	state           hal.AcqState
 	rec             sample.RecordID
 	lastStatus      sample.Status
@@ -144,6 +145,7 @@ func New(cfg Config) *Board {
 		b.staged.channels = append(b.staged.channels, hal.Channel{On: true, VoltsDiv: 1, Probe: 1, Impedance: 1e6})
 	}
 	b.applied = b.staged.clone()
+	b.armed = b.applied.clone()
 	return b
 }
 
@@ -312,6 +314,12 @@ func (p platform) Service() {
 	defer p.b.mu.Unlock()
 	p.b.log("Service")
 	p.b.services++
+	if (p.b.state == hal.Idle || p.b.state == hal.Ready) && !slices.Equal(p.b.staged.channels, p.b.applied.channels) {
+		// a setting staged while nothing is armed applies now; the next Arm
+		// is a commit arm all the same
+		p.b.applied.channels = slices.Clone(p.b.staged.channels)
+		p.b.stopped = true
+	}
 }
 
 // TRLC-LINKS: REQ-DSO-1001
@@ -398,6 +406,7 @@ func (a acquirer) Arm() error {
 	}
 	a.b.armKinds = append(a.b.armKinds, kind)
 	a.b.applied = a.b.staged.clone()
+	a.b.armed = a.b.applied.clone()
 	a.b.stopped = false
 	a.b.state = hal.Armed
 	return nil
@@ -482,7 +491,7 @@ func (r readout) Read(ctx context.Context, req hal.ReadRequest, dst []*sample.Fr
 		r.b.mu.Unlock()
 		return fmt.Errorf("halfake: %d frames for %d windows", len(dst), len(req.Windows))
 	}
-	app := r.b.applied.clone()
+	app := r.b.armed.clone()
 	status := r.b.lastStatus
 	r.b.state = hal.Reading
 	r.b.mu.Unlock()
@@ -618,7 +627,7 @@ func (r readout) Export(ctx context.Context, rec hal.RecordID, ch int, dst *samp
 		return err
 	}
 	r.b.mu.Lock()
-	app := r.b.applied.clone()
+	app := r.b.armed.clone()
 	cur := r.b.rec
 	r.b.mu.Unlock()
 	if rec != cur {

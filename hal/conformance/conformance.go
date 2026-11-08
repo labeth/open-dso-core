@@ -50,7 +50,7 @@ type Options struct {
 
 // Clauses are the subtests Run runs, in order.
 var Clauses = []string{
-	"profile", "devices", "planner", "need-refusal", "stage-commit", "unchanged-noop",
+	"profile", "devices", "planner", "need-refusal", "stage-commit", "stage-idle", "unchanged-noop",
 	"record", "wait-poll", "wait-timeout", "wait-cancel", "force", "freerun",
 	"readout", "readout-windows", "readout-refusal", "stopped-record",
 	"trigger-refusal", "trigger-default", "frontend-snap", "input", "storage", "optional-parts",
@@ -89,7 +89,7 @@ func Run(t *testing.T, b hal.Board, o Options) {
 	s.init = s.setChannels(t)
 	checks := map[string]func(*testing.T){
 		"profile": s.profile, "devices": s.devices, "planner": s.planner, "need-refusal": s.needRefusal,
-		"stage-commit": s.stageCommit, "unchanged-noop": s.unchangedNoop, "record": s.record,
+		"stage-commit": s.stageCommit, "stage-idle": s.stageIdle, "unchanged-noop": s.unchangedNoop, "record": s.record,
 		"wait-poll": s.waitPoll, "wait-timeout": s.waitTimeout, "wait-cancel": s.waitCancel,
 		"force": s.force, "freerun": s.freeRun, "readout": s.readout, "readout-windows": s.readoutWindows,
 		"readout-refusal": s.readoutRefusal, "stopped-record": s.stoppedRecord,
