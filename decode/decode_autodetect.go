@@ -640,7 +640,7 @@ func levelRunStats(s *sliced) (median, longest, at int) {
 // the two channels (c1=index 0, c2=index 1) and returns the best-scoring decoded
 // Result, formatted per `format`. A Result with Proto=="off" means nothing matched.
 // TRLC-LINKS: REQ-DSO-018
-func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //nolint:gocyclo // Autodetect's stages run in order on its shared state and closures
+func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //nolint:gocyclo,funlen // Autodetect's stages run in order on its shared state and closures
 	chans := [2][]uint8{c1, c2}
 	// The helpers below take the channels' figures by address: copies of
 	// them as arguments were merged by the compiler (go1.26) into the stack
@@ -675,9 +675,21 @@ func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //noli
 	// clocks, and an SPI stream holds one, every parity checking, one time
 	// in a few hundred places. Neither is named; a longer record shows more
 	// transfers or a line reset.
+	// I2C read off the pair, its acknowledged transfers each ended by a
+	// STOP: an I2C bus's, which an SWD reading of the same pair (SDA as
+	// SWDIO) frames as transfers whose parities check, a repeated message
+	// read as one transfer again and again
+	var i2cBest Result
+	i2cScore, i2cAcked := 0.0, 0
 	settle := func() Result {
 		if best.Proto == protoSWD && spiBytes >= 8 && swdWholeReads(best) < 2 && !strings.Contains(best.Text, "LINERESET") {
 			return Result{Proto: "off", Error: "one SWD transfer or SPI bytes: show more of the signal"}
+		}
+		if best.Proto == protoSWD && i2cAcked >= 2 && !strings.Contains(best.Text, "LINERESET") {
+			if i2cScore > 0 {
+				return i2cBest
+			}
+			return Result{Proto: "off", Error: "I2C transfers read as SWD: show more of the signal"}
 		}
 		return best
 	}
@@ -871,6 +883,11 @@ func Autodetect(c1, c2 []uint8, colTimeS float64, format string) Result { //noli
 			// line that never moved while SCL clocked it
 			if r.OK && !i2cAddressesMove(r) {
 				continue
+			}
+			i2cAcked = max(i2cAcked, i2cAckedTransfers(r))
+			if sc := scoreResult(r); sc > i2cScore {
+				i2cScore, i2cBest = sc, r
+				i2cBest.Src, i2cBest.Roles = "SCL "+chName(ord[0])+" SDA "+chName(ord[1]), Roles{ChA: ord[0], ChB: ord[1]}
 			}
 			consider(r, "SCL "+chName(ord[0])+" SDA "+chName(ord[1]), Roles{ChA: ord[0], ChB: ord[1]})
 		}

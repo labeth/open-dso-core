@@ -208,3 +208,27 @@ func TestAutodetectRepeatedPWM(t *testing.T) {
 		}
 	}
 }
+
+// A repeated I2C message on a decimated record (20 samples a bit) is I2C:
+// its pair read as SWD frames one transfer, parity checking, again and
+// again, but an SWD bus shows no acknowledged I2C transfers each ended by a
+// STOP. A real SWD bus stays SWD.
+// TRLC-LINKS: REQ-DSO-018
+func TestAutodetectI2CIsNoSWD(t *testing.T) {
+	for _, tc := range []struct {
+		s  synth.Spec
+		sr float64
+	}{
+		{synth.Spec{Proto: "i2c", Set: map[string]string{"rate": "100k"}}, 2e6},
+		{synth.Spec{Proto: "i2c", Set: map[string]string{"rate": "100k"}}, 1e7},
+		{synth.Spec{Proto: "swd", Set: map[string]string{"rate": "1M"}}, 1e8},
+	} {
+		b, sr := synthBus(t, tc.s, tc.sr)
+		a, o := repeated(b, 4)
+		for _, cut := range []int{0, len(a) / 8, len(a) / 3} {
+			if r, _ := AutodetectFast(a[cut:], o[cut:], 1/sr, "hex"); r.Proto != b.Proto {
+				t.Errorf("%s at %g Sa/s, cut %d: %s %q", tc.s, sr, cut, r.Proto, r.Text)
+			}
+		}
+	}
+}
