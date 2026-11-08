@@ -376,12 +376,13 @@ func (c *HALCycle) request(s instrument.State) hal.Request {
 	}
 	if n.FullRate {
 		// the screen at the full rate and half a screen more, when the
-		// deepest record holds it at the full rate; the deepest otherwise
-		want = deepest
+		// deepest record holds it at the full rate; a timebase no record
+		// holds at the full rate keeps its record (the eye and
+		// super-resolution say which timebase serves them)
 		full := r
 		full.Depth = deepest
 		if pl, err := c.b.Planner().Plan(full); err == nil && pl.AcqDecim <= 1 {
-			want = max(pl.WinSamples*3/2, n.Samples)
+			want = max(want, pl.WinSamples*3/2)
 		}
 	}
 	if want > r.Depth {
