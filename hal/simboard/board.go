@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/hal/keytable"
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/siggen"
 )
@@ -76,6 +77,10 @@ type Config struct {
 	OnPresent func(rgba []byte, w, h int)
 	// OnLamps hears the lit lamps each time they change.
 	OnLamps func(on []string)
+	// KeyTable is the panel's key table: the events the bench's hand
+	// makes are the ones the real panel makes (keytable); empty: the
+	// profile's keys and knobs, a key pressed and released.
+	KeyTable keytable.Table
 }
 
 // Board is the simulated board. Its methods are safe for concurrent use.
@@ -104,7 +109,10 @@ type Board struct {
 	waits    int // records completed, for Diag
 	forced   int
 
+	rep      *replay // the record replayed (nil: the generator on every input)
 	events   chan hal.InputEvent
+	keys     keytable.Table // the panel's key table
+	sel      int            // the channel the panel's shared controls act on (1-based; 0: the first)
 	settings *KV
 	setups   *KV
 	screen   screen
@@ -216,6 +224,13 @@ func New(cfg Config) (*Board, error) {
 	if b.cpd <= 0 {
 		b.cpd = float64(p.Format.Max-p.Format.Min) / float64(p.Display.DivsV)
 	}
+	b.keys = cfg.KeyTable
+	if b.keys.Empty() {
+		b.keys = keytable.FromProfile(p.Inputs)
+	}
+	if err := b.keys.Validate(); err != nil {
+		return nil, fmt.Errorf("simboard: key table: %w", err)
+	}
 	for range p.Channels {
 		b.staged.channels = append(b.staged.channels, hal.Channel{On: true, VoltsDiv: 1, Probe: 1, Impedance: 1e6})
 	}
@@ -326,11 +341,13 @@ func (b *Board) Generator() (hal.Generator, bool) { return nil, false }
 // TRLC-LINKS: REQ-DSO-1001
 func (b *Board) Extensions() []hal.Extension { return []hal.Extension{b.bench()} }
 
-// SetPace asks every record to take at least d from the last one (a
-// display that shares one thread with the acquisition); 0: the board's own
-// frame interval.
+// SetDisplayPace asks every record to take at least d from the last one (a
+// display that shares one thread with the acquisition: in a browser the
+// demo has one, so without it the acquisition takes every turn and the
+// screen starves); 0: the board's own frame interval. It makes the board a
+// scopeapp.PacedBoard.
 // TRLC-LINKS: REQ-DSO-1001
-func (b *Board) SetPace(d time.Duration) {
+func (b *Board) SetDisplayPace(d time.Duration) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.pace = d

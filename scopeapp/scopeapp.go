@@ -43,6 +43,9 @@ type Options struct {
 	// Product is the firmware line the SYS tab names; Version the app's
 	// version the web reports.
 	Product, Version string
+	// Name is the product's name the web page and its capabilities give
+	// ("": Product).
+	Name string
 	// MemoryLimit is the Go runtime's soft memory limit (0: none); a
 	// GOMEMLIMIT in the environment wins.
 	MemoryLimit int64
@@ -89,6 +92,10 @@ type Options struct {
 
 	// Started hears the whole composition once every part runs.
 	Started func(env *Env)
+	// Describe states the values of the scope's own parts (an Owner's UI
+	// model, display and web) in the composition's description
+	// (Describe); nil: they are named only.
+	Describe func(c *Composition)
 	// OnStop runs after the owner has stopped (a worker to close).
 	OnStop func()
 }
@@ -134,6 +141,8 @@ type Env struct {
 	Logf     func(format string, a ...any)
 	Product  string
 	Version  string
+	// Name is the product's name the web gives (Options.Name).
+	Name string
 	// Model is the instrument state on the HAL path (nil with an Owner);
 	// Controls is what every controller stages through.
 	Model    *instrument.Model
@@ -200,7 +209,7 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		return err
 	}
 	logf("unit: %s %s serial %s", id.Vendor, id.Model, id.Serial)
-	env := &Env{Board: b, Identity: id, Logf: logf, Product: o.Product, Version: o.Version}
+	env := &Env{Board: b, Identity: id, Logf: logf, Product: o.Product, Version: o.Version, Name: o.webName()}
 	stop := ctx.Done()
 
 	// The instrument and its owner loop.
@@ -281,6 +290,9 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		env.display.web.Store(ws)
 		if o.Serve != nil {
 			o.Serve(ws.Handler())
+			if o.Listen == "" {
+				mark("web up")
+			}
 		}
 	}
 	if o.Listen != "" {
@@ -288,6 +300,9 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		go func() {
 			logf("web ui listening on %s", o.Listen)
 			mark("web up")
+			// Only a listening server compresses its assets ahead: a host
+			// that serves the handler itself (a service worker) forwards no
+			// Accept-Encoding, so they would never be served compressed.
 			go webserver.Precompress()
 			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logf("web server: %v", err)
@@ -320,6 +335,15 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		_ = srv.Close() // the process is ending: parked long polls are cut off, not waited for
 	}
 	return nil
+}
+
+// webName is the name the web gives the product.
+// TRLC-LINKS: REQ-DSO-295
+func (o Options) webName() string {
+	if o.Name != "" {
+		return o.Name
+	}
+	return o.Product
 }
 
 // startSCPI builds the SCPI engine with the scope's dialect, hands it the
@@ -500,7 +524,7 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 		return nil, errors.New("scopeapp: a scope with its own owner builds its web scope")
 	}
 	return scopeweb.New(scopeweb.Config{
-		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, Product: env.Product, UI: env.UI,
+		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, Product: env.Name, UI: env.UI,
 		Setups: WebSetups{env.Setups}, Parts: WebParts(env), Screen: env.ScreenPNG,
 	}).WithCaps(), nil
 }

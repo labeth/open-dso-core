@@ -151,18 +151,29 @@ function wireScreen() {
 
 // ---------------------------------------------------------------- front panel
 // The layout is the scope's (demo.json "panel"): items at grid cells, each a
-// key, a knob or a section label, by the UI model's key and knob names. A knob
-// or key whose name holds {ch} follows the channel key pressed last (a panel
-// with one set of vertical knobs for all its channels).
+// key, a knob or a section label, by the panel's own control names. The
+// board's key table (demo.json "keytable") says what each control sends: the
+// page asks the simulated board for a press or a turn of a control, and the
+// board makes the events the real panel makes (a press alone or with its
+// release, a turn in the steps one event carries, a shared knob acting on the
+// channel whose key was pressed last). A key the board gives no name has no
+// function in this firmware.
 const LAMP_COLOUR = {
   ch1: 'var(--c1)', ch2: 'var(--c2)', ch3: 'var(--c3)', ch4: 'var(--c4)', run: 'var(--run)', stop: 'var(--stop)',
   math: 'var(--math)', auto: 'var(--run)', normal: 'var(--trigger)', single: 'var(--trigger)',
 };
 const keyEls = [];
 const knobEls = {};
-let selCh = 1;
 let msgTimer;
-const named = (n) => n.replaceAll('{ch}', String(selCh));
+// sends is the UI model's name a control sends ({ch}: the selected channel's),
+// undefined for a control the board gives none, the control's own name
+// without a key table.
+const sends = (kind, panel) => {
+  const t = demo.keytable;
+  if (!t || !((t.keys && t.keys.length) || (t.knobs && t.knobs.length))) return panel;
+  const e = (kind === 'knob' ? t.knobs : t.keys).find((k) => k.panel === panel);
+  return e ? e.name || undefined : undefined;
+};
 
 function flash(text, err) {
   const m = $('#genmsg');
@@ -172,25 +183,24 @@ function flash(text, err) {
   msgTimer = setTimeout(() => { m.textContent = ''; }, err ? 8000 : 3000);
 }
 
-async function press(key, el) {
+async function press(panel, el) {
   el?.classList.add('down');
-  const m = /^ch(\d)$/.exec(key);
-  if (m) selCh = +m[1];
-  const r = await api('/api/sim/input', { key: named(key) });
+  const r = await api('/api/sim/input', { panel });
   el?.classList.remove('down');
-  if (!r.ok) flash(`${key}: ${r.err}`, true);
+  if (!r.ok) flash(`${panel}: ${r.err}`, true);
 }
 
 function keyButton(it) {
   const label = it.label.replace(/- /, '-​');
-  const b = h('button', { class: `key ${it.cls || ''} ${it.big ? 'big' : ''}`, title: it.title || it.label.replace(/- /, ''), 'data-key': it.key },
+  const name = sends('key', it.key);
+  const b = h('button', { class: `key ${it.cls || ''} ${it.big ? 'big' : ''}`, title: it.title || it.label.replace(/- /, ''), 'data-key': name || '', 'data-panel': it.key },
     h('span', { class: 'led' }), label);
-  if (it.inert) {
+  if (name === undefined) {
     // a key of the panel this firmware gives no job yet
     b.disabled = true;
     b.title = `${b.title}: no function in this firmware`;
   } else b.addEventListener('click', () => press(it.key, b));
-  b._lamps = it.lamps || [it.key];
+  b._lamps = it.lamps || [name];
   keyEls.push(b);
   return b;
 }
@@ -208,7 +218,7 @@ function buildPanel(panel) {
     if (it.sect) { ctl.append(place(h('div', { class: 'sect' }, it.sect))); continue; }
     if (it.key) { ctl.append(place(keyButton(it))); continue; }
     const k = h('div', { class: `knob ${it.big ? 'big' : ''}`, tabindex: '0', role: 'slider',
-      'aria-label': `${it.label} knob: drag or scroll to turn, click to push`, 'data-knob': it.knob }, h('span', { class: 'ind' }));
+      'aria-label': `${it.label} knob: drag or scroll to turn, click to push`, 'data-knob': sends('knob', it.knob) || '', 'data-panel': it.knob }, h('span', { class: 'ind' }));
     const cell = h('div', { class: 'knobcell' }, k, h('span', { class: 'knoblabel' }, it.label));
     knobEls[it.knob] = k;
     wireKnob(k, it);
@@ -230,7 +240,7 @@ function wireKnob(el, it) {
     busy = true;
     const n = Math.max(-100, Math.min(100, pending));
     pending -= n;
-    const r = await api('/api/sim/input', { knob: named(it.knob), steps: n });
+    const r = await api('/api/sim/input', { panel: it.knob, detents: n });
     if (!r.ok) flash(`${it.label}: ${r.err}`, true);
     busy = false;
     if (pending) flush();
@@ -238,7 +248,7 @@ function wireKnob(el, it) {
   const push = async () => {
     if (!it.push) return;
     el.classList.add('pushed');
-    const r = await api('/api/sim/input', { key: named(it.push) });
+    const r = await api('/api/sim/input', { panel: it.push });
     el.classList.remove('pushed');
     if (!r.ok) flash(`${it.label} push: ${r.err}`, true);
   };
@@ -274,7 +284,7 @@ function showLamps(on) {
     b.classList.toggle('lit', !!l);
     if (l) b.style.setProperty('--lamp', LAMP_COLOUR[l] || '#e6ecf2');
   }
-  knobEls.adjust?.classList.toggle('lamp', lit.has('adjust'));
+  for (const [panel, el] of Object.entries(knobEls)) if (sends('knob', panel) === 'adjust') el.classList.toggle('lamp', lit.has('adjust'));
 }
 
 // ---------------------------------------------------------------- numbers

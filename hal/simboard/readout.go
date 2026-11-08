@@ -148,6 +148,11 @@ func (b *Board) fill(w hal.Window, rec record, f *sample.Frame) error {
 			}
 		}
 	}
+	if rec.replay.verbatim(plan) {
+		if ok, err := rec.replay.fill(w, rec, chans, b.profile.Display.DivsH, f); ok {
+			return err
+		}
+	}
 	content := want
 	if want == sample.RawFullRate && bucket > 1 {
 		content = sample.RawDecimated
@@ -198,6 +203,7 @@ func (b *Board) fill(w hal.Window, rec record, f *sample.Frame) error {
 		}
 		c := rec.set.channels[ch]
 		v := b.viewOf(ch, c)
+		v.rep = rec.replay
 		f.Traces = append(f.Traces, sample.Trace{})
 		tr := &f.Traces[len(f.Traces)-1]
 		b.trace(tr, ch, v, t0, dt, n, want, plan)

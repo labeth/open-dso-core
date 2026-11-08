@@ -36,12 +36,17 @@ func NewClient(base string) *Client {
 func (c *Client) Do(ctx context.Context, method, path string, body any) ([]byte, http.Header, error) {
 	var rd io.Reader
 	var text string
-	if body != nil {
-		b, err := json.Marshal(body)
+	ctype := "application/json"
+	switch b := body.(type) {
+	case nil:
+	case rawBody:
+		rd, text, ctype = bytes.NewReader(b), fmt.Sprintf(" (%d bytes)", len(b)), "application/octet-stream"
+	default:
+		j, err := json.Marshal(b)
 		if err != nil {
 			return nil, nil, err
 		}
-		rd, text = bytes.NewReader(b), " "+string(b)
+		rd, text = bytes.NewReader(j), " "+string(j)
 	}
 	if c.Plan != nil {
 		_, _ = fmt.Fprintf(c.Plan, "    %s %s%s%s\n", method, c.Base, path, text)
@@ -52,7 +57,7 @@ func (c *Client) Do(ctx context.Context, method, path string, body any) ([]byte,
 		return nil, nil, err
 	}
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", ctype)
 	}
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
