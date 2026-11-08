@@ -316,6 +316,13 @@ function applyStatus() {
     if (val && document.activeElement !== el && !(el._userAt && performance.now() - el._userAt < 1500))
       for (const o of el.options) if (Math.abs(+o.value - val) <= val * 1e-6) { o.selected = true; break; }
   }
+  // a channel switched on or off at the scope (its key, SCPI, another page)
+  // shows here too, unless this page's own click is still on its way
+  for (const ch of chans) {
+    const tog = $("tC" + ch);
+    if (!chanOnServed(ch) || !tog || (tog._userAt && performance.now() - tog._userAt < 1500)) continue;
+    if (view["c" + ch] !== st["on" + ch]) { showChan(ch, st["on" + ch]); redraw(); }
+  }
   for (const ch of chans) setFromStatus($("probe" + ch), st["probe" + ch] || 1);
   for (const ch of chans) setFromStatus($("cpl" + ch), st["cpl" + ch] || 0);
   // channels past C2 have no sheet rows for their limit and invert: the status's

@@ -17,7 +17,7 @@ var v1Aliases = map[string]struct {
 
 // PerChannel is the settings v2 controls that take a channel.
 var PerChannel = map[string]bool{
-	"vdiv": true, "offset": true, "probe": true, "coupling": true, "bwlimit": true, "invert": true,
+	"vdiv": true, "offset": true, "probe": true, "coupling": true, "bwlimit": true, "invert": true, "on": true,
 }
 
 // Translate turns a v1 control into its settings v2 control: vdiv1 is vdiv

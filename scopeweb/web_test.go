@@ -431,3 +431,25 @@ func TestTriggerTypesFromThePage(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
+// A channel is switched on and off through the API, which the page's
+// channel toggles use; a channel the scope lacks, or none, is refused; the
+// status says each channel's on/off, which the toggles follow.
+// TRLC-LINKS: REQ-DSO-162, REQ-DSO-204
+func TestChannelOnOff(t *testing.T) {
+	r := newRig(t, halfake.Config{Channels: 4, Format: format12})
+	r.set(t, `{"control":"on","ch":2,"value":0}`)
+	st := r.json(t, http.MethodGet, "/api/status", "")
+	if st["on3"] != false || st["on1"] != true {
+		t.Fatalf("after C3 off: on1 %v on3 %v", st["on1"], st["on3"])
+	}
+	r.set(t, `{"control":"on","ch":2,"value":1}`)
+	if st := r.json(t, http.MethodGet, "/api/status", ""); st["on3"] != true {
+		t.Fatalf("after C3 on: on3 %v", st["on3"])
+	}
+	for _, body := range []string{`{"control":"on","value":0}`, `{"control":"on","ch":4,"value":0}`} {
+		if out := r.json(t, http.MethodPost, "/api/set", body); out["ok"] != false || out["err"] == "" {
+			t.Fatalf("%s: %v", body, out)
+		}
+	}
+}
