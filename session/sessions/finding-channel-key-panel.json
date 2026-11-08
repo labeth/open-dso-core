@@ -9,9 +9,9 @@
     {"check": {"name": "before", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "mode"]}},
     {"key": "ch2", "via": "board"},
     {"check": {"name": "press1", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "sheet.row", "mode", "lamps"],
-      "expect": {"shown.ch2": {"differs": "before"}}}},
+      "expect": {"shown.ch2": {"same_as": "before"}, "sheet.open": {"eq": true}, "sheet.tab": {"eq": "ch2"}}}},
     {"key": "ch2", "via": "board"},
     {"check": {"name": "press2", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "sheet.row", "mode", "lamps"],
-      "expect": {"shown.ch2": {"same_as": "before"}}}}
+      "expect": {"shown.ch2": {"same_as": "before"}, "sheet.open": {"eq": false}}}}
   ]
 }

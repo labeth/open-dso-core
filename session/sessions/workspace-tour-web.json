@@ -16,6 +16,6 @@
     {"check": {"name": "compare", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "lamps"]}},
     {"workspace": "scope"},
     {"check": {"name": "back", "fields": ["workspace", "view", "fkeys", "row.time.tdiv", "lamps"],
-      "expect": {"row.time.tdiv": {"same_as": "scope"}, "workspace": {"eq": "scope"}}}}
+      "expect": {"row.time.tdiv": {"same_as": "compare"}, "workspace": {"eq": "scope"}}}}
   ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "finding-channel-key-ui",
-  "about": "A channel key pressed on a shown channel turns its trace off and a second press turns it on again (the key as the scope's own panel delivers it)",
+  "about": "A channel key pressed on a shown channel opens its sheet and leaves it shown; a second press closes the sheet (the key as the scope's own panel delivers it)",
   "relays": false,
   "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
   "start": {"rows": {"time.tdiv": "100ns", "trig.level": "1.65V"}},
@@ -8,9 +8,9 @@
     {"check": {"name": "before", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "mode"]}},
     {"key": "ch2"},
     {"check": {"name": "press1", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "sheet.row", "mode", "lamps"],
-      "expect": {"shown.ch2": {"differs": "before"}}}},
+      "expect": {"shown.ch2": {"same_as": "before"}, "sheet.open": {"eq": true}, "sheet.tab": {"eq": "ch2"}}}},
     {"key": "ch2"},
     {"check": {"name": "press2", "fields": ["shown.", "row.ch2.on", "sheet.open", "sheet.tab", "sheet.row", "mode", "lamps"],
-      "expect": {"shown.ch2": {"same_as": "before"}}}}
+      "expect": {"shown.ch2": {"same_as": "before"}, "sheet.open": {"eq": false}}}}
   ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "finding-bus-entry-keeps-tdiv",
-  "about": "Entering BUS with its F-key, and with the web's workspace switch, keeps the time/div the scope had",
+  "about": "Entering BUS with a known bus sets the time/div that reads it, by F-key or the web switch, and going back to SCOPE keeps it",
   "relays": false,
   "signals": {
     "C1": {"kind": "uart", "rate": 9600, "vpp": 3.3, "offset": 1.65, "text": "hello"},
@@ -11,12 +11,12 @@
     {"check": {"name": "scope", "fields": ["workspace", "row.time.tdiv", "tdiv_s"]}},
     {"key": "f2"},
     {"check": {"name": "bus-key", "fields": ["workspace", "view", "row.time.tdiv", "tdiv_s", "row.bus.protocol"],
-      "expect": {"workspace": {"eq": "bus"}, "row.time.tdiv": {"same_as": "scope"}}}},
+      "expect": {"workspace": {"eq": "bus"}}}},
     {"workspace": "scope"},
     {"check": {"name": "scope-again", "fields": ["workspace", "row.time.tdiv"],
-      "expect": {"row.time.tdiv": {"same_as": "scope"}}}},
+      "expect": {"row.time.tdiv": {"same_as": "bus-key"}}}},
     {"workspace": "bus"},
     {"check": {"name": "bus-web", "fields": ["workspace", "view", "row.time.tdiv", "tdiv_s"],
-      "expect": {"workspace": {"eq": "bus"}, "row.time.tdiv": {"same_as": "scope"}}}}
+      "expect": {"workspace": {"eq": "bus"}, "row.time.tdiv": {"same_as": "bus-key"}}}}
   ]
 }
