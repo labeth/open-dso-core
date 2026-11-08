@@ -1003,3 +1003,39 @@ decisions:
   decision: 'On the display goroutine, Display.Capture''s read-back is composited under the UI canvas; without read-back the headless render is used.'
   consequences:
   - 'The CML''s capture path is unchanged; the SDS800X HD captures at its native 1024x600.'
+
+- id: ADR-AUTO-NO-BUS-CLEARS
+  title: 'AUTO that finds no bus turns decode off and says so'
+  status: accepted
+  date: '2026-11-08'
+  context: 'A stale protocol name after a failed AUTO looked like a verdict.'
+  decision: 'AUTO in BUS that finds nothing sets decode Off with "NO BUS FOUND", on every scope; a cancelled AUTO brings the previous protocol back.'
+  consequences:
+  - 'The same on the CML and the SDS800X HD.'
+
+- id: ADR-AUTO-TRIGGER-LEAD
+  title: 'AUTO may move the trigger right for a message''s lead'
+  status: accepted
+  date: '2026-11-08'
+  context: 'A frame-start trigger fires part-way into a message, so the record opened mid-message.'
+  decision: 'AUTO measures how far into a message its trigger fires and moves the trigger position right by that, at most half the screen.'
+  consequences:
+  - 'Whole messages on screen after AUTO; the trigger type is never changed.'
+
+- id: ADR-SESSION-BUS-FRAMING
+  title: 'Session buses are framed as one message'
+  status: accepted
+  date: '2026-11-08'
+  context: 'cJTAG, SWIM and 1-Wire carry sessions of several transfers; SWD''s line reset belongs with the transfer after it.'
+  decision: 'AUTO frames a session (and SWD''s reset with its transfer) as one message when choosing the timebase and grading a decode.'
+  consequences:
+  - 'A 1-Wire session longer than AUTO''s search record is still cut; measuring it from a longer record is open.'
+
+- id: ADR-MORSE-SEARCH-LIMIT
+  title: 'Very slow Morse is outside AUTO''s search'
+  status: accepted
+  date: '2026-11-08'
+  context: 'AUTO''s slowest look is 50 ms/div (0.5 s on screen), less than a character at 60 ms a unit.'
+  decision: 'Recorded as a scope limit: such Morse is set by hand, not found by AUTO.'
+  consequences:
+  - 'The SDS800X HD decode area skips it with this reason.'
