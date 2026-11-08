@@ -17,25 +17,24 @@ const (
 )
 
 // view is one channel's signal as the screen shows it: the generator's
-// volts through the probe setting, the coupling and the invert, at the
-// probe tip.
+// volts through the coupling and the invert, at the probe tip. The
+// generator's volts are the probe tip's (a bench source on the probe), and
+// a scope shows tip volts whatever the probe factor, so the factor scales
+// the V/div and never the signal.
 type view struct {
 	rep    *replay // a replayed record's channel in place of the generator
 	n      int     // the channel
 	sig    siggen.Signal
 	ch     hal.Channel
 	dc     float64 // the mean AC coupling removes
-	scale  float64 // probe factor, negative when inverted
+	scale  float64 // -1 when inverted, else 1
 	ground bool
 }
 
 // viewOf is channel ch's signal under setting c.
 // TRLC-LINKS: REQ-DSO-1001
 func (b *Board) viewOf(ch int, c hal.Channel) view {
-	v := view{sig: b.sig.Signal(ch), ch: c, scale: c.Probe, ground: c.Coupling == hal.GND, n: ch}
-	if v.scale == 0 {
-		v.scale = 1
-	}
+	v := view{sig: b.sig.Signal(ch), ch: c, scale: 1, ground: c.Coupling == hal.GND, n: ch}
 	if c.Invert {
 		v.scale = -v.scale
 	}
@@ -281,7 +280,9 @@ func (t trigger) Program(s hal.TriggerSpec) error {
 func (t trigger) Caps() hal.TrigCaps { return t.b.profile.Triggers }
 
 // LevelGrid is one level step at the source's staged V/div, over the
-// screen's height about its centre.
+// screen's height about its centre. A board whose level is a DAC's code
+// (Config.LevelStepV) steps that code's volts at the BNC, at the probe
+// tip, on a grid through 0 V.
 // TRLC-LINKS: REQ-DSO-1001
 func (t trigger) LevelGrid(src hal.Source) hal.Grid {
 	b := t.b
@@ -292,7 +293,12 @@ func (t trigger) LevelGrid(src hal.Source) hal.Grid {
 	c := b.staged.channels[src.Index]
 	b.mu.Unlock()
 	half := float64(b.profile.Display.DivsV) / 2 * c.VoltsDiv
-	return hal.Grid{Step: c.VoltsDiv / b.levelSteps(), Min: -half - c.OffsetV, Max: half - c.OffsetV}
+	lo, hi := -half-c.OffsetV, half-c.OffsetV
+	if s := b.cfg.LevelStepV; s > 0 {
+		step := s * max(c.Probe, 1)
+		return hal.Grid{Step: step, Min: math.Ceil(lo/step-1e-9) * step, Max: math.Floor(hi/step+1e-9) * step}
+	}
+	return hal.Grid{Step: c.VoltsDiv / b.levelSteps(), Min: lo, Max: hi}
 }
 
 // levelSteps is how many level steps a division has.

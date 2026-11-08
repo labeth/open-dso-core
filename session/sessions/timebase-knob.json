@@ -1,15 +1,15 @@
 {
   "name": "timebase-knob",
-  "about": "The time/div knob steps the timebase ladder one detent at a time, both ways",
+  "about": "The time/div knob moves the timebase ladder one step per knob event, whatever the event's detent count, both ways (ADR-LADDER-KNOBS-ONE-STEP)",
   "relays": false,
   "signals": {"C1": {"kind": "square", "hz": 10e6, "vpp": 3.3, "offset": 1.65}},
   "start": {"rows": {"time.tdiv": "1us", "trig.level": "1.65V"}},
   "steps": [
     {"knob": "tdiv", "steps": 1},
-    {"check": {"name": "plus1", "fields": ["row.time.tdiv", "tdiv_s"]}},
+    {"check": {"name": "plus1", "fields": ["row.time.tdiv", "tdiv_s"], "expect": {"row.time.tdiv": {"eq": "500ns"}}}},
     {"knob": "tdiv", "steps": -3},
-    {"check": {"name": "minus2", "fields": ["row.time.tdiv", "tdiv_s"]}},
+    {"check": {"name": "minus2", "fields": ["row.time.tdiv", "tdiv_s"], "expect": {"row.time.tdiv": {"eq": "1us"}}}},
     {"knob": "tdiv", "steps": 2},
-    {"check": {"name": "back", "fields": ["row.time.tdiv"], "expect": {"row.time.tdiv": {"eq": "1us"}}}}
+    {"check": {"name": "back", "fields": ["row.time.tdiv"], "expect": {"row.time.tdiv": {"eq": "500ns"}}}}
   ]
 }

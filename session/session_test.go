@@ -129,6 +129,28 @@ func TestCompare(t *testing.T) {
 	}
 }
 
+// A kept run compares under the sessions' tolerances as they are now, and
+// keeps its own.
+// TRLC-LINKS: REQ-DSO-295
+func TestWithTolerances(t *testing.T) {
+	old := &Session{Name: "s", Steps: []*Step{{Check: &Checkpoint{Name: "c", Fields: []string{"meas.top.ch1"}}}}}
+	cur := &Session{Name: "s", Steps: []*Step{{Check: &Checkpoint{Name: "c", Fields: []string{"meas.top.ch1"}, Tol: map[string]string{"meas.top.": "rel:0.15"}}}}}
+	snap := func(v string) []*CheckRun {
+		return []*CheckRun{{Name: "c", Snapshot: Snapshot{"meas.top.ch1": {V: v}}}}
+	}
+	a := &Run{Target: "bench", Sessions: []*Played{{Session: old, Checks: snap("3.06V")}}}
+	b := &Run{Target: "native", Sessions: []*Played{{Session: cur, Checks: snap("3.32V")}}}
+	if f := Compare(a, b).Fields[0]; f.Verdict != VerdictDiff {
+		t.Fatalf("under the kept session: %s", f.Verdict)
+	}
+	if f := Compare(a.WithTolerances([]*Session{cur}), b).Fields[0]; f.Verdict != VerdictMatch || f.Tolerance != "rel:0.15" {
+		t.Errorf("under the session now: %s (%s)", f.Verdict, f.Tolerance)
+	}
+	if len(old.Steps[0].Check.Tol) != 0 {
+		t.Errorf("the kept run's session changed: %v", old.Steps[0].Check.Tol)
+	}
+}
+
 // Expectations hold or fail on one run, against earlier checkpoints too.
 // TRLC-LINKS: REQ-DSO-295
 func TestExpectations(t *testing.T) {

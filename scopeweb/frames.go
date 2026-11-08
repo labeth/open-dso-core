@@ -97,7 +97,7 @@ func (fr frames) FrameV2(q webserver.FrameQueryV2, dst *wire.Frame) {
 			dst.FromReply(fr.Frame(q.FrameQuery))
 			return
 		}
-		dst.FromReply(rawReply(fr.RawFrame(q.Since)))
+		dst.FromReply(fr.RawFrame(q.Since).Reply())
 		dst.Header.Raw = true
 		return
 	}
@@ -168,21 +168,6 @@ func couplingName(c int) string {
 		return "GND"
 	}
 	return "DC"
-}
-
-// rawReply is a raw frame as the v1 reply it carries, its codes in C1/C2.
-// TRLC-LINKS: REQ-DSO-163
-func rawReply(raw wire.RawFrame) wire.FrameReply {
-	rep := raw.Header
-	if raw.Unchanged || raw.Precision {
-		return rep
-	}
-	n := len(raw.Payload) / 2
-	rep.C1, rep.C2 = make([]int16, n), make([]int16, n)
-	for i := range n {
-		rep.C1[i], rep.C2[i] = int16(raw.Payload[i]), int16(raw.Payload[n+i])
-	}
-	return rep
 }
 
 // ReplyQuery is what a v1 reply is built for: the page's columns, whether

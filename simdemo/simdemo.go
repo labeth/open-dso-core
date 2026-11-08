@@ -42,11 +42,17 @@ type Demo struct {
 		Model  string `json:"model"`
 		Serial string `json:"serial"`
 	} `json:"identity"`
-	CodesPerDiv       float64   `json:"codes_per_div"`
-	LevelStepsPerDiv  float64   `json:"level_steps_per_div"`
-	OffsetStepsPerDiv float64   `json:"offset_steps_per_div"`
-	Ladder            []float64 `json:"ladder"`
-	Depth             int       `json:"depth"`
+	CodesPerDiv       float64 `json:"codes_per_div"`
+	LevelStepsPerDiv  float64 `json:"level_steps_per_div"`
+	OffsetStepsPerDiv float64 `json:"offset_steps_per_div"`
+	// LevelStepV is the trigger level DAC's step in volts at the BNC
+	// (simboard.Config.LevelStepV); 0: level_steps_per_div.
+	LevelStepV float64 `json:"level_step_v"`
+	// EdgeOvershoot is the front end's overshoot on a fast edge
+	// (simboard.Config.EdgeOvershoot); 0: a single-pole front end.
+	EdgeOvershoot float64   `json:"edge_overshoot"`
+	Ladder        []float64 `json:"ladder"`
+	Depth         int       `json:"depth"`
 	// RecordDepth is the deepest record the simulated board samples (a
 	// full-rate capture memory deeper than the profile's readout window, or
 	// a memory bounded for a browser); 0: the profile's.
@@ -129,8 +135,9 @@ func Board(profileYAML []byte, d Demo, o Options) (*simboard.Board, error) {
 	}
 	b, err := simboard.New(simboard.Config{
 		Profile: p, Identity: id, CodesPerDiv: d.CodesPerDiv,
-		LevelStepsPerDiv: d.LevelStepsPerDiv, OffsetStepsPerDiv: d.OffsetStepsPerDiv,
-		Ladder: d.Ladder, Depth: d.Depth, RecordDepth: d.RecordDepth, RecordScreens: d.RecordScreens,
+		LevelStepsPerDiv: d.LevelStepsPerDiv, OffsetStepsPerDiv: d.OffsetStepsPerDiv, LevelStepV: d.LevelStepV,
+		EdgeOvershoot: d.EdgeOvershoot,
+		Ladder:        d.Ladder, Depth: d.Depth, RecordDepth: d.RecordDepth, RecordScreens: d.RecordScreens,
 		Stored: o.Stored, Persist: o.Persist, OnPresent: o.OnPresent, OnLamps: o.OnLamps,
 		KeyTable: d.KeyTable,
 	})
@@ -157,6 +164,7 @@ func Board(profileYAML []byte, d Demo, o Options) (*simboard.Board, error) {
 func (d Demo) Defaults(n int) instrument.State {
 	st := instrument.State{
 		TimeDivS: d.Start.TimeDivS, Running: true, Sweep: hal.Auto,
+		Averages: 16, EresLen: 1, // DEFAULT SETUP's, so their rows read a choice
 	}
 	if st.TimeDivS <= 0 {
 		st.TimeDivS = 1e-3
@@ -203,7 +211,11 @@ func Compose(d Demo, o Options, b *simboard.Board) scopeapp.Options {
 	return scopeapp.Options{
 		Logf: logf, Name: d.Name, Product: product, Version: o.Version,
 		Defaults: d.Defaults, Check: check,
-		Listen: o.Listen, Serve: o.Serve,
+		// The simulated board compares no mask in hardware: the core's
+		// owner loop tests every frame, as a scope without a mask
+		// comparator does.
+		SoftwareMask: true,
+		Listen:       o.Listen, Serve: o.Serve,
 		Started: func(env *scopeapp.Env) {
 			if o.Started != nil {
 				o.Started(b, env)

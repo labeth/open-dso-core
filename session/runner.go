@@ -286,6 +286,14 @@ func (t *Target) setRow(ctx context.Context, id, text string, value any) error {
 	return nil
 }
 
+// rowSettle lets one row's change reach the acquisition before the next
+// row is set: a row read in the next one's terms (a trigger level on the
+// grid of the probe factor just set) is then read as the scope reads it.
+// TRLC-LINKS: REQ-DSO-295
+func (t *Target) rowSettle(ctx context.Context) {
+	_ = t.settle(ctx, 5*time.Second)
+}
+
 // sleep waits d or until ctx ends.
 // TRLC-LINKS: REQ-DSO-295
 func sleep(ctx context.Context, d time.Duration) {
@@ -352,14 +360,12 @@ func (t *Target) settle(ctx context.Context, maxWait time.Duration) error {
 }
 
 // startRows are the rows a session starts from, in the order to set them:
-// a type or protocol before the rows it makes available.
+// the baseline's, then the session's own (a row the session sets may move
+// a baseline row, as a measurement chosen turns the readouts on, and what
+// it moves stands); in each, a type or protocol before the rows it makes
+// available.
 // TRLC-LINKS: REQ-DSO-295
 func startRows(s *Session, base Baseline) [][2]string {
-	rows := maps.Clone(base.Rows)
-	if rows == nil {
-		rows = map[string]string{}
-	}
-	maps.Copy(rows, s.Start.Rows)
 	first := func(id string) int {
 		switch {
 		case strings.HasSuffix(id, ".type"), strings.HasSuffix(id, ".protocol"), strings.HasSuffix(id, ".on"):
@@ -369,13 +375,22 @@ func startRows(s *Session, base Baseline) [][2]string {
 		}
 		return 1
 	}
-	ids := slices.Sorted(maps.Keys(rows))
-	slices.SortStableFunc(ids, func(a, b string) int { return first(a) - first(b) })
-	out := make([][2]string, 0, len(ids))
-	for _, id := range ids {
-		out = append(out, [2]string{id, rows[id]})
+	ordered := func(rows map[string]string) [][2]string {
+		ids := slices.Sorted(maps.Keys(rows))
+		slices.SortStableFunc(ids, func(a, b string) int { return first(a) - first(b) })
+		out := make([][2]string, 0, len(ids))
+		for _, id := range ids {
+			out = append(out, [2]string{id, rows[id]})
+		}
+		return out
 	}
-	return out
+	baseOnly := map[string]string{}
+	for id, text := range base.Rows {
+		if _, own := s.Start.Rows[id]; !own {
+			baseOnly[id] = text
+		}
+	}
+	return append(ordered(baseOnly), ordered(s.Start.Rows)...)
 }
 
 // start brings the scope to the session's start state: no sheet open, the
@@ -432,6 +447,10 @@ func (t *Target) start(ctx context.Context, s *Session, base Baseline) error {
 		}
 		if err := t.setRow(ctx, id, text, nil); err != nil && !errors.Is(err, ErrPlanned) {
 			return err
+		}
+		if !t.dry() { // a row may move others (a probe factor scales the V/div)
+			t.rowSettle(ctx)
+			cur = t.rowTexts(ctx)
 		}
 	}
 	running := s.Start.Running == nil || *s.Start.Running
@@ -533,6 +552,8 @@ func (t *Target) restore(ctx context.Context, sr *Played, before *savedState) {
 			if err := t.setRow(ctx, id, want, nil); err != nil {
 				left = append(left, fmt.Sprintf("%s %q: %v", id, want, err))
 			}
+			t.rowSettle(ctx)
+			cur = t.rowTexts(ctx) // a row may move others (a probe factor scales the V/div)
 		}
 	}
 	if before.workspace != "" {
