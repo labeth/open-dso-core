@@ -86,6 +86,7 @@ type lineWave struct {
 
 // at returns the line's level at time t with linear edges of the given
 // rise and fall times.
+// TRLC-LINKS: REQ-DSO-298
 func (w *lineWave) at(t, rise, fall float64) float64 {
 	if w.period <= 0 || len(w.t) == 0 {
 		return 0
@@ -124,9 +125,11 @@ func (w *lineWave) at(t, rise, fall float64) float64 {
 }
 
 // IsLine reports whether the signal is a protocol line.
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) IsLine() bool { return s.line != nil && s.BitRate > 0 }
 
 // V returns the voltage at time t (s).
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) V(t float64) float64 {
 	v := s.v(t)
 	if s.Noise > 0 {
@@ -136,6 +139,7 @@ func (s Signal) V(t float64) float64 {
 }
 
 // Sample fills dst with the signal at t0, t0+dt, t0+2·dt, ...
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) Sample(dst []float64, t0, dt float64) {
 	for i := range dst {
 		dst[i] = s.V(t0 + float64(i)*dt)
@@ -143,6 +147,7 @@ func (s Signal) Sample(dst []float64, t0, dt float64) {
 }
 
 // v is the signal without its added noise.
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) v(t float64) float64 {
 	a := s.Vpp / 2
 	if s.BitRate > 0 {
@@ -197,6 +202,7 @@ func (s Signal) v(t float64) float64 {
 }
 
 // fall is the falling edge's time (the rise's when not set).
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) fall() float64 {
 	if s.Fall > 0 {
 		return s.Fall
@@ -205,6 +211,7 @@ func (s Signal) fall() float64 {
 }
 
 // rest is the level between bursts.
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) rest() float64 {
 	switch s.Kind {
 	case kindSquare, kindPulse:
@@ -217,6 +224,7 @@ func (s Signal) rest() float64 {
 }
 
 // duty is the high (rising) fraction of the period.
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) duty() float64 {
 	d := s.Duty
 	if s.Kind == kindPulse && s.Width > 0 && s.Freq > 0 {
@@ -237,6 +245,7 @@ func (s Signal) duty() float64 {
 
 // glitchPhase is where in the period a glitch starts: the middle of the
 // low part.
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) glitchPhase() float64 {
 	switch s.Kind {
 	case kindSquare, kindPulse:
@@ -247,6 +256,7 @@ func (s Signal) glitchPhase() float64 {
 }
 
 // shape is one period of the waveform at phase ph (0 ≤ ph < 1).
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) shape(ph float64) float64 {
 	a := s.Vpp / 2
 	o := s.Offset
@@ -274,6 +284,7 @@ func (s Signal) shape(ph float64) float64 {
 }
 
 // String is the text the signal was set from.
+// TRLC-LINKS: REQ-DSO-298
 func (s Signal) String() string {
 	if s.spec != "" {
 		return s.spec
@@ -291,6 +302,7 @@ const kindSquare = "square"
 var waveKinds = map[string]bool{"dc": true, "sine": true, kindSquare: true, kindPulse: true, "triangle": true, "ramp": true, "noise": true}
 
 // Parse parses one input's "kind,freq,vpp,offset[,key=value...]".
+// TRLC-LINKS: REQ-DSO-298
 func Parse(v string) (Signal, error) {
 	f := strings.Split(strings.TrimSpace(v), ",")
 	if len(f) < 4 {
@@ -356,6 +368,7 @@ func Parse(v string) (Signal, error) {
 }
 
 // waveOptions takes the options every kind has out of opts.
+// TRLC-LINKS: REQ-DSO-298
 func (s *Signal) waveOptions(opts map[string]string) error {
 	num := func(k string, dst *float64) error {
 		x, ok := opts[k]
@@ -420,6 +433,7 @@ func (s *Signal) waveOptions(opts map[string]string) error {
 }
 
 // edgeWave is one period of a two-level waveform high for duty d.
+// TRLC-LINKS: REQ-DSO-298
 func edgeWave(d, freq float64) *lineWave {
 	if freq <= 0 {
 		return &lineWave{t: []float64{0}, lv: []float64{1}, period: 1}
@@ -432,6 +446,7 @@ func edgeWave(d, freq float64) *lineWave {
 }
 
 // keys is m's keys, sorted.
+// TRLC-LINKS: REQ-DSO-298
 func keys(m map[string]string) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
@@ -444,6 +459,7 @@ func keys(m map[string]string) []string {
 // gauss is a standard normal value that depends only on seed and t: a
 // counter-based generator (splitmix64 over the time's bits) through the
 // Box-Muller transform.
+// TRLC-LINKS: REQ-DSO-298
 func gauss(seed uint64, t float64) float64 {
 	h := mix(seed ^ math.Float64bits(t))
 	u1 := (float64(h>>11) + 1) / (1 << 53) // (0, 1]
@@ -452,6 +468,7 @@ func gauss(seed uint64, t float64) float64 {
 }
 
 // mix is splitmix64's finaliser.
+// TRLC-LINKS: REQ-DSO-298
 func mix(x uint64) uint64 {
 	x += 0x9e3779b97f4a7c15
 	x = (x ^ x>>30) * 0xbf58476d1ce4e5b9

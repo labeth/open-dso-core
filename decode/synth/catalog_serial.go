@@ -13,6 +13,7 @@ import (
 
 var errParity = errors.New("parity: want none, even or odd")
 
+// TRLC-LINKS: REQ-DSO-018
 func init() {
 	protocols = append(protocols,
 		Protocol{
@@ -103,6 +104,7 @@ func init() {
 var protocols []Protocol
 
 // uartFraming reads parity and stop bits.
+// TRLC-LINKS: REQ-DSO-018
 func uartFraming(c *ctx) (parity string, stops int, err error) {
 	parity = c.str(setParity)
 	switch parity {
@@ -117,6 +119,7 @@ func uartFraming(c *ctx) (parity string, stops int, err error) {
 	return parity, stops, nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeUART(c *ctx) error {
 	baud := c.num(setBaud)
 	parity, stops, err := uartFraming(c)
@@ -134,6 +137,7 @@ func makeUART(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeLIN(c *ctx) error {
 	baud := c.num(setBaud)
 	id := c.integer("id") & 0x3f
@@ -149,6 +153,7 @@ func makeLIN(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeDMX(c *ctx) error {
 	slots := c.data(func() []int {
 		s := make([]int, 120)
@@ -167,6 +172,7 @@ func makeDMX(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeMIDI(c *ctx) error {
 	b := c.data([]int{0x90, 0x3C, 0x64, 0x40, 0x64, 0x43, 0x64, 0x80, 0x3C, 0x00, 0xB0, 0x07, 0x50, 0xF8, 0xC0, 0x05}, 8)
 	w := c.line()
@@ -179,6 +185,7 @@ func makeMIDI(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeModbus(c *ctx) error {
 	baud := c.num(setBaud)
 	parity, stops, err := uartFraming(c)
@@ -197,6 +204,7 @@ func makeModbus(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeI2C(c *ctx) error {
 	hz := c.num(setRate)
 	addr := c.integer("addr") & 0x7f
@@ -215,6 +223,7 @@ func makeI2C(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeSPI(c *ctx) error {
 	hz := c.num(setRate)
 	mode := c.integer(setMode)
@@ -229,6 +238,7 @@ func makeSPI(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeCAN(c *ctx) error {
 	baud := c.num(setBaud)
 	id := c.integer("id")
@@ -255,6 +265,7 @@ func makeCAN(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeUSB(c *ctx) error {
 	rate := USBLowSpeed
 	if c.str("speed") == "full" {
@@ -282,6 +293,7 @@ func makeUSB(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeFlexRay(c *ctx) error {
 	rate := c.num(setRate)
 	d := c.data([]int{0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0}, 8)
@@ -296,6 +308,7 @@ func makeFlexRay(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeSENT(c *ctx) error {
 	tick := c.num("tick_us") * 1e-6
 	d := c.data([]int{0xA, 0x5, 0xF, 0x0, 0xC, 0x3}, 4)
@@ -310,6 +323,7 @@ func makeSENT(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeMIL1553(c *ctx) error {
 	words := c.data([]int{0x1234, 0xABCD, 0x0F0F}, 16)
 	cmd := make([]bool, len(words))
@@ -320,6 +334,7 @@ func makeMIL1553(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeARINC(c *ctx) error {
 	rate := c.num(setRate)
 	// payload: pairs of label (octal-coded byte) and 19-bit data
@@ -345,6 +360,7 @@ func makeARINC(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeManchester(c *ctx) error {
 	rate := c.num(setRate)
 	d := c.data([]int{0x4D, 0x31, 0x55, 0xAA, 0x0F}, 8)

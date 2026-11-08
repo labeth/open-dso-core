@@ -20,6 +20,7 @@ type Bank struct {
 }
 
 // NewBank is a bank of n inputs, each at 0 V.
+// TRLC-LINKS: REQ-DSO-298
 func NewBank(n int) *Bank {
 	b := &Bank{sigs: make([]Signal, n)}
 	for i := range b.sigs {
@@ -29,10 +30,12 @@ func NewBank(n int) *Bank {
 }
 
 // Inputs is how many inputs the bank has.
+// TRLC-LINKS: REQ-DSO-298
 func (b *Bank) Inputs() int { return len(b.sigs) }
 
 // Signal is input in's signal now; the zero signal (0 V) for an input the
 // bank does not have.
+// TRLC-LINKS: REQ-DSO-298
 func (b *Bank) Signal(in int) Signal {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -44,6 +47,7 @@ func (b *Bank) Signal(in int) Signal {
 
 // Generation moves with every change, so a reader can tell the signals
 // changed.
+// TRLC-LINKS: REQ-DSO-298
 func (b *Bank) Generation() uint64 {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -51,6 +55,7 @@ func (b *Bank) Generation() uint64 {
 }
 
 // Specs are every input's signal as text.
+// TRLC-LINKS: REQ-DSO-298
 func (b *Bank) Specs() []string {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
@@ -62,12 +67,14 @@ func (b *Bank) Specs() []string {
 }
 
 // Set sets input in's signal from its text.
+// TRLC-LINKS: REQ-DSO-298
 func (b *Bank) Set(in int, spec string) error {
 	return b.SetMany(map[int]string{in: spec})
 }
 
 // SetMany sets several inputs at once (a bus's lines), or none of them when
 // any text fails to parse.
+// TRLC-LINKS: REQ-DSO-298
 func (b *Bank) SetMany(specs map[int]string) error {
 	parsed := map[int]Signal{}
 	for in, spec := range specs {
@@ -102,6 +109,7 @@ type Bus struct {
 
 // Specs are the bus's lines as per-input signal texts. Every line of one
 // bus carries the same options, so they stay in step.
+// TRLC-LINKS: REQ-DSO-298
 func (bus Bus) Specs() (map[int]string, error) {
 	if len(bus.Lines) == 0 {
 		return nil, fmt.Errorf("%s: no line placed on an input", bus.Kind)
@@ -135,6 +143,7 @@ func (bus Bus) Specs() (map[int]string, error) {
 
 // SetBus lays bus out on its inputs, or changes nothing when it does not
 // parse.
+// TRLC-LINKS: REQ-DSO-298
 func (b *Bank) SetBus(bus Bus) error {
 	specs, err := bus.Specs()
 	if err != nil {

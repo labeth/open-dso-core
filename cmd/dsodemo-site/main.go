@@ -19,6 +19,7 @@ import (
 	"github.com/labeth/open-dso-core/simdemo"
 )
 
+// TRLC-LINKS: REQ-DSO-298
 func main() {
 	profilePath := flag.String("profile", "", "the scope's profile.yaml")
 	demoPath := flag.String("demo", "", "the scope's demo.json")
@@ -30,6 +31,7 @@ func main() {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func build(profilePath, demoPath, out string) error {
 	if profilePath == "" || demoPath == "" || out == "" {
 		return errors.New("-profile, -demo and -out are required")

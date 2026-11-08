@@ -410,10 +410,15 @@ const ACTIONS = [
 // TRLC-LINKS: REQ-DSO-180, REQ-DSO-204
 function chanActions(n) {
   return [
+    // TRLC-LINKS: REQ-DSO-298
     { name: `vdiv${n}-random`, w: 3, run: async (op) => `vdiv${n}=` + (await selRandom(op, "vdiv" + n)) },
+    // TRLC-LINKS: REQ-DSO-298
     { name: `cpl${n}-random`, w: 2, run: async (op) => `cpl${n}=` + (await selRandom(op, "cpl" + n)) },
+    // TRLC-LINKS: REQ-DSO-298
     { name: `probe${n}-random`, w: 1, run: async (op) => `probe${n}=` + (await selRandom(op, "probe" + n)) },
+    // TRLC-LINKS: REQ-DSO-298
     { name: `ch${n}-toggle`, w: 3, run: async (op) => clickId(op, "tC" + n) },
+    // TRLC-LINKS: REQ-DSO-298
     { name: `offset${n}`, w: 2, run: async (op) => { const v = rfloat(-3.5, 3.5).toFixed(2); await slider(op, "off" + n, v); return `off${n}=` + v; } },
   ];
 }

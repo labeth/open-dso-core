@@ -6,6 +6,7 @@ package synth
 // protocol's specification.
 
 // reflected8 is a reflected CRC-8 of poly (the reversed polynomial) from 0.
+// TRLC-LINKS: REQ-DSO-018
 func reflected8(b []int, poly int) int {
 	c := 0
 	for _, v := range b {

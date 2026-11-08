@@ -16,6 +16,7 @@ func mustSig(t *testing.T, spec string) Signal {
 
 // The original four kinds keep their shape (the default signals and the regression runs
 // depend on them).
+// TRLC-LINKS: REQ-DSO-298
 func TestSignalClassicKinds(t *testing.T) {
 	for _, c := range []struct {
 		spec string
@@ -34,6 +35,7 @@ func TestSignalClassicKinds(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func TestSignalWaveformOptions(t *testing.T) {
 	p := mustSig(t, "pulse,1e3,2,0,width=1e-4")
 	if p.V(0.05e-3) != 1 || p.V(0.15e-3) != -1 {
@@ -73,6 +75,7 @@ func TestSignalWaveformOptions(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func TestSignalParseErrors(t *testing.T) {
 	for _, s := range []string{
 		"sine,1e3", "sine,x,1,0", "sine,1e3,1,0,duty=2", "sine,1e3,1,0,bogus=1", "wobble,1,1,0",
@@ -97,6 +100,7 @@ func sampleBits(s Signal, t0, bt float64, n int) []int {
 	return out
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func TestUARTLine(t *testing.T) {
 	s := mustSig(t, "uart,9600,3.3,1.65,data=a5,parity=e")
 	bt := 1 / 9600.0
@@ -115,6 +119,7 @@ func TestUARTLine(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func TestSPILinesInStep(t *testing.T) {
 	clk := mustSig(t, "spi.clk,1e6,1,0.5,data=c3,mode=0")
 	mosi := mustSig(t, "spi.mosi,1e6,1,0.5,data=c3,mode=0")
@@ -144,6 +149,7 @@ func TestSPILinesInStep(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func TestCANWires(t *testing.T) {
 	h := mustSig(t, "can.h,5e5,2,2.5,id=0x123,data=01")
 	l := mustSig(t, "can.l,5e5,2,2.5,id=0x123,data=01")
@@ -156,6 +162,7 @@ func TestCANWires(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func TestCRC15(t *testing.T) {
 	// A message followed by its CRC leaves a zero remainder.
 	msg := []byte{0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1}
@@ -168,6 +175,7 @@ func TestCRC15(t *testing.T) {
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func TestLINChecksum(t *testing.T) {
 	if p := linPID(0x10); p != 0x50 {
 		t.Errorf("PID(0x10) = %#x, want 0x50", p)
@@ -179,6 +187,7 @@ func TestLINChecksum(t *testing.T) {
 
 // Noise depends only on the time and the seed: a record read twice is the
 // same record, and two inputs' noise differs.
+// TRLC-LINKS: REQ-DSO-298
 func TestNoiseIsAFunctionOfTime(t *testing.T) {
 	a := mustSig(t, "sine,1e3,1,0,noise=0.05")
 	b := a
@@ -193,6 +202,7 @@ func TestNoiseIsAFunctionOfTime(t *testing.T) {
 
 // PRBS7 is a maximal-length sequence: 127 bits a period, 64 ones, and its
 // clock rises in the middle of each bit.
+// TRLC-LINKS: REQ-DSO-298
 func TestPRBSLine(t *testing.T) {
 	d := mustSig(t, "prbs,1e6,1,0.5")
 	clk := mustSig(t, "prbs.clk,1e6,1,0.5")
@@ -215,6 +225,7 @@ func TestPRBSLine(t *testing.T) {
 
 // A bank changes a signal while it is read, sets a bus's lines together
 // and changes nothing when one line fails.
+// TRLC-LINKS: REQ-DSO-298
 func TestBank(t *testing.T) {
 	b := NewBank(4)
 	if b.Signal(0).V(1) != 0 || b.Inputs() != 4 {
@@ -254,6 +265,7 @@ func TestBank(t *testing.T) {
 
 // BenchmarkSquare is one sample of an edged square wave with noise, the
 // cost a simulated record pays per sample.
+// TRLC-LINKS: REQ-DSO-298
 func BenchmarkSquare(b *testing.B) {
 	s, _ := Parse("square,1e6,2,0,rise=5e-9,noise=0.01")
 	dst := make([]float64, 4096)
@@ -264,6 +276,7 @@ func BenchmarkSquare(b *testing.B) {
 
 // stretch holds a pulse's high part longer in every EVERY-th period and
 // adds no edge: the other periods keep their width.
+// TRLC-LINKS: REQ-DSO-298
 func TestStretch(t *testing.T) {
 	s, err := Parse("pulse,2500,3.3,1.65,width=100e-6,stretch=7:12e-6")
 	if err != nil {

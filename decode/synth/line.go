@@ -162,6 +162,7 @@ func (p Pair) Add(la, lb byte, d float64) {
 }
 
 // lvl is bit 0 of b as a level.
+// TRLC-LINKS: REQ-DSO-018
 func lvl(b int) byte {
 	if b&1 != 0 {
 		return 1

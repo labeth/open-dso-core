@@ -224,12 +224,14 @@ func MakeLayer(id string, sr float64) (Bus, error) {
 
 // spiLayer is an SPI bus (mode 0, 1 MHz) carrying packets, each a chip
 // select's transaction: a pause of three byte times between them.
+// TRLC-LINKS: REQ-DSO-018
 func spiLayer(sr float64, packets [][]int) Bus {
 	l := SPIPackets(SPIShape{Hz: 1e6, Duty: 0.5}, sr, packets, 24)
 	return Bus{Proto: "spi", Name: "SPI 1 MHz mode 0", Roles: []string{"clk", roleData}, Lines: []*Line{l.A, l.B}, NaturalSR: 40e6}
 }
 
 // i2cLayer is an I2C bus at 100 kHz carrying transfers.
+// TRLC-LINKS: REQ-DSO-018
 func i2cLayer(sr float64, ts []I2CTransfer) Bus {
 	l := I2CBus(100e3, sr, ts, nil)
 	return Bus{Proto: "i2c", Name: "I2C 100 kHz", Roles: []string{"scl", "sda"}, Lines: []*Line{l.A, l.B}, NaturalSR: 5e6}
@@ -237,6 +239,7 @@ func i2cLayer(sr float64, ts []I2CTransfer) Bus {
 
 // uartLayer is a UART (8N1) carrying bursts of bytes, a pause of 20 bit
 // times between them.
+// TRLC-LINKS: REQ-DSO-018
 func uartLayer(sr, baud float64, bursts [][]int) Bus {
 	w := NewLine(sr)
 	w.Idle(30 / baud)
@@ -251,6 +254,7 @@ func uartLayer(sr, baud float64, bursts [][]int) Bus {
 }
 
 // oneWireLayer is a 1-Wire bus carrying transactions, each after its reset.
+// TRLC-LINKS: REQ-DSO-018
 func oneWireLayer(sr float64, txns [][]int) Bus {
 	w := NewLine(sr)
 	w.Idle(100e-6)

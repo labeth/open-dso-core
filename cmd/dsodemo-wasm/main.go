@@ -38,6 +38,7 @@ import (
 // thread the demo has.
 const presentEvery = time.Second / 30
 
+// TRLC-LINKS: REQ-DSO-298
 func main() {
 	cfg := js.Global().Get("dsoDemoConfig")
 	host := js.Global().Get("dsoHost")
@@ -94,6 +95,7 @@ func main() {
 }
 
 // stored is the stores' content the page kept: store to key to value.
+// TRLC-LINKS: REQ-DSO-298
 func stored(v js.Value) map[string]map[string][]byte {
 	out := map[string]map[string][]byte{}
 	if v.IsUndefined() || v.IsNull() {
@@ -118,6 +120,7 @@ func stored(v js.Value) map[string]map[string][]byte {
 
 // serve answers one request through h on its own goroutine and returns the
 // promise of the response.
+// TRLC-LINKS: REQ-DSO-298
 func serve(h http.Handler, req js.Value) any {
 	method := req.Get("method").String()
 	url := req.Get("url").String()
@@ -154,6 +157,7 @@ func serve(h http.Handler, req js.Value) any {
 }
 
 // reply is a response as the worker hands it on.
+// TRLC-LINKS: REQ-DSO-298
 func reply(status int, h http.Header, body []byte) js.Value {
 	hs := make([]any, 0, len(h))
 	for k, vs := range h {
@@ -174,20 +178,24 @@ type recorder struct {
 	body   bytes.Buffer
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func (r *recorder) Header() http.Header { return r.h }
 
+// TRLC-LINKS: REQ-DSO-298
 func (r *recorder) WriteHeader(code int) {
 	if !r.wrote {
 		r.status, r.wrote = code, true
 	}
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func (r *recorder) Write(p []byte) (int, error) {
 	r.wrote = true
 	return r.body.Write(p)
 }
 
 // ReadFrom keeps io.Copy into the response a plain copy.
+// TRLC-LINKS: REQ-DSO-298
 func (r *recorder) ReadFrom(src io.Reader) (int64, error) {
 	r.wrote = true
 	return r.body.ReadFrom(src)

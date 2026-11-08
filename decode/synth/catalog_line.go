@@ -10,6 +10,7 @@ import (
 // The single-wire line codes' generators: pulse-coded buses, IR remotes,
 // biphase codes, radio and RFID codes.
 
+// TRLC-LINKS: REQ-DSO-018
 func init() {
 	protocols = append(protocols,
 		Protocol{
@@ -86,6 +87,7 @@ func init() {
 
 // pair2 is the first two payload values (address and command), defaults
 // when missing.
+// TRLC-LINKS: REQ-DSO-018
 func pair2(c *ctx, def []int, bits int) (int, int) {
 	p := c.data(def, bits)
 	a, b := def[0], def[1]
@@ -98,6 +100,7 @@ func pair2(c *ctx, def []int, bits int) (int, int) {
 	return a, b
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeOneWire(c *ctx) error {
 	od := c.flag("overdrive")
 	// a Skip ROM and Convert T, then a Read ROM answered by the payload (a
@@ -120,6 +123,7 @@ func makeOneWire(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeWS281x(c *ctx) error {
 	rate := c.num(setRate)
 	d := c.data([]int{0xFF, 0, 0, 0, 0xFF, 0, 0, 0, 0xFF, 0x10, 0x20, 0x30}, 8)
@@ -131,6 +135,7 @@ func makeWS281x(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeDHT(c *ctx) error {
 	d := c.data([]int{0x02, 0x8C, 0x01, 0x5F}, 8)
 	var b [4]int
@@ -142,6 +147,7 @@ func makeDHT(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeCEC(c *ctx) error {
 	d := c.data([]int{0x40, 0x04}, 8)
 	w := c.line()
@@ -153,6 +159,7 @@ func makeCEC(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeJ1850(c *ctx) error {
 	d := c.data([]int{0x68, 0x6A, 0xF1, 0x01, 0x00}, 8)
 	w := c.line()
@@ -166,6 +173,7 @@ func makeJ1850(c *ctx) error {
 
 // irBus writes an IR remote's frames on a line idling as a receiver's
 // output (marks low) unless high.
+// TRLC-LINKS: REQ-DSO-018
 func irBus(c *ctx, high bool, f func(l IRLine)) *Line {
 	w := c.line()
 	l := IRLine{W: w, ActiveHigh: high}
@@ -174,6 +182,7 @@ func irBus(c *ctx, high bool, f func(l IRLine)) *Line {
 	return w
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeNEC(c *ctx) error {
 	addr, cmd := pair2(c, []int{0x04, 0x08}, 8)
 	w := irBus(c, c.flag("emitter"), func(l IRLine) { NECFrame(l, addr, -1, cmd); NECFrame(l, addr, -1, cmd) })
@@ -181,6 +190,7 @@ func makeNEC(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeSIRC(c *ctx) error {
 	nb := c.integer(setBits)
 	if nb != 12 && nb != 15 && nb != 20 {
@@ -199,6 +209,7 @@ func makeSIRC(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeRC5(c *ctx) error {
 	addr, cmd := pair2(c, []int{0x00, 0x0C}, 7)
 	w := irBus(c, false, func(l IRLine) { RC5Frame(l, 0, addr&0x1f, cmd); RC5Frame(l, 0, addr&0x1f, cmd) })
@@ -206,6 +217,7 @@ func makeRC5(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeRC6(c *ctx) error {
 	addr, cmd := pair2(c, []int{0x00, 0x0C}, 8)
 	w := irBus(c, false, func(l IRLine) { RC6Frame(l, 0, 0, []int{addr, cmd}); RC6Frame(l, 0, 0, []int{addr, cmd}) })
@@ -213,6 +225,7 @@ func makeRC6(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeDALI(c *ctx) error {
 	d := c.data([]int{0x01, 0x90, 0x5A}, 8)
 	w := c.line()
@@ -227,6 +240,7 @@ func makeDALI(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeUSBPD(c *ctx) error {
 	p := c.data([]int{0x1161, 0x0801912C}, 32)
 	header := p[0] & 0xffff
@@ -250,6 +264,7 @@ func makeUSBPD(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeSPDIF(c *ctx) error {
 	fs := c.num("fs")
 	p := c.data(func() []int {
@@ -273,6 +288,7 @@ func makeSPDIF(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makePWM(c *ctx) error {
 	per := c.num(setPeriodUS) * 1e-6
 	p := c.data(func() []int {
@@ -300,6 +316,7 @@ func makePWM(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeRCEncode(c *ctx) error {
 	a := c.num("short_us") * 1e-6
 	t := c.data([]int{0, 1, 2, 0, 0, 1, 1, 2, 0, 1, 0, 0}, 2)
@@ -311,6 +328,7 @@ func makeRCEncode(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeOOK(c *ctx) error {
 	n := c.data([]int{0xF, 0x8, 0x2, 0x4, 0x1, 0x3, 0xA, 0x0, 0x5, 0x3, 0x2, 0x0, 0x4, 0x5, 0x0}, 4)
 	w := c.line()
@@ -327,6 +345,7 @@ func makeOOK(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeMiller(c *ctx) error {
 	bits := c.data([]int{1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0}, 1)
 	T := 1.0 / 106000
@@ -352,6 +371,7 @@ func makeMiller(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeMorse(c *ctx) error {
 	u := c.num("unit_ms") * 1e-3
 	text := c.data([]int{'C', 'Q', ' ', 'D', 'E', ' ', 'S', 'M', '5', 'A', 'B', 'C'}, 8)
@@ -372,6 +392,7 @@ func makeMorse(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeDCF77(c *ctx) error {
 	sec := c.num("second_ms") * 1e-3
 	f := c.data([]int{0x37, 0x12, 0x18, 0x7, 0x10, 0x26}, 8)
@@ -387,6 +408,7 @@ func makeDCF77(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeEM4100(c *ctx) error {
 	d := c.data([]int{0x01, 0x23, 0x45, 0x67, 0x89}, 8)
 	var b [5]int
@@ -402,6 +424,7 @@ func makeEM4100(c *ctx) error {
 
 // rfidLine starts a reader's line: the field as its carrier or its
 // envelope, and the rate the tests read each at.
+// TRLC-LINKS: REQ-DSO-018
 func rfidLine(c *ctx) (RFIDField, float64) {
 	carrier := c.flag(setCarrier)
 	sr := 1e6
@@ -413,6 +436,7 @@ func rfidLine(c *ctx) (RFIDField, float64) {
 	return f, sr
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeEM4305(c *ctx) error {
 	d := c.data([]int{0xDE, 0xAD, 0xBE, 0xEF}, 8)
 	var word [4]int
@@ -425,6 +449,7 @@ func makeEM4305(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeT55xx(c *ctx) error {
 	d := c.data([]int{0x00148040, 0xDEADBEEF}, 32)
 	f, sr := rfidLine(c)
@@ -437,6 +462,7 @@ func makeT55xx(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeSWIM(c *ctx) error {
 	const T = 22 / 4e6
 	d := c.data([]int{0x5A, 0xC3}, 8)
@@ -457,6 +483,7 @@ func makeSWIM(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeSDQ(c *ctx) error {
 	T := 1 / 98425.0
 	d := c.data([]int{0x33, 0x01, 0xFE, 0x80, 0x55}, 8)
@@ -471,6 +498,7 @@ func makeSDQ(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makePJDL(c *ctx) error {
 	m := c.integer(setMode)
 	if m < 1 || m > 4 {
@@ -486,6 +514,7 @@ func makePJDL(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeDSI(c *ctx) error {
 	d := c.data([]int{0x00, 0xFF, 0x80, 0x55}, 8)
 	w := c.line()
@@ -497,6 +526,7 @@ func makeDSI(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeQi(c *ctx) error {
 	d := c.data([]int{0x01, 0x80}, 8)
 	w := c.line()
@@ -512,6 +542,7 @@ func makeQi(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeIRMP(c *ctx) error {
 	code := c.str("code")
 	var f func(l IRLine)

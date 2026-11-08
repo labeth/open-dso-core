@@ -53,33 +53,44 @@ for (let tries = 0; ; tries++) {
 }
 
 // ---------------------------------------------------------------- the bench's hands
+// TRLC-LINKS: REQ-DSO-298
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// TRLC-LINKS: REQ-DSO-298
 const api = (p, body) => bench.evaluate(async ([p, body]) => {
   const r = await fetch(p, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   return r.json().catch(() => ({ ok: false, err: r.statusText }));
 }, [p, body]);
+// TRLC-LINKS: REQ-DSO-298
 const status = () => api("/api/status");
+// TRLC-LINKS: REQ-DSO-298
 const panel = async () => (await status()).panel || {};
+// TRLC-LINKS: REQ-DSO-298
 const simState = () => api("/api/sim/state");
 // key presses a front-panel key on the bench page, as a hand does
+// TRLC-LINKS: REQ-DSO-298
 const key = async (k) => {
   const b = await bench.$(`button[data-key="${k}"]`);
   if (b) await b.click(); else await api("/api/sim/input", { key: k });
   await sleep(250);
 };
+// TRLC-LINKS: REQ-DSO-298
 const knob = (k, steps) => api("/api/sim/input", { knob: k, steps });
 let nch = 2;
+// TRLC-LINKS: REQ-DSO-298
 const quietAll = () => Object.fromEntries(Array.from({ length: nch }, (_, i) => [`C${i + 1}`, "dc,0,0,0"]));
+// TRLC-LINKS: REQ-DSO-298
 const signals = async (s) => {
   const r = await api("/api/sim/signal", { signals: { ...quietAll(), ...s } });
   if (!r.ok) throw new Error(`generator: ${r.err}`);
 };
+// TRLC-LINKS: REQ-DSO-298
 const busOn = async (b) => {
   await signals({});
   const r = await api("/api/sim/bus", b);
   if (!r.ok) throw new Error(`generator bus: ${r.err}`);
 };
 // waitFor polls fn until it returns a truthy value or ms pass (then the last value)
+// TRLC-LINKS: REQ-DSO-298
 async function waitFor(fn, ms, every = 300) {
   const end = Date.now() + ms;
   let v;
@@ -94,6 +105,7 @@ async function waitFor(fn, ms, every = 300) {
 // workspace request where the bar is not up, or the panel has no F-keys: a
 // touch screen's workspace bar is touched, not pressed).
 const wsLabel = { scope: "SCOP", bus: "BUS", spectrum: "SPEC", measure: "MEAS", compare: "COMP" };
+// TRLC-LINKS: REQ-DSO-298
 async function workspace(id) {
   const p = await panel();
   if (p.WorkspaceID === id) return;
@@ -103,10 +115,12 @@ async function workspace(id) {
   await waitFor(async () => (await panel()).WorkspaceID === id, 5000);
 }
 // idle waits for AUTO, a detection and an autoset to end
+// TRLC-LINKS: REQ-DSO-298
 const idle = (ms = 40000) => waitFor(async () => {
   const p = await panel();
   return !p.AutosetBusy && !(p.Display && p.Display.DecDetecting);
 }, ms, 400);
+// TRLC-LINKS: REQ-DSO-298
 async function defaultSetup() {
   await workspace("scope");
   await key("defaultsetup");
@@ -114,6 +128,7 @@ async function defaultSetup() {
   await idle();
 }
 // auto presses AUTO and waits for it to end; it returns the notice it left
+// TRLC-LINKS: REQ-DSO-298
 async function auto() {
   const before = (await panel()).AutosetDone;
   await key("auto");
@@ -125,13 +140,18 @@ async function auto() {
   return panel();
 }
 // webText reads the web UI's elements' text (a textarea's value)
+// TRLC-LINKS: REQ-DSO-298
 const webText = (sel) => ui.evaluate((s) => [...document.querySelectorAll(s)].map((e) => (e.value !== undefined && e.tagName === "TEXTAREA" ? e.value : e.textContent)).join("\n"), sel);
+// TRLC-LINKS: REQ-DSO-298
 const webClick = async (sel) => { await ui.click(sel); await sleep(300); };
+// TRLC-LINKS: REQ-DSO-298
 const hexOf = (s) => s.match(/../g).join(" ").toUpperCase();
+// TRLC-LINKS: REQ-DSO-298
 const lamps = async () => (await simState()).lamps || [];
 
 // ---------------------------------------------------------------- the cases
 const cases = [];
+// TRLC-LINKS: REQ-DSO-298
 const add = (id, fn) => cases.push({ id, fn });
 
 // The owner's flow: the generator's UART preset on C1, C2 off, BUS on the
@@ -214,6 +234,7 @@ add("bus-views", async () => {
   await webClick("#tab-bus");
   await webClick('#busView button[data-value="eye"]');
   if (!(await ui.evaluate(() => document.getElementById("ejArm").classList.contains("on")))) await webClick("#ejArm");
+  // TRLC-LINKS: REQ-DSO-298
   const height = async () => { const t = await webText("#ejBody"); return /eye height\s*[\d.]/.test(t) ? t : ""; };
   let eye = await waitFor(height, 20000);
   if (!eye) { // a timebase no record holds at the full rate: Optimize steps to one that does, as an operator would
@@ -294,6 +315,7 @@ add("spectrum-fft-sound", async () => {
 
 // reveal brings a web control on screen as an operator does (its
 // workspace, pane and view) and clicks it.
+// TRLC-LINKS: REQ-DSO-298
 const reveal = async (id) => {
   await ui.evaluate((i) => { const e = document.getElementById(i); if (e && typeof revealControl === "function") revealControl(e); }, id);
   await sleep(400);
@@ -327,6 +349,7 @@ add("superres", async () => {
   await reveal("srAutoGate");
   await reveal("srArm");
   // a stack of records: "N hits · M fr" with M growing
+  // TRLC-LINKS: REQ-DSO-298
   const frames = (t) => +((/(\d+) fr\b/.exec(t) || [])[1] || 0);
   const stat = await waitFor(async () => { const t = await webText("#srStats"); return /unsupported|failed/.test(t) || frames(t) >= 8 ? t : ""; }, 40000);
   await reveal("srArm");
@@ -348,6 +371,7 @@ add("sys-identity", async () => {
 add("channel-keys", async () => {
   await defaultSetup();
   const log = [];
+  // TRLC-LINKS: REQ-DSO-298
   const on = async (c) => (await status())[`on${c}`];
   await api("/api/panel", { set: { row: "ch2.on", text: "Off" } });
   await sleep(800);
@@ -375,6 +399,7 @@ add("fuzz-panel", async () => {
   const keys = (st0.keys || []).filter((k) => !/defaultsetup|saverecall|print/.test(k));
   const knobs = st0.knobs || [];
   let seed = Number(process.env.SEED || 1);
+  // TRLC-LINKS: REQ-DSO-298
   const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
   const iters = Number(process.env.FUZZ_ITERS || 40);
   const done = [];

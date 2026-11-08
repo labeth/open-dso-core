@@ -8,6 +8,7 @@ import (
 )
 
 // packMSB packs bits into bytes, most significant first.
+// TRLC-LINKS: REQ-DSO-018
 func packMSB(bits []int) []int {
 	var out []int
 	for i, b := range bits {
@@ -22,6 +23,7 @@ func packMSB(bits []int) []int {
 // The two-line buses' generators: the clocked buses beyond SPI and I2C,
 // Wiegand's two data lines, the motion signals.
 
+// TRLC-LINKS: REQ-DSO-018
 func init() {
 	protocols = append(protocols,
 		Protocol{Proto: "ps2", Title: "PS/2", Roles: []string{"clk", roleData}, Payload: payBytes, Defaults: map[string]string{}, make: makePS2},
@@ -50,6 +52,7 @@ func init() {
 	)
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makePS2(c *ctx) error {
 	d := c.data([]int{0x1C, 0xF0, 0x1C, 0x32, 0xF0, 0x32}, 8)
 	l := c.pair()
@@ -61,6 +64,7 @@ func makePS2(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeSWD(c *ctx) error {
 	per := 1 / c.num(setRate)
 	d := c.data([]int{0x2BA01477}, 32)
@@ -74,6 +78,7 @@ func makeSWD(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeMDIO(c *ctx) error {
 	per := 1 / c.num(setRate)
 	phy := c.integer("phy") & 0x1f
@@ -91,6 +96,7 @@ func makeMDIO(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeWiegand(c *ctx) error {
 	nb := c.integer(setBits)
 	if nb != 26 && nb != 34 {
@@ -104,6 +110,7 @@ func makeWiegand(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeQuad(c *ctx) error {
 	per := c.num(setPeriodUS) * 1e-6
 	moves := c.data(func() []int {
@@ -125,6 +132,7 @@ func makeQuad(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeStepper(c *ctx) error {
 	per := c.num(setPeriodUS) * 1e-6
 	dirs := c.data(func() []int {
@@ -145,6 +153,7 @@ func makeStepper(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeSDCard(c *ctx) error {
 	per := 1 / c.num(setRate)
 	p := c.data([]int{17, 0x1000, 13, 0x12340000}, 32)
@@ -166,6 +175,7 @@ func makeSDCard(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makePDI(c *ctx) error {
 	per := 1 / c.num(setRate)
 	d := c.data([]int{0xC2, 0x59, 0x80, 0x07, 0x4C, 0xCA, 0x01, 0x00, 0x01, 0x55, 0x0C, 0x00, 0x00, 0x00, 0x01, 0x22}, 8)
@@ -180,6 +190,7 @@ func makePDI(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeCJTAG(c *ctx) error {
 	per := 1 / c.num(setRate)
 	d := c.data([]int{0x4BA00477}, 32)
@@ -198,6 +209,7 @@ func makeCJTAG(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeMaple(c *ctx) error {
 	d := c.data([]int{0x00, 0x00, 0x00, 0x01}, 8)
 	m := &MapleLine{P: c.pair(), Step: 250e-9}
@@ -214,6 +226,7 @@ func makeMaple(c *ctx) error {
 	return nil
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func makeCaliper(c *ctx) error {
 	d := c.data([]int{1234, 1235, 1236}, 16)
 	l := c.pair()

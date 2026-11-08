@@ -23,6 +23,7 @@ try {
   await page.waitForFunction(() => window.demoStats && window.demoStats.firstFrameMs > 0, null, { timeout: 60000 });
   out.firstPictureMs = Date.now() - t0;
   out.moduleMs = await page.evaluate(() => window.demoStats.loadMs);
+  // TRLC-LINKS: REQ-DSO-298
   const web = async () => {
     const f = page.frames().find((x) => x.url().includes("/ui/"));
     return f ? f.evaluate(() => (typeof frame !== "undefined" && frame ? frame.seq : 0)).catch(() => 0) : 0;
@@ -37,6 +38,7 @@ try {
   out.webFps = ((await web()) - w0) / dt;
   // RUN/STOP on the bench's panel stops the acquisition the web UI shows, and runs it again
   // asked from the page: its service worker answers it from the engine
+  // TRLC-LINKS: REQ-DSO-298
   const running = () => page.evaluate(async () => (await (await fetch("/api/status")).json()).running);
   await page.click('button[data-key="run"]');
   for (let i = 0; i < 40 && (await running()); i++) await page.waitForTimeout(100);

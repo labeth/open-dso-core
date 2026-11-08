@@ -21,6 +21,7 @@ self.addEventListener('message', (e) => {
   // second one arrives when the page answers a need-port that crossed the
   // first) is answered on that port.
   port = e.ports[0];
+  // TRLC-LINKS: REQ-DSO-298
   port.onmessage = (m) => {
     const r = m.data;
     const p = pending.get(r.id);
@@ -34,6 +35,7 @@ self.addEventListener('message', (e) => {
 
 // enginePort is the port to the engine, asked of the bench page when there is
 // none yet (a service worker the browser restarted forgets it).
+// TRLC-LINKS: REQ-DSO-298
 async function enginePort() {
   if (port) return port;
   const got = new Promise((res) => portWaiters.push(res));
@@ -45,6 +47,7 @@ async function enginePort() {
 }
 
 // target is the engine's path for a request, or null for the static site.
+// TRLC-LINKS: REQ-DSO-298
 function target(url) {
   if (url.origin !== self.location.origin) return null;
   const p = url.pathname;
@@ -61,6 +64,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(forward(e.request, path));
 });
 
+// TRLC-LINKS: REQ-DSO-298
 async function forward(req, path) {
   // The engine's replies are never compressed: a Response built here is not
   // decoded again, so the request asks for none (accept-encoding is dropped).

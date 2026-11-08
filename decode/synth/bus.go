@@ -68,6 +68,7 @@ type Spec struct {
 }
 
 // String names the spec as a bench line would: "uart baud=9600 parity=even".
+// TRLC-LINKS: REQ-DSO-018
 func (s Spec) String() string {
 	b := strings.Builder{}
 	b.WriteString(s.Proto)
@@ -176,6 +177,7 @@ type ctx struct {
 	err     error
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) fail(err error) {
 	if c.err == nil {
 		c.err = err
@@ -183,6 +185,7 @@ func (c *ctx) fail(err error) {
 }
 
 // num is a numeric setting (a rate may carry k or M).
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) num(k string) float64 {
 	v := c.set[k]
 	mul := 1.0
@@ -201,6 +204,7 @@ func (c *ctx) num(k string) float64 {
 }
 
 // integer is an integer setting (0x for hex).
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) integer(k string) int {
 	x, err := strconv.ParseInt(c.set[k], 0, 64)
 	if err != nil {
@@ -209,8 +213,10 @@ func (c *ctx) integer(k string) int {
 	return int(x)
 }
 
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) str(k string) string { return c.set[k] }
 
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) flag(k string) bool {
 	v := c.set[k]
 	return v == "1" || v == "true" || v == "yes" || v == "on"
@@ -218,6 +224,7 @@ func (c *ctx) flag(k string) bool {
 
 // data is the payload, the default when none was given, each value
 // masked to bits.
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) data(def []int, bits int) []int {
 	if c.payload == nil {
 		c.payload = append([]int(nil), def...)
@@ -231,18 +238,22 @@ func (c *ctx) data(def []int, bits int) []int {
 }
 
 // line starts a line at the bus's sample rate.
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) line() *Line { return NewLine(c.sr) }
 
 // pair starts two lines at the bus's sample rate.
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) pair() Pair { return NewPair(c.sr) }
 
 // done finishes the bus: its name, natural sample rate, lines and truth.
+// TRLC-LINKS: REQ-DSO-018
 func (c *ctx) done(name string, natural float64, t Truth, lines ...*Line) {
 	c.bus.Name, c.bus.NaturalSR, c.bus.Truth = name, natural, t
 	c.bus.Lines = lines
 }
 
 // chunks splits b into groups of n (the last may be shorter).
+// TRLC-LINKS: REQ-DSO-018
 func chunks(b []int, n int) [][]int {
 	var out [][]int
 	for len(b) > 0 {

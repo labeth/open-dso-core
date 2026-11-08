@@ -169,6 +169,7 @@ func LSBFirst(v, n int) []int {
 }
 
 // reverseBits reverses the low count bits of num.
+// TRLC-LINKS: REQ-DSO-018
 func reverseBits(num, count int) int {
 	out := 0
 	for i := range count {

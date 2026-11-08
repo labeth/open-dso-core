@@ -5,6 +5,7 @@
 // generator cannot make is refused with the reason.
 
 const msg = "48692055aa0ff00a"; // "Hi \x55\xAA\x0F\xF0\n", the protocol sources' message
+// TRLC-LINKS: REQ-DSO-298
 const quiet = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`C${i + 1}`, "dc,0,0,0"]));
 
 // SOURCES maps a source to its generator setting: signals per input, or a bus.
@@ -25,6 +26,7 @@ export async function applySource(page, src) {
   if (!s) return `no generator setting for source ${src}`;
   if (s.refused) return s.refused;
   return page.evaluate(async ({ s, quietAll }) => {
+    // TRLC-LINKS: REQ-DSO-298
     const post = async (p, body) => (await fetch(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json();
     const st = await (await fetch("/api/sim/state")).json();
     const n = st.channels || 2;

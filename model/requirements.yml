@@ -347,17 +347,17 @@ requirements:
   - CODE-DECODE-ORACLE-WIRE2-TEST-GO
   - CODE-DECODE-PACKET-TOP-RTL-TEST-GO
   - CODE-DECODE-PERF-BENCH-TEST-GO
-  - CODE-DECODE-PROTO-GEN-BIPHASE-TEST-GO
-  - CODE-DECODE-PROTO-GEN-CLOCKED-TEST-GO
-  - CODE-DECODE-PROTO-GEN-IR-TEST-GO
-  - CODE-DECODE-PROTO-GEN-IRMP-TEST-GO
-  - CODE-DECODE-PROTO-GEN-MOTION-TEST-GO
-  - CODE-DECODE-PROTO-GEN-PULSE-TEST-GO
-  - CODE-DECODE-PROTO-GEN-RF-TEST-GO
-  - CODE-DECODE-PROTO-GEN-RFID-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-BIPHASE-GO
+  - CODE-DECODE-SYNTH-GEN-CLOCKED-GO
+  - CODE-DECODE-SYNTH-GEN-IR-GO
+  - CODE-DECODE-SYNTH-GEN-IRMP-GO
+  - CODE-DECODE-SYNTH-GEN-MOTION-GO
+  - CODE-DECODE-SYNTH-GEN-PULSE-GO
+  - CODE-DECODE-SYNTH-GEN-RF-GO
+  - CODE-DECODE-SYNTH-GEN-RFID-GO
   - CODE-DECODE-PROTO-GEN-TEST-GO
-  - CODE-DECODE-PROTO-GEN-WIRE1-TEST-GO
-  - CODE-DECODE-PROTO-GEN-WIRE2-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-WIRE1-GO
+  - CODE-DECODE-SYNTH-GEN-WIRE2-GO
   - CODE-DECODE-PROTO-PARITY-TEST-GO
   - CODE-DECODE-PROTO-PARITY2-TEST-GO
   - CODE-DECODE-SAMPLE-BUS-TEST-GO
@@ -3266,7 +3266,7 @@ requirements:
   - CODE-DECODE-DECODE-PULSEWIRE-GO
   - CODE-DECODE-DECODE-PULSEWIRE-TEST-GO
   - CODE-DECODE-ORACLE-PULSEWIRE-TEST-GO
-  - CODE-DECODE-PROTO-GEN-PULSE-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-PULSE-GO
   - CODE-WEBCLIENT-DECODE-PULSEWIRE-JS
 - id: REQ-DSO-234
   title: Infrared remote protocol decoding
@@ -3291,7 +3291,7 @@ requirements:
   - CODE-DECODE-DECODE-IR-GO
   - CODE-DECODE-DECODE-IR-TEST-GO
   - CODE-DECODE-ORACLE-IR-TEST-GO
-  - CODE-DECODE-PROTO-GEN-IR-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-IR-GO
   - CODE-WEBCLIENT-DECODE-IR-JS
 - id: REQ-DSO-235
   title: Biphase protocol decoding
@@ -3316,7 +3316,7 @@ requirements:
   - CODE-DECODE-DECODE-BIPHASE-TEST-GO
   - CODE-DECODE-DECODE-CUTFRAME-TEST-GO
   - CODE-DECODE-ORACLE-BIPHASE-TEST-GO
-  - CODE-DECODE-PROTO-GEN-BIPHASE-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-BIPHASE-GO
   - CODE-WEBCLIENT-DECODE-BIPHASE-JS
 - id: REQ-DSO-236
   title: Clocked two-line protocol decoding
@@ -3343,7 +3343,7 @@ requirements:
   - CODE-DECODE-EDGELINE-FAST-TEST-GO
   - CODE-DECODE-EDGELINE-GO
   - CODE-DECODE-ORACLE-CLOCKED-TEST-GO
-  - CODE-DECODE-PROTO-GEN-CLOCKED-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-CLOCKED-GO
   - CODE-DECODE-SELECT-GO
   - CODE-WEBCLIENT-DECODE-CLOCKED-JS
 - id: REQ-DSO-237
@@ -3734,7 +3734,7 @@ requirements:
   sourceRefs:
   - CODE-DECODE-DECODE-MOTION-GO
   - CODE-DECODE-ORACLE-MOTION-TEST-GO
-  - CODE-DECODE-PROTO-GEN-MOTION-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-MOTION-GO
   - CODE-WEBCLIENT-DECODE-MOTION-JS
 - id: REQ-DSO-251
   title: Radio, time and keyed codes
@@ -3759,7 +3759,7 @@ requirements:
   - CODE-DECODE-DECODE-RFCODES-GO
   - CODE-DECODE-ORACLE-RF-TEST-GO
   - CODE-DECODE-PERF-BENCH-TEST-GO
-  - CODE-DECODE-PROTO-GEN-RF-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-RF-GO
   - CODE-WEBCLIENT-DECODE-RFCODES-JS
 - id: REQ-DSO-252
   title: RFID tag and reader decoding
@@ -3782,7 +3782,7 @@ requirements:
   - CODE-DECODE-DECODE-RFID-CUT-TEST-GO
   - CODE-DECODE-DECODE-RFID-GO
   - CODE-DECODE-ORACLE-RFID-TEST-GO
-  - CODE-DECODE-PROTO-GEN-RFID-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-RFID-GO
   - CODE-WEBCLIENT-DECODE-RFID-JS
 - id: REQ-DSO-253
   title: Single-wire debug and accessory protocols
@@ -3807,7 +3807,7 @@ requirements:
   - CODE-DECODE-DECODE-WIRE1-GO
   - CODE-DECODE-DECODE-WIRE1-TEST-GO
   - CODE-DECODE-ORACLE-WIRE1-TEST-GO
-  - CODE-DECODE-PROTO-GEN-WIRE1-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-WIRE1-GO
   - CODE-WEBCLIENT-DECODE-WIRE1-JS
 - id: REQ-DSO-254
   title: Clocked debug, card and peripheral buses
@@ -3832,7 +3832,7 @@ requirements:
   - CODE-DECODE-DECODE-WIRE2-TEST-GO
   - CODE-DECODE-EDGELINE-FAST-TEST-GO
   - CODE-DECODE-ORACLE-WIRE2-TEST-GO
-  - CODE-DECODE-PROTO-GEN-WIRE2-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-WIRE2-GO
   - CODE-DECODE-SELECT-GO
   - CODE-DECODE-SELECT-TEST-GO
   - CODE-WEBCLIENT-DECODE-WIRE2-JS
@@ -3858,7 +3858,7 @@ requirements:
   - CODE-DECODE-DECODE-IRMP-GO
   - CODE-DECODE-DECODE-IRMP-HEX-TEST-GO
   - CODE-DECODE-ORACLE-IRMP-TEST-GO
-  - CODE-DECODE-PROTO-GEN-IRMP-TEST-GO
+  - CODE-DECODE-SYNTH-GEN-IRMP-GO
   - CODE-WEBCLIENT-DECODE-IRMP-JS
 - id: REQ-DSO-256
   title: Detection of the protocols beyond the first thirty
@@ -5094,3 +5094,18 @@ requirements:
   verificationCriteria: The disable file is written and removed through the guard by the SCPI header, the web routes
     and the SYS sheet's row, each reading back what another set; a board without the capability has no row and its
     sheets are unchanged.
+- id: REQ-DSO-298
+  title: Browser demonstration aligned with the scope
+  text: The instrument shall run in a browser against a simulated board built from a scope's profile and panel key
+    table, composed as the scope's device application with only the board and host parts swapped.
+  status: implemented
+  realizes:
+  - CAP-DSO-OFFLINE-VERIFICATION
+  category: functional
+  appliesTo:
+  - FU-DSO-TESTENV
+  verificationMethods:
+  - test
+  verificationCriteria: The demo matrix passes on every scope's site in a headless browser; the composition test fails on
+    any difference from the device main without a stated reason; the panel check fails on any key the board does not
+    produce; replayed captures give exactly the reported fields; native and browser sessions agree field for field.

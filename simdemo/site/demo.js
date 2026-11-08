@@ -6,7 +6,9 @@
 // scope/demo.json (its panel layout) and scope/profile.yaml.
 'use strict';
 
+// TRLC-LINKS: REQ-DSO-298
 const $ = (s, el = document) => el.querySelector(s);
+// TRLC-LINKS: REQ-DSO-298
 const h = (tag, attrs = {}, ...kids) => {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -18,6 +20,7 @@ const h = (tag, attrs = {}, ...kids) => {
   return e;
 };
 
+// TRLC-LINKS: REQ-DSO-298
 async function api(path, body) {
   const r = await fetch(path, body === undefined ? {} : {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -30,13 +33,16 @@ async function api(path, body) {
 let site = { mode: 'wasm', ui: 'ui/' };
 let demo = {};
 let channels = 2;
+// TRLC-LINKS: REQ-DSO-298
 const inputs = () => Array.from({ length: channels }, (_, i) => `C${i + 1}`);
 const stats = { t0: performance.now(), loadMs: 0, frames: 0, pictures: 0, fpsAt: performance.now(), fps: 0, firstFrameMs: 0 };
 window.demoStats = stats; // read by the demo's browser tests
 
 // ---------------------------------------------------------------- stores
 // The board's settings and setups, kept in this browser between visits.
+// TRLC-LINKS: REQ-DSO-298
 const storePrefix = () => `dso-demo/${demo.name || 'scope'}/`;
+// TRLC-LINKS: REQ-DSO-298
 function loadStored() {
   const out = {};
   const pre = storePrefix();
@@ -48,6 +54,7 @@ function loadStored() {
   }
   return out;
 }
+// TRLC-LINKS: REQ-DSO-298
 function persist(store, key, b64) {
   try { localStorage.setItem(`${storePrefix()}${store}/${key}`, b64); } catch { /* full or blocked: the demo runs without */ }
 }
@@ -55,6 +62,7 @@ function persist(store, key, b64) {
 // ---------------------------------------------------------------- the firmware
 let worker = null;
 
+// TRLC-LINKS: REQ-DSO-298
 async function startWasm() {
   if (!('serviceWorker' in navigator)) throw new Error('this browser has no service workers: the web UI cannot reach the firmware');
   const reg = await navigator.serviceWorker.register('sw.js');
@@ -66,6 +74,7 @@ async function startWasm() {
   // worker queue until onmessage is set (or startMessages runs), and a
   // service worker that lost its port (restarted, or asked before the first
   // port arrived) waits for this answer.
+  // TRLC-LINKS: REQ-DSO-298
   navigator.serviceWorker.onmessage = (e) => { if (e.data?.type === 'need-port' && worker) handPort(); };
   const [profile, demoText] = await Promise.all([
     fetch('scope/profile.yaml').then((r) => r.text()),
@@ -73,6 +82,7 @@ async function startWasm() {
   ]);
   worker = new Worker('engine.js');
   const ready = new Promise((res, rej) => {
+    // TRLC-LINKS: REQ-DSO-298
     worker.onmessage = (e) => {
       const m = e.data;
       switch (m.type) {
@@ -93,6 +103,7 @@ async function startWasm() {
 }
 
 // handPort gives the service worker a fresh port to the engine.
+// TRLC-LINKS: REQ-DSO-298
 function handPort() {
   const ch = new MessageChannel();
   worker.postMessage({ type: 'port' }, [ch.port1]);
@@ -100,6 +111,7 @@ function handPort() {
 }
 
 // The native server's screen: the next picture by long poll.
+// TRLC-LINKS: REQ-DSO-298
 async function pollScreen() {
   let seq = 0;
   for (;;) {
@@ -116,6 +128,7 @@ async function pollScreen() {
 
 // ---------------------------------------------------------------- screen
 let screenUp = false;
+// TRLC-LINKS: REQ-DSO-298
 function drawScreen(rgba, w, ht) {
   const c = $('#screen');
   if (c.width !== w || c.height !== ht) { c.width = w; c.height = ht; }
@@ -130,6 +143,7 @@ function drawScreen(rgba, w, ht) {
   stats.pictures++;
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function wireScreen() {
   const c = $('#screen');
   if (!demo.touch) return;
@@ -168,6 +182,7 @@ let msgTimer;
 // sends is the UI model's name a control sends ({ch}: the selected channel's),
 // undefined for a control the board gives none, the control's own name
 // without a key table.
+// TRLC-LINKS: REQ-DSO-298
 const sends = (kind, panel) => {
   const t = demo.keytable;
   if (!t || !((t.keys && t.keys.length) || (t.knobs && t.knobs.length))) return panel;
@@ -175,6 +190,7 @@ const sends = (kind, panel) => {
   return e ? e.name || undefined : undefined;
 };
 
+// TRLC-LINKS: REQ-DSO-298
 function flash(text, err) {
   const m = $('#genmsg');
   m.textContent = text;
@@ -183,6 +199,7 @@ function flash(text, err) {
   msgTimer = setTimeout(() => { m.textContent = ''; }, err ? 8000 : 3000);
 }
 
+// TRLC-LINKS: REQ-DSO-298
 async function press(panel, el) {
   el?.classList.add('down');
   const r = await api('/api/sim/input', { panel });
@@ -190,6 +207,7 @@ async function press(panel, el) {
   if (!r.ok) flash(`${panel}: ${r.err}`, true);
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function keyButton(it) {
   const label = it.label.replace(/- /, '-​');
   const name = sends('key', it.key);
@@ -205,11 +223,13 @@ function keyButton(it) {
   return b;
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function buildPanel(panel) {
   const ctl = $('#controls');
   ctl.style.setProperty('--cols', panel.columns || 7);
   for (const it of panel.softkeys || []) $('#softkeys').append(keyButton(it));
   for (const it of panel.items || []) {
+    // TRLC-LINKS: REQ-DSO-298
     const place = (e) => {
       e.style.gridColumn = `${it.c} / span ${it.cs || 1}`;
       e.style.gridRow = `${it.r} / span ${it.rs || 1}`;
@@ -227,14 +247,17 @@ function buildPanel(panel) {
 }
 
 // A knob: detents accumulate and go out as one turn at a time.
+// TRLC-LINKS: REQ-DSO-298
 function wireKnob(el, it) {
   let angle = 0, pending = 0, busy = false;
+  // TRLC-LINKS: REQ-DSO-298
   const turn = (n) => {
     pending += n;
     angle += n * 18;
     el.querySelector('.ind').style.transform = `rotate(${angle}deg)`;
     flush();
   };
+  // TRLC-LINKS: REQ-DSO-298
   const flush = async () => {
     if (busy || pending === 0) return;
     busy = true;
@@ -245,6 +268,7 @@ function wireKnob(el, it) {
     busy = false;
     if (pending) flush();
   };
+  // TRLC-LINKS: REQ-DSO-298
   const push = async () => {
     if (!it.push) return;
     el.classList.add('pushed');
@@ -276,6 +300,7 @@ function wireKnob(el, it) {
 }
 
 let lampsNow = [];
+// TRLC-LINKS: REQ-DSO-298
 function showLamps(on) {
   lampsNow = on || [];
   const lit = new Set(lampsNow);
@@ -289,11 +314,13 @@ function showLamps(on) {
 
 // ---------------------------------------------------------------- numbers
 const SI = { p: 1e-12, n: 1e-9, u: 1e-6, 'µ': 1e-6, m: 1e-3, '': 1, k: 1e3, K: 1e3, M: 1e6, G: 1e9 };
+// TRLC-LINKS: REQ-DSO-298
 function parseSI(s) {
   const m = String(s).trim().match(/^([-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?)\s*([pnuµmkKMG]?)[a-zA-Z]*$/);
   if (!m) return NaN;
   return parseFloat(m[1]) * SI[m[2]];
 }
+// TRLC-LINKS: REQ-DSO-298
 function fmtSI(v) {
   if (!isFinite(v)) return '';
   if (v === 0) return '0';
@@ -303,6 +330,7 @@ function fmtSI(v) {
   }
   return String(v);
 }
+// TRLC-LINKS: REQ-DSO-298
 const num = (v) => String(+(+v).toPrecision(9));
 
 // ---------------------------------------------------------------- signal generator
@@ -329,15 +357,19 @@ let state = { signals: {} };
 let tab = 'C1';
 let formFor = null; // which tab the form shows
 
+// TRLC-LINKS: REQ-DSO-298
 function parseSpec(spec) {
   const f = (spec || '').split(',');
   const o = { kind: f[0] || 'dc', freq: +f[1] || 0, vpp: +f[2] || 0, offset: +f[3] || 0, opts: {} };
   for (const kv of f.slice(4)) { const i = kv.indexOf('='); if (i > 0) o.opts[kv.slice(0, i)] = kv.slice(i + 1); }
   return o;
 }
+// TRLC-LINKS: REQ-DSO-298
 const protoOf = (kind) => kind.split('.')[0];
+// TRLC-LINKS: REQ-DSO-298
 const isLine = (kind) => !!PROTOS[protoOf(kind)];
 
+// TRLC-LINKS: REQ-DSO-298
 function buildTabs() {
   const t = $('#gentabs');
   t.innerHTML = '';
@@ -348,10 +380,13 @@ function buildTabs() {
   }
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function row(label, ctl, hint) {
   return [h('label', {}, label), hint ? h('div', { class: 'pair' }, ctl, h('span', { class: 'hint' }, hint)) : ctl];
 }
+// TRLC-LINKS: REQ-DSO-298
 const inp = (id, value, attrs = {}) => h('input', { id, value, autocomplete: 'off', spellcheck: 'false', ...attrs });
+// TRLC-LINKS: REQ-DSO-298
 function sel(id, options, value) {
   const s = h('select', { id });
   for (const o of options) {
@@ -361,6 +396,7 @@ function sel(id, options, value) {
   return s;
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function buildForm() {
   formFor = tab;
   const body = $('#genbody');
@@ -395,6 +431,7 @@ function buildForm() {
     h('button', { class: 'ok', id: 'w-apply' }, `Apply to ${tab}`),
     h('label', { class: 'row-tight' }, h('input', { type: 'checkbox', id: 'w-live', checked: true }), 'apply as I type'),
     h('button', { class: 'sm', id: 'w-off' }, 'Off (0 V)')));
+  // TRLC-LINKS: REQ-DSO-298
   const showRows = () => {
     const k = $('#w-kind').value;
     const vis = { 'w-duty': ['square', 'triangle', 'ramp', 'pulse'], 'w-width': ['pulse'], 'w-rise': ['square', 'pulse'] };
@@ -414,9 +451,12 @@ function buildForm() {
   $('#w-off').addEventListener('click', () => sendSignal(tab, 'dc,0,0,0'));
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function waveSpec() {
   const k = $('#w-kind').value;
+  // TRLC-LINKS: REQ-DSO-298
   const v = (id) => $(`#${id}`).value.trim();
+  // TRLC-LINKS: REQ-DSO-298
   const need = (id, what, opt) => {
     const s = v(id);
     if (s === '' && opt) return null;
@@ -426,6 +466,7 @@ function waveSpec() {
   };
   const freq = (k === 'dc' || k === 'noise') ? 0 : need('w-freq', 'frequency');
   const parts = [k, num(freq), num(need('w-vpp', 'amplitude')), num(need('w-offset', 'offset'))];
+  // TRLC-LINKS: REQ-DSO-298
   const opt = (key, id, what, scale = 1) => {
     if ($(`#${id}`).disabled) return;
     const x = need(id, what, true);
@@ -444,12 +485,14 @@ function waveSpec() {
   return parts.join(',');
 }
 
+// TRLC-LINKS: REQ-DSO-298
 async function applyWave() {
   let spec;
   try { spec = waveSpec(); } catch (e) { flash(e.message, true); return; }
   await sendSignal(tab, spec);
 }
 
+// TRLC-LINKS: REQ-DSO-298
 async function sendSignal(ch, spec) {
   const r = await api('/api/sim/signal', { ch, spec });
   if (r.ok) { setSignals(r.signals); flash(`${ch} ← ${spec}`); } else flash(`${ch}: ${r.err}`, true);
@@ -457,8 +500,10 @@ async function sendSignal(ch, spec) {
 
 let proto = { p: 'uart', lines: { ...PROTOS.uart.def }, rate: PROTOS.uart.rate, vpp: '3.3', offset: '1.65', data: PROTOS.uart.data, fmt: 'text', idle: '', opts: {} };
 
+// TRLC-LINKS: REQ-DSO-298
 function buildProtoForm(body) {
   const P = PROTOS[proto.p];
+  // TRLC-LINKS: REQ-DSO-298
   const presets = h('div', { class: 'presets' }, PRESETS.map((pr) => h('button', { class: 'xs', onclick: () => {
     const d = PROTOS[pr.p];
     proto = { p: pr.p, lines: { ...(pr.lines || d.def) }, rate: d.rate, vpp: pr.vpp || '3.3', offset: pr.offset || '1.65', data: d.data, fmt: d.fmt, idle: '', opts: {} };
@@ -510,6 +555,7 @@ function buildProtoForm(body) {
   $('#p-apply').addEventListener('click', applyBus);
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function toHex(s, fmt) {
   if (fmt === 'text') return Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, '0')).join('');
   const x = s.replace(/0x/gi, '').replace(/[\s,:_]/g, '');
@@ -517,7 +563,9 @@ function toHex(s, fmt) {
   return x.toLowerCase();
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function readProto() {
+  // TRLC-LINKS: REQ-DSO-298
   const v = (id) => $(`#${id}`)?.value.trim() ?? '';
   const p = { ...proto, lines: {}, opts: {} };
   for (const role of Object.keys(PROTOS[proto.p].roles)) p.lines[role] = v(`p-line-${role}`);
@@ -528,6 +576,7 @@ function readProto() {
   return p;
 }
 
+// TRLC-LINKS: REQ-DSO-298
 async function applyBus() {
   try {
     const p = readProto();
@@ -555,6 +604,7 @@ async function applyBus() {
   } catch (e) { flash(e.message, true); }
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function describe(spec) {
   const s = parseSpec(spec);
   if (isLine(s.kind)) {
@@ -566,6 +616,7 @@ function describe(spec) {
   return `${s.kind} ${fmtSI(s.freq)}Hz ${num(s.vpp)} Vpp ${s.offset ? `${num(s.offset)} V offset` : ''}`;
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function renderSigTable() {
   const tb = $('#sigtable tbody');
   tb.innerHTML = '';
@@ -577,6 +628,7 @@ function renderSigTable() {
 }
 
 // ---------------------------------------------------------------- state
+// TRLC-LINKS: REQ-DSO-298
 function setSignals(list) {
   if (!Array.isArray(list)) return;
   state.signals = {};
@@ -585,6 +637,7 @@ function setSignals(list) {
 }
 
 let polling = false;
+// TRLC-LINKS: REQ-DSO-298
 async function poll() {
   if (polling) return;
   polling = true;
@@ -604,6 +657,7 @@ async function poll() {
   polling = false;
 }
 
+// TRLC-LINKS: REQ-DSO-298
 function tickStats() {
   const now = performance.now();
   const dt = (now - stats.fpsAt) / 1000;
@@ -616,6 +670,7 @@ function tickStats() {
   }
 }
 
+// TRLC-LINKS: REQ-DSO-298
 async function main() {
   try { site = await fetch('mode.json').then((r) => r.json()); } catch { /* the static site: wasm */ }
   demo = await fetch('scope/demo.json').then((r) => r.json());

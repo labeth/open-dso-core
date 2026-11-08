@@ -10,20 +10,28 @@ let ready = false;
 const ports = [];
 
 self.dsoHost = {
+  // TRLC-LINKS: REQ-DSO-298
   present(rgba, w, h) { self.postMessage({ type: 'present', w, h, rgba }, [rgba.buffer]); },
+  // TRLC-LINKS: REQ-DSO-298
   lamps(on) { self.postMessage({ type: 'lamps', on }); },
+  // TRLC-LINKS: REQ-DSO-298
   persist(store, key, b64) { self.postMessage({ type: 'persist', store, key, b64 }); },
+  // TRLC-LINKS: REQ-DSO-298
   log(line) { self.postMessage({ type: 'log', line }); },
+  // TRLC-LINKS: REQ-DSO-298
   ready() {
     ready = true;
     for (const p of ports.splice(0)) servePort(p);
     self.postMessage({ type: 'ready' });
   },
+  // TRLC-LINKS: REQ-DSO-298
   failed(err) { self.postMessage({ type: 'failed', err }); },
 };
 
 // servePort answers every request that arrives on p.
+// TRLC-LINKS: REQ-DSO-298
 function servePort(p) {
+  // TRLC-LINKS: REQ-DSO-298
   p.onmessage = async (e) => {
     const r = e.data;
     try {
@@ -35,6 +43,7 @@ function servePort(p) {
   };
 }
 
+// TRLC-LINKS: REQ-DSO-298
 self.onmessage = async (e) => {
   const m = e.data;
   if (m.type === 'port') {

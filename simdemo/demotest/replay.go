@@ -31,6 +31,7 @@ type Recipe struct {
 // scope reported, exactly: the same record through the same code. With
 // UPDATE_DEMO_FIXTURES=1 it first writes the recipes' captures, made on
 // the demo (a bench capture is made with dsosessions capture).
+// TRLC-LINKS: REQ-DSO-298
 func Captures(t *testing.T, profileYAML, demoJSON []byte, dir string, recipes []Recipe) {
 	t.Helper()
 	c := startDemo(t, profileYAML, demoJSON)
@@ -67,6 +68,7 @@ func Captures(t *testing.T, profileYAML, demoJSON []byte, dir string, recipes []
 }
 
 // asList is a packets field's list.
+// TRLC-LINKS: REQ-DSO-298
 func asList(v any) []any {
 	switch x := v.(type) {
 	case []any:
@@ -82,6 +84,7 @@ func asList(v any) []any {
 }
 
 // make1 writes recipe r's capture into dir, made on the demo at c.
+// TRLC-LINKS: REQ-DSO-298
 func make1(ctx context.Context, t *testing.T, c *session.Client, dir string, r Recipe) {
 	t.Helper()
 	if _, _, err := c.Do(ctx, http.MethodDelete, "/api/sim/replay", nil); err != nil {
@@ -134,6 +137,7 @@ func make1(ctx context.Context, t *testing.T, c *session.Client, dir string, r R
 
 // startDemo runs the native demo of a scope's files until the test ends
 // and returns a client of its web API.
+// TRLC-LINKS: REQ-DSO-298
 func startDemo(t *testing.T, profileYAML, demoJSON []byte) *session.Client {
 	t.Helper()
 	d, err := simdemo.ParseDemo(demoJSON)

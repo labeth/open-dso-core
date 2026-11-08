@@ -18,6 +18,7 @@ type timeline struct {
 	lines map[string]*lineWave
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func newTimeline(init map[string]float64) *timeline {
 	tl := &timeline{lines: map[string]*lineWave{}}
 	for n, l := range init {
@@ -27,6 +28,7 @@ func newTimeline(init map[string]float64) *timeline {
 }
 
 // set changes line n to level l now.
+// TRLC-LINKS: REQ-DSO-298
 func (tl *timeline) set(n string, l float64) {
 	w := tl.lines[n]
 	last := len(w.t) - 1
@@ -41,9 +43,11 @@ func (tl *timeline) set(n string, l float64) {
 	w.lv = append(w.lv, l)
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func (tl *timeline) adv(dt float64) { tl.now += dt }
 
 // finish closes the period after idle and returns the line.
+// TRLC-LINKS: REQ-DSO-298
 func (tl *timeline) finish(n string, idle float64) (*lineWave, float64) {
 	p := tl.now + idle
 	for _, w := range tl.lines {
@@ -53,6 +57,7 @@ func (tl *timeline) finish(n string, idle float64) (*lineWave, float64) {
 }
 
 // parseHex parses "48656c" or "48:65:6c" (also ' ' or '_' separators).
+// TRLC-LINKS: REQ-DSO-298
 func parseHex(s string) ([]byte, error) {
 	s = strings.NewReplacer(":", "", " ", "", "_", "", "0x", "").Replace(s)
 	b, err := hex.DecodeString(s)
@@ -67,6 +72,7 @@ type lineOpts struct {
 	err error
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func (o *lineOpts) str(k, def string) string {
 	v, ok := o.m[k]
 	if !ok {
@@ -76,6 +82,7 @@ func (o *lineOpts) str(k, def string) string {
 	return v
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func (o *lineOpts) num(k string, def float64) float64 {
 	v, ok := o.m[k]
 	if !ok {
@@ -89,6 +96,7 @@ func (o *lineOpts) num(k string, def float64) float64 {
 	return x
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func (o *lineOpts) int(k string, def, lo, hi int) int {
 	v, ok := o.m[k]
 	if !ok {
@@ -102,6 +110,7 @@ func (o *lineOpts) int(k string, def, lo, hi int) int {
 	return int(x)
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func (o *lineOpts) data(k, def string) []byte {
 	b, err := parseHex(o.str(k, def))
 	if err != nil {
@@ -110,6 +119,7 @@ func (o *lineOpts) data(k, def string) []byte {
 	return b
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func (o *lineOpts) fail(err error) {
 	if o.err == nil {
 		o.err = err
@@ -121,6 +131,7 @@ const maxLineBits = 1 << 16
 
 // buildLine lays out the bus of a line kind ("uart", "spi.clk", ...) at the given bit rate
 // and returns that line's wave and the repetition period.
+// TRLC-LINKS: REQ-DSO-298
 func buildLine(kind string, rate float64, m map[string]string) (*lineWave, float64, error) {
 	bus, line, _ := strings.Cut(kind, ".")
 	if rate <= 0 || rate > 5e9 {
@@ -185,6 +196,7 @@ func buildLine(kind string, rate float64, m map[string]string) (*lineWave, float
 }
 
 // uartByte appends one character (start, data, parity, stop) on line n.
+// TRLC-LINKS: REQ-DSO-298
 func uartByte(tl *timeline, n string, b uint, bits int, parity string, stop, bt float64, msb bool) {
 	tl.set(n, 0)
 	tl.adv(bt)
@@ -217,6 +229,7 @@ func uartByte(tl *timeline, n string, b uint, bits int, parity string, stop, bt 
 	tl.adv(stop * bt)
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func uartBus(o *lineOpts, bt float64) *timeline {
 	data := o.data("data", "48656c6c6f")
 	bits := o.int("bits", 8, 5, 9)
@@ -241,6 +254,7 @@ func uartBus(o *lineOpts, bt float64) *timeline {
 	return tl
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func spiBus(o *lineOpts, bt float64) *timeline {
 	mosi := o.data("data", "a53c")
 	miso := o.data("miso", "")
@@ -301,6 +315,7 @@ func spiBus(o *lineOpts, bt float64) *timeline {
 	return tl
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func i2cBus(o *lineOpts, bt float64) *timeline {
 	addr := o.int("addr", 0x50, 0, 0x7f)
 	rw := strings.ToLower(o.str("rw", "w"))
@@ -350,6 +365,7 @@ func i2cBus(o *lineOpts, bt float64) *timeline {
 }
 
 // crc15 is the CAN CRC (polynomial 0x4599) over the bits.
+// TRLC-LINKS: REQ-DSO-298
 func crc15(bits []byte) uint16 {
 	var crc uint16
 	for _, b := range bits {
@@ -362,6 +378,7 @@ func crc15(bits []byte) uint16 {
 	return crc
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func canBus(o *lineOpts, bt float64) *timeline {
 	id := o.int("id", 0x123, 0, 0x1fffffff)
 	ext := o.int("ext", 0, 0, 1) == 1
@@ -429,6 +446,7 @@ func canBus(o *lineOpts, bt float64) *timeline {
 }
 
 // linPID adds the two parity bits to a 6-bit frame id (LIN 2.x).
+// TRLC-LINKS: REQ-DSO-298
 func linPID(id int) byte {
 	b := func(k int) int { return id >> uint(k) & 1 }
 	p0 := b(0) ^ b(1) ^ b(2) ^ b(4)
@@ -437,6 +455,7 @@ func linPID(id int) byte {
 }
 
 // linChecksum is the inverted 8-bit sum with carry (enhanced: PID included).
+// TRLC-LINKS: REQ-DSO-298
 func linChecksum(pid byte, data []byte, enhanced bool) byte {
 	s := 0
 	if enhanced {
@@ -451,6 +470,7 @@ func linChecksum(pid byte, data []byte, enhanced bool) byte {
 	return ^byte(s)
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func linBus(o *lineOpts, bt float64) *timeline {
 	id := o.int("id", 0x10, 0, 0x3f)
 	data := o.data("data", "0102")
@@ -477,6 +497,7 @@ func linBus(o *lineOpts, bt float64) *timeline {
 	return tl
 }
 
+// TRLC-LINKS: REQ-DSO-298
 func manchesterBus(o *lineOpts, bt float64) *timeline {
 	data := o.data("data", "a5f0")
 	lsb := o.int("lsb", 0, 0, 1) == 1
@@ -503,6 +524,7 @@ func manchesterBus(o *lineOpts, bt float64) *timeline {
 // x^7 + x^6 + 1) as NRZ data with its bit clock beside it (the clock rises
 // in the middle of each bit, where a receiver samples). One period is the
 // whole sequence; idle defaults to none, so the sequence repeats seamlessly.
+// TRLC-LINKS: REQ-DSO-298
 func prbsBus(o *lineOpts, bt float64) *timeline {
 	order := o.int("order", 7, 3, 15)
 	// x^n + x^k + 1 for each order n: maximal-length taps

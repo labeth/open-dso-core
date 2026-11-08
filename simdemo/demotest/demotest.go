@@ -22,6 +22,7 @@ import (
 )
 
 // Update reports whether kept files are rewritten.
+// TRLC-LINKS: REQ-DSO-298
 func Update() bool { return os.Getenv("UPDATE_DEMO_FIXTURES") == "1" }
 
 // Composition checks that the core's kept composition of the scope name
@@ -30,6 +31,7 @@ func Update() bool { return os.Getenv("UPDATE_DEMO_FIXTURES") == "1" }
 // the scope's profile and demo file), and the kept file holds the
 // description with the profile and demo file the core's demo test builds
 // the demo's composition from (simdemo.TestCompositionsAgree).
+// TRLC-LINKS: REQ-DSO-298
 func Composition(t *testing.T, name string, profileYAML, demoJSON []byte, options func(b hal.Board) scopeapp.Options) {
 	t.Helper()
 	d, err := simdemo.ParseDemo(demoJSON)
@@ -52,6 +54,7 @@ func Composition(t *testing.T, name string, profileYAML, demoJSON []byte, option
 // rewrites demoPath's "keytable"), it names exactly the profile's keys and
 // knobs, and the page's layout places every control of the table and
 // nothing else.
+// TRLC-LINKS: REQ-DSO-298
 func Panel(t *testing.T, demoPath string, profile hal.InputSpec, table keytable.Table) {
 	t.Helper()
 	raw, err := os.ReadFile(demoPath) //nolint:gosec // G304: the scope's own demo file
@@ -84,6 +87,7 @@ func Panel(t *testing.T, demoPath string, profile hal.InputSpec, table keytable.
 }
 
 // keep compares v with the JSON kept at path, or writes it.
+// TRLC-LINKS: REQ-DSO-298
 func keep(t *testing.T, path string, v any) {
 	t.Helper()
 	got, err := json.MarshalIndent(v, "", "  ")
