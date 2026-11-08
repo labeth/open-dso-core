@@ -91,6 +91,7 @@ func reachContexts() []reachContext {
 			}
 		}},
 		{"readouts", setsRow("meas.readouts", "On")},
+		{"sound page", func(_ *testing.T, r *viewRig) { r.c.snd.remoteLease("web", func() {}) }}, // the drift log runs while SOUND shows
 	}
 }
 

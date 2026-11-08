@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -756,7 +757,13 @@ func acqRows() []*row {
 			if isSRAM(s) {
 				return []opt{{s.st.MemDepth, depthText(s.st.MemDepth) + " (auto)"}}
 			}
-			return []opt{{2048, "2k"}, {6144, "6k"}, {14336, "14k"}, {20480, "20k"}}
+			o := []opt{{2048, "2k"}, {6144, "6k"}, {14336, "14k"}, {20480, "20k"}}
+			if !slices.ContainsFunc(o, func(x opt) bool { return x.v == s.memDepth }) && s.memDepth > 0 {
+				// a depth the scope started with (or SCPI set) is shown and can
+				// be picked back
+				o = append(o, opt{s.memDepth, depthText(s.memDepth)})
+			}
+			return o
 		},
 		get: func(s *sv) int {
 			if isSRAM(s) {
@@ -911,10 +918,11 @@ func superResRows() []*row {
 		get:  func(s *sv) int { return b2ic(s.srFocus == 3) },
 		set: func(c *Controller, v int) error {
 			c.mu.Lock()
-			if c.srActive {
-				c.srFocus = 3 * (v & 1)
+			defer c.mu.Unlock()
+			if !c.srActive {
+				return errors.New("super-res is off")
 			}
-			c.mu.Unlock()
+			c.srFocus = 3 * (v & 1)
 			return nil
 		},
 	}
@@ -1922,7 +1930,11 @@ func streamRows() []*row {
 		opts: staticOpts([]opt{{0, "Wave"}, {1, "List"}}),
 		get:  func(s *sv) int { return b2ic(s.streamList) },
 		set: func(c *Controller, v int) error {
-			if b2ic(c.snap().streamList) != v {
+			s := c.snap()
+			if !isAuto(s) || s.decMode != decModeStream || !s.streamStopped {
+				return errors.New("only a stopped stream shows its list: stream a bus and stop it first")
+			}
+			if b2ic(s.streamList) != v {
 				c.toggleStreamList()
 			}
 			return nil

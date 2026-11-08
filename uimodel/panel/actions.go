@@ -238,13 +238,19 @@ func (c *Controller) setInvert(ch int, on bool) error {
 	return nil
 }
 
-// setChanShown shows or hides a channel's trace.
+// setChanShown shows or hides a channel's trace. The instrument state is
+// given this channel's state itself: a snapshot taken meanwhile (a page
+// reading the sheets) adopts the instrument's older states into chDisp,
+// after which pushing chDisp would find nothing to change.
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) setChanShown(ch int, on bool) error {
+	ch = c.chOf(ch)
 	c.mu.Lock()
-	c.chDisp[c.chOf(ch)] = on
+	c.chDisp[ch] = on
 	c.mu.Unlock()
-	c.pushShown()
+	if cs, ok := c.fe.(channelShower); ok && cs.ChannelOn(ch) != on {
+		cs.SetChannelOn(ch, on)
+	}
 	return nil
 }
 

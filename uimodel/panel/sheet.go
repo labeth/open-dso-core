@@ -158,7 +158,7 @@ func (c *Controller) chanKey(ch int) {
 		c.openSheetLocked(ti, fmt.Sprintf("ch%d", ch+1))
 		c.toastLocked(fmt.Sprintf("CH%d on", ch+1), 900*time.Millisecond)
 		c.mu.Unlock()
-		c.pushShown()
+		_ = c.setChanShown(ch, true) // never fails
 		return
 	}
 	c.mu.Unlock()
@@ -277,6 +277,12 @@ func (c *Controller) sheetPressF(i int) {
 	c.mu.Unlock()
 	if err := k.run(); err != nil {
 		c.toast(err.Error(), 2000*time.Millisecond)
+		return
+	}
+	if k.dim && s.ui.sub == subNone && (r.kind == wsview.Action || r.kind == wsview.Slot) {
+		// a choice drawn dim that had nothing to do says so, as the web's
+		// refusal of it does
+		c.toast(fmt.Sprintf("%s: %s is not available now", r.label, k.label), 1500*time.Millisecond)
 		return
 	}
 	if k.row && s.ui.sub == subNone {
