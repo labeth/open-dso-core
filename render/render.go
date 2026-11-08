@@ -974,6 +974,17 @@ func drawTraces(sf Canvas, p plotArea, f *sample.Frame, hud HUD, pb Layer) {
 // a held frame; the strip goes red instead.
 // TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
 func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
+	if hud.UI.Layout.Touch {
+		renderTouch(sf, f, hud, live, persist)
+		return
+	}
+	render(sf, f, hud, live, persist...)
+}
+
+// render is Render's picture on canvas sf: the whole screen, or under the
+// touch-first layout the band between its bars (renderTouch).
+// TRLC-LINKS: REQ-DSO-021, REQ-DSO-211
+func render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	fine := f != nil && f.Wide()
 	f = view8(f)
 	sf.Fill(colBG)
@@ -1020,12 +1031,11 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	}
 
 	// Liveness strip: green only for a fresh frame with real signal.
-	strip := colStale
-	if live && f != nil && f.SourcePtp >= 8 {
-		strip = colOK
+	if !ui.Layout.Touch { // the touch layout's readout bar carries it
+		strip := liveStrip(f, live)
+		hline(sf, 0, sm.W-1, 0, strip)
+		hline(sf, 0, sm.W-1, 1, strip)
 	}
-	hline(sf, 0, sm.W-1, 0, strip)
-	hline(sf, 0, sm.W-1, 1, strip)
 
 	// Trigger/ground markers, the MEASURE readouts and cursors are time-domain
 	// concepts — only overlay them in Y-T, not on the X-Y/FFT plots.
@@ -1056,6 +1066,16 @@ func Render(sf Canvas, f *sample.Frame, hud HUD, live bool, persist ...Layer) {
 	if hud.Remote != "" {
 		drawRemote(sf, p, hud.Remote)
 	}
+}
+
+// liveStrip is the liveness strip's colour: green only for a fresh frame
+// with real signal.
+// TRLC-LINKS: REQ-DSO-021
+func liveStrip(f *sample.Frame, live bool) Color {
+	if live && f != nil && f.SourcePtp >= 8 {
+		return colOK
+	}
+	return colStale
 }
 
 // drawViews draws the plot's content for the view: the transcript, the

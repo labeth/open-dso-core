@@ -1121,3 +1121,38 @@ decisions:
   decision: 'Each SINGLE press is a fresh shot (the model counts shots); the owner''s own stop (a spent shot or a mask stop) always lands; RUN releases a mask stop-on-fail mark and SINGLE leaves it; STOP shows the whole stored record re-read deep, a finished SINGLE its live frame then the full record, and an average stays shown.'
   consequences:
   - 'The SDS800X HD and the demo gain the same behaviour; SINGLE releasing the mask mark is ADR-SINGLE-AFTER-MASK-STOP (proposed).'
+- id: ADR-TOUCH-FIRST-LAYOUT
+  title: 'A scope with a touch screen and no F-keys gets the touch-first layout of the one UI model'
+  status: proposed
+  date: '2026-11-08'
+  context: 'The task-workspace UI was laid out for the SDS1000CML+: F1-F5 beside the screen, a 30 px pictogram rail
+    on them, sheets whose choices sit on the F-keys, knob jobs on Adjust and Position. The SDS800X HD has a 1024x600
+    touch screen and no F-keys, so the rail and the F-key column point at keys that do not exist.'
+  decision: 'One UI model, laid out by the profile''s facts: a touch screen (display.touch) and none of f1-f5 among
+    the panel''s keys gives the touch-first layout (panel.TouchFirst); anything else keeps the F-key layout byte for
+    byte. No scope name, env, flag or build tag chooses it. Touch-first: a 40 px readout bar on top whose channel,
+    timebase and trigger chips open their sheets; the plot over the full width; a 56 px touch bar with the five
+    workspaces (the rail''s pictograms), the workspace''s views as a segmented control (COMPARE: the master button)
+    and AUTO, RUN/STOP, SINGLE, TOOLS and MENU; a sheet is a 760 px panel on the right with a tab column and 48 px
+    rows whose own controls set them (option buttons, a chooser for long lists and presets, - and + steppers with a
+    slider, action buttons), closed by Close or a tap beside it; TOOLS offers the Adjust and Position knob jobs and
+    the S/DIV push as buttons; a menu''s F-key choices (the byte picker, the match editor) become buttons. Gestures
+    on the waveform change no setting: a one-finger drag draws a selection box that zooms the view into it, a
+    horizontal pinch zooms the view about the fingers, two fingers pan a zoomed view, a double tap, the Zoom Reset
+    button and a pinch back past 1x end the zoom. The zoom is the scope''s zoom window (time.zoom, time.zoom_pos)
+    with its 1-2-5 factors, the box''s chosen so the whole box stays in view; the view has no vertical zoom, so a
+    vertical pinch or pan only says so. With the cursor tab open a drag beside it places the nearer cursor. The
+    physical keys and knobs keep their jobs.'
+  consequences:
+  - 'Alternatives weighed: a left-edge vertical tab column (the rail made touch-sized; costs 80 px of plot width);
+    swipes between workspaces (quick, but hidden and easily fired by a box zoom); a full-screen sheet as on the CML
+    (no outside to tap, and the waveform hidden while setting it); the F-key column kept as touch buttons (works, but
+    keeps the knob-first sheet flow and its 116 px column); a continuous box zoom (needs a zoom window off the 1-2-5
+    steps through the settings, the web, SCPI and the hardware renderer''s view).'
+  - 'Gestures never change a setting (owner): no trigger-level drag, no time/div or V/div pinch.'
+  - 'The web page keeps its own client-side box zoom (view.win); the LCD''s box uses the scope''s zoom window, which
+    the sheets, the web''s rows and SCPI read.'
+  - 'Multi-touch: the HD reader follows protocol B slots (and protocol A and single touch); with one contact
+    reported, every action stays reachable by taps and sheets.'
+  - 'To review with the owner: the bar''s order and sizes, the 1-2-5 snap of the box, the TOOLS button.'
+

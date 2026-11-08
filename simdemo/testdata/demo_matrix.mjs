@@ -392,6 +392,172 @@ add("channel-keys", async () => {
   return { log };
 });
 
+// ---------------------------------------------------------------- touch
+// A scope with a touch screen and no F-keys lays its LCD out for a finger
+// (the core's touch geometry, render/touch.go): a readout bar on top, the
+// touch bar at the bottom, a sheet as a panel on the right. The hand here
+// is the mouse on the bench page's screen, as demo.js passes it on: a click
+// is a tap, a drag a finger moving, Shift+drag two fingers, Ctrl+wheel a
+// pinch. The CML has no touch screen: these cases say so and pass.
+// TRLC-LINKS: REQ-DSO-299
+const touchFirst = async () => {
+  const st = await simState();
+  return st.screen && st.screen.touch && !(st.keys || []).some((k) => /^f[1-5]$/.test(k));
+};
+// TRLC-LINKS: REQ-DSO-299
+const TW = 1024, TH = 600, BAR_Y = TH - 28, ACT_X = TW - 4 - 5 * 64, VIEWS_X = 4 + 5 * 80 + 10;
+// TRLC-LINKS: REQ-DSO-299
+const screenAt = async (x, y) => {
+  const b = await bench.locator("#screen").boundingBox();
+  return [b.x + (x + 0.5) * b.width / TW, b.y + (y + 0.5) * b.height / TH];
+};
+// TRLC-LINKS: REQ-DSO-299
+const tap = async (x, y) => { const [px, py] = await screenAt(x, y); await bench.mouse.click(px, py); await sleep(350); };
+// tapUntil taps until cond holds, twice at most (a busy WebAssembly panel
+// may drop a click's events, as a real panel's full queue does); it
+// returns cond's last value
+// TRLC-LINKS: REQ-DSO-299
+const tapUntil = async (x, y, cond) => {
+  let v;
+  for (let k = 0; k < 2 && !v; k++) { await tap(x, y); v = await waitFor(cond, 4000); }
+  return v;
+};
+// TRLC-LINKS: REQ-DSO-299
+const dragOn = async (x0, y0, x1, y1, mod) => {
+  const [a, b] = await screenAt(x0, y0), [c, d] = await screenAt(x1, y1);
+  if (mod) await bench.keyboard.down(mod);
+  await bench.mouse.move(a, b);
+  await bench.mouse.down();
+  for (let k = 1; k <= 8; k++) { await bench.mouse.move(a + (c - a) * k / 8, b + (d - b) * k / 8); await sleep(50); }
+  await bench.mouse.up();
+  if (mod) await bench.keyboard.up(mod);
+  await sleep(600);
+};
+// TRLC-LINKS: REQ-DSO-299
+const pinchAt = async (x, y, dir) => {
+  const [a, b] = await screenAt(x, y);
+  await bench.mouse.move(a, b);
+  await bench.keyboard.down("Control");
+  await bench.mouse.wheel(0, dir > 0 ? -100 : 100);
+  await bench.keyboard.up("Control");
+  await sleep(700);
+};
+// TRLC-LINKS: REQ-DSO-299
+const sheets = () => api("/api/sheets");
+// TRLC-LINKS: REQ-DSO-299
+const rowOf = async (id) => { for (const t of (await sheets()).Tabs || []) for (const r of t.Rows) if (r.ID === id) return r; return null; };
+// the rows a gesture must leave alone: the trigger's, the channels', the
+// timebase's and the acquisition's, all but the view's zoom and its pan
+// TRLC-LINKS: REQ-DSO-299
+const settingRows = async () => {
+  const out = [];
+  for (const t of (await sheets()).Tabs || []) {
+    if (!/^(trig|time|acq|ch\d)$/.test(t.ID)) continue;
+    for (const r of t.Rows) if (r.Kind !== "action" && r.ID !== "time.zoom" && r.ID !== "time.zoom_pos") out.push(`${r.ID}=${JSON.stringify(r.Value)}`);
+  }
+  return out.join(" ");
+};
+// rowY is the middle row of sheet row id on its tab's panel (opened at its
+// first row): each section header above a row takes 24 px, a row 48.
+// TRLC-LINKS: REQ-DSO-299
+const rowY = async (tab, id) => {
+  for (const t of (await sheets()).Tabs || []) {
+    if (t.ID !== tab) continue;
+    let y = 44;
+    for (const r of t.Rows) {
+      if (r.Section) y += 24;
+      if (r.ID === id) return y + 24;
+      y += 48;
+    }
+  }
+  throw new Error(`no row ${id} on ${tab}`);
+};
+// TRLC-LINKS: REQ-DSO-299
+const zoomNow = async () => ((await rowOf("time.zoom")) || {}).Value;
+
+// The workspaces and their views on the touch bar.
+add("touch-workspaces-views", async () => {
+  if (!(await touchFirst())) return { skip: "no touch-first screen" };
+  await defaultSetup();
+  const ids = ["scope", "bus", "spectrum", "measure", "compare"], views = [2, 4, 4, 2, 0];
+  const log = [];
+  for (let i = 0; i < 5; i++) {
+    const p = await tapUntil(4 + i * 80 + 40, BAR_Y, async () => { const q = await panel(); return q.WorkspaceID === ids[i] ? q : null; });
+    if (!p) throw new Error(`the ${ids[i]} tab: workspace ${(await panel()).WorkspaceID}`);
+    const n = views[i];
+    if (!n) continue;
+    const w = Math.min(120, Math.floor((ACT_X - 10 - VIEWS_X) / n));
+    const v0 = p.View;
+    const v1 = await tapUntil(VIEWS_X + (n - 1) * w + w / 2, BAR_Y, async () => { const q = await panel(); return q.View !== v0 ? q.View : null; });
+    if (!v1) throw new Error(`${ids[i]}: the last view segment left the view on ${v0}`);
+    if (!(await tapUntil(VIEWS_X + w / 2, BAR_Y, async () => (await panel()).View === v0))) throw new Error(`${ids[i]}: the first view segment did not bring ${v0} back`);
+    log.push(`${ids[i]}: ${v0} <-> ${v1}`);
+  }
+  await tap(4 + 40, BAR_Y);
+  return { log };
+});
+
+// The readouts open their sheets; a row's controls set the scope; Close
+// and a tap beside the panel close it.
+add("touch-readouts-sheets", async () => {
+  if (!(await touchFirst())) return { skip: "no touch-first screen" };
+  await defaultSetup();
+  const chips = [[4 + 50, "ch1"], [4 + nch * 104 + 60, "time"], [4 + nch * 104 + 124 + 95, "trig"]];
+  for (const [x, tab] of chips) {
+    await tap(x, 20);
+    if (!(await waitFor(async () => { const p = await panel(); return p.Sheet.Open && p.Sheet.Tab === tab; }, 5000))) throw new Error(`the ${tab} readout: sheet ${JSON.stringify((await panel()).Sheet.Tab)}`);
+    await tap(TW - 52, 22);
+    if (!(await waitFor(async () => !(await panel()).Sheet.Open, 5000))) throw new Error(`Close left the ${tab} sheet open`);
+  }
+  // TIME: the time/div row's +, the Zoom row's 5x
+  await tap(4 + nch * 104 + 60, 20);
+  await waitFor(async () => (await panel()).Sheet.Tab === "time", 5000);
+  const t0 = (await rowOf("time.tdiv")).Value;
+  const rowsX = TW - 760 + 120 + 8;
+  await tap(TW - 8 - 124 - 50 + 22, await rowY("time", "time.tdiv"));
+  const t1 = await waitFor(async () => { const v = (await rowOf("time.tdiv")).Value; return v !== t0 ? v : null; }, 5000);
+  if (!t1) throw new Error(`the time/div row's + left ${t0}`);
+  await tap(rowsX + 190 + 2 * 50 + 22, await rowY("time", "time.zoom"));
+  if (!(await waitFor(async () => (await zoomNow()) === 5, 5000))) throw new Error(`the Zoom row's 5x: zoom ${await zoomNow()}`);
+  await tap(100, 300); // beside the panel
+  if (!(await waitFor(async () => !(await panel()).Sheet.Open, 5000))) throw new Error("a tap beside the sheet left it open");
+  return { tdiv: [t0, t1] };
+});
+
+// The gestures act on the view of the record only: a box zooms into it,
+// two fingers pan, a pinch zooms, a double tap resets; no setting moves.
+add("touch-gestures-view-only", async () => {
+  if (!(await touchFirst())) return { skip: "no touch-first screen" };
+  await defaultSetup();
+  await signals({ C1: "sine,1e3,2,0" });
+  await sleep(1000);
+  const rows0 = await settingRows();
+  const mid = Math.round((40 + TH - 56) / 2);
+  const log = [];
+  await dragOn(300, mid - 80, 420, mid + 80);
+  const z1 = await waitFor(async () => { const z = await zoomNow(); return z >= 5 ? z : null; }, 5000);
+  log.push({ box: z1 });
+  if (!z1) throw new Error(`a box a ninth of the screen wide: zoom ${await zoomNow()}`);
+  const p0 = (await rowOf("time.zoom_pos")).Value;
+  await dragOn(400, mid, 600, mid, "Shift");
+  const p1 = await waitFor(async () => { const p = (await rowOf("time.zoom_pos")).Value; return p !== p0 ? p : null; }, 5000);
+  log.push({ pan: [p0, p1] });
+  if (p1 === null) throw new Error(`two fingers right left the pan at ${p0}`);
+  const [px, py] = await screenAt(500, mid);
+  await bench.mouse.dblclick(px, py);
+  if (!(await waitFor(async () => (await zoomNow()) === 1, 5000))) throw new Error(`a double tap left zoom ${await zoomNow()}`);
+  await pinchAt(500, mid, 1);
+  await pinchAt(500, mid, 1);
+  const z2 = await waitFor(async () => { const z = await zoomNow(); return z > 1 ? z : null; }, 5000);
+  log.push({ pinch: z2 });
+  if (!z2) throw new Error("two pinches out left the view unzoomed");
+  for (let k = 0; k < 4 && (await zoomNow()) > 1; k++) await pinchAt(500, mid, -1);
+  if ((await zoomNow()) !== 1) throw new Error(`pinches in left zoom ${await zoomNow()}`);
+  const rows1 = await settingRows();
+  if (rows1 !== rows0) throw new Error(`a gesture changed a setting:\n${rows0}\n${rows1}`);
+  return { log };
+});
+
 // The bounded fuzz: random panel keys and knob turns; the scope keeps
 // publishing and no page throws.
 add("fuzz-panel", async () => {

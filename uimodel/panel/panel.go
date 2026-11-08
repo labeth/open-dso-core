@@ -125,7 +125,12 @@ type Controller struct {
 	screenHeight atomic.Int64
 	// touchKeys is the screen's touch layout (SetTouchKeys), guarded by mu
 	touchKeys func(x, y int) string
-	logf      func(string, ...any)
+	// touchM is the screen of the touch-first layout (SetTouchLayout; nil:
+	// the F-key layout), guarded by mu; tin is its gestures under way, the
+	// panel goroutine's alone.
+	touchM *render.Metrics
+	tin    touchIn
+	logf   func(string, ...any)
 
 	tdivs   []float64
 	tdivIdx int

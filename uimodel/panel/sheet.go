@@ -67,7 +67,7 @@ type fkey struct {
 // leaveModesLocked ends an edit or a sub-mode (c.mu held).
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) leaveModesLocked() {
-	c.ui.edit = false
+	c.ui.edit, c.ui.tChoose = false, ""
 	if c.ui.sub == subPick {
 		c.toastLocked(pickCancelled, noticeFor)
 	}
