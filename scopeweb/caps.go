@@ -200,6 +200,17 @@ func (s *Scope) streamWhy(p hal.Profile, why string) string {
 	return why
 }
 
+// zonesWhy is why the zone trigger is absent: on the HAL path, that the
+// owner loop qualifies no trigger with zones (they are a board trigger's
+// qualifier, hal.TrigStage.Zones), else why.
+// TRLC-LINKS: REQ-DSO-164
+func (s *Scope) zonesWhy(why string) string {
+	if s.cfg.Board != nil && s.cfg.Instrument != nil {
+		return "zones qualify a board's trigger (its stages' zones), which the core's owner loop does not program"
+	}
+	return why
+}
+
 // features is every optional feature, ok or why not.
 // TRLC-LINKS: REQ-DSO-164
 func (s *Scope) features(p hal.Profile) map[string]wire.Feature {
@@ -218,11 +229,11 @@ func (s *Scope) features(p hal.Profile) map[string]wire.Feature {
 		"eye":           why(raw, "needs full-rate raw records"),
 		"superres":      why(raw, "needs full-rate raw records"),
 		"record":        why(true, ""),
-		"client_decode": why(parts.ClientDecode != nil, noEngine),
+		"client_decode": why(parts.ClientDecode != nil, s.streamWhy(p, noEngine)),
 		"sound":         why(parts.Sound != nil, s.streamWhy(p, noEngine)),
 		"bode":          why(parts.Bode != nil, noEngine),
 		"mask":          why(parts.Masks != nil, noEngine),
-		"zones":         why(parts.Zones != nil, noEngine),
+		"zones":         why(parts.Zones != nil, s.zonesWhy(noEngine)),
 		"serial":        why(parts.Serial != nil, noEngine),
 		"ets":           {Why: "equivalent-time sampling is not available on this acquisition"},
 	}
