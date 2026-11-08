@@ -76,7 +76,9 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ env.PW_VERSION }}
       - name: Install Playwright + Chromium
-        timeout-minutes: 10
+        timeout-minutes: 25
+        env:
+          DEBUG: pw:install # a stalled download names itself in the log
         run: |
           mkdir -p "$HOME/pw" && cd "$HOME/pw"
           npm init -y >/dev/null
