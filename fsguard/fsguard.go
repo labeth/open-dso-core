@@ -49,8 +49,13 @@ type Policy struct {
 	// Root.
 	System []string
 	// RootForbidden are directories below the root, relative to it, the
-	// vendor boot turns into writes of other partitions.
+	// vendor boot turns into writes of other partitions. Nothing is written
+	// in them, and no root lies in one: a root is refused when it, or what
+	// it resolves to, has such a directory among its path's tails.
 	RootForbidden []Area
+	// NoLinks refuses a path with a symbolic link anywhere below the root:
+	// a planted link cannot be followed even where it stays inside.
+	NoLinks bool
 	// Names are file base names, lower case, never written anywhere (with
 	// or without a ".new" suffix); NamesWhy says why.
 	Names    []string
@@ -141,19 +146,13 @@ func (g *Guard) SetRoot(dir string) (restore func(), err error) {
 	if err != nil {
 		return nil, err
 	}
-	if g.p.Root == "" || !within(clean, g.p.Root) {
-		for _, v := range g.p.Vendor {
-			if within(v.Dir, clean) && !slices.Contains(g.p.Enclosable, v.Dir) {
-				return nil, refuse("root", dir, "contains "+v.Dir+": "+v.Why)
-			}
-			if within(clean, v.Dir) {
-				return nil, refuse("root", dir, "lies in "+v.Dir+": "+v.Why)
-			}
-		}
-		for _, s := range g.p.System {
-			if within(clean, s) {
-				return nil, refuse("root", dir, "a system area ("+s+") cannot be the writable root")
-			}
+	rp, err := resolve(clean)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range []string{clean, rp} {
+		if err := g.rootAllowed(dir, c); err != nil {
+			return nil, err
 		}
 	}
 	g.mu.Lock()
@@ -165,6 +164,57 @@ func (g *Guard) SetRoot(dir string) (restore func(), err error) {
 		g.root = prev
 		g.mu.Unlock()
 	}, nil
+}
+
+// rootAllowed refuses c, the cleaned or the resolved form of dir, as a
+// root: it lies in a forbidden directory of a root, or it is outside the
+// policy's root and in or around a vendor area, or in a system area.
+// TRLC-LINKS: REQ-DSO-296
+func (g *Guard) rootAllowed(dir, c string) error {
+	for _, d := range g.p.RootForbidden {
+		if tail := "/" + filepath.Clean(d.Dir); strings.HasSuffix(c, tail) || strings.Contains(c+"/", tail+"/") {
+			return refuse("root", dir, "lies in a "+d.Dir+" tree: "+d.Why)
+		}
+	}
+	if g.p.Root != "" && within(c, g.p.Root) {
+		return nil
+	}
+	for _, v := range g.p.Vendor {
+		if within(v.Dir, c) && !slices.Contains(g.p.Enclosable, v.Dir) {
+			return refuse("root", dir, "contains "+v.Dir+": "+v.Why)
+		}
+		if within(c, v.Dir) {
+			return refuse("root", dir, "lies in "+v.Dir+": "+v.Why)
+		}
+	}
+	for _, s := range g.p.System {
+		if within(c, s) {
+			return refuse("root", dir, "a system area ("+s+") cannot be the writable root")
+		}
+	}
+	return nil
+}
+
+// linkBelow reports the first symbolic link among the existing parts of
+// clean below the root r ("" when none).
+// TRLC-LINKS: REQ-DSO-296
+func linkBelow(r, clean string) string {
+	rel, err := filepath.Rel(r, clean)
+	if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+		return ""
+	}
+	p := r
+	for part := range strings.SplitSeq(rel, string(filepath.Separator)) {
+		p = filepath.Join(p, part)
+		st, err := os.Lstat(p)
+		if err != nil {
+			return ""
+		}
+		if st.Mode()&os.ModeSymlink != 0 {
+			return p
+		}
+	}
+	return ""
 }
 
 // TRLC-LINKS: REQ-DSO-296
@@ -219,6 +269,11 @@ func (g *Guard) Check(path string) error {
 	}
 	if !within(rp, rr) {
 		return refuse("write", path, "resolves to "+rp+", outside "+name+"'s root "+r)
+	}
+	if g.p.NoLinks {
+		if l := linkBelow(r, clean); l != "" {
+			return refuse("write", path, l+" is a symbolic link: nothing under "+name+"'s root is written through one")
+		}
 	}
 	rel, _ := filepath.Rel(rr, rp)
 	for _, d := range g.p.RootForbidden {

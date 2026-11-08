@@ -237,3 +237,82 @@ func TestMounts(t *testing.T) {
 		}
 	}
 }
+
+// A root never lies in a tree the vendor boot flashes from or runs, below
+// the policy's root, below another root, or reached through a symlink.
+// TRLC-LINKS: REQ-DSO-296
+func TestSetRootRefusesForbiddenTrees(t *testing.T) {
+	g := New(testPolicy)
+	base := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(base, "update", "x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(base, "looks-fine")
+	if err := os.Symlink(filepath.Join(base, "update"), link); err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range []string{
+		"/vendor/data/update", "/vendor/data/update/sub", "/vendor/data/usr/upgrade",
+		"/mnt/update", "/mnt/usr/upgrade/x", filepath.Join(base, "update", "x"), link,
+	} {
+		if r, err := g.SetRoot(d); err == nil {
+			r()
+			t.Errorf("root %q accepted", d)
+		} else if !refused(err) {
+			t.Errorf("root %q: %v", d, err)
+		}
+	}
+	for _, d := range []string{"/vendor/data/updates", "/vendor/data/usr", base} {
+		r, err := g.SetRoot(d)
+		if err != nil {
+			t.Errorf("root %q: %v", d, err)
+			continue
+		}
+		r()
+	}
+}
+
+// With NoLinks no write goes through a symlink below the root, even one
+// that stays inside it; without it only the ones leading out are refused.
+// TRLC-LINKS: REQ-DSO-296
+func TestNoLinks(t *testing.T) {
+	p := testPolicy
+	p.NoLinks = true
+	g := New(p)
+	root := t.TempDir()
+	if _, err := g.SetRoot(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "open", "a"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(root, "open", "a"), filepath.Join(root, "open", "log")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(root, "open"), filepath.Join(root, "inner")); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{
+		filepath.Join(root, "open", "log", "launch.log"), filepath.Join(root, "open", "log"),
+		filepath.Join(root, "inner", "current"), filepath.Join(root, "inner"),
+	} {
+		if err := g.Check(path); !refused(err) || !strings.Contains(err.Error(), "symbolic link") {
+			t.Errorf("%s: %v", path, err)
+		}
+	}
+	for _, path := range []string{filepath.Join(root, "open", "a", "app"), filepath.Join(root, "open", "new", "x"), root} {
+		if err := g.Check(path); err != nil {
+			t.Errorf("%s: %v", path, err)
+		}
+	}
+	if err := g.MkdirAll(filepath.Join(root, "inner", "b")); !refused(err) {
+		t.Errorf("mkdir through a link: %v", err)
+	}
+	plain := New(testPolicy)
+	if _, err := plain.SetRoot(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := plain.Check(filepath.Join(root, "inner", "current")); err != nil {
+		t.Errorf("a link inside without NoLinks: %v", err)
+	}
+}
