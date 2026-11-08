@@ -213,7 +213,12 @@ add("bus-views", async () => {
   await webClick("#tab-bus");
   await webClick('#busView button[data-value="eye"]');
   if (!(await ui.evaluate(() => document.getElementById("ejArm").classList.contains("on")))) await webClick("#ejArm");
-  const eye = await waitFor(async () => { const t = await webText("#ejBody"); return /\d/.test(t) ? t : ""; }, 25000);
+  const height = async () => { const t = await webText("#ejBody"); return /eye height\s*[\d.]/.test(t) ? t : ""; };
+  let eye = await waitFor(height, 20000);
+  if (!eye) { // a timebase no record holds at the full rate: Optimize steps to one that does, as an operator would
+    await webClick("#ejOpt");
+    eye = await waitFor(height, 60000);
+  }
   if (!eye) throw new Error(`the web's eye never measured: ${await webText("#ejStats")}`);
   await webClick('#busView button[data-value="stream"]');
   await sleep(2500);
