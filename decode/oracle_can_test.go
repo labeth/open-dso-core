@@ -593,10 +593,10 @@ func TestOracleCAN(t *testing.T) {
 
 	t.Run("fd-base-frame", func(t *testing.T) {
 		// CAN-FD base format, BRS=0 (constant bit rate), DLC 9 => 12 bytes on
-		// both sides (repo fdDataLen == PD dlc2len). The repo decodes FD
-		// best-effort — ID/DLC/data, then stops before the FD trailer — and
-		// sigrok's FD trailer handling is likewise approximate, so the strict
-		// intersection is ID + DLC + payload. BRS=1 is untestable against the
+		// both sides (repo fdDataLen == PD dlc2len). The frame carries the ISO
+		// trailer (stuff count, CRC with fixed stuff bits); sigrok's FD
+		// trailer handling is approximate, so the strict intersection is
+		// ID + DLC + payload. BRS=1 is untestable against the
 		// repo: real CAN-FD (and the PD) switch bit rate at the BRS *sample
 		// point*, the repo at the next bit-cell boundary — no one waveform
 		// satisfies both timings. FD extended frames are repo-unsupported.
@@ -627,6 +627,16 @@ func TestOracleCAN(t *testing.T) {
 		if len(rb) == 0 || rb[0].Text != "Flexible data format: 1" {
 			t.Fatalf("sigrok did not flag FDF: %v", rb)
 		}
-		noWarnings(t, bits, baud)
+		// sigrok's PD keeps removing dynamic stuff bits for 17 bits past the
+		// data field, inside the FD CRC field, where ISO 11898-1 sends fixed
+		// stuff bits instead: on an ISO trailer that holds a run of five it
+		// drops a bit and reads the CRC delimiter one bit early. Its
+		// clean-traffic check therefore sees the frame through the data field,
+		// with a recessive tail where the trailer was.
+		head := wire[:len(wire)-canFDTrailerLen(len(data))]
+		for range 24 {
+			head = append(head, 1)
+		}
+		noWarnings(t, canOracleBits(sr, baud, head), baud)
 	})
 }

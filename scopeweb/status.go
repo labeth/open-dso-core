@@ -142,7 +142,7 @@ func (s *Scope) status() any {
 		"trig_pos_frac": pos, "holdoff_s": st.Trigger.Active().HoldoffS,
 		"trig_source": st.Trigger.Source().Index, "trig_rising": st.Trigger.Slope() != hal.Falling,
 		"trig_volts": st.Trigger.LevelV(), "trig_type": int(st.Trigger.Type), "trig_qual": st.Qual,
-		"acq_mode": acqModeNumber(st.Mode), "mem_depth": st.Depth, "win_cols": f0.winCols,
+		"acq_mode": acqModeNumber(st), "mem_depth": st.Depth, "win_cols": f0.winCols,
 		"band": f0.band, "live_readout": f0.content, "vdiv_live": true, "run_state": run,
 		// the screen's record takes its span to fill: a page waits that long
 		// for a frame at a slow timebase that does not roll
@@ -268,11 +268,15 @@ func sweepName(s hal.Sweep) string {
 	return "auto"
 }
 
-// acqModeNumber is a mode as v1's acq_mode numbers it (acqModes).
+// acqModeNumber is state st's mode as v1's acq_mode numbers it
+// (acqModes; 4 is precision, high resolution from the precision words).
 // TRLC-LINKS: REQ-DSO-164
-func acqModeNumber(m hal.AcqMode) int {
+func acqModeNumber(st instrument.State) int {
+	if st.Mode == hal.HighRes && st.Precision {
+		return 4
+	}
 	for n, v := range acqModes {
-		if v == m {
+		if v == st.Mode {
 			return n
 		}
 	}

@@ -1175,3 +1175,27 @@ decisions:
   consequences:
   - 'The FPGA still decides every trigger (ADR-SERIAL-HARDWARE-TRIGGER); a board with the receiver keeps the frame-start trigger.'
   - 'A bus with no such pulse (PWM, SWD) is captured on an edge of its line, anywhere in its stream.'
+
+- id: ADR-CML-CONTROLS-STAGED
+  title: 'The SDS1000CML+''s controllers write the instrument model and its engine replays their settings on its owner'
+  status: proposed
+  date: '2026-11-08'
+  context: 'Until its owner runs HALCycle the SDS1000CML+ engine keeps its own settings, and a controller''s setting
+    reached them from the controller''s goroutine. A diff of the model against what the engine applied loses the
+    exact value for settings the model holds in other terms (the trigger position as a delay round-trips a fraction
+    by one ulp, which the status document shows) and re-applies settings the engine changed itself (an extra
+    replay of a stopped record).'
+  decision: 'Every controller drives the scope through the engine''s Controls: a setter writes the instrument model
+    at once and queues the engine''s own setter, which the owner runs in order at its next commit point (each
+    pass, each poll of a wait, the roll and stream loops, and the holdoff''s pacing); the snapshot shows the
+    queued settings as the engine will apply them. Run control and FORCE stay immediate: the model already holds
+    run control (ADR-RUN-CONTROL-CML-RULES) and a STOP must not wait for a holdoff or a capture. The model holds
+    the channels as the front end applies them and the trigger level in volts as the comparator''s code gives
+    it (State.LevelSet; re-projected when the source, its V/div or its probe changes, the code staying), and
+    tells precision from ERES (State.Precision, PrecisionRateHz). The front end''s own setters still answer at
+    once and leave their relay and gain writes to the owner with nothing armed (ADR-HAL-FRONTEND-IDLE-COMMIT);
+    the settings file''s level_code comes from the model''s level.'
+  consequences:
+  - 'Behaviour is the SDS1000CML+''s: values read back exactly as before, applied one commit point later.'
+  - 'When the CML runs HALCycle the queue and the engine''s copies go; the model''s state is already complete for it.'
+  - 'The HUD and web status words still come from the engine''s flags; RunState gains words only when the HUD reads the model.'
