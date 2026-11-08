@@ -3,6 +3,7 @@
 package panel
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
@@ -148,6 +149,13 @@ func soundRows() []*row {
 	}
 	drift := sndEnum("snd.drift", "Drift log", "Log the tuned pitch once a second (a VCO warming up).",
 		onOff, func(s SoundSettings) int { return b2ic(s.Drift) }, func(s *SoundSettings, v int) { s.Drift = v == 1 })
+	driftSet := drift.set
+	drift.set = func(c *Controller, v int) error {
+		if v == 1 && !c.snd.soundShown() { // it would end at the next tick (soundSvc.step), saying nothing
+			return errors.New("the drift log runs while SOUND shows: SPECTRUM's SOUND view, or a page's SOUND")
+		}
+		return driftSet(c, v)
+	}
 	driftClear := &row{
 		id: "snd.drift_clear", label: "Drift points", kind: wsview.Action,
 		help: "Start the drift log over.",
