@@ -520,15 +520,22 @@ func (c *Controller) setDecRole(first bool, ch int) error {
 	return nil
 }
 
+// noStreamWhy is why a scope with no decoded stream has none to start: its
+// BUS views decode each capture instead.
+const noStreamWhy = "this scope has no decoded stream: BUS decodes its captures (Packets, Visual)"
+
 // setStreamMode starts (with the decoder settings) or stops the hardware
 // decoded stream: BUS on its Stream view, or back on its packets.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-222, REQ-DSO-228
 func (c *Controller) setStreamMode(on bool) error {
 	c.mu.Lock()
-	bus := serialProto(c.decProto) && c.stream != nil
+	has := c.stream != nil
+	bus := serialProto(c.decProto) && has
 	inView := c.ui.busStream
 	c.mu.Unlock()
 	switch {
+	case on && !has:
+		return errors.New(noStreamWhy)
 	case on && !bus:
 		return errors.New("a stream needs a bus: set Protocol (Auto finds it)")
 	case on || inView:

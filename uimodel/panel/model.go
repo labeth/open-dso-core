@@ -45,10 +45,11 @@ type act struct {
 type row struct {
 	id    string // stable id, e.g. "trig.level"
 	label string
-	help  string // one line: what the setting does
-	knob  string // the knob or key that also changes it
-	why   string // what makes it relevant, for a dim row
-	hdr   string // a section header drawn above the row
+	help  string             // one line: what the setting does
+	knob  string             // the knob or key that also changes it
+	why   string             // what makes it relevant, for a dim row
+	whyOf func(s *sv) string // why, for a row whose reason follows the state ("" falls back to why)
+	hdr   string             // a section header drawn above the row
 	kind  wsview.RowKind
 	rel   func(s *sv) bool
 
