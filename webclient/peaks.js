@@ -78,6 +78,16 @@ function fftReduce(g, nyq0, bandHz, maxN) {
   let n = 1;
   while (n * 2 <= g.length && n < (maxN || 8192)) n <<= 1;
   if (n < 16) return null;
+  // a record between two powers of two (a 2000-sample screen) is resampled
+  // onto the next one, so the transform spans all of it (framecalc.Resample)
+  if (g.length > n && 2 * n <= (maxN || 8192)) {
+    const m = 2 * n, k = (g.length - 1) / (m - 1), x = new Float64Array(m);
+    for (let i = 0; i < m; i++) {
+      const t = i * k, j = Math.min(Math.floor(t), g.length - 2), fr = t - j;
+      x[i] = g[j] * (1 - fr) + g[j + 1] * fr;
+    }
+    return fftFinish(x, nyq0 * (m - 1) / (g.length - 1), bandHz);
+  }
   const stride = Math.max(1, Math.floor(g.length / n));
   let x = g;
   if (stride > 1) {
@@ -88,7 +98,13 @@ function fftReduce(g, nyq0, bandHz, maxN) {
       x[i] = s / stride;
     }
   }
-  const nyq = nyq0 / stride, s = spectrum(x, nyq);
+  return fftFinish(x, nyq0 / stride, bandHz);
+}
+
+// fftFinish is fftReduce's transform of x at Nyquist nyq, cut at bandHz.
+// TRLC-LINKS: REQ-DSO-070
+function fftFinish(x, nyq, bandHz) {
+  const s = spectrum(x, nyq);
   if (!s) return null;
   s.points = 2 * s.half; s.fs = 2 * nyq; s.binHz = nyq / s.half;
   if (bandHz > 0 && bandHz < nyq) {
@@ -115,9 +131,11 @@ const SPG_ROW_POINTS = 2048;
 function fftRows(g, nyq0, bandHz, maxN) {
   const full = fftReduce(g, nyq0, bandHz, maxN);
   if (!full) return [];
-  const k = Math.floor(full.points / SPG_ROW_POINTS);
+  // a record resampled onto the power above: the rows take the one below
+  const pts = full.points > g.length ? full.points / 2 : full.points;
+  const k = Math.floor(pts / SPG_ROW_POINTS);
   if (k < 2) return [full];
-  const stride = Math.max(1, Math.floor(g.length / full.points)), seg = SPG_ROW_POINTS * stride;
+  const stride = Math.max(1, Math.floor(g.length / pts)), seg = SPG_ROW_POINTS * stride;
   const rows = [];
   for (let i = 0; i < k; i++) {
     const part = g.subarray ? g.subarray(i * seg, (i + 1) * seg) : g.slice(i * seg, (i + 1) * seg);

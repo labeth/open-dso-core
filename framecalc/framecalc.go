@@ -534,6 +534,30 @@ func BlockMeans(src []uint8, n, stride int) []float64 {
 	return out
 }
 
+// Resample is src linearly interpolated onto n samples spanning it, first
+// to last.
+// TRLC-LINKS: REQ-DSO-070
+func Resample(src []uint8, n int) []float64 {
+	out := make([]float64, n)
+	if len(src) == 0 || n == 0 {
+		return out
+	}
+	if len(src) == 1 || n == 1 {
+		for i := range out {
+			out[i] = float64(src[0])
+		}
+		return out
+	}
+	k := float64(len(src)-1) / float64(n-1)
+	for i := range out {
+		x := float64(i) * k
+		j := min(int(x), len(src)-2)
+		fr := x - float64(j)
+		out[i] = float64(src[j])*(1-fr) + float64(src[j+1])*fr
+	}
+	return out
+}
+
 // FFT is an in-place iterative radix-2 Cooley-Tukey transform (len must be
 // a power of two).
 // TRLC-LINKS: REQ-DSO-070
@@ -747,8 +771,17 @@ func spectrum(f *sample.Frame, ch int, sampleS float64, hold time.Duration) (Spe
 			return s.spec, true
 		}
 	}
-	stride := PairStride(f, valid/n)
-	sp := specOf(BlockMeans(Channel(f, ch, valid), n, stride), stride, sampleS, f.Cond.BandwidthHz)
+	var sp Spec
+	if EnvPair(f) == 1 && valid > n && 2*n <= MaxFFT {
+		// a record between two powers of two (a 2000-sample screen) is
+		// resampled onto the next one, so the transform spans all of it:
+		// cutting it to the power below kept half of it, one period of a
+		// tone shown for two
+		sp = specOfStep(Resample(Channel(f, ch, valid), 2*n), 1, float64(valid-1)/float64(2*n-1), sampleS, f.Cond.BandwidthHz)
+	} else {
+		stride := PairStride(f, valid/n)
+		sp = specOf(BlockMeans(Channel(f, ch, valid), n, stride), stride, sampleS, f.Cond.BandwidthHz)
+	}
 	s.key, s.spec, s.ok, s.at = key, sp, cacheable, now
 	return sp, true
 }
@@ -757,11 +790,18 @@ func spectrum(f *sample.Frame, ch int, sampleS float64, hold time.Duration) (Spe
 // sampleS apart, cut at a decimated capture's filter bandwidth bw (0: none).
 // TRLC-LINKS: REQ-DSO-070
 func specOf(samples []float64, stride int, sampleS, bw float64) Spec {
+	return specOfStep(samples, stride, float64(stride), sampleS, bw)
+}
+
+// specOfStep is specOf of samples step record samples apart (a resampled
+// record's step is not a whole number); stride is the Spec's.
+// TRLC-LINKS: REQ-DSO-070
+func specOfStep(samples []float64, stride int, step, sampleS, bw float64) Spec {
 	n := len(samples)
 	mags, peak, peakK := Mags(samples)
 	sp := Spec{Mags: mags, N: n, Stride: stride, Peak: peak, PeakK: peakK}
 	if sampleS > 0 {
-		sp.EffNyq = 0.5 / sampleS / float64(stride)
+		sp.EffNyq = 0.5 / sampleS / step
 		sp.BinHz = sp.EffNyq / float64(n/2)
 		sp.SpanHz = sp.EffNyq
 		// A decimated capture's filter ends the spectrum at its bandwidth: past
@@ -795,11 +835,15 @@ func SpectrumRows(f *sample.Frame, ch int, sampleS float64) []Spec {
 	if !ok {
 		return nil
 	}
-	k := full.N / RowFFT
+	src := Channel(f, ch, Valid(f))
+	n := full.N
+	if n > len(src) { // resampled onto the power above: the rows take the one below
+		n /= 2
+	}
+	k := n / RowFFT
 	if k < 2 {
 		return []Spec{full}
 	}
-	src := Channel(f, ch, Valid(f))
 	seg := RowFFT * full.Stride
 	out := make([]Spec, 0, k)
 	for i := range k {
