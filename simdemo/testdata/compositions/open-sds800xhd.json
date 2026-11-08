@@ -73,6 +73,8 @@
       "Mode": 0,
       "Averages": 0,
       "EresLen": 0,
+      "Precision": false,
+      "PrecisionRateHz": 0,
       "ETS": false,
       "Trigger": {
         "type": "edge",
@@ -322,6 +324,7 @@
           }
         }
       },
+      "LevelSet": false,
       "Qual": {
         "video_std": 0,
         "video_line": 0,

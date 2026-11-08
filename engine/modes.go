@@ -5,6 +5,7 @@ package engine
 import (
 	"math"
 
+	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 )
 
@@ -25,21 +26,9 @@ func EresLenForBits(bits float64) int {
 	return ClampEresLen(l)
 }
 
-// ClampEresLen clamps a boxcar length to [1,64] and makes it odd (an even
-// length steps down by one).
+// ClampEresLen is instrument.ClampEresLen.
 // TRLC-LINKS: REQ-DSO-012
-func ClampEresLen(l int) int {
-	if l < 1 {
-		l = 1
-	}
-	if l > 64 {
-		l = 64
-	}
-	if l > 1 && l%2 == 0 {
-		l--
-	}
-	return l
-}
+func ClampEresLen(l int) int { return instrument.ClampEresLen(l) }
 
 // EresBoxcar applies a symmetric odd-length moving average IN PLACE to the
 // whole record — BEFORE edge detection, so the trigger anchor and the
