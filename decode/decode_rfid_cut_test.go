@@ -13,11 +13,11 @@ import (
 func TestT55xxCommandCutByTheRecord(t *testing.T) {
 	const sr = 1000000
 	w := newTimeline(sr)
-	f := rfidField{w, true}
-	f.on(500 * rfidFC)
+	f := rfidField{W: w, Carrier: true}
+	f.On(500 * rfidFC)
 	t55xxCommand(f, t55xxBits(2, -1, 1, 0xDEADBEEF, 5))
 	t55xxCommand(f, t55xxBits(2, -1, 0, 0x00148040, 1))
-	codes := w.codes()[int((500+30+20*49)*rfidFC*sr):] // open twenty bits into the first
+	codes := w.Codes()[int((500+30+20*49)*rfidFC*sr):] // open twenty bits into the first
 	r := T55xx(codes, 1.0/sr, LineCfg{})
 	if !r.OK || r.FrameBits != 38 {
 		t.Fatalf("%q (%s)", r.Text, r.Error)

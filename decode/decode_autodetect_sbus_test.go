@@ -55,9 +55,9 @@ func sbusOpts(periodS, sr float64) sbusLineOpts {
 func sbusLine(o sbusLineOpts) []uint8 {
 	rng := rand.New(rand.NewSource(o.seed))
 	w := newTimeline(o.sampleRate)
-	w.idle(o.leadS)
+	w.Idle(o.leadS)
 	for range o.frames {
-		t0 := w.t
+		t0 := w.T
 		var ch [16]int
 		for i := range ch {
 			if !o.channelsZero {
@@ -75,14 +75,14 @@ func sbusLine(o sbusLineOpts) []uint8 {
 		for _, v := range b {
 			tlUART(w, v, o.baud, o.parity, 2)
 		}
-		w.idle(o.periodS - (w.t - t0))
+		w.Idle(o.periodS - (w.T - t0))
 	}
 	if o.inverted {
-		for i := range w.bits {
-			w.bits[i] ^= 1
+		for i := range w.Bits {
+			w.Bits[i] ^= 1
 		}
 	}
-	c := w.codes()
+	c := w.Codes()
 	return c[int(o.cutS*o.sampleRate):]
 }
 
@@ -153,20 +153,20 @@ func TestAutodetectSBUSCrossConfusion(t *testing.T) {
 		for _, inv := range []bool{false, true} {
 			sr := 32 * baud
 			w := newTimeline(sr)
-			w.idle(2e-3)
+			w.Idle(2e-3)
 			for i := range 40 {
 				tlUART(w, 0x20+rng.Intn(0x5f), baud, "even", 2)
 				if i%10 == 9 {
-					w.idle(3e-3)
+					w.Idle(3e-3)
 				}
 			}
-			w.idle(2e-3)
+			w.Idle(2e-3)
 			if inv {
-				for i := range w.bits {
-					w.bits[i] ^= 1
+				for i := range w.Bits {
+					w.Bits[i] ^= 1
 				}
 			}
-			c := w.codes()
+			c := w.Codes()
 			if r, _ := AutodetectFast(c, idleLike(c), 1/sr, "hex"); isSBUS(r) {
 				t.Errorf("UART %v Bd text (inverted %v) read as S.BUS", baud, inv)
 			}

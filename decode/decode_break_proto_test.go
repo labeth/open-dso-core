@@ -168,71 +168,71 @@ func TestBreakProtoChecksFlagged(t *testing.T) {
 	var cases []tc
 	{
 		w := newTimeline(1e6)
-		w.idle(200e-6)
+		w.Idle(200e-6)
 		bit := 1 / 19200.0
-		w.add(0, 13*bit)
-		w.add(1, bit)
+		w.Add(0, 13*bit)
+		w.Add(1, bit)
 		tlUART(w, 0x55, 19200, "none", 1)
 		tlUART(w, linPIDParity(0x12), 19200, "none", 1)
 		tlUART(w, 0xA5, 19200, "none", 1)
 		tlUART(w, 0x00, 19200, "none", 1) // a wrong checksum
-		w.idle(40 * bit)
-		cases = append(cases, tc{"LIN checksum", LIN(w.codes(), 1e-6, LINCfg{})})
+		w.Idle(40 * bit)
+		cases = append(cases, tc{"LIN checksum", LIN(w.Codes(), 1e-6, LINCfg{})})
 	}
 	{
 		w := newTimeline(2e6)
-		w.idle(3e-3)
+		w.Idle(3e-3)
 		for _, v := range []int{0x01, 0x03, 0x02, 0x12, 0x34, 0xFF, 0xFF} {
 			tlUART(w, v, 19200, "even", 1)
 		}
-		w.idle(3e-3)
-		cases = append(cases, tc{"Modbus CRC", Modbus(w.codes(), 5e-7, ModbusCfg{})})
+		w.Idle(3e-3)
+		cases = append(cases, tc{"Modbus CRC", Modbus(w.Codes(), 5e-7, ModbusCfg{})})
 	}
 	{
 		w := newTimeline(1e6)
-		w.idle(1e-3)
+		w.Idle(1e-3)
 		dhtReading(w, 1000, [4]int{1, 2, 3, 4}, 0x99)
-		cases = append(cases, tc{"DHT checksum", DHT(w.codes(), 1e-6, DHTCfg{})})
+		cases = append(cases, tc{"DHT checksum", DHT(w.Codes(), 1e-6, DHTCfg{})})
 	}
 	{
 		w := newTimeline(1e6)
-		w.add(0, 500e-6)
+		w.Add(0, 500e-6)
 		j1850Frame(w, []int{0x68, 0x6A, 0xF1}, true)
-		cases = append(cases, tc{"J1850 CRC", J1850(w.codes(), 1e-6, J1850Cfg{})})
+		cases = append(cases, tc{"J1850 CRC", J1850(w.Codes(), 1e-6, J1850Cfg{})})
 	}
 	{
 		w := newTimeline(100e3)
-		l := irLine{w: w}
-		l.space(20e-3)
-		l.mark(9e-3)
-		l.space(4.5e-3)
+		l := irLine{W: w}
+		l.Space(20e-3)
+		l.Mark(9e-3)
+		l.Space(4.5e-3)
 		for _, v := range []int{0x04, 0xFB, 0x08, 0x08} { // the command's inverse broken
 			for i := range 8 {
-				l.mark(562.5e-6)
+				l.Mark(562.5e-6)
 				if v>>i&1 == 1 {
-					l.space(1687.5e-6)
+					l.Space(1687.5e-6)
 				} else {
-					l.space(562.5e-6)
+					l.Space(562.5e-6)
 				}
 			}
 		}
-		l.mark(562.5e-6)
-		l.space(40e-3)
-		cases = append(cases, tc{"NEC inverse", IRNEC(w.codes(), 1e-5, IRCfg{})})
+		l.Mark(562.5e-6)
+		l.Space(40e-3)
+		cases = append(cases, tc{"NEC inverse", IRNEC(w.Codes(), 1e-5, IRCfg{})})
 	}
 	{
 		w := newTimeline(25e6)
-		w.add(0, 20e-6)
+		w.Add(0, 20e-6)
 		pdMessage(w, pdSOP, 0x1042, []uint32{0x12345678}, true)
-		cases = append(cases, tc{"USB PD CRC-32", USBPD(w.codes(), 4e-8, USBPDCfg{})})
+		cases = append(cases, tc{"USB PD CRC-32", USBPD(w.Codes(), 4e-8, USBPDCfg{})})
 	}
 	{
 		l := newTwoLine(200e3)
-		l.add(1, 1, 2e-3)
+		l.Add(1, 1, 2e-3)
 		bad := []byte(wiegandBits(26, 12, 4660))
 		bad[0] ^= 1
 		wiegandFrame(l, string(bad), 1e-3)
-		cases = append(cases, tc{"Wiegand parity", Wiegand(l.a.codes(), l.b.codes(), 5e-6, ClockedCfg{})})
+		cases = append(cases, tc{"Wiegand parity", Wiegand(l.A.Codes(), l.B.Codes(), 5e-6, ClockedCfg{})})
 	}
 	for _, c := range cases {
 		if c.r.OK || !strings.Contains(c.r.Text, "!") {

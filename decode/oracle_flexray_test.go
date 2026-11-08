@@ -99,23 +99,23 @@ func orFlexCorruptHeaderCRC(fb []int) []int {
 func orFlexBits(sr, bitrate float64, frames [][]int, tssBits, idleBits float64) []byte {
 	w := newTimeline(sr)
 	bt := 1 / bitrate
-	w.add(1, 8*bt) // lead idle
+	w.Add(1, 8*bt) // lead idle
 	for _, fb := range frames {
-		w.add(0, tssBits*bt) // TSS
-		w.add(1, bt)         // FSS
+		w.Add(0, tssBits*bt) // TSS
+		w.Add(1, bt)         // FSS
 		for _, b := range fb {
-			w.add(1, bt) // BSS bit0
-			w.add(0, bt) // BSS bit1
+			w.Add(1, bt) // BSS bit0
+			w.Add(0, bt) // BSS bit1
 			for d := 7; d >= 0; d-- {
-				w.add(byte(b>>d)&1, bt)
+				w.Add(byte(b>>d)&1, bt)
 			}
 		}
-		w.add(0, bt)          // FES low
-		w.add(1, bt)          // FES high
-		w.add(1, idleBits*bt) // inter-frame idle (>= 14: sigrok's DTS+CID tail)
+		w.Add(0, bt)          // FES low
+		w.Add(1, bt)          // FES high
+		w.Add(1, idleBits*bt) // inter-frame idle (>= 14: sigrok's DTS+CID tail)
 	}
-	w.add(1, 8*bt) // trail idle
-	return w.bits
+	w.Add(1, 8*bt) // trail idle
+	return w.Bits
 }
 
 // orFlexBitsDTS renders ONE dynamic-segment frame: identical to orFlexBits up
@@ -128,23 +128,23 @@ func orFlexBits(sr, bitrate float64, frames [][]int, tssBits, idleBits float64) 
 func orFlexBitsDTS(sr, bitrate float64, fb []int, tssBits, dtsLowBits, idleBits float64) []byte {
 	w := newTimeline(sr)
 	bt := 1 / bitrate
-	w.add(1, 8*bt)       // lead idle
-	w.add(0, tssBits*bt) // TSS
-	w.add(1, bt)         // FSS
+	w.Add(1, 8*bt)       // lead idle
+	w.Add(0, tssBits*bt) // TSS
+	w.Add(1, bt)         // FSS
 	for _, b := range fb {
-		w.add(1, bt) // BSS bit0
-		w.add(0, bt) // BSS bit1
+		w.Add(1, bt) // BSS bit0
+		w.Add(0, bt) // BSS bit1
 		for d := 7; d >= 0; d-- {
-			w.add(byte(b>>d)&1, bt)
+			w.Add(byte(b>>d)&1, bt)
 		}
 	}
-	w.add(0, bt)            // FES low
-	w.add(1, bt)            // FES high
-	w.add(0, dtsLowBits*bt) // DTS low phase
-	w.add(1, bt)            // DTS closing high bit
-	w.add(1, idleBits*bt)   // channel idle (covers sigrok's 11-bit CID)
-	w.add(1, 8*bt)          // trail idle
-	return w.bits
+	w.Add(0, bt)            // FES low
+	w.Add(1, bt)            // FES high
+	w.Add(0, dtsLowBits*bt) // DTS low phase
+	w.Add(1, bt)            // DTS closing high bit
+	w.Add(1, idleBits*bt)   // channel idle (covers sigrok's 11-bit CID)
+	w.Add(1, 8*bt)          // trail idle
+	return w.Bits
 }
 
 var (

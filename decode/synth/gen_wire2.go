@@ -1,26 +1,26 @@
 // ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
-package decode
+package synth
 
 // Generators of the two-wire buses beyond the first thirty
 // (proto_gen_test.go): line a the clock (TCKC, SDCKA), line b the data.
 
-// clockBits appends bits on line b, each over one clock period per on line
+// ClockBits appends bits on line b, each over one clock period per on line
 // a: the clock low for the first half (the data set there) and high for the
 // second (read at its rise).
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func clockBits(l twoLine, bits []int, per float64) {
+func ClockBits(l Pair, bits []int, per float64) {
 	for _, b := range bits {
-		l.add(0, byte(b), per/2)
-		l.add(1, byte(b), per/2)
+		l.Add(0, lvl(b), per/2)
+		l.Add(1, lvl(b), per/2)
 	}
 }
 
-// sdToken is an SD command (host) or response's bits: start 0, the
+// SDToken is an SD command (host) or response's bits: start 0, the
 // transmission bit, six index bits, the 32-bit argument, CRC-7 (spoiled by
 // badCRC) and the end bit.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func sdToken(host bool, idx int, arg uint32, badCRC bool) []int {
+func SDToken(host bool, idx int, arg uint32, badCRC bool) []int {
 	b := []int{0, 0}
 	if host {
 		b[1] = 1
@@ -31,7 +31,7 @@ func sdToken(host bool, idx int, arg uint32, badCRC bool) []int {
 	for i := 31; i >= 0; i-- {
 		b = append(b, int(arg>>i&1))
 	}
-	c := crc7(b)
+	c := CRC7(b)
 	if badCRC {
 		c ^= 0x11
 	}
@@ -41,10 +41,10 @@ func sdToken(host bool, idx int, arg uint32, badCRC bool) []int {
 	return append(b, 1)
 }
 
-// sdR2 is an R2 response's 136 bits: start, transmission 0, six reserved
+// SDR2 is an R2 response's 136 bits: start, transmission 0, six reserved
 // 1s, the 120-bit register (reg's bytes) with its CRC-7 and the end bit.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func sdR2(reg [15]int) []int {
+func SDR2(reg [15]int) []int {
 	b := []int{0, 0, 1, 1, 1, 1, 1, 1}
 	var r []int
 	for _, v := range reg {
@@ -52,7 +52,7 @@ func sdR2(reg [15]int) []int {
 			r = append(r, v>>i&1)
 		}
 	}
-	c := crc7(r)
+	c := CRC7(r)
 	b = append(b, r...)
 	for i := 6; i >= 0; i-- {
 		b = append(b, c>>i&1)
@@ -60,9 +60,9 @@ func sdR2(reg [15]int) []int {
 	return append(b, 1)
 }
 
-// sdIdle is n clock periods of the CMD line high.
+// SDIdle is n clock periods of the CMD line high.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func sdIdle(n int) []int {
+func SDIdle(n int) []int {
 	b := make([]int, n)
 	for i := range b {
 		b[i] = 1
@@ -70,10 +70,10 @@ func sdIdle(n int) []int {
 	return b
 }
 
-// pdiChar is a PDI character's bits: start 0, eight bits least significant
+// PDIChar is a PDI character's bits: start 0, eight bits least significant
 // first, even parity (flipped by badPar) and two stop 1s.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func pdiChar(v int, badPar bool) []int {
+func PDIChar(v int, badPar bool) []int {
 	b := []int{0}
 	p := 0
 	for i := range 8 {
@@ -86,94 +86,94 @@ func pdiChar(v int, badPar bool) []int {
 	return append(b, p, 1, 1)
 }
 
-// cjtagLine writes compact JTAG on TCKC (a) and TMSC (b) at a TCKC period
+// CJTAGLine writes compact JTAG on TCKC (a) and TMSC (b) at a TCKC period
 // per.
-type cjtagLine struct {
-	l   twoLine
-	per float64
-	tms byte // TMSC's level
+type CJTAGLine struct {
+	P   Pair    // A TCKC, B TMSC
+	Per float64 // the TCKC period
+	TMS byte    // TMSC's level now
 }
 
-// rise writes one TCKC cycle with TMSC at v (set a quarter period after
+// Rise writes one TCKC cycle with TMSC at v (set a quarter period after
 // TCKC falls: a change at the fall itself would count as an escape edge).
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func (c *cjtagLine) rise(v int) {
-	c.l.add(0, c.tms, c.per/4)
-	c.tms = byte(v)
-	c.l.add(0, c.tms, c.per/4)
-	c.l.add(1, c.tms, c.per/2)
+func (c *CJTAGLine) Rise(v int) {
+	c.P.Add(0, c.TMS, c.Per/4)
+	c.TMS = lvl(v)
+	c.P.Add(0, c.TMS, c.Per/4)
+	c.P.Add(1, c.TMS, c.Per/2)
 }
 
-// escape holds TCKC high while TMSC toggles n times, then one cycle low.
+// Escape holds TCKC high while TMSC toggles n times, then one cycle low.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func (c *cjtagLine) escape(n int) {
-	c.l.add(0, c.tms, c.per/2)
-	c.l.add(1, c.tms, c.per/2)
+func (c *CJTAGLine) Escape(n int) {
+	c.P.Add(0, c.TMS, c.Per/2)
+	c.P.Add(1, c.TMS, c.Per/2)
 	for range n {
-		c.tms ^= 1
-		c.l.add(1, c.tms, c.per/2)
+		c.TMS ^= 1
+		c.P.Add(1, c.TMS, c.Per/2)
 	}
-	c.l.add(1, c.tms, c.per/2)
+	c.P.Add(1, c.TMS, c.Per/2)
 }
 
-// tck writes an OScan1 TCK: nTDI, TMS and TDO on TMSC (first omits nTDI,
+// TCK writes an OScan1 TCK: nTDI, TMS and TDO on TMSC (first omits nTDI,
 // as the first after the activation code does).
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func (c *cjtagLine) tck(tdi, tms, tdo int, first bool) {
+func (c *CJTAGLine) TCK(tdi, tms, tdo int, first bool) {
 	if !first {
-		c.rise(1 - tdi)
+		c.Rise(1 - tdi)
 	}
-	c.rise(tms)
-	c.rise(tdo)
+	c.Rise(tms)
+	c.Rise(tdo)
 }
 
-// scan shifts n bits of tdi (out on tdo) through IR (ir) or DR from
+// Scan shifts n bits of tdi (out on tdo) through IR (ir) or DR from
 // Run-Test/Idle and back to it.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func (c *cjtagLine) scan(ir bool, n int, tdi, tdo uint32) {
-	c.tck(0, 1, 0, false) // select DR
+func (c *CJTAGLine) Scan(ir bool, n int, tdi, tdo uint32) {
+	c.TCK(0, 1, 0, false) // select DR
 	if ir {
-		c.tck(0, 1, 0, false) // select IR
+		c.TCK(0, 1, 0, false) // select IR
 	}
-	c.tck(0, 0, 0, false) // capture
-	c.tck(0, 0, 0, false) // shift
+	c.TCK(0, 0, 0, false) // capture
+	c.TCK(0, 0, 0, false) // shift
 	for i := range n {
 		tms := 0
 		if i == n-1 {
 			tms = 1 // exit1 with the last bit
 		}
-		c.tck(int(tdi>>i&1), tms, int(tdo>>i&1), false)
+		c.TCK(int(tdi>>i&1), tms, int(tdo>>i&1), false)
 	}
-	c.tck(0, 1, 0, false) // update
-	c.tck(0, 0, 0, false) // run-test/idle
+	c.TCK(0, 1, 0, false) // update
+	c.TCK(0, 0, 0, false) // run-test/idle
 }
 
-// mapleLine writes Maple bus frames on SDCKA (a) and SDCKB (b), a step of
+// MapleLine writes Maple bus frames on SDCKA (a) and SDCKB (b), a step of
 // st seconds each line change.
-type mapleLine struct {
-	l      twoLine
-	st     float64
+type MapleLine struct {
+	P      Pair    // A SDCKA, B SDCKB
+	Step   float64 // seconds a line change
 	la, lb byte
 }
 
-// set moves the lines to a, b over one step.
+// Set moves the lines to a, b over one step.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func (m *mapleLine) set(a, b byte) {
+func (m *MapleLine) Set(a, b byte) {
 	m.la, m.lb = a, b
-	m.l.add(a, b, m.st)
+	m.P.Add(a, b, m.Step)
 }
 
-// frame writes a start pattern, the bytes (each bit at a fall of the
+// Frame writes a start pattern, the bytes (each bit at a fall of the
 // clocking line, the other line holding it) and the end pattern.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func (m *mapleLine) frame(bytes []int) {
-	m.set(1, 1)
-	m.set(0, 1)
+func (m *MapleLine) Frame(bytes []int) {
+	m.Set(1, 1)
+	m.Set(0, 1)
 	for range 4 {
-		m.set(0, 0)
-		m.set(0, 1)
+		m.Set(0, 0)
+		m.Set(0, 1)
 	}
-	m.set(1, 1)
+	m.Set(1, 1)
 	k := 0
 	for _, v := range bytes {
 		for i := 7; i >= 0; i-- {
@@ -181,35 +181,35 @@ func (m *mapleLine) frame(bytes []int) {
 			if k%2 == 0 {
 				// SDCKA clocks: SDCKB holds the bit (it may fall only
 				// before a frame's first bit)
-				m.set(m.la, bit)
+				m.Set(m.la, bit)
 				if m.la == 0 {
-					m.set(1, bit)
+					m.Set(1, bit)
 				}
-				m.set(0, bit)
+				m.Set(0, bit)
 			} else {
 				// SDCKB clocks: SDCKA holds the bit
-				m.set(bit, m.lb)
+				m.Set(bit, m.lb)
 				if m.lb == 0 {
-					m.set(bit, 1)
+					m.Set(bit, 1)
 				}
-				m.set(bit, 0)
+				m.Set(bit, 0)
 			}
 			k++
 		}
 	}
 	// end: SDCKA high, then it falls twice with SDCKB low, then both rise
-	m.set(1, 0)
-	m.set(0, 0)
-	m.set(1, 0)
-	m.set(0, 0)
-	m.set(1, 1)
-	m.set(1, 1)
+	m.Set(1, 0)
+	m.Set(0, 0)
+	m.Set(1, 0)
+	m.Set(0, 0)
+	m.Set(1, 1)
+	m.Set(1, 1)
 }
 
-// mapleBytes is a Maple frame's bytes: the length in words, source,
+// MapleBytes is a Maple frame's bytes: the length in words, source,
 // destination, command, the data words' bytes and the checksum.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func mapleBytes(src, dst, cmd int, data []int, badCk bool) []int {
+func MapleBytes(src, dst, cmd int, data []int, badCk bool) []int {
 	b := []int{len(data) / 4, src, dst, cmd}
 	b = append(b, data...)
 	x := 0
@@ -222,11 +222,11 @@ func mapleBytes(src, dst, cmd int, data []int, badCk bool) []int {
 	return append(b, x)
 }
 
-// caliperFrame writes a caliper's 24 bits (the count, then the flags,
+// CaliperFrame writes a caliper's 24 bits (the count, then the flags,
 // least significant first) at a clock period per, then rest seconds of
 // clock low.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-254
-func caliperFrame(l twoLine, count int, neg, inch bool, per, rest float64) {
+func CaliperFrame(l Pair, count int, neg, inch bool, per, rest float64) {
 	flags := 0
 	if neg {
 		flags |= 1 << 4
@@ -241,6 +241,6 @@ func caliperFrame(l twoLine, count int, neg, inch bool, per, rest float64) {
 	for i := range 8 {
 		bits = append(bits, flags>>i&1)
 	}
-	clockBits(l, bits, per)
-	l.add(0, 0, rest)
+	ClockBits(l, bits, per)
+	l.Add(0, 0, rest)
 }

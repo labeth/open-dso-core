@@ -63,8 +63,8 @@ func newI2CGen(sr, fclk, loFrac float64) *i2cGen {
 
 // TRLC-LINKS: REQ-DSO-018
 func (g *i2cGen) seg(c, d byte, dur float64) {
-	g.scl.add(c, dur)
-	g.sda.add(d, dur)
+	g.scl.Add(c, dur)
+	g.sda.Add(d, dur)
 	g.d = d
 }
 
@@ -142,7 +142,7 @@ func (g *i2cGen) byteACKStretched(v int, nak bool, afterBit int, midPeriods, ack
 // TRLC-LINKS: REQ-DSO-018
 func (g *i2cGen) byteACKGlitched(v, glitchBit int) {
 	lo, hi := g.bt*g.loFrac, g.bt*(1-g.loFrac)
-	dt := 1 / g.scl.sr // one sample
+	dt := 1 / g.scl.SR // one sample
 	for k := 7; k >= 0; k-- {
 		b := byte(v>>k) & 1
 		g.seg(0, b, lo)
@@ -192,7 +192,7 @@ func oracleI2CWaves(sr, fclk, loFrac float64, txns []i2cTxn) (scl, sda []byte) {
 		}
 	}
 	g.idle(4)
-	return g.scl.bits, g.sda.bits
+	return g.scl.Bits, g.sda.Bits
 }
 
 // i2cAnnVals keeps only the value-carrying annotations ("<prefix>: XX") of a
@@ -440,7 +440,7 @@ func TestOracleI2C(t *testing.T) {
 		g.byteACK(0x3C, false)
 		g.stop()
 		g.idle(4)
-		scl, sda := g.scl.bits, g.sda.bits
+		scl, sda := g.scl.Bits, g.sda.Bits
 		res := decode(t, scl, sda)
 		dw, dwVals := i2cAnnVals(t, run(t, scl, sda, "data-write"), "Data write")
 		eqBytes(t, "generated payload (sigrok view)", dwVals, []int{0xA7, 0x3C})
@@ -506,7 +506,7 @@ func TestOracleI2C(t *testing.T) {
 		g.byteACKGlitched(0xF0, 2) // dip mid-plateau of bit 2 (SDA high there)
 		g.stop()
 		g.idle(4)
-		scl, sda := g.scl.bits, g.sda.bits
+		scl, sda := g.scl.Bits, g.sda.Bits
 		res := decode(t, scl, sda)
 		var starts, stops []Span
 		for _, s := range res.Spans {

@@ -20,14 +20,14 @@ func TestOraclePS2(t *testing.T) {
 	// idle between frames serves both, and is no frame here.
 	const sr = 1000000
 	l := newTwoLine(sr)
-	l.add(1, 1, 300e-6)
+	l.Add(1, 1, 300e-6)
 	vals := []int{0x1C, 0xF0, 0x1C, 0x5A, 0x00, 0xFF, 0x7E}
 	for i, v := range vals {
 		ps2Frame(l, v, false, i == 4, 80e-6, 200e-6)
-		l.add(0, 1, 40e-6)
-		l.add(1, 1, 300e-6)
+		l.Add(0, 1, 40e-6)
+		l.Add(1, 1, 300e-6)
 	}
-	r := PS2(l.a.codes(), l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := PS2(l.A.Codes(), l.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -41,8 +41,8 @@ func TestOraclePS2(t *testing.T) {
 		}
 	}
 	pd := "ps2:clk=CLK:data=DATA"
-	anns := sortAnns(append(sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.a.bits, l.b.bits}, pd, "ps2=word"),
-		sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.a.bits, l.b.bits}, pd, "ps2=parity-err")...))
+	anns := sortAnns(append(sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.A.Bits, l.B.Bits}, pd, "ps2=word"),
+		sigrokDecode(t, sr, []string{"CLK", "DATA"}, [][]byte{l.A.Bits, l.B.Bits}, pd, "ps2=parity-err")...))
 	var orc []string
 	for _, a := range anns {
 		if a.Text == "Parity error" {
@@ -59,16 +59,16 @@ func TestOraclePS2(t *testing.T) {
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-236
 func TestOracleSWD(t *testing.T) {
 	const sr = 10000000
-	s := &swdLine{t: newTwoLine(sr), per: 1e-6}
-	s.host(0, 0)
-	s.lineReset()
-	s.transfer(false, true, 0, 1, 0x2BA01477, false, 2)
-	s.transfer(false, false, 8, 1, 0x000000F0, false, 2)
-	s.transfer(true, false, 0, 1, 0x23000052, false, 2)
-	s.transfer(true, true, 0xC, 1, 0xDEADBEEF, false, 2)
-	s.transfer(false, true, 0xC, 1, 0x12345678, true, 2)
-	s.host(0, 0)
-	r := SWD(s.t.a.codes(), s.t.b.codes(), 1.0/sr, ClockedCfg{})
+	s := &swdLine{P: newTwoLine(sr), Per: 1e-6}
+	s.Host(0, 0)
+	s.LineReset()
+	s.Transfer(false, true, 0, 1, 0x2BA01477, false, 2)
+	s.Transfer(false, false, 8, 1, 0x000000F0, false, 2)
+	s.Transfer(true, false, 0, 1, 0x23000052, false, 2)
+	s.Transfer(true, true, 0xC, 1, 0xDEADBEEF, false, 2)
+	s.Transfer(false, true, 0xC, 1, 0x12345678, true, 2)
+	s.Host(0, 0)
+	r := SWD(s.P.A.Codes(), s.P.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -90,7 +90,7 @@ func TestOracleSWD(t *testing.T) {
 	pd := "swd:swclk=CLK:swdio=DIO"
 	var all []ann
 	for _, c := range []string{"reset", "ack", "data", "parity"} {
-		all = append(all, sigrokDecode(t, sr, []string{"CLK", "DIO"}, [][]byte{s.t.a.bits, s.t.b.bits}, pd, "swd="+c)...)
+		all = append(all, sigrokDecode(t, sr, []string{"CLK", "DIO"}, [][]byte{s.P.A.Bits, s.P.B.Bits}, pd, "swd="+c)...)
 	}
 	var orc []string
 	for _, a := range sortAnns(all) {
@@ -109,13 +109,13 @@ func TestOracleSWD(t *testing.T) {
 func TestOracleMDIO(t *testing.T) {
 	const sr = 25000000
 	l := newTwoLine(sr)
-	l.add(1, 1, 2e-6)
+	l.Add(1, 1, 2e-6)
 	mdioFrame(l, 400e-9, 32, 1, 2, 0x01, 0x02, 0x796D, 0)
 	mdioFrame(l, 400e-9, 32, 1, 1, 0x1F, 0x00, 0x1140, 0)
 	mdioFrame(l, 400e-9, 32, 0, 0, 0x02, 0x01, 0x0007, 0)
 	mdioFrame(l, 400e-9, 32, 0, 3, 0x02, 0x01, 0xBEEF, 0)
 	mdioFrame(l, 400e-9, 40, 1, 2, 0x05, 0x02, 0x1234, 0)
-	r := MDIO(l.a.codes(), l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := MDIO(l.A.Codes(), l.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -130,7 +130,7 @@ func TestOracleMDIO(t *testing.T) {
 			repo = append(repo, fmt.Sprintf("%04X", sp.Val))
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"MDC", "MDIO"}, [][]byte{l.a.bits, l.b.bits}, "mdio:mdc=MDC:mdio=MDIO", "mdio=frame")
+	anns := sigrokDecode(t, sr, []string{"MDC", "MDIO"}, [][]byte{l.A.Bits, l.B.Bits}, "mdio:mdc=MDC:mdio=MDIO", "mdio=frame")
 	re := regexp.MustCompile(`^(PHYAD|REGAD|PRTAD|DEVAD|DATA): (\w+)$`)
 	var orc []string
 	for _, a := range anns {
@@ -147,12 +147,12 @@ func TestOracleMDIO(t *testing.T) {
 func TestOracleWiegand(t *testing.T) {
 	const sr = 100000
 	l := newTwoLine(sr)
-	l.add(1, 1, 10e-3)
+	l.Add(1, 1, 10e-3)
 	frames := []string{wiegandBits(26, 12, 4660), wiegandBits(34, 1000, 65535), wiegandBits(26, 255, 1), "1010110011"}
 	for _, f := range frames {
 		wiegandFrame(l, f, 2e-3)
 	}
-	r := Wiegand(l.a.codes(), l.b.codes(), 1.0/sr, ClockedCfg{})
+	r := Wiegand(l.A.Codes(), l.B.Codes(), 1.0/sr, ClockedCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -165,7 +165,7 @@ func TestOracleWiegand(t *testing.T) {
 			repo = append(repo, sp.Text)
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"D0", "D1"}, [][]byte{l.a.bits, l.b.bits}, "wiegand:d0=D0:d1=D1:bitwidth_ms=4", "wiegand=state")
+	anns := sigrokDecode(t, sr, []string{"D0", "D1"}, [][]byte{l.A.Bits, l.B.Bits}, "wiegand:d0=D0:d1=D1:bitwidth_ms=4", "wiegand=state")
 	var orc []string
 	for _, a := range anns {
 		f := strings.Fields(a.Text)

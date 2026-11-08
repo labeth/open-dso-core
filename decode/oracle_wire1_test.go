@@ -17,7 +17,7 @@ func TestOracleSWIM(t *testing.T) {
 	const sr = 20000000
 	const T = 22 / 4e6
 	w := newTimeline(sr)
-	w.add(1, 20e-6)
+	w.Add(1, 20e-6)
 	swimSync(w, T)
 	gap := 3 * T
 	// read on the fly: 2 bytes at 0x00 0x50 0x0A from the device
@@ -36,7 +36,7 @@ func TestOracleSWIM(t *testing.T) {
 	swimFrame(w, 0, 8, 0x60, T, 1, false, gap)
 	swimFrame(w, 0, 8, 0xA5, T, 1, false, gap)
 	swimFrame(w, 0, 3, 0, T, 1, false, gap)
-	r := SWIM(w.codes(), 1.0/sr, LineCfg{})
+	r := SWIM(w.Codes(), 1.0/sr, LineCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -62,7 +62,7 @@ func TestOracleSWIM(t *testing.T) {
 		}
 	}
 	skipSigrokDefect(t, []string{"D"}, "swim:swim=D", "swim=protocol", "no attribute 'samplerate'")
-	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, "swim:swim=D", "swim=protocol")
+	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, "swim:swim=D", "swim=protocol")
 	var orc []string
 	for _, a := range sortAnns(anns) {
 		switch {
@@ -97,18 +97,18 @@ func TestOracleSDQ(t *testing.T) {
 	const sr = 10000000
 	T := 1 / 98425.0
 	w := newTimeline(sr)
-	w.add(1, 30e-6)
+	w.Add(1, 30e-6)
 	sdqBreak(w, T)
 	for _, v := range []int{0x33, 0x01, 0xFE, 0x80, 0x55} {
 		sdqByte(w, v, T)
 	}
-	w.add(1, 50e-6)
+	w.Add(1, 50e-6)
 	sdqBreak(w, T)
 	for _, v := range []int{0xCC, 0x44} {
 		sdqByte(w, v, T)
 	}
-	w.add(1, 50e-6)
-	r := SDQ(w.codes(), 1.0/sr, LineCfg{})
+	w.Add(1, 50e-6)
+	r := SDQ(w.Codes(), 1.0/sr, LineCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -123,8 +123,8 @@ func TestOracleSDQ(t *testing.T) {
 	}
 	var orc []string
 	pd := "sdq:sdq=D"
-	all := append(sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, pd, "sdq=byte"),
-		sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, pd, "sdq=break")...)
+	all := append(sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, pd, "sdq=byte"),
+		sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, pd, "sdq=break")...)
 	for _, a := range sortAnns(all) {
 		if a.Text == "Break" {
 			orc = append(orc, "BR")
@@ -142,7 +142,7 @@ func TestOraclePJDL(t *testing.T) {
 	needSigrokPD(t, "pjdl")
 	const sr = 2000000
 	w := newTimeline(sr)
-	w.add(0, 500e-6)
+	w.Add(0, 500e-6)
 	frames := [][]int{
 		pjonPacket(0x2A, 0x02, []int{0x11, 0x22, 0x33}, false), pjonPacket(0x05, 0x00, []int{0x48, 0x69}, true),
 		pjonPacket(0x00, 0x00, []int{0xFF}, false),
@@ -150,7 +150,7 @@ func TestOraclePJDL(t *testing.T) {
 	for _, f := range frames {
 		pjdlFrame(w, 1, f, 1e-3)
 	}
-	r := PJDL(w.codes(), 1.0/sr, LineCfg{})
+	r := PJDL(w.Codes(), 1.0/sr, LineCfg{})
 	if !r.OK || r.FrameBits != 1 {
 		t.Fatal(r.FrameBits, r.Error)
 	}
@@ -168,7 +168,7 @@ func TestOraclePJDL(t *testing.T) {
 		}
 	}
 	repo = append(repo, cur)
-	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, "pjdl:data=D", "pjdl=frame_bytes")
+	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, "pjdl:data=D", "pjdl=frame_bytes")
 	var orc []string
 	for _, a := range sortAnns(anns) {
 		orc = append(orc, a.Text)
@@ -177,7 +177,7 @@ func TestOraclePJDL(t *testing.T) {
 		t.Fatalf("PJDL differs:\n repo   %v\n sigrok %v", repo, orc)
 	}
 	// the PJON layer: its CRC warnings fall where ours flag
-	warn := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, "pjdl:data=D,pjon", "pjon=warning")
+	warn := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, "pjdl:data=D,pjon", "pjon=warning")
 	bad := 0
 	for _, sp := range r.Spans {
 		if sp.Kind == "frame-error" {
@@ -193,12 +193,12 @@ func TestOraclePJDL(t *testing.T) {
 func TestOracleDSI(t *testing.T) {
 	const sr = 100000
 	w := newTimeline(sr)
-	w.add(0, 10e-3)
+	w.Add(0, 10e-3)
 	vals := []int{0x00, 0xFF, 0x80, 0x55, 0xA5, 0x01, 0x7E}
 	for _, v := range vals {
 		dsiFrame(w, v, 12e-3)
 	}
-	r := DSI(w.codes(), 1.0/sr, LineCfg{})
+	r := DSI(w.Codes(), 1.0/sr, LineCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -208,7 +208,7 @@ func TestOracleDSI(t *testing.T) {
 			repo = append(repo, fmt.Sprintf("%02X", sp.Val))
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, "dsi:dsi=D", "dsi=raw")
+	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, "dsi:dsi=D", "dsi=raw")
 	var orc []string
 	for _, a := range sortAnns(anns) {
 		if after, ok := strings.CutPrefix(a.Text, "Data: "); ok {
@@ -224,12 +224,12 @@ func TestOracleDSI(t *testing.T) {
 func TestOracleQi(t *testing.T) {
 	const sr = 200000
 	w := newTimeline(sr)
-	w.add(0, 5e-3)
+	w.Add(0, 5e-3)
 	pkts := [][]int{{0x01, 0x80}, {0x03, 0x05}, {0x02, 0x01}, {0x71, 0x11, 0x00, 0x1E, 0x81, 0x23, 0x45, 0x67}}
 	for i, p := range pkts {
 		qiPacket(w, p, i == 2, 8e-3)
 	}
-	r := Qi(w.codes(), 1.0/sr, LineCfg{})
+	r := Qi(w.Codes(), 1.0/sr, LineCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -243,8 +243,8 @@ func TestOracleQi(t *testing.T) {
 		}
 	}
 	pd := "qi:qi=D"
-	all := append(sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, pd, "qi=bytes"),
-		sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, pd, "qi=packets")...)
+	all := append(sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, pd, "qi=bytes"),
+		sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, pd, "qi=packets")...)
 	var orc []string
 	for _, a := range sortAnns(all) {
 		switch {

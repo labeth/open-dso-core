@@ -1,61 +1,62 @@
 // ENGMODEL-OWNER-UNIT: FU-DSO-DECODE
 
-package decode
+package synth
 
 // Generators of 125 kHz RFID (proto_gen_test.go): an EM4100 tag's frames
 // on a demodulated line, and a reader's commands as its field (a carrier
 // of edges every half field clock) or the field's envelope.
 
-// rfidFC is a field clock at 125 kHz.
-const rfidFC = 8e-6
+// RFIDFieldClock is a field clock at 125 kHz.
+const RFIDFieldClock = 8e-6
 
-// rfidField is a reader's line: the field on or off for a while, as a
+// RFIDField is a reader's line: the field on or off for a while, as a
 // carrier or an envelope.
-type rfidField struct {
-	w       *timeline
-	carrier bool
+type RFIDField struct {
+	W       *Line
+	Carrier bool // the field as its carrier; false: as its envelope
 }
 
-// on adds d seconds of field; off d seconds of gap.
+// On adds d seconds of field.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
-func (f rfidField) on(d float64) {
-	if !f.carrier {
-		f.w.add(1, d)
+func (f RFIDField) On(d float64) {
+	if !f.Carrier {
+		f.W.Add(1, d)
 		return
 	}
-	half := rfidFC / 2
+	half := RFIDFieldClock / 2
 	k := int(d/half + 0.5)
 	for i := range k {
-		f.w.add(byte(1-i&1), half)
+		f.W.Add(byte(1-i&1), half)
 	}
 }
 
+// Off adds d seconds of gap.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
-func (f rfidField) off(d float64) { f.w.add(0, d) }
+func (f RFIDField) Off(d float64) { f.W.Add(0, d) }
 
-// em4305Command writes an EM4305 command after a first field stop: a 0 is
+// EM4305Command writes an EM4305 command after a first field stop: a 0 is
 // 18 field clocks of field and a 20-clock gap, a 1 32 clocks of field; then
 // 400 clocks of field.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
-func em4305Command(f rfidField, bits []int) {
-	f.off(55 * rfidFC)
+func EM4305Command(f RFIDField, bits []int) {
+	f.Off(55 * RFIDFieldClock)
 	for _, b := range bits {
 		if b == 1 {
-			f.on(32 * rfidFC)
+			f.On(32 * RFIDFieldClock)
 		} else {
-			f.on(18 * rfidFC)
-			f.off(20 * rfidFC)
+			f.On(18 * RFIDFieldClock)
+			f.Off(20 * RFIDFieldClock)
 		}
 	}
-	f.on(400 * rfidFC)
+	f.On(400 * RFIDFieldClock)
 }
 
-// em4305Bits are an EM4305 Login (addr < 0) or Write's bits: the 0, the
+// EM4305Bits are an EM4305 Login (addr < 0) or Write's bits: the 0, the
 // command and parity, the address (four bits least significant first, two
 // zeros, parity), the word's bytes with parities, column parity, stop 0;
 // badPar breaks the first byte's parity.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
-func em4305Bits(cmd, addr int, word [4]int, badPar bool) []int {
+func EM4305Bits(cmd, addr int, word [4]int, badPar bool) []int {
 	b := []int{0}
 	par := func(v []int) int {
 		p := 0
@@ -89,26 +90,26 @@ func em4305Bits(cmd, addr int, word [4]int, badPar bool) []int {
 	return append(b, 0)
 }
 
-// t55xxCommand writes a T55xx command after a start gap: each bit 24 (0) or
+// T55xxCommand writes a T55xx command after a start gap: each bit 24 (0) or
 // 56 (1) field clocks of field and a 25-clock gap; then 400 clocks of field.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
-func t55xxCommand(f rfidField, bits []int) {
-	f.off(30 * rfidFC)
+func T55xxCommand(f RFIDField, bits []int) {
+	f.Off(30 * RFIDFieldClock)
 	for _, b := range bits {
 		if b == 1 {
-			f.on(56 * rfidFC)
+			f.On(56 * RFIDFieldClock)
 		} else {
-			f.on(24 * rfidFC)
+			f.On(24 * RFIDFieldClock)
 		}
-		f.off(25 * rfidFC)
+		f.Off(25 * RFIDFieldClock)
 	}
-	f.on(400 * rfidFC)
+	f.On(400 * RFIDFieldClock)
 }
 
-// t55xxBits are a T55xx write: opcode, the password when pwd >= 0, the lock
+// T55xxBits are a T55xx write: opcode, the password when pwd >= 0, the lock
 // bit, the 32-bit word and the 3-bit block, most significant bits first.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
-func t55xxBits(op int, pwd int64, lock int, word uint32, blk int) []int {
+func T55xxBits(op int, pwd int64, lock int, word uint32, blk int) []int {
 	b := []int{op >> 1 & 1, op & 1}
 	if pwd >= 0 {
 		for i := 31; i >= 0; i-- {
@@ -122,11 +123,11 @@ func t55xxBits(op int, pwd int64, lock int, word uint32, blk int) []int {
 	return append(b, blk>>2&1, blk>>1&1, blk&1)
 }
 
-// em4100Frame appends an EM4100 frame of five bytes (the version or
+// EM4100Frame appends an EM4100 frame of five bytes (the version or
 // customer byte, then the data) as Manchester bits of hp-second halves, a
 // 1 high then low; badRow breaks the first row's parity.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-252
-func em4100Frame(w *timeline, b [5]int, hp float64, badRow bool) {
+func EM4100Frame(w *Line, b [5]int, hp float64, badRow bool) {
 	bits := []int{1, 1, 1, 1, 1, 1, 1, 1, 1}
 	col := 0
 	for k := range 10 {
@@ -147,7 +148,7 @@ func em4100Frame(w *timeline, b [5]int, hp float64, badRow bool) {
 	}
 	bits = append(bits, 0)
 	for _, x := range bits {
-		w.add(byte(x), hp)
-		w.add(byte(1-x), hp)
+		w.Add(lvl(x), hp)
+		w.Add(lvl(1-x), hp)
 	}
 }

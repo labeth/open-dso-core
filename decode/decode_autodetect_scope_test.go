@@ -115,14 +115,14 @@ func TestAutodetectNoI2COnADecimatedFlash(t *testing.T) {
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-238
 func TestAutodetectQuietLineBesideOneWire(t *testing.T) {
 	w := newTimeline(500e6)
-	w.idle(100e-6)
+	w.Idle(100e-6)
 	for range 3 {
 		owReset(w, false, true)
 		owByte(w, 0xcc, false)
 		owByte(w, 0x44, false)
-		w.idle(600e-6)
+		w.Idle(600e-6)
 	}
-	c1 := w.codes()
+	c1 := w.Codes()
 	c2 := make([]uint8, len(c1))
 	for i := range c2 {
 		c2[i] = 103 + uint8(i%3)

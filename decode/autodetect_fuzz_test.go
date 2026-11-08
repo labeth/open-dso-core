@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/labeth/open-dso-core/decode/synth"
 )
 
 // The AUTO fuzzing campaign: every labelled capture the detection tests know
@@ -66,116 +68,26 @@ func alikeName(want, got string) bool {
 	return slices.Contains(autoAlike[want], got)
 }
 
-// fuzzUART is a UART bus: text at baud, sampled at sr.
+// The parametric buses are synth's: random printable text on a UART, random
+// bytes on an SPI bus of a shape (spiShape), random transfers on an I2C bus.
+
+type spiShape = synth.SPIShape
+
 // TRLC-LINKS: REQ-DSO-018
 func fuzzUART(rng *rand.Rand, baud, sr float64) []uint8 {
-	w := newTimeline(sr)
-	w.idle(30 / baud)
-	for range 40 {
-		tlUART(w, 0x20+rng.Intn(0x5f), baud, "none", 1)
-		if rng.Intn(6) == 0 {
-			w.idle(float64(5+rng.Intn(30)) / baud)
-		}
-	}
-	w.idle(30 / baud)
-	return w.codes()
+	w, _ := synth.UARTText(rng, baud, sr)
+	return w.Codes()
 }
 
-// spiShape is an SPI bus's timing: its clock rate and duty (the share of a
-// period the clock rests away from its idle level), whether its bytes come
-// back to back or bit-banged (each bit's period stretched by up to jitter,
-// a gap after each byte), MSB first.
-type spiShape struct {
-	hz, duty, jitter, byteGap float64
-	cpol, cpha                bool
-}
-
-// fuzzSPI is an SPI bus of shape s: bytes on the data line, the clock on the
-// other, as a twoLine (a clock, b data).
 // TRLC-LINKS: REQ-DSO-018
 func fuzzSPI(rng *rand.Rand, s spiShape, sr float64, bytes int) twoLine {
-	l := newTwoLine(sr)
-	idle := byte(0)
-	if s.cpol {
-		idle = 1
-	}
-	act := 1 - idle
-	T := 1 / s.hz
-	l.add(idle, 0, 20*T)
-	d := byte(0)
-	for range bytes {
-		v := rng.Intn(256)
-		for i := 7; i >= 0; i-- {
-			bit := byte(v >> i & 1)
-			// a bit-banging loop: each bit within 5% of its period, one in
-			// ten held up (an interrupt) by up to jitter periods
-			per := T * (1 + 0.05*(rng.Float64()*2-1))
-			if s.jitter > 0 && rng.Intn(10) == 0 {
-				per += T * s.jitter * rng.Float64()
-			}
-			on := per * s.duty
-			if !s.cpha {
-				// data set before the leading edge, which samples it
-				d = bit
-				l.add(idle, d, per-on)
-				l.add(act, d, on)
-			} else {
-				// data set on the leading edge, sampled on the trailing one
-				l.add(idle, d, per-on)
-				d = bit
-				l.add(act, d, on)
-			}
-		}
-		if s.byteGap > 0 {
-			l.add(idle, d, s.byteGap*T*(0.5+rng.Float64()))
-		}
-	}
-	l.add(idle, d, 20*T)
+	l, _ := synth.SPIBytes(rng, s, sr, bytes)
 	return l
 }
 
-// fuzzI2C is an I2C bus at hz: transfers to addr of a few bytes, each
-// acknowledged but a read's last (the controller NAKs it), with START and
-// STOP, as a twoLine (a SCL, b SDA).
 // TRLC-LINKS: REQ-DSO-018
 func fuzzI2C(rng *rand.Rand, hz, sr float64, transfers int) twoLine {
-	l := newTwoLine(sr)
-	T := 1 / hz
-	l.add(1, 1, 20*T)
-	// SDA moves a quarter period into SCL low, never with SCL's fall: a
-	// device holds it past the fall (300 ns at least) so that no data
-	// change reads as a START or a STOP
-	sda := byte(0)
-	bitOut := func(b byte) {
-		l.add(0, sda, T/4)
-		l.add(0, b, T/4)
-		l.add(1, b, T/2)
-		sda = b
-	}
-	for range transfers {
-		l.add(1, 0, T/2) // START
-		l.add(0, 0, T/2)
-		sda = 0
-		addr := 0x08 + rng.Intn(0x70)
-		frame := []int{addr<<1 | rng.Intn(2)}
-		for n := 1 + rng.Intn(4); n > 0; n-- {
-			frame = append(frame, rng.Intn(256))
-		}
-		read := frame[0]&1 == 1
-		for k, v := range frame {
-			for i := 7; i >= 0; i-- {
-				bitOut(byte(v >> i & 1))
-			}
-			if read && k > 0 && k == len(frame)-1 {
-				bitOut(1) // a read's last byte: the controller's NAK
-			} else {
-				bitOut(0) // ACK
-			}
-		}
-		l.add(0, 0, T/2) // STOP
-		l.add(1, 0, T/2)
-		l.add(1, 1, float64(10+rng.Intn(40))*T)
-	}
+	l, _ := synth.I2CRandom(rng, hz, sr, transfers)
 	return l
 }
 
@@ -202,23 +114,23 @@ func fuzzCorpus(tb testing.TB) []fuzzCase {
 		cs = append(cs, fuzzCase{detectCase: detectCase{fmt.Sprintf("UART %g", baud), c, idleLike(c), 1 / sr, "uart", 0}})
 	}
 	for _, s := range []spiShape{
-		{hz: 1e6, duty: 0.5},
-		{hz: 5e6, duty: 0.5, byteGap: 2},
-		{hz: 1e6, duty: 0.125, jitter: 2, byteGap: 3, cpol: true}, // a bit-banged driver, short pulses
-		{hz: 500e3, duty: 0.2, jitter: 1, byteGap: 2},
-		{hz: 2e6, duty: 0.8, jitter: 1, byteGap: 1, cpha: true},
+		{Hz: 1e6, Duty: 0.5},
+		{Hz: 5e6, Duty: 0.5, ByteGap: 2},
+		{Hz: 1e6, Duty: 0.125, Jitter: 2, ByteGap: 3, CPOL: true}, // a bit-banged driver, short pulses
+		{Hz: 500e3, Duty: 0.2, Jitter: 1, ByteGap: 2},
+		{Hz: 2e6, Duty: 0.8, Jitter: 1, ByteGap: 1, CPHA: true},
 	} {
-		sr := 40 * s.hz
+		sr := 40 * s.Hz
 		l := fuzzSPI(rng, s, sr, 24)
-		a, b := l.a.codes(), l.b.codes()
-		name := fmt.Sprintf("SPI %g duty %.2f jitter %.1f", s.hz, s.duty, s.jitter)
+		a, b := l.A.Codes(), l.B.Codes()
+		name := fmt.Sprintf("SPI %g duty %.2f jitter %.1f", s.Hz, s.Duty, s.Jitter)
 		cs = append(cs, fuzzCase{detectCase: detectCase{name, a, b, 1 / sr, "spi", 0}})
 		cs = append(cs, fuzzCase{detectCase: detectCase{name + " swapped", b, a, 1 / sr, "spi", 1}})
 	}
 	for _, hz := range []float64{100e3, 400e3} {
 		sr := 50 * hz
 		l := fuzzI2C(rng, hz, sr, 6)
-		a, b := l.a.codes(), l.b.codes()
+		a, b := l.A.Codes(), l.B.Codes()
 		cs = append(cs, fuzzCase{detectCase: detectCase{fmt.Sprintf("I2C %g", hz), a, b, 1 / sr, "i2c", 0}})
 		cs = append(cs, fuzzCase{detectCase: detectCase{fmt.Sprintf("I2C %g swapped", hz), b, a, 1 / sr, "i2c", 1}})
 	}

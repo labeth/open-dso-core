@@ -18,8 +18,8 @@ import (
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-234
 func irOracleLine(sr float64, f func(l irLine)) *timeline {
 	w := newTimeline(sr)
-	l := irLine{w: w}
-	l.space(20e-3)
+	l := irLine{W: w}
+	l.Space(20e-3)
 	f(l)
 	return w
 }
@@ -34,7 +34,7 @@ func TestOracleIRNEC(t *testing.T) {
 		necFrame(l, 0x00, -1, 0x45)
 		necFrame(l, 0xA5, -1, 0xFF)
 	})
-	r := IRNEC(w.codes(), 1.0/sr, IRCfg{})
+	r := IRNEC(w.Codes(), 1.0/sr, IRCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -50,7 +50,7 @@ func TestOracleIRNEC(t *testing.T) {
 	pd := "ir_nec:ir=IR"
 	var all []ann
 	for _, c := range []string{"addr", "addr-inv", "cmd", "cmd-inv", "repeat-code"} {
-		all = append(all, sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.bits}, pd, "ir_nec="+c)...)
+		all = append(all, sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.Bits}, pd, "ir_nec="+c)...)
 	}
 	re := regexp.MustCompile(`0x([0-9A-F]{2})`)
 	var orc []string
@@ -76,7 +76,7 @@ func TestOracleIRSIRC(t *testing.T) {
 		sircFrame(l, 20, 0x7F, 0x1A, 0xC3)
 		sircFrame(l, 12, 0x00, 0x1F, 0)
 	})
-	r := IRSIRC(w.codes(), 1.0/sr, IRCfg{})
+	r := IRSIRC(w.Codes(), 1.0/sr, IRCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -89,7 +89,7 @@ func TestOracleIRSIRC(t *testing.T) {
 	pd := "ir_sirc:ir=IR"
 	var all []ann
 	for _, c := range []string{"command", "address", "extended"} {
-		all = append(all, sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.bits}, pd, "ir_sirc="+c)...)
+		all = append(all, sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.Bits}, pd, "ir_sirc="+c)...)
 	}
 	re := regexp.MustCompile(`^(\w)\w*: 0x([0-9A-F]{2})`)
 	var orc []string
@@ -117,7 +117,7 @@ func TestOracleIRRC5(t *testing.T) {
 				rc5Frame(l, 1, 0x05, 0x50)
 			}
 		})
-		r := IRRC5(w.codes(), 1.0/sr, IRCfg{})
+		r := IRRC5(w.Codes(), 1.0/sr, IRCfg{})
 		if !r.OK {
 			t.Fatal(r.Error)
 		}
@@ -135,8 +135,8 @@ func TestOracleIRRC5(t *testing.T) {
 		if ext {
 			pd += ":protocol=extended"
 		}
-		all := append(sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.bits}, pd, "ir_rc5=address"),
-			sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.bits}, pd, "ir_rc5=command")...)
+		all := append(sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.Bits}, pd, "ir_rc5=address"),
+			sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.Bits}, pd, "ir_rc5=command")...)
 		re := regexp.MustCompile(`^(\w)\w*: (\d+)`)
 		var orc []string
 		for _, a := range sortAnns(all) {
@@ -164,7 +164,7 @@ func TestOracleIRRC6(t *testing.T) {
 		rc6Frame(l, 0, 0, []int{0x5A, 0xC3})
 		rc6Frame(l, 6, 1, []int{0x12, 0x34, 0x56})
 	})
-	r := IRRC6(w.codes(), 1.0/sr, IRCfg{})
+	r := IRRC6(w.Codes(), 1.0/sr, IRCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -192,8 +192,8 @@ func TestOracleIRRC6(t *testing.T) {
 	}
 	flush()
 	pd := "ir_rc6:ir=IR"
-	all := append(sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.bits}, pd, "ir_rc6=address"),
-		sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.bits}, pd, "ir_rc6=command")...)
+	all := append(sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.Bits}, pd, "ir_rc6=address"),
+		sigrokDecode(t, sr, []string{"IR"}, [][]byte{w.Bits}, pd, "ir_rc6=command")...)
 	var orc []string
 	for _, a := range sortAnns(all) {
 		f := strings.SplitN(a.Text, ": ", 2)

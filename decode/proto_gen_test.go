@@ -2,92 +2,99 @@
 
 package decode
 
-// Waveform generators for the protocols beyond the first ten, shared by
-// their round-trip, break, parity, oracle and detection tests. Each writes
-// logic levels on a timeline (oracle_test.go) at a sample rate, so
-// non-integer samples per bit accumulate like a real capture.
+import "github.com/labeth/open-dso-core/decode/synth"
 
-// tlUART appends one UART character (start, 8 data bits LSB first, parity
-// "even"/"odd"/"none", stops stop bits) at baud.
-// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
-func tlUART(w *timeline, v int, baud float64, parity string, stops int) {
-	bit := 1 / baud
-	w.add(0, bit)
-	ones := 0
-	for i := range 8 {
-		b := byte(v >> i & 1)
-		ones += int(b)
-		w.add(b, bit)
-	}
-	switch parity {
-	case "even":
-		w.add(byte(ones&1), bit)
-	case "odd":
-		w.add(byte(1-ones&1), bit)
-	}
-	w.add(1, float64(stops)*bit)
-}
+// The tests write their captures with the bus generators of decode/synth
+// (each protocol's frames as levels over time, at a sample rate, so
+// non-integer samples per bit accumulate like a real capture); these are
+// the tests' names for them.
 
-// linFrame appends a LIN frame: a break of breakBits, a one-bit delimiter,
-// the sync, the protected identifier of id and, unless data is nil, the
-// response with its checksum (enhanced unless classic or a diagnostic ID).
-// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
-func linFrame(w *timeline, baud, breakBits float64, id int, data []int, classic bool) {
-	bit := 1 / baud
-	w.add(0, breakBits*bit)
-	w.add(1, bit)
-	tlUART(w, 0x55, baud, "none", 1)
-	pid := linPIDParity(id)
-	tlUART(w, pid, baud, "none", 1)
-	if data == nil {
-		w.add(1, 30*bit)
-		return
-	}
-	w.add(1, 2*bit) // response space
-	for _, d := range data {
-		tlUART(w, d, baud, "none", 1)
-	}
-	enh := !classic && id != 0x3c && id != 0x3d
-	tlUART(w, linChecksum(pid, data, enh), baud, "none", 1)
-	w.add(1, 30*bit)
-}
+type (
+	timeline  = synth.Line
+	twoLine   = synth.Pair
+	irLine    = synth.IRLine
+	swdLine   = synth.SWDLine
+	rfidField = synth.RFIDField
+	cjtagLine = synth.CJTAGLine
+	mapleLine = synth.MapleLine
+)
 
-// dmxPacket appends a DMX512 packet: a break of breakUs, a mark after break
-// of mabUs, the start code and the slots (8N2 at 250 kbit/s), then 40 us of
-// mark (under a break's 88 us: sigrok's decoder takes a longer mark for a
-// break of the other polarity).
-// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
-func dmxPacket(w *timeline, breakUs, mabUs float64, start int, slots []int) {
-	dmxPacketGap(w, breakUs, mabUs, 0, start, slots)
-}
+// TRLC-LINKS: REQ-DSO-018
+func newTimeline(sr float64) *timeline { return synth.NewLine(sr) }
 
-// dmxPacketGap is dmxPacket with mbsUs of mark between the slots.
-// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
-func dmxPacketGap(w *timeline, breakUs, mabUs, mbsUs float64, start int, slots []int) {
-	w.add(0, breakUs*1e-6)
-	w.add(1, mabUs*1e-6)
-	tlUART(w, start, 250000, "none", 2)
-	for _, s := range slots {
-		w.add(1, mbsUs*1e-6)
-		tlUART(w, s, 250000, "none", 2)
-	}
-	w.add(1, 40e-6)
-}
+// TRLC-LINKS: REQ-DSO-018
+func newTwoLine(sr float64) twoLine { return synth.NewPair(sr) }
 
-// modbusFrame appends an RTU frame with its CRC, then 4 characters of idle.
-// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
-func modbusFrame(w *timeline, baud float64, parity string, stops int, b []int) {
-	crc := modbusCRC(b)
-	for _, v := range append(append([]int{}, b...), crc&0xff, crc>>8) {
-		tlUART(w, v, baud, parity, stops)
-	}
-	w.add(1, 44/baud)
-}
+const rfidFC = synth.RFIDFieldClock
 
-// idle appends a high line for d seconds.
-// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
-func (w *timeline) idle(d float64) { w.add(1, d) }
-
-// codes is the timeline as two-level ADC codes.
-// TRLC-LINKS: REQ-DSO-018, REQ-DSO-232
-func (w *timeline) codes() []uint8 { return bitsToCodes(w.bits) }
+var (
+	tlUART        = synth.UARTChar
+	linFrame      = synth.LINFrame
+	dmxPacket     = synth.DMXPacket
+	dmxPacketGap  = synth.DMXPacketGap
+	modbusFrame   = synth.ModbusFrame
+	owReset       = synth.OneWireReset
+	owByte        = synth.OneWireByte
+	owSearchROM   = synth.OneWireSearchROM
+	owROM         = synth.OneWireROM
+	wsFrame       = synth.WS281xFrame
+	dhtReading    = synth.DHTReading
+	cecMessage    = synth.CECMessage
+	j1850Frame    = synth.J1850Frame
+	daliFrame     = synth.DALIFrame
+	pdMessage     = synth.PDMessage
+	pdSOP         = synth.PDSOP
+	pdSOPPrime    = synth.PDSOPPrime
+	pdHardReset   = synth.PDHardReset
+	spdifStream   = synth.SPDIFStream
+	ps2Frame      = synth.PS2Frame
+	mdioFrame     = synth.MDIOFrame
+	wiegandFrame  = synth.WiegandFrame
+	wiegandBits   = synth.WiegandBits
+	necFrame      = synth.NECFrame
+	necRepeat     = synth.NECRepeat
+	sircFrame     = synth.SIRCFrame
+	rc5Frame      = synth.RC5Frame
+	rc6Frame      = synth.RC6Frame
+	irPD          = synth.IRPulseDistance
+	lsbBits       = synth.LSBBits
+	msbBits       = synth.MSBBits
+	irSamsung32   = synth.IRSamsung32
+	irJVC         = synth.IRJVC
+	irNEC16       = synth.IRNEC16
+	irNEC42       = synth.IRNEC42
+	irKaseikyo    = synth.IRKaseikyo
+	irDenon       = synth.IRDenon
+	irMatsushita  = synth.IRMatsushita
+	irSamsung37   = synth.IRSamsung37
+	quadMoves     = synth.QuadMoves
+	stepperMoves  = synth.StepperMoves
+	pwmWave       = synth.PWMWave
+	rcFrame2262   = synth.RC2262Frame
+	rcFrame1527   = synth.RC1527Frame
+	oregonBurst   = synth.OregonBurst
+	millerMessage = synth.MillerMessage
+	morseText     = synth.MorseText
+	dcf77Minute   = synth.DCF77Minute
+	dcf77MinuteAt = synth.DCF77MinuteAt
+	em4305Command = synth.EM4305Command
+	em4305Bits    = synth.EM4305Bits
+	t55xxCommand  = synth.T55xxCommand
+	t55xxBits     = synth.T55xxBits
+	em4100Frame   = synth.EM4100Frame
+	swimFrame     = synth.SWIMFrame
+	swimSync      = synth.SWIMSync
+	sdqBreak      = synth.SDQBreak
+	sdqByte       = synth.SDQByte
+	pjonPacket    = synth.PJONPacket
+	pjdlFrame     = synth.PJDLFrame
+	dsiFrame      = synth.DSIFrame
+	qiPacket      = synth.QiPacket
+	clockBits     = synth.ClockBits
+	sdToken       = synth.SDToken
+	sdR2          = synth.SDR2
+	sdIdle        = synth.SDIdle
+	pdiChar       = synth.PDIChar
+	mapleBytes    = synth.MapleBytes
+	caliperFrame  = synth.CaliperFrame
+)

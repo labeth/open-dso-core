@@ -30,14 +30,14 @@ type uframe struct {
 func oracleUARTBits(sr, baud float64, dataBits int, parity string, frames []uframe) []byte {
 	w := newTimeline(sr)
 	bt := 1 / baud
-	w.add(1, 8*bt) // lead idle
+	w.Add(1, 8*bt) // lead idle
 	for _, f := range frames {
-		w.add(0, bt) // start
+		w.Add(0, bt) // start
 		ones := 0
 		for i := range dataBits {
 			b := byte(f.v>>i) & 1
 			ones += int(b)
-			w.add(b, bt)
+			w.Add(b, bt)
 		}
 		if parity != "none" && parity != "" {
 			p := byte(ones & 1) // odd count -> 1 makes total even
@@ -47,17 +47,17 @@ func oracleUARTBits(sr, baud float64, dataBits int, parity string, frames []ufra
 			if f.flipParity {
 				p ^= 1
 			}
-			w.add(p, bt)
+			w.Add(p, bt)
 		}
 		stop := byte(1)
 		if f.badStop {
 			stop = 0
 		}
-		w.add(stop, bt)
-		w.add(1, (1+f.gapBits)*bt)
+		w.Add(stop, bt)
+		w.Add(1, (1+f.gapBits)*bt)
 	}
-	w.add(1, 8*bt) // trail idle
-	return w.bits
+	w.Add(1, 8*bt) // trail idle
+	return w.Bits
 }
 
 // TRLC-LINKS: REQ-DSO-018
@@ -250,22 +250,22 @@ func TestOracleUART(t *testing.T) {
 		spb := sr / baud
 		bt := 1.0 / float64(baud)
 		w := newTimeline(sr)
-		w.add(1, 8*bt) // lead idle
+		w.Add(1, 8*bt) // lead idle
 		emit := func(v int) {
-			w.add(0, bt) // start
+			w.Add(0, bt) // start
 			for i := range 8 {
-				w.add(byte(v>>i)&1, bt)
+				w.Add(byte(v>>i)&1, bt)
 			}
-			w.add(1, 2*bt) // stop + one idle bit
+			w.Add(1, 2*bt) // stop + one idle bit
 		}
 		emit(0x41)
 		breakStart := (8 + 11) * spb // lead idle + one 11-bit frame (start+8+stop+gap)
-		w.add(0, 15*bt)              // BREAK: low > one full frame time
-		w.add(1, 2*bt)               // line recovers to idle
+		w.Add(0, 15*bt)              // BREAK: low > one full frame time
+		w.Add(1, 2*bt)               // line recovers to idle
 		emit(0x42)
 		emit(0x43)
-		w.add(1, 8*bt) // trail idle
-		bits := w.bits
+		w.Add(1, 8*bt) // trail idle
+		bits := w.Bits
 
 		r := UART(bitsToCodes(bits), 1.0/sr, UARTCfg{Baud: baud})
 		if !r.OK {

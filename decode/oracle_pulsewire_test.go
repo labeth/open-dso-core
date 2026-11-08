@@ -29,7 +29,7 @@ func sortAnns(a []ann) []ann {
 func TestOracleOneWire(t *testing.T) {
 	const sr = 2000000
 	w := newTimeline(sr)
-	w.idle(100e-6)
+	w.Idle(100e-6)
 	rom := owROM(0x28, 0xFF, 0x4C, 0x60, 0x91, 0x16, 0x05)
 	rom2 := owROM(0x10, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06)
 	owReset(w, false, true)
@@ -39,27 +39,27 @@ func TestOracleOneWire(t *testing.T) {
 	}
 	owByte(w, 0x44, false)
 	owByte(w, 0xBE, false)
-	w.idle(100e-6)
+	w.Idle(100e-6)
 	owReset(w, false, true)
 	owByte(w, 0x33, false)
 	for _, v := range rom2 {
 		owByte(w, v, false)
 	}
-	w.idle(100e-6)
+	w.Idle(100e-6)
 	owReset(w, false, true)
 	owByte(w, 0xF0, false)
 	owSearchROM(w, rom)
 	owByte(w, 0x12, false)
-	w.idle(100e-6)
+	w.Idle(100e-6)
 	owReset(w, false, true)
 	owByte(w, 0xCC, false)
 	owByte(w, 0x4E, false)
 	owByte(w, 0x7F, false)
-	w.idle(100e-6)
+	w.Idle(100e-6)
 	owReset(w, false, false)
-	w.idle(300e-6)
+	w.Idle(300e-6)
 
-	r := OneWire(w.codes(), 1.0/sr, OneWireCfg{})
+	r := OneWire(w.Codes(), 1.0/sr, OneWireCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -95,7 +95,7 @@ func TestOracleOneWire(t *testing.T) {
 			repo = append(repo, fmt.Sprintf("D:%02x", sp.Val))
 		}
 	}
-	anns := sigrokDecode(t, sr, []string{"OWR"}, [][]byte{w.bits}, "onewire_link:owr=OWR,onewire_network", "onewire_network=text")
+	anns := sigrokDecode(t, sr, []string{"OWR"}, [][]byte{w.Bits}, "onewire_link:owr=OWR,onewire_network", "onewire_network=text")
 	var orc []string
 	cmdRe := regexp.MustCompile(`^ROM command: 0x([0-9a-f]{2})`)
 	for _, a := range anns {
@@ -119,11 +119,11 @@ func TestOracleOneWire(t *testing.T) {
 func TestOracleWS281x(t *testing.T) {
 	const sr = 20000000
 	w := newTimeline(sr)
-	w.add(0, 60e-6)
+	w.Add(0, 60e-6)
 	leds := []int{0xFF, 0x00, 0x80, 0x12, 0x34, 0x56, 0x00, 0x00, 0x00, 0xA5, 0x5A, 0x01}
 	wsFrame(w, 800e3, leds)
 	wsFrame(w, 800e3, leds[:6])
-	r := WS281x(w.codes(), 1.0/sr, WS281xCfg{})
+	r := WS281x(w.Codes(), 1.0/sr, WS281xCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -132,7 +132,7 @@ func TestOracleWS281x(t *testing.T) {
 		g, rd, b := r.Bytes[i], r.Bytes[i+1], r.Bytes[i+2]
 		repo = append(repo, fmt.Sprintf("#%02x%02x%02x", rd, g, b))
 	}
-	anns := sigrokDecode(t, sr, []string{"DIN"}, [][]byte{w.bits}, "rgb_led_ws281x:din=DIN", "rgb_led_ws281x=rgb")
+	anns := sigrokDecode(t, sr, []string{"DIN"}, [][]byte{w.Bits}, "rgb_led_ws281x:din=DIN", "rgb_led_ws281x=rgb")
 	var orc []string
 	for _, a := range anns {
 		orc = append(orc, a.Text)
@@ -146,13 +146,13 @@ func TestOracleWS281x(t *testing.T) {
 func TestOracleDHT(t *testing.T) {
 	const sr = 1000000
 	w := newTimeline(sr)
-	w.idle(2e-3)
+	w.Idle(2e-3)
 	dhtReading(w, 1000, [4]int{0x02, 0x8C, 0x01, 0x5F}, -1)
-	w.idle(2e-3)
+	w.Idle(2e-3)
 	dhtReading(w, 18000, [4]int{0x2D, 0x00, 0x17, 0x00}, 0x11)
-	w.idle(2e-3)
+	w.Idle(2e-3)
 	dhtReading(w, 1000, [4]int{0x01, 0x90, 0x80, 0x65}, -1)
-	r := DHT(w.codes(), 1.0/sr, DHTCfg{})
+	r := DHT(w.Codes(), 1.0/sr, DHTCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -167,8 +167,8 @@ func TestOracleDHT(t *testing.T) {
 			repo = append(repo, "OK")
 		}
 	}
-	anns := sortAnns(append(sigrokDecode(t, sr, []string{"SDA"}, [][]byte{w.bits}, "am230x:sda=SDA", "am230x=byte"),
-		sigrokDecode(t, sr, []string{"SDA"}, [][]byte{w.bits}, "am230x:sda=SDA", "am230x=checksum")...))
+	anns := sortAnns(append(sigrokDecode(t, sr, []string{"SDA"}, [][]byte{w.Bits}, "am230x:sda=SDA", "am230x=byte"),
+		sigrokDecode(t, sr, []string{"SDA"}, [][]byte{w.Bits}, "am230x:sda=SDA", "am230x=checksum")...))
 	var orc []string
 	for _, a := range anns {
 		orc = append(orc, strings.TrimPrefix(strings.TrimPrefix(a.Text, "Byte: "), "Checksum: "))
@@ -182,12 +182,12 @@ func TestOracleDHT(t *testing.T) {
 func TestOracleCEC(t *testing.T) {
 	const sr = 100000
 	w := newTimeline(sr)
-	w.idle(5e-3)
+	w.Idle(5e-3)
 	cecMessage(w, []int{0x40, 0x04}, []int{0, 0})
 	cecMessage(w, []int{0x4F, 0x82, 0x10, 0x00}, []int{1, 1, 1, 1})
 	cecMessage(w, []int{0x10, 0x8F}, []int{0, 0})
 	cecMessage(w, []int{0x01}, []int{1})
-	r := CEC(w.codes(), 1.0/sr, CECCfg{})
+	r := CEC(w.Codes(), 1.0/sr, CECCfg{})
 	if !r.OK {
 		t.Fatal(r.Error)
 	}
@@ -203,9 +203,9 @@ func TestOracleCEC(t *testing.T) {
 		}
 	}
 	pd := "cec:cec=CEC"
-	anns := sortAnns(append(append(sigrokDecode(t, sr, []string{"CEC"}, [][]byte{w.bits}, pd, "cec=bytes"),
-		sigrokDecode(t, sr, []string{"CEC"}, [][]byte{w.bits}, pd, "cec=ack")...),
-		sigrokDecode(t, sr, []string{"CEC"}, [][]byte{w.bits}, pd, "cec=nack")...))
+	anns := sortAnns(append(append(sigrokDecode(t, sr, []string{"CEC"}, [][]byte{w.Bits}, pd, "cec=bytes"),
+		sigrokDecode(t, sr, []string{"CEC"}, [][]byte{w.Bits}, pd, "cec=ack")...),
+		sigrokDecode(t, sr, []string{"CEC"}, [][]byte{w.Bits}, pd, "cec=nack")...))
 	var orc []string
 	for _, a := range anns {
 		orc = append(orc, a.Text)
@@ -220,17 +220,17 @@ func TestOracleJ1850(t *testing.T) {
 	needSigrokPD(t, "sae_j1850_vpw")
 	const sr = 1000000
 	w := newTimeline(sr)
-	w.add(0, 500e-6)
+	w.Add(0, 500e-6)
 	// (no mode 1 frames: sigrok's decoder fails on its PID annotation)
 	frames := [][]int{{0x68, 0x6A, 0xF1, 0x09, 0x02}, {0x48, 0x6B, 0x10, 0x41, 0x00, 0xBE, 0x1F, 0xB8, 0x10}, {0x61, 0x1A, 0xF1, 0x22}}
 	for _, f := range frames {
 		j1850Frame(w, f, false)
 	}
-	r := J1850(w.codes(), 1.0/sr, J1850Cfg{})
+	r := J1850(w.Codes(), 1.0/sr, J1850Cfg{})
 	if !r.OK || strings.Contains(r.Text, "!") {
 		t.Fatalf("repo: %q %s", r.Text, r.Error)
 	}
-	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.bits}, "sae_j1850_vpw:data=D", "sae_j1850_vpw=byte")
+	anns := sigrokDecode(t, sr, []string{"D"}, [][]byte{w.Bits}, "sae_j1850_vpw:data=D", "sae_j1850_vpw=byte")
 	var orc []int
 	for _, a := range anns {
 		v, err := strconv.ParseInt(a.Text, 16, 32)

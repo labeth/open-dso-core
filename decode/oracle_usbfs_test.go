@@ -35,8 +35,8 @@ func oracleUSBFSWave(sr float64, packets [][]int, gapBits float64) (dp, dm []byt
 	bt := 1.0 / 12e6
 	wp, wm := newTimeline(sr), newTimeline(sr)
 	sym := func(p, m byte, cells float64) {
-		wp.add(p, cells*bt)
-		wm.add(m, cells*bt)
+		wp.Add(p, cells*bt)
+		wm.Add(m, cells*bt)
 	}
 	emit := func(isJ bool, cells float64) {
 		if isJ {
@@ -58,7 +58,7 @@ func oracleUSBFSWave(sr float64, packets [][]int, gapBits float64) (dp, dm []byt
 		emit(true, 1+gapBits)
 	}
 	emit(true, 20)
-	return wp.bits, wm.bits
+	return wp.Bits, wm.Bits
 }
 
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-237

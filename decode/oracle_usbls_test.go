@@ -154,8 +154,8 @@ func oracleUSBLSWave(sr float64, packets [][]int, gapBits float64) (dp, dm []byt
 	bt := 1.0 / usblsBitrate
 	wp, wm := newTimeline(sr), newTimeline(sr)
 	sym := func(p, m byte, cells float64) {
-		wp.add(p, cells*bt)
-		wm.add(m, cells*bt)
+		wp.Add(p, cells*bt)
+		wm.Add(m, cells*bt)
 	}
 	stJ, stK := 1, 0
 	emit := func(st int, cells float64) {
@@ -178,7 +178,7 @@ func oracleUSBLSWave(sr float64, packets [][]int, gapBits float64) (dp, dm []byt
 		emit(stJ, 1+gapBits) // EOP's closing J, then inter-packet idle
 	}
 	emit(stJ, 20) // trail idle (repo needs >=2 bit-times after the last edge)
-	return wp.bits, wm.bits
+	return wp.Bits, wm.Bits
 }
 
 // oracleUSBLSWaveKA prepends a keep-alive train to the packet wave: nKA bare
@@ -192,8 +192,8 @@ func oracleUSBLSWaveKA(sr float64, nKA int, kaGapBits float64, packets [][]int, 
 	bt := 1.0 / usblsBitrate
 	wp, wm := newTimeline(sr), newTimeline(sr)
 	sym := func(p, m byte, cells float64) {
-		wp.add(p, cells*bt)
-		wm.add(m, cells*bt)
+		wp.Add(p, cells*bt)
+		wm.Add(m, cells*bt)
 	}
 	stJ, stK := 1, 0
 	emit := func(st int, cells float64) {
@@ -220,7 +220,7 @@ func oracleUSBLSWaveKA(sr float64, nKA int, kaGapBits float64, packets [][]int, 
 		emit(stJ, 1+gapBits) // EOP's closing J, then inter-packet idle
 	}
 	emit(stJ, 20) // trail idle
-	return wp.bits, wm.bits
+	return wp.Bits, wm.Bits
 }
 
 // usblsSigrok runs the stacked usb_signalling->usb_packet decode for one

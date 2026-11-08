@@ -14,16 +14,16 @@ import "testing"
 func TestAutodetectMIDIBurstIsNoPWM(t *testing.T) {
 	const sr, bit = 5e8, 32e-6
 	w := newTimeline(sr)
-	w.idle(430e-6)
+	w.Idle(430e-6)
 	for _, b := range []int{0xB0, 0x07, 0x64} {
-		w.add(0, bit)
+		w.Add(0, bit)
 		for k := range 8 {
-			w.add(byte(b>>k&1), bit)
+			w.Add(byte(b>>k&1), bit)
 		}
-		w.add(1, bit)
+		w.Add(1, bit)
 	}
-	w.idle(float64(1<<20)/sr - w.t)
-	c := w.codes()
+	w.Idle(float64(1<<20)/sr - w.T)
+	c := w.Codes()
 	r, _ := AutodetectFast(c, idleLike(c), 1/sr, "hex")
 	if r.Proto != "midi" {
 		t.Fatalf("named %q (%s) %q, want MIDI", r.Proto, r.Src, r.Text)

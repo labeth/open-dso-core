@@ -33,12 +33,12 @@ func streamFuzzCase(c streamCase, seed int64, frames int) (a, b []uint8, ss floa
 	if c.idle != nil {
 		idle = *c.idle
 	}
-	fine.add(idle[0], idle[1], quiet+2e-3)
+	fine.Add(idle[0], idle[1], quiet+2e-3)
 	for i := range frames {
 		c.gen(fine, i, rng)
 	}
-	fine.add(idle[0], idle[1], 2*quiet+longest)
-	a, b = peakStream(fine.a.codes(), m, rng), peakStream(fine.b.codes(), m, rng)
+	fine.Add(idle[0], idle[1], 2*quiet+longest)
+	a, b = peakStream(fine.A.Codes(), m, rng), peakStream(fine.B.Codes(), m, rng)
 	if c.lines != 2 {
 		b = nil
 	}

@@ -112,14 +112,14 @@ func canOracleWire(f canOFrame) (wire []int, nStuff, txCRC int) {
 func canOracleBits(sr, baud float64, wires ...[]int) []byte {
 	w := newTimeline(sr)
 	bt := 1 / baud
-	w.add(1, 8*bt)
+	w.Add(1, 8*bt)
 	for _, wire := range wires {
 		for _, b := range wire {
-			w.add(byte(b), bt)
+			w.Add(byte(b), bt)
 		}
 	}
-	w.add(1, 20*bt)
-	return w.bits
+	w.Add(1, 20*bt)
+	return w.Bits
 }
 
 var canAnnValRe = regexp.MustCompile(`: (0x[0-9a-fA-F]+|\d+)`)
