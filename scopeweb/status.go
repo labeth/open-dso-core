@@ -37,12 +37,18 @@ type TimeStatus struct {
 	Depth      int     `json:"depth"`
 }
 
-// TrigStatus is the trigger.
+// TrigStatus is the trigger: the running type, its source, slope and
+// level, and every setting of the type by id (TrigParams; a per-channel
+// setting as one value a channel). Refused is the board's last refusal of
+// a commit, with its count: a setting the board did not take.
 type TrigStatus struct {
-	Type   string  `json:"type"`
-	Source int     `json:"source"`
-	Slope  string  `json:"slope"`
-	LevelV float64 `json:"level_v"`
+	Type       string         `json:"type"`
+	Source     int            `json:"source"`
+	Slope      string         `json:"slope"`
+	LevelV     float64        `json:"level_v"`
+	Params     map[string]any `json:"params,omitempty"`
+	Refused    string         `json:"refused,omitempty"`
+	RefusedSeq uint64         `json:"refused_seq,omitempty"`
 }
 
 // AcqStatus is how the frames are acquired.
@@ -133,9 +139,9 @@ func (s *Scope) status() any {
 		"running": st.Running, sweepSingle: st.Running && st.Single, "norm": st.Sweep == hal.NormalSweep,
 		"tdiv_s": tdiv, "tdiv_set_s": st.TimeDivS, "displayed_sdiv_s": displayed,
 		"tdivs": p.Timebase.TdivS, "full_rate_tdiv_s": p.Timebase.FullRateTdivS,
-		"trig_pos_frac": pos, "holdoff_s": st.Trigger.HoldoffS,
-		"trig_source": st.Trigger.Source.Index, "trig_rising": st.Trigger.Slope != hal.Falling,
-		"trig_volts": st.Trigger.LevelV, "trig_type": st.TrigType, "trig_qual": st.Qual,
+		"trig_pos_frac": pos, "holdoff_s": st.Trigger.Active().HoldoffS,
+		"trig_source": st.Trigger.Source().Index, "trig_rising": st.Trigger.Slope() != hal.Falling,
+		"trig_volts": st.Trigger.LevelV(), "trig_type": int(st.Trigger.Type), "trig_qual": st.Qual,
 		"acq_mode": acqModeNumber(st.Mode), "mem_depth": st.Depth, "win_cols": f0.winCols,
 		"band": f0.band, "live_readout": f0.content, "vdiv_live": true, "run_state": run,
 		// the screen's record takes its span to fill: a page waits that long
@@ -185,7 +191,7 @@ func (s *Scope) status() any {
 		}
 	}
 	slope := "rising"
-	switch st.Trigger.Slope { //nolint:exhaustive // rising is the default
+	switch st.Trigger.Slope() { //nolint:exhaustive // rising is the default
 	case hal.Falling:
 		slope = "falling"
 	case hal.Either:
@@ -195,10 +201,21 @@ func (s *Scope) status() any {
 		Running: st.Running, Single: st.Running && st.Single, Mode: sweepName(st.BoardSweep()),
 		State: run, FPS: fps, Seq: seq,
 	}
-	out["time"] = TimeStatus{TdivS: tdiv, DisplayedS: displayed, PosFrac: pos, DelayS: st.DelayS, HoldoffS: st.Trigger.HoldoffS, Depth: st.Depth}
-	out["trig"] = TrigStatus{Type: trigTypeName(st), Source: st.Trigger.Source.Index, Slope: slope, LevelV: st.Trigger.LevelV}
+	out["time"] = TimeStatus{TdivS: tdiv, DisplayedS: displayed, PosFrac: pos, DelayS: st.DelayS, HoldoffS: st.Trigger.Active().HoldoffS, Depth: st.Depth}
+	trig := TrigStatus{
+		Type: trigTypeName(st), Source: st.Trigger.Source().Index, Slope: slope, LevelV: st.Trigger.LevelV(),
+		Params: trigParamValues(st),
+	}
+	trig.Refused, trig.RefusedSeq = s.refusals.last()
+	out["trig"] = trig
 	out["acq"] = AcqStatus{Mode: acqModeName(st.Mode), Content: f0.content}
 	out["channels"] = chans
+	if mr, ok := s.cfg.Parts.Masks.(MaskRunner); ok {
+		k := mr.Counts()
+		out["mask_mode"], out["mask_pass"], out["mask_fail"], out["mask_skip"] = k.Mode, k.Pass, k.Fail, k.Skip
+		out["mask_ring"], out["mask_stopped"], out["mask_set"], out["mask_gen"] = k.Ring, k.Stopped, k.Set, k.Gen
+		out["features"] = map[string]any{"mask": map[string]any{"mode": k.Mode, "pass": k.Pass, "fail": k.Fail, "gen": k.Gen}}
+	}
 	return out
 }
 
@@ -225,15 +242,7 @@ func trigTypeName(s instrument.State) string {
 	if s.SerialMode != 0 {
 		return "serial"
 	}
-	switch s.TrigType {
-	case 1:
-		return "pulse"
-	case 2:
-		return "slope"
-	case 3:
-		return "video"
-	}
-	return "edge"
+	return s.Trigger.Type.String()
 }
 
 // sweepSingle is the single-shot sweep's name.
@@ -286,4 +295,49 @@ func acqModeName(m hal.AcqMode) string {
 		return "stream"
 	}
 	return "normal"
+}
+
+// trigParamValues is every setting of the running trigger type by id, a
+// per-channel one as a list over the channels.
+// TRLC-LINKS: REQ-DSO-164, REQ-DSO-011
+func trigParamValues(st instrument.State) map[string]any {
+	t := st.Trigger.Type
+	out := map[string]any{}
+	for _, p := range instrument.TrigParams(t) {
+		if p.PerChannel {
+			vals := make([]any, len(st.Channels))
+			for ch := range st.Channels {
+				v, _ := st.TrigParam(t, p.ID, ch)
+				vals[ch] = paramJSON(t, p.ID, v)
+			}
+			out[p.ID] = vals
+			continue
+		}
+		v, _ := st.TrigParam(t, p.ID, 0)
+		out[p.ID] = paramJSON(t, p.ID, v)
+	}
+	return out
+}
+
+// refusals keeps the board's last refusal of a commit for the status.
+type refusals struct {
+	mu   sync.Mutex
+	text string
+	n    uint64
+}
+
+// note records a refusal.
+// TRLC-LINKS: REQ-DSO-164
+func (r *refusals) note(err error) {
+	r.mu.Lock()
+	r.text, r.n = refusalText(err), r.n+1
+	r.mu.Unlock()
+}
+
+// last is the last refusal and how many there were.
+// TRLC-LINKS: REQ-DSO-164
+func (r *refusals) last() (string, uint64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.text, r.n
 }

@@ -34,7 +34,10 @@ type HALConfig struct {
 	// Publish hears every published frame on the owner goroutine, after
 	// the instrument and the loop's consumer can see it; nil: none.
 	Publish func(*sample.Frame)
-	Logf    func(format string, a ...any)
+	// Mask is the mask test run on every frame read (a board without mask
+	// hardware tests in software); nil: none.
+	Mask *FrameMask
+	Logf func(format string, a ...any)
 }
 
 // HALCycle is the owner's cycle of a board whose settings are all HAL
@@ -224,7 +227,25 @@ func (c *HALCycle) Frame(ctx context.Context, _ Capture, a Armed) (*sample.Frame
 	// A FORCE press the wait had no time to take is this frame's: shown
 	// even in NORMAL.
 	forced := st.Forced || a.UserForced || c.inst.TakeForce()
-	return f, Verdict{Qualified: st.Triggered && !forced, Complete: true, UserForced: forced}, true
+	v := Verdict{Qualified: st.Triggered && !forced, Complete: true, UserForced: forced}
+	if c.cfg.Mask != nil {
+		_, v.MaskStop = c.cfg.Mask.Test(f, c.posFrac(), c.cur.Mode == hal.Average)
+	}
+	return f, v, true
+}
+
+// posFrac is the trigger's place across the screen in the committed
+// state: the screen centre sits DelayS after it.
+// TRLC-LINKS: REQ-DSO-014
+func (c *HALCycle) posFrac() float64 {
+	divs := 10.0
+	if d := c.b.Profile().Display.DivsH; d > 0 {
+		divs = float64(d)
+	}
+	if !(c.cur.TimeDivS > 0) {
+		return .5
+	}
+	return .5 - c.cur.DelayS/(divs*c.cur.TimeDivS)
 }
 
 // Liveness shows every frame: the board's AUTO has no gate of its own.
@@ -282,7 +303,8 @@ func (c *HALCycle) TakeForce() bool { return c.inst.TakeForce() }
 // TRLC-LINKS: REQ-DSO-011
 func (c *HALCycle) ForcePending() bool { return c.inst.ForcePending() }
 
-// StopOnFail stops the run (the cycle runs no mask test).
+// StopOnFail stops the run on a mask failure with stop-on-fail; an armed
+// single shot stays armed.
 // TRLC-LINKS: REQ-DSO-014
 func (c *HALCycle) StopOnFail() { c.stopRun(false) }
 

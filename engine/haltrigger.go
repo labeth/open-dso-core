@@ -117,7 +117,7 @@ func (c *HALCycle) qualStage(s instrument.State, base hal.TrigStage) (hal.TrigSt
 	q := s.Qual
 	at := func(frac float64) float64 { return e.lo + min(max(frac, 0), 1)*(e.hi-e.lo) }
 	st := base
-	switch TrigType(s.TrigType) {
+	switch TrigType(s.Trigger.Type) {
 	case TrigPulse:
 		st.Node = hal.NodePulse
 		st.Levels.High = at(q.PulseLvl)
@@ -187,36 +187,48 @@ func (c *HALCycle) busStage(s instrument.State, base hal.TrigStage) (hal.TrigSta
 	return st, ""
 }
 
-// programTrigger programs state s's trigger: the serial trigger, else a
-// pulse, slope or video qualifier, else the edge. A trigger the board
-// cannot serve runs free, and the backends say why; a board that runs
-// nothing free is left on the edge it fires on, with the reason said.
+// programTrigger programs state s's trigger: the serial trigger, else the
+// running type. A pulse, slope or video type the UI model set (its
+// configuration Placed) is placed on the learned swing; one the board
+// cannot serve yet runs free, and the backends say why; a board that runs
+// nothing free is left on the edge trigger, with the reason said. A type
+// set in its own levels and limits (a host interface's) is programmed as
+// it is: the board takes it or refuses it with the reason, which the
+// commit reports.
 // TRLC-LINKS: REQ-DSO-011, REQ-DSO-013
 func (c *HALCycle) programTrigger(s instrument.State) error {
 	spec := s.TriggerSpec()
-	base := spec.Stages[0]
+	edge := s.Trigger.Configs[instrument.TrigEdge]
+	var fallback hal.TrigStage
+	if len(edge.Stages) > 0 {
+		fallback = edge.Stages[0]
+	}
 	var be instrument.Backends
 	clear(c.placed)
-	want, what := base, ""
-	why := ""
-	switch {
+	var want hal.TrigStage
+	what, why := "", ""
+	switch t := s.Trigger.Type; {
 	case s.SerialMode != 0:
 		what = "serial"
-		want, why = c.busStage(s, base)
+		want, why = c.busStage(s, fallback)
 		c.placeOn(s.Serial.ChA, s.Serial.ChB)
-	case s.TrigType != int(TrigEdge):
+	case (t == instrument.TrigPulse || t == instrument.TrigSlope || t == instrument.TrigVideo) &&
+		s.Trigger.Active().Placed && len(spec.Stages) > 0:
 		what = "trigger"
-		want, why = c.qualStage(s, base)
-		c.placeOn(base.Source.Index, base.Source.Index)
+		want, why = c.qualStage(s, spec.Stages[0])
+		c.placeOn(spec.Stages[0].Source.Index)
 	}
 	tr := c.b.Trigger()
 	if what == "" {
 		c.inst.SetBackends(be)
 		return tr.Program(spec)
 	}
+	edgeSpec := s.Trigger.Spec(spec.Sweep)
+	edgeSpec.Coupling, edgeSpec.NoiseReject, edgeSpec.HoldoffS = edge.Coupling, edge.NoiseReject, edge.HoldoffS
 	if why == "" {
-		spec.Stages = []hal.TrigStage{want}
-		err := tr.Program(spec)
+		ws := spec
+		ws.Stages = []hal.TrigStage{want}
+		err := tr.Program(ws)
 		if err == nil {
 			setBackend(&be, what, "hardware")
 			c.inst.SetBackends(be)
@@ -229,11 +241,11 @@ func (c *HALCycle) programTrigger(s instrument.State) error {
 	}
 	setBackend(&be, what, "none: "+why)
 	c.inst.SetBackends(be)
-	spec.Stages = []hal.TrigStage{base}
-	spec.FreeRun = true
-	if err := tr.Program(spec); err != nil {
-		spec.FreeRun = false
-		return tr.Program(spec)
+	edgeSpec.Stages = []hal.TrigStage{fallback}
+	edgeSpec.FreeRun = true
+	if err := tr.Program(edgeSpec); err != nil {
+		edgeSpec.FreeRun = false
+		return tr.Program(edgeSpec)
 	}
 	return nil
 }

@@ -30,7 +30,7 @@ func webScope(t *testing.T, p hal.Profile) webserver.Scope {
 	if _, err := b.Platform().BringUp(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	st := instrument.State{TimeDivS: 10e-6, Running: true, Trigger: instrument.Edge{Source: hal.Source{Kind: hal.Analog}, Slope: hal.Rising}}
+	st := instrument.State{TimeDivS: 10e-6, Running: true}
 	for range p.Channels {
 		st.Channels = append(st.Channels, hal.Channel{On: true, VoltsDiv: 1, Probe: 1, Impedance: 1e6})
 	}

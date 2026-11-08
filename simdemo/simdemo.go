@@ -157,7 +157,6 @@ func Board(profileYAML []byte, d Demo, o Options) (*simboard.Board, error) {
 func (d Demo) Defaults(n int) instrument.State {
 	st := instrument.State{
 		TimeDivS: d.Start.TimeDivS, Running: true, Sweep: hal.Auto,
-		Trigger: instrument.Edge{Source: hal.Source{Kind: hal.Analog}, Slope: hal.Rising, LevelV: d.Start.TrigLevelV},
 	}
 	if st.TimeDivS <= 0 {
 		st.TimeDivS = 1e-3
@@ -173,6 +172,8 @@ func (d Demo) Defaults(n int) instrument.State {
 	for c := range n {
 		st.Channels = append(st.Channels, hal.Channel{On: len(on) == 0 || on[c], VoltsDiv: vdiv, Probe: 1, Impedance: 1e6})
 	}
+	st.Trigger.Fill(n) // a rising edge on C1
+	_ = st.Trigger.SetLevel(d.Start.TrigLevelV, n)
 	return st
 }
 

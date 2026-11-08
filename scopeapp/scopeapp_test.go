@@ -19,8 +19,6 @@ func defaults(chans int) instrument.State {
 	for range chans {
 		st.Channels = append(st.Channels, hal.Channel{On: true, VoltsDiv: 1, Probe: 1, Impedance: 1e6})
 	}
-	st.Trigger.Source = hal.Source{Kind: hal.Analog, Index: 0}
-	st.Trigger.Slope = hal.Rising
 	return st
 }
 
@@ -89,8 +87,7 @@ func TestRunRestoresTheSetupAcrossARestart(t *testing.T) {
 
 	_ = env.Model.Change(func(st *instrument.State) error {
 		st.Channels[2].VoltsDiv = 2
-		st.Trigger.LevelV = 0.25
-		return nil
+		return st.Trigger.SetLevel(0.25, len(st.Channels))
 	})
 	stop()
 	raw, ok := b.Storage().Settings().Get(settings.FileKey)
@@ -102,7 +99,7 @@ func TestRunRestoresTheSetupAcrossARestart(t *testing.T) {
 	defer stop()
 	waitFor(t, "restored setup", func() bool {
 		st := env.Model.State()
-		return st.Channels[2].VoltsDiv == 2 && st.Trigger.LevelV == 0.25
+		return st.Channels[2].VoltsDiv == 2 && st.Trigger.LevelV() == 0.25
 	})
 	if env.Setups == nil {
 		t.Fatal("no setup memory")

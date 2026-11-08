@@ -16,6 +16,7 @@ import (
 	"github.com/labeth/open-dso-core/engine/fanout"
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/hal/halfake"
+	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/measure"
 	"github.com/labeth/open-dso-core/sample"
 	"github.com/labeth/open-dso-core/scopeweb"
@@ -141,7 +142,10 @@ func TestSettingsRoundTrip(t *testing.T) {
 		`{"control":"vdiv","ch":1,"value":0.3}`,
 		`{"control":"vdiv","ch":4,"value":1}`,
 		`{"control":"probe","ch":0,"value":7}`,
-		`{"control":"trigtype","value":7}`,
+		`{"control":"trigtype","value":2}`,
+		`{"control":"trigtype","text":"video"}`,
+		`{"control":"trig.gate_level","value":1}`,
+		`{"control":"trigtype","value":70}`,
 		`{"control":"triglevelcode","value":1000}`,
 		`{"control":"zonemode","value":1}`,
 		`{"control":"tdiv","value":3e-6}`,
@@ -166,7 +170,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 		!near(num(st["trig_volts"]), 0.5) || len(chans) != 4 || c2["coupling"] != "AC" || st["caps_gen"] == nil {
 		t.Fatalf("status: %v", st)
 	}
-	if s := r.m.State(); s.Trigger.Source != (hal.Source{Kind: hal.Analog, Index: 2}) || s.Channels[1].Coupling != hal.AC {
+	if s := r.m.State(); s.Trigger.Source() != (hal.Source{Kind: hal.Analog, Index: 2}) || s.Channels[1].Coupling != hal.AC {
 		t.Fatalf("instrument: %+v", s)
 	}
 }
@@ -365,3 +369,65 @@ func (fixedScales) Coupling(int) int                { return 0 }
 func (fixedScales) Probe(int) float64               { return 1 }
 func (fixedScales) Inverted() [2]bool               { return [2]bool{} }
 func (fixedScales) Position() (float64, bool, bool) { return 0.5, true, false }
+
+// The trigger's types and settings reach the instrument state from the
+// page: caps list each type with why it cannot run here and the settings
+// of those that run, trigtype picks one by name, "trig.<id>" sets the
+// running type's settings, and the status reads them back; a refusal at
+// the commit reaches the status with its reason.
+// TRLC-LINKS: REQ-DSO-162, REQ-DSO-164, REQ-DSO-011
+func TestTriggerTypesFromThePage(t *testing.T) {
+	r := newRig(t, halfake.Config{Channels: 2})
+	caps := r.json(t, http.MethodGet, "/api/caps", "")
+	trig, _ := caps["trigger"].(map[string]any)
+	avail, _ := trig["type_avail"].([]any)
+	params, _ := trig["params"].(map[string]any)
+	why := map[string]string{}
+	for _, a := range avail {
+		m, _ := a.(map[string]any)
+		w, _ := m["why"].(string)
+		id, _ := m["id"].(string)
+		why[id] = w
+	}
+	if len(avail) != int(instrument.NumTrigTypes) || why["pulse"] != "" || !strings.Contains(why["video"], "no video node") ||
+		params["pulse"] == nil || params["video"] != nil {
+		t.Fatalf("caps trigger: %v", trig)
+	}
+	if out := r.set(t, `{"control":"trigtype","text":"pulse"}`); out["applied"] != "pulse" {
+		t.Fatalf("trigtype: %v", out)
+	}
+	r.set(t, `{"control":"trig.limit","text":"inside"}`)
+	r.set(t, `{"control":"trig.lower","value":2e-7}`)
+	if out := r.set(t, `{"control":"trig.source","text":"C2"}`); out["applied"] != "C2" {
+		t.Fatalf("trig.source: %v", out)
+	}
+	if out := r.json(t, http.MethodPost, "/api/set", `{"control":"trig.limit","text":"sideways"}`); out["ok"] != false {
+		t.Fatalf("a choice the setting lacks: %v", out)
+	}
+	st := r.m.State()
+	spec := st.TriggerSpec()
+	if st.Trigger.Type != instrument.TrigPulse || spec.Stages[0].Qual.Op != hal.Inside || spec.Stages[0].Qual.MinS != 2e-7 ||
+		spec.Stages[0].Source.Index != 1 {
+		t.Fatalf("state: %+v", spec.Stages[0])
+	}
+	status := r.json(t, http.MethodGet, "/api/status", "")
+	ts, _ := status["trig"].(map[string]any)
+	p, _ := ts["params"].(map[string]any)
+	if ts["type"] != "pulse" || p["limit"] != "inside" || p["lower"] != 2e-7 || status["trig_type"] != 1.0 {
+		t.Fatalf("status trig: %v", ts)
+	}
+	// The fake board triggers on analog channels only: a digital source is
+	// refused at the commit, and the status says why.
+	r.set(t, `{"control":"trig.source","text":"D0"}`)
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		ts, _ = r.json(t, http.MethodGet, "/api/status", "")["trig"].(map[string]any)
+		if s, _ := ts["refused"].(string); strings.Contains(s, "analog channels only") {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no refusal in the status: %v", ts)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}

@@ -19,9 +19,9 @@ func loopState(sweep hal.Sweep) instrument.State {
 	return instrument.State{
 		Channels: []hal.Channel{ch, ch},
 		TimeDivS: 1e-6,
-		Trigger:  instrument.Edge{Source: hal.Source{Kind: hal.Analog}, Slope: hal.Rising},
-		Sweep:    sweep,
-		Running:  true,
+
+		Sweep:   sweep,
+		Running: true,
 	}
 }
 
@@ -132,8 +132,7 @@ func TestLoopRefusedCommit(t *testing.T) {
 	done := make(chan struct{})
 	go func() { l.Run(ctx); close(done) }()
 	_ = inst.Change(func(s *instrument.State) error {
-		s.Trigger.Source = hal.Source{Kind: hal.Digital}
-		return nil
+		return s.Trigger.SetSource(hal.Source{Kind: hal.Digital}, len(s.Channels))
 	})
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -154,7 +153,7 @@ func TestLoopRefusedCommit(t *testing.T) {
 	if _, ok := hal.AsRefusal(heard[0]); !ok {
 		t.Fatalf("not a refusal: %v", heard[0])
 	}
-	if got := inst.State().Trigger.Source.Kind; got != hal.Analog {
+	if got := inst.State().Trigger.Source().Kind; got != hal.Analog {
 		t.Fatalf("the refused source stayed: %v", got)
 	}
 }

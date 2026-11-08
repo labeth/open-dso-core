@@ -99,6 +99,30 @@ type CapsTrigger struct {
 	HoldoffS   [2]float64     `json:"holdoff_s"`
 	Protocols  []CapsProtocol `json:"protocols,omitempty"`
 	MaxZones   int            `json:"max_zones,omitempty"`
+	// Avail is every trigger type a scope's instrument state holds, each
+	// with whether its trigger serves it and why not; Params are the
+	// settings of each type that runs, by type name (/api/set takes them as
+	// "trig.<id>"). Both are absent on a scope whose own engine keeps the
+	// trigger.
+	Avail  []CapsTrigType             `json:"type_avail,omitempty"`
+	Params map[string][]CapsTrigParam `json:"params,omitempty"`
+}
+
+// CapsTrigType is a trigger type with whether it can run here.
+type CapsTrigType struct {
+	ID  string `json:"id"`
+	OK  bool   `json:"ok"`
+	Why string `json:"why,omitempty"`
+}
+
+// CapsTrigParam is one setting of a trigger type: kind is number, int,
+// choice, bool, source or states.
+type CapsTrigParam struct {
+	ID         string   `json:"id"`
+	Kind       string   `json:"kind"`
+	Unit       string   `json:"unit,omitempty"`
+	Choices    []string `json:"choices,omitempty"`
+	PerChannel bool     `json:"per_channel,omitempty"`
 }
 
 // CapsProtocol is one protocol a serial trigger takes.

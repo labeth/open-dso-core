@@ -60,6 +60,15 @@ type MaskTest interface {
 	MaskFails() []engine.MaskFail
 }
 
+// MaskRunner is a mask test whose mode and counts the web drives and
+// reads (engine.FrameMask): with it the shared settings take maskmode and
+// maskclear, and the status carries the counts.
+type MaskRunner interface {
+	SetMaskMode(m int)
+	ClearMaskFails()
+	Counts() engine.MaskCounts
+}
+
 // BodeCurve is the engine's frequency-response curve.
 type BodeCurve interface {
 	BodePoints() []engine.BodePoint

@@ -108,10 +108,11 @@ type Scales interface {
 
 // Scope is the web scope: webserver.Scope over a Config.
 type Scope struct {
-	cfg  Config
-	meas shape.MeasCache
-	caps capsCache
-	fps  fpsMeter
+	cfg      Config
+	meas     shape.MeasCache
+	caps     capsCache
+	fps      fpsMeter
+	refusals *refusals
 }
 
 var _ webserver.Scope = (*Scope)(nil)
@@ -121,7 +122,11 @@ var _ webserver.Scope = (*Scope)(nil)
 // (WithCaps serves one).
 // TRLC-LINKS: REQ-DSO-161, REQ-DSO-162, REQ-DSO-163, REQ-DSO-164
 func New(cfg Config) *Scope {
-	return &Scope{cfg: cfg.Resolved()}
+	s := &Scope{cfg: cfg.Resolved(), refusals: &refusals{}}
+	if cfg.Instrument != nil {
+		cfg.Instrument.OnRefused(s.refusals.note)
+	}
+	return s
 }
 
 // Resolved is cfg with its defaults filled in: the vertical lists from the

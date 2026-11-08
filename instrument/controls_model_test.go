@@ -1,6 +1,7 @@
 package instrument
 
 import (
+	"math"
 	"testing"
 
 	"github.com/labeth/open-dso-core/hal"
@@ -106,10 +107,10 @@ func TestModelControls(t *testing.T) {
 	if _, ok := m.SetTdiv(3e-6); ok {
 		t.Fatal("a timebase off the ladder")
 	}
+	m.SetTrigType(2) // each type keeps its own source and slope
 	m.SetTrigSource(1)
 	m.SetTrigSource(7) // no such channel: kept
 	m.SetTrigSlope(false)
-	m.SetTrigType(2)
 	m.SetSlopeParams(.2, .8, 10, 20, 1)
 	m.SetAcqMode(1)
 	m.SetAvgCount(64)
@@ -121,7 +122,7 @@ func TestModelControls(t *testing.T) {
 	m.SetMemDepth(10000)
 	st := m.Snapshot()
 	if st.TdivS != 2e-6 || st.TrigPosFrac < .2499 || st.TrigPosFrac > .2501 || st.TrigSource != 1 || st.TrigRising ||
-		st.TrigType != 2 || st.TrigQual.SlopeHi != .8 || st.AcqMode != 1 || st.AvgCount != 64 || st.EresLen != 3 ||
+		st.TrigType != 2 || math.Abs(st.TrigQual.SlopeHi-.8) > 1e-12 || st.AcqMode != 1 || st.AvgCount != 64 || st.EresLen != 3 ||
 		!st.ETS || st.MemDepth != 10000 {
 		t.Fatalf("snapshot %+v", st)
 	}

@@ -7,19 +7,8 @@ import (
 
 	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/engine/fanout"
-	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 )
-
-// Snapshot is the Model's with the frequency response's state.
-// TRLC-LINKS: REQ-DSO-066
-func (e halEngine) Snapshot() instrument.Stats {
-	st := e.Model.Snapshot()
-	if e.bode != nil {
-		e.bode.FillStats(&st)
-	}
-	return st
-}
 
 // SetBodeMode arms or disarms the frequency response on channels refCh and
 // dutCh (any of the scope's).

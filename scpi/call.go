@@ -7,6 +7,8 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/labeth/open-dso-core/hal"
 )
 
 // ErrFailed makes the engine report -200 (a handler that cannot run and
@@ -81,6 +83,22 @@ func (c *Call) Error(code int) error {
 		return ErrReported
 	}
 	c.e.pushError(code, "")
+	return ErrReported
+}
+
+// Refused reports a setting the instrument refused, as Report does from the
+// owner: a *hal.Refusal is -221 with its text (in the IEEE grammar; Line
+// answers the code's text), anything else -200. It returns ErrReported.
+// TRLC-LINKS: REQ-DSO-024
+func (c *Call) Refused(err error) error {
+	r, ok := hal.AsRefusal(err)
+	if !ok {
+		return c.Error(ErrExecution)
+	}
+	if c.e.d.Grammar == Line {
+		return c.Error(ErrSettingsConflict)
+	}
+	c.e.pushError(ErrSettingsConflict, strings.ReplaceAll(r.Error(), `"`, `'`))
 	return ErrReported
 }
 

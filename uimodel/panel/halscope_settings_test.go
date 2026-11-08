@@ -57,8 +57,10 @@ func TestHALScopeSettingsRoundTrip(t *testing.T) {
 		st.TimeDivS = 1e-6
 		st.Channels[2].VoltsDiv, st.Channels[2].OffsetV, st.Channels[2].Probe = 2, 0.5, 10
 		st.Channels[3].Coupling, st.Channels[3].BWLimit = hal.AC, 20e6
-		st.Trigger.LevelV, st.Trigger.Source.Index = -0.25, 2
-		return nil
+		if err := st.Trigger.SetSource(hal.Source{Kind: hal.Analog, Index: 2}, len(st.Channels)); err != nil {
+			return err
+		}
+		return st.Trigger.SetLevel(-0.25, len(st.Channels))
 	})
 	c.mu.Lock()
 	c.viewMode = 2
@@ -93,7 +95,7 @@ func TestHALScopeSettingsRoundTrip(t *testing.T) {
 	if ch := st.Channels[3]; ch.Coupling != hal.AC || ch.BWLimit == 0 {
 		t.Fatalf("C4 restored as %+v", ch)
 	}
-	if st.Trigger.LevelV != -0.25 || st.Trigger.Source.Index != 2 || st.TimeDivS != 1e-6 {
+	if st.Trigger.LevelV() != -0.25 || st.Trigger.Source().Index != 2 || st.TimeDivS != 1e-6 {
 		t.Fatalf("trigger and timebase restored as %+v, %g", st.Trigger, st.TimeDivS)
 	}
 	if again := settings.Collect(m2, NewHALScope(m2, b2, "").Settings(), c2, settings.ModelLevel{Model: m2}); again != want {
@@ -119,9 +121,9 @@ func TestHALScopeSettingsRoundTrip(t *testing.T) {
 // TRLC-LINKS: REQ-DSO-072
 func TestModelLevelKeepsAnUnsavedLevel(t *testing.T) {
 	_, m, _ := halRig(t, 2)
-	_ = m.Change(func(st *instrument.State) error { st.Trigger.LevelV = 0.7; return nil })
+	_ = m.Change(func(st *instrument.State) error { return st.Trigger.SetLevel(0.7, len(st.Channels)) })
 	settings.ModelLevel{Model: m}.ApplyTrigger(settings.Trigger{LevelCode: 30500})
-	if got := m.State().Trigger.LevelV; got != 0.7 {
+	if got := m.State().Trigger.LevelV(); got != 0.7 {
 		t.Fatalf("level %g, want 0.7 kept", got)
 	}
 }

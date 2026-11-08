@@ -58,6 +58,15 @@ func (c *Controller) setNorm(on bool) error {
 // in the decoder settings: decode off refuses with a notice.
 // TRLC-LINKS: REQ-DSO-212, REQ-DSO-013
 func (c *Controller) setTrigType(v int) error {
+	if v >= halTypeBase {
+		e, ok := c.eng.(interface {
+			SetTrigTypeOf(t instrument.TrigType) error
+		})
+		if !ok {
+			return errors.New("this scope's trigger types are edge, pulse, slope, video and serial")
+		}
+		return e.SetTrigTypeOf(instrument.TrigType(v - halTypeBase))
+	}
 	st := c.eng.Snapshot()
 	if v == trigSerial {
 		if c.serialTrig() == nil {
