@@ -586,7 +586,7 @@ func (c *Controller) autosetSweep(stop chan struct{}, g autoGoal) (autoResult, b
 	//    measured) signal. The trigger level is in volts, so this timebase
 	//    change does not disturb it. A searched goal's caller sets the
 	//    timebase next: the clipping check below reads the fit's.
-	if f := m[src].Freq; f > 0 && !g.searched && !c.autoDisplayTimebase(stop, f, m, swing, g, &res) {
+	if f := m[src].Freq; f > 0 && !g.searched && !c.autoDisplayTimebase(stop, src, f, m, swing, g, &res) {
 		return res, false
 	}
 
@@ -861,12 +861,32 @@ func (c *Controller) autoCoarsenOffScreen(stop chan struct{}, m [maxChans]*measu
 // cycles of frequency f, then the vertical refined on that screen. It
 // returns false when cancelled.
 // TRLC-LINKS: REQ-DSO-137, REQ-DSO-225
-func (c *Controller) autoDisplayTimebase(stop chan struct{}, f float64, m, swing [maxChans]*measure.Result, g autoGoal, res *autoResult) bool {
+func (c *Controller) autoDisplayTimebase(stop chan struct{}, src int, f float64, m, swing [maxChans]*measure.Result, g autoGoal, res *autoResult) bool {
 	ss := c.setTdivNearest(c.displayTdiv(g, f))
-	res.tdiv = c.eng.Snapshot().TdivSet()
 	if !c.waitBandFrame(stop, ss) {
 		return false
 	}
+	// The screen must still time the signal: a detent faster than g's
+	// cycles may hold too few samples for it (a 150 MHz tone at 1 ns/div is
+	// ten samples at 1 GSa/s, and reads no frequency), so step slower, a
+	// detent at a time, until it reads.
+	for range autoTimeSteps {
+		if c.eng.Snapshot().TdivSet() >= g.cycles/f/divX*0.999 {
+			break
+		}
+		now, _ := c.measureChans()
+		if !has(now[src]) || now[src].Freq > 0 {
+			break
+		}
+		next, ok := c.slowerTdiv(c.eng.Snapshot().TdivSet())
+		if !ok {
+			break
+		}
+		if !c.waitBandFrame(stop, c.setTdivNearest(next)) {
+			return false
+		}
+	}
+	res.tdiv = c.eng.Snapshot().TdivSet()
 	// 5a. Refine on the screen AUTO leaves: the fit's capture, filtered at
 	//     a slower timebase, read a 1 MHz square's ringing (3.8 V of a
 	//     3.4 V swing) and fitted 1 V/div when the sweep timed the screen
@@ -977,6 +997,22 @@ func (c *Controller) freqOn(stop chan struct{}, ch int) bool {
 // swingTdiv is the timebase of the long window that widens the sweep's swing
 // (10 ms of the signal, decimated).
 const swingTdiv = 1e-3
+
+// autoTimeSteps bounds the detents the display timebase steps slower to
+// time the signal.
+const autoTimeSteps = 3
+
+// slowerTdiv is the ladder's next timebase slower than td.
+// TRLC-LINKS: REQ-DSO-224
+func (c *Controller) slowerTdiv(td float64) (float64, bool) {
+	next, ok := 0.0, false
+	for _, t := range c.tdivs {
+		if t > td*1.001 && (!ok || t < next) {
+			next, ok = t, true
+		}
+	}
+	return next, ok
+}
 
 // autoClipSteps bounds the clipping check on the final screen, but for a
 // trace at the ADC's rail; it looks at autoClipLooks captures, as a bus's
