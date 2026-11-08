@@ -68,7 +68,7 @@ jobs:
           cache: false
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22 # the pinned Playwright cannot extract its browser under Node 24
       - name: Cache Playwright Chromium
         id: pw-cache
         uses: actions/cache@v4
