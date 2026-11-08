@@ -158,3 +158,41 @@ func TestShotsAndOwnerStop(t *testing.T) {
 		t.Fatal("the user's mode kept the replaced one")
 	}
 }
+
+// ERES and precision are both HighRes in the state, told apart by the
+// precision flag, and each reads back as its own mode; the precision rate
+// is kept whatever the mode.
+// TRLC-LINKS: REQ-DSO-012
+func TestPrecisionIsNotERES(t *testing.T) {
+	m := New(twoChannels(), nil)
+	for md := range acqModes {
+		m.SetAcqMode(md)
+		if got := m.Snapshot().AcqMode; got != md {
+			t.Errorf("mode %d reads back as %d", md, got)
+		}
+		if s := m.State(); s.Precision != (md == acqPrecision) {
+			t.Errorf("mode %d: precision %v", md, s.Precision)
+		}
+	}
+	if got := m.SetPrecisionRate(31.25e6); got != 31.25e6 || m.Snapshot().PrecisionRateHz != 31.25e6 {
+		t.Fatalf("precision rate %g", got)
+	}
+	if got := m.SetPrecisionRate(math.NaN()); got != 31.25e6 {
+		t.Fatalf("a rate that is not a number moved it to %g", got)
+	}
+}
+
+// The trigger level is unset until a level is written (a board keeps its
+// power-on level until then) and set from then on.
+// TRLC-LINKS: REQ-DSO-011
+func TestTriggerLevelSet(t *testing.T) {
+	m := New(twoChannels(), nil)
+	if m.State().LevelSet {
+		t.Fatal("a level set from the start")
+	}
+	g := m.Generation()
+	m.SetTrigLevel(.25)
+	if s := m.State(); !s.LevelSet || s.Trigger.LevelV() != .25 || m.Generation() == g {
+		t.Fatalf("level %v set %v", s.Trigger.LevelV(), s.LevelSet)
+	}
+}

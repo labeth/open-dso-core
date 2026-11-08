@@ -110,7 +110,7 @@ func (c controls) apply(m *instrument.Model, req webserver.Control) (any, bool, 
 		if !ok || float64(int(v)) != v {
 			return nil, false, fmt.Errorf("acquisition mode %g: this scope takes 0 normal, 1 average, 2 high resolution, 3 peak detect", v)
 		}
-		return v, false, edit(func(st *instrument.State) error { st.Mode = mode; return nil })
+		return v, false, edit(func(st *instrument.State) error { st.Mode, st.Precision = mode, false; return nil })
 	case "trigsource":
 		ch := int(v)
 		if req.Text != "" {
