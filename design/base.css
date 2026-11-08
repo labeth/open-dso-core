@@ -365,6 +365,20 @@
     button.wstab { padding: 0 9px; }
     .brand span { display: none; }
   }
+  /* a 1024 px window: the tabs keep their width and the brand gives way
+     (it ellipsizes); the strip's groups wrap to a second row instead of
+     running off the right edge (four channels and the trigger do not fit
+     one row). Below 901 px the bar and the strip scroll as before. */
+  @media (min-width: 901px) and (max-width: 1180px) {
+    #top { gap: 4px; }
+    #wstabs { flex-shrink: 0; }
+    button.wstab { padding: 0 8px; }
+    .brand { min-width: 0; flex-shrink: 1; overflow: hidden; margin-right: 4px; }
+    .brand b { overflow: hidden; text-overflow: ellipsis; }
+  }
+  @media (min-width: 901px) {
+    #strip { flex-wrap: wrap; overflow-x: visible; }
+  }
   @media (max-width: 900px) {
     #top { overflow-x: auto; }
     #top > * { flex-shrink: 0; } /* the bar scrolls; its items never shrink into each other */
