@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"slices"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -749,7 +750,7 @@ func (c *Controller) detectWith(decimated, stepped bool, accept func(*sample.Fra
 	if decimated {
 		kind = "decimated"
 	}
-	deadline := t0.Add(wait)
+	deadline := t0.Add(c.captureWait(wait, decimated))
 	loadEnd := deadline.Add(imageWait) // the longest an image load holds the wait
 	// While running, a frame captured after the search began: the one on
 	// screen, or one in flight, may predate a setting just changed (an ARINC
@@ -807,6 +808,9 @@ func (c *Controller) detectWith(decimated, stepped bool, accept func(*sample.Fra
 		last := c.detectSync || !c.now().Before(deadline)
 		if got || (usable && last && !decimated) {
 			t1 := c.now()
+			if got {
+				c.tookToCapture(t1.Sub(t0), decimated)
+			}
 			res, sampleS, found := auto()
 			// The search's steps in the log: where AUTO's seconds went.
 			c.logf("panel: bus search: %s look at %s/div waited %v, searched %v: %s", kind, si(c.snap().st.TdivSet(), "s"),
@@ -819,6 +823,36 @@ func (c *Controller) detectWith(decimated, stepped bool, accept func(*sample.Fra
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+}
+
+// captureWaitMax bounds captureWait: a scope waiting for a trigger
+// captures nothing however long a look waits.
+const captureWaitMax = 20 * time.Second
+
+// captureWait is how long a look waits for a sampled record: wait, or
+// three times as long as the search's records have recently taken to come
+// when that is longer (bounded by captureWaitMax). A board whose records
+// come slower than the scope's own (a simulated one, an emulated firmware:
+// two seconds and more for a decimated look at 50ms/div) is waited for: a
+// fixed wait of the scope's measure ended the looks with no capture, and
+// AUTO in BUS framed the bus on the timebase it found it at (a DCF77
+// minute's 180 ms on 5ms/div).
+// TRLC-LINKS: REQ-DSO-214, REQ-DSO-223
+func (c *Controller) captureWait(wait time.Duration, decimated bool) time.Duration {
+	c.mu.Lock()
+	took := c.lookTook[b2ic(decimated)]
+	c.mu.Unlock()
+	return max(wait, min(3*took, captureWaitMax))
+}
+
+// tookToCapture keeps how long a look's record took to come (captureWait):
+// the longest of late, forgotten by an eighth a look.
+// TRLC-LINKS: REQ-DSO-214
+func (c *Controller) tookToCapture(d time.Duration, decimated bool) {
+	c.mu.Lock()
+	k := b2ic(decimated)
+	c.lookTook[k] = max(d, c.lookTook[k]-c.lookTook[k]/8)
+	c.mu.Unlock()
 }
 
 // envWait bounds the wait for the live envelope of a timebase the search
@@ -1168,7 +1202,37 @@ func (c *Controller) searchDropped() bool {
 // few bytes (fewUART) or a scant find (scantFind).
 // TRLC-LINKS: REQ-DSO-214
 func weakFind(res decode.Result) bool {
-	return fewUART(res) || scantFind(res)
+	return fewUART(res) || scantFind(res) || twoDutyPWM(res) || dmxRateUART(res)
+}
+
+// dmxRateUART reports a UART find at DMX512's 250 kBd: a universe's slots
+// read where the record holds no break (a 5 ms screen of an 11 ms
+// universe, one in two), which a longer record names DMX512.
+// TRLC-LINKS: REQ-DSO-214
+func dmxRateUART(res decode.Result) bool {
+	return res.Proto == protoUART && math.Abs(float64(res.Baud)-250000) <= 0.03*250000
+}
+
+// twoDutyPWM reports a PWM find of a slow period (a millisecond or more)
+// whose pulses take at most two widths: a pulse-width coded bus read in
+// part (a DCF77 minute's seconds, 100 and 200 ms pulses, sped up in a
+// generator: "PWM 10% 20%" at 5ms/div), which the search looks for slower.
+// TRLC-LINKS: REQ-DSO-214
+func twoDutyPWM(res decode.Result) bool {
+	if res.Proto != "pwm" || !res.OK || res.Baud <= 0 || res.Baud > 1000 {
+		return false
+	}
+	var duties []float64
+	for _, tok := range strings.Fields(res.Text) {
+		v, err := strconv.ParseFloat(strings.TrimSuffix(tok, "%"), 64)
+		if err != nil || !strings.HasSuffix(tok, "%") {
+			continue
+		}
+		if !slices.ContainsFunc(duties, func(d float64) bool { return math.Abs(d-v) <= 2.5 }) {
+			duties = append(duties, v)
+		}
+	}
+	return len(duties) > 0 && len(duties) <= 2
 }
 
 // fewUART reports a UART find of under fewUARTBytes bytes.

@@ -1165,3 +1165,13 @@ decisions:
   decision: 'Holdoff 0-10 s (not a number turns it off, +Inf gives 10 s); averages 1-256; ERES length 1-64 and odd; pulse and slope level fractions 0-1 with each pair ordered; a qualifier condition in two bits; a video standard other than NTSC is PAL and a negative line means every line; an unknown trigger type is edge.'
   consequences:
   - 'The SDS800X HD and the demo follow the CML''s limits.'
+
+- id: ADR-AUTO-FRAME-START-FALLBACK
+  title: 'AUTO frames a bus with a pulse trigger where the board has no receiver for it'
+  status: accepted
+  date: '2026-11-08'
+  context: 'AUTO arms the bus''s frame-start request on the protocol trigger. A board whose trigger matches only a few protocols'' own conditions (the SDS800X HD''s factory PL) refuses it, and the captures then ran untriggered: the record AUTO left held any part of the bus.'
+  decision: 'AUTO reads the board''s verdict on the serial trigger (Stats.SerialBackend). On a refusal it arms a trigger the board runs in hardware: the pulse qualifier on the bus''s first line at the level and width that start its messages (the idle before one, or the break that opens it, longer than any other run at that level on the record AUTO measured), else an edge on that line. A match the user set is never replaced.'
+  consequences:
+  - 'The FPGA still decides every trigger (ADR-SERIAL-HARDWARE-TRIGGER); a board with the receiver keeps the frame-start trigger.'
+  - 'A bus with no such pulse (PWM, SWD) is captured on an edge of its line, anywhere in its stream.'
