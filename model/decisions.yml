@@ -1103,3 +1103,21 @@ decisions:
   decision: 'Kept as the CML does it: RUN releases the latch, SINGLE does not.'
   consequences:
   - 'Owner to decide whether SINGLE should also release it (it resumes acquisition); a small visible change.'
+
+- id: ADR-HAL-FRONTEND-IDLE-COMMIT
+  title: 'Staged front-end settings reach the hardware at Arm, or at the owner''s commit point while nothing is armed'
+  status: accepted
+  date: '2026-11-08'
+  context: 'Under the HAL''s stage-and-commit rule a stopped scope would not switch its relays until the next RUN; the CML switches them while stopped and redraws the held record at once.'
+  decision: 'A FrontEnd.Set staged while nothing is armed is applied at the owner''s next commit point (Platform.Service); an armed capture never sees a change under it, and the next Arm is a commit arm all the same.'
+  consequences:
+  - 'Conformance clause stage-idle; implemented on the CML, the SDS800X HD, the simulated board and the fake.'
+
+- id: ADR-RUN-CONTROL-CML-RULES
+  title: 'Run control follows the SDS1000CML+''s rules on every scope'
+  status: accepted
+  date: '2026-11-08'
+  context: 'Moving the CML''s run control into the instrument model met small differences between the two.'
+  decision: 'Each SINGLE press is a fresh shot (the model counts shots); the owner''s own stop (a spent shot or a mask stop) always lands; RUN releases a mask stop-on-fail mark and SINGLE leaves it; STOP shows the whole stored record re-read deep, a finished SINGLE its live frame then the full record, and an average stays shown.'
+  consequences:
+  - 'The SDS800X HD and the demo gain the same behaviour; SINGLE releasing the mask mark is ADR-SINGLE-AFTER-MASK-STOP (proposed).'
