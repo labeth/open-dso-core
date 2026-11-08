@@ -4,6 +4,7 @@ package synth
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -144,7 +145,16 @@ func makeQuad(c *ctx) error {
 	l := c.pair()
 	l.Add(0, 0, 3*per)
 	QuadMoves(l, moves, per, 10*per)
-	c.done("Quadrature", 10/per, Truth{Bytes: append([]int{}, moves...)}, l.A, l.B)
+	// the decoder's unit a step: 1 forward, 0 back; read with the lines
+	// the other way round, each step the other way
+	fwd, back := make([]int, len(moves)), make([]int, len(moves))
+	for i, m := range moves {
+		if m == 1 {
+			fwd[i] = 1
+		}
+		back[i] = 1 - fwd[i]
+	}
+	c.done("Quadrature", 10/per, Truth{Bytes: fwd, Mirrored: back}, l.A, l.B)
 	return nil
 }
 
@@ -248,10 +258,12 @@ func makeCaliper(c *ctx) error {
 	l := c.pair()
 	l.Add(0, 0, 20e-3)
 	var want []int
+	var msgs []string // a reading each, 30 ms apart: a record framed to one holds that one
 	for _, v := range d {
 		CaliperFrame(l, v, false, false, 80e-6, 30e-3)
 		want = append(want, v&0xff, v>>8&0xff, 0)
+		msgs = append(msgs, fmt.Sprintf("%02X %02X 00 %smm", v&0xff, v>>8&0xff, strconv.FormatFloat(float64(v)/100, 'f', -1, 64)))
 	}
-	c.done("Caliper", 200e3, Truth{Bytes: want}, l.A, l.B)
+	c.done("Caliper", 200e3, Truth{Bytes: want, Messages: msgs}, l.A, l.B)
 	return nil
 }
