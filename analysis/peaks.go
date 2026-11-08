@@ -49,7 +49,9 @@ func hannGain(d float64) float64 {
 
 // Peaks finds up to maxPeaks peaks in a magnitude spectrum db (dB, bin k at
 // k*binHz) as the web does (peaks.js detectPeaks): a bin above its two
-// neighbours on each side and less than 50 dB below the strongest bin, its
+// neighbours on each side (bin 1, next to DC, above bin 0 and its two
+// neighbours above it: a tone with one period in the window) and less than
+// 50 dB below the strongest bin, its
 // frequency refined by a parabola through the bin and its neighbours. The
 // strongest maxPeaks are kept and returned in frequency order, which holds
 // still frame to frame where a magnitude ranking would jitter.
@@ -69,11 +71,11 @@ func Peaks(db []float64, binHz float64, maxPeaks int) []Peak {
 	}
 	floor := top + PeakFloorDB
 	var ps []Peak
-	for k := 2; k < len(db)-2; k++ {
+	for k := 1; k < len(db)-2; k++ {
 		b := db[k]
 		// The floor first: most bins of a spectrum lie under it (the tests
 		// have no side effects, so their order changes nothing else).
-		if !(b > floor && b > db[k-1] && b >= db[k+1] && b > db[k-2] && b >= db[k+2]) {
+		if !(b > floor && b > db[k-1] && b >= db[k+1] && (k < 2 || b > db[k-2]) && b >= db[k+2]) {
 			continue
 		}
 		a, c := db[k-1], db[k+1]
