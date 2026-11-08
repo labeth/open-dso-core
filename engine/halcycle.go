@@ -63,6 +63,7 @@ type HALCycle struct {
 	placed  []bool                // the channels whose extent places the trigger committed
 	replace bool                  // a placing extent moved: the trigger is placed again
 	avg     average               // the average of a board that runs none (halaverage.go)
+	stopped stoppedRecord         // the stopped record shown whole (halstopped.go)
 	running bool
 
 	mu     sync.Mutex
@@ -143,24 +144,34 @@ func (c *HALCycle) Claim(ctx context.Context) bool {
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-1001
 func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 	s, gen := c.inst.Wanted()
+	committed, wasRunning := false, c.running
 	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need || c.replace {
 		c.stopArmed()
 		c.need, c.replace = need, false
 		c.commitState(s, gen)
+		committed = true
 	}
 	if !c.running {
 		c.stopArmed()
+		if cp, ok := c.stoppedPlan(committed, wasRunning); ok {
+			return cp, true
+		}
 		c.idle(ctx)
 		return Capture{}, false
 	}
+	c.livePlan()
 	return Capture{Normal: true, Norm: c.cur.Sweep != hal.Auto}, true
 }
 
 // Watch aborts a waiting capture when the state or the leased record need
-// changed or LONG work was posted.
-// TRLC-LINKS: REQ-DSO-008
+// changed or LONG work was posted; a STOP alone lets the capture finish on
+// a board that shows its stopped record whole (halstopped.go).
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (c *HALCycle) Watch(bool) Interrupt {
-	if c.inst.Generation() != c.gen || c.inst.HasWork() || c.inst.RecordNeed() != c.need || c.replace {
+	if gen := c.inst.Generation(); gen != c.gen || c.inst.HasWork() || c.inst.RecordNeed() != c.need || c.replace {
+		if gen != c.gen && c.watchStop() {
+			return Continue
+		}
 		return Abort
 	}
 	return Continue
@@ -184,10 +195,16 @@ func (c *HALCycle) Fault(err, haltErr error) {
 	}
 }
 
-// Frame reads the main window of every enabled channel of the ready
-// record into one frame and reports the run state it was captured in.
+// Frame reads the screen window of every enabled channel of the ready
+// record into one frame (the board's own main window when its readout
+// places none) and reports the run state it was captured in; a stopped
+// pass, or a capture a STOP landed in, shows the record whole
+// (halstopped.go).
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-1003
-func (c *HALCycle) Frame(ctx context.Context, _ Capture, a Armed) (*sample.Frame, Verdict, bool) {
+func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Frame, Verdict, bool) {
+	if cp.Replay {
+		return c.stoppedFrame(ctx)
+	}
 	st := a.Status
 	if st.Triggered && !st.Forced {
 		c.inst.SetRun(instrument.Triggered)
@@ -199,27 +216,27 @@ func (c *HALCycle) Frame(ctx context.Context, _ Capture, a Armed) (*sample.Frame
 		_ = c.b.Acquirer().Stop()
 		return nil, Verdict{}, false
 	}
-	var ws []hal.Window
-	if lim := c.b.Readout().Limits(); lim.ChannelsPerWindow == 1 {
-		for _, ch := range on {
-			ws = append(ws, hal.Window{Role: hal.Main, Channels: []int{ch}})
+	if s, _ := c.inst.Wanted(); c.keepsRecords() && c.stopOnly(s) {
+		c.stopped.due = true // the STOP landed in this capture: it shows whole
+		return c.stoppedFrame(ctx)
+	}
+	w := hal.Window{Role: hal.Main}
+	if sr, ok := c.recordReader(); ok {
+		var err error
+		// a peak envelope of the screen, unless a lease needs the samples
+		if w, err = sr.ScreenWindow(hal.ScreenRequest{PosFrac: c.posFrac(), Envelope: c.need == (instrument.RecordNeed{})}); err != nil {
+			c.cfg.Logf("readout: %v", err)
+			_ = c.b.Acquirer().Stop()
+			return nil, Verdict{}, false
 		}
-	} else {
-		ws = []hal.Window{{Role: hal.Main, Channels: on}}
 	}
-	fs := make([]*sample.Frame, len(ws))
-	for i := range fs {
-		fs[i] = &sample.Frame{}
-	}
-	if err := c.b.Readout().Read(ctx, hal.ReadRequest{Windows: ws}, fs, c.b.Platform().Service); err != nil {
+	f, err := c.read(ctx, w)
+	if err != nil {
 		c.cfg.Logf("readout: %v", err)
 		_ = c.b.Acquirer().Stop()
 		return nil, Verdict{}, false
 	}
-	f := fs[0]
-	for _, g := range fs[1:] {
-		f.Traces = append(f.Traces, g.Traces...)
-	}
+	c.stopped.due = c.keepsRecords()
 	c.learn(f)
 	if c.avg.on {
 		c.avg.add(f)
@@ -232,6 +249,37 @@ func (c *HALCycle) Frame(ctx context.Context, _ Capture, a Armed) (*sample.Frame
 		_, v.MaskStop = c.cfg.Mask.Test(f, c.posFrac(), c.cur.Mode == hal.Average)
 	}
 	return f, v, true
+}
+
+// read reads window w of every enabled channel of the stored record into
+// one frame: one window a channel on a board that reads one channel a
+// window.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-1003
+func (c *HALCycle) read(ctx context.Context, w hal.Window) (*sample.Frame, error) {
+	on := c.cur.Request().Channels
+	var ws []hal.Window
+	if lim := c.b.Readout().Limits(); lim.ChannelsPerWindow == 1 {
+		for _, ch := range on {
+			x := w
+			x.Channels = []int{ch}
+			ws = append(ws, x)
+		}
+	} else {
+		w.Channels = on
+		ws = []hal.Window{w}
+	}
+	fs := make([]*sample.Frame, len(ws))
+	for i := range fs {
+		fs[i] = &sample.Frame{}
+	}
+	if err := c.b.Readout().Read(ctx, hal.ReadRequest{Windows: ws}, fs, c.b.Platform().Service); err != nil {
+		return nil, err
+	}
+	f := fs[0]
+	for _, g := range fs[1:] {
+		f.Traces = append(f.Traces, g.Traces...)
+	}
+	return f, nil
 }
 
 // posFrac is the trigger's place across the screen in the committed
@@ -296,9 +344,10 @@ func (c *HALCycle) SingleArmed() bool { return c.running && c.cur.Single }
 // TRLC-LINKS: REQ-DSO-011
 func (c *HALCycle) SingleGen() uint64 { return c.inst.Shots() }
 
-// TakeForce takes the instrument's pending forced trigger.
+// TakeForce takes the instrument's pending forced trigger, or the one that
+// ends a capture a STOP landed in (halstopped.go).
 // TRLC-LINKS: REQ-DSO-011
-func (c *HALCycle) TakeForce() bool { return c.inst.TakeForce() }
+func (c *HALCycle) TakeForce() bool { return c.stopForceDue() || c.inst.TakeForce() }
 
 // ForcePending looks at the instrument's pending forced trigger.
 // TRLC-LINKS: REQ-DSO-011
