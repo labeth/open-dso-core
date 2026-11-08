@@ -18,8 +18,27 @@ type runMemory struct {
 	shots uint64 // counts the shots armed: every SINGLE press is one
 }
 
-// The acquisition modes by the number Controls and Stats name them with.
+// The acquisition modes by the number Controls and Stats name them with:
+// normal, average, ERES, peak and precision (HighRes from the precision
+// words, State.Precision).
 var acqModes = [...]hal.AcqMode{hal.Normal, hal.Average, hal.HighRes, hal.PeakDetect, hal.HighRes}
+
+// acqPrecision is the precision mode's number.
+const acqPrecision = 4
+
+// acqModeNumber is state s's mode as Controls and Stats number it.
+// TRLC-LINKS: REQ-DSO-012
+func acqModeNumber(s State) int {
+	if s.Mode == hal.HighRes && s.Precision {
+		return acqPrecision
+	}
+	for i, md := range acqModes[:acqPrecision] {
+		if s.Mode == md {
+			return i
+		}
+	}
+	return 0
+}
 
 // SetTimebases gives the timebase ladder SetTdiv snaps to (the profile's);
 // without one any positive timebase is taken.
@@ -43,14 +62,10 @@ func (m *Model) Snapshot() Stats {
 		TrigRising: s.Trigger.Slope() != hal.Falling, TrigSource: s.Trigger.Source().Index,
 		TrigType: int(s.Trigger.running()), TrigQual: s.Qual, HoldoffS: s.Trigger.Active().HoldoffS,
 		AvgCount: s.Averages, EresLen: s.EresLen, ETS: s.ETS, MemDepth: s.Depth,
+		AcqMode: acqModeNumber(s), PrecisionRateHz: s.PrecisionRateHz,
 		Roll:       run == Rolling,
 		SerialMode: s.SerialMode, SerialSet: len(s.Serial.Bytes) > 0 || len(s.Serial.Pattern) > 0,
 		TriggerBackend: be.Trigger, SerialBackend: be.Serial,
-	}
-	for i, md := range acqModes[:4] {
-		if s.Mode == md {
-			st.AcqMode = i
-		}
 	}
 	if last != nil {
 		st.Seq, st.Published = last.Seq, last.Seq
@@ -269,6 +284,18 @@ type TypeAvail struct {
 	Why  string
 }
 
+// SetTrigLevel stages the running type's level, volts at its source's
+// tip, as the board placed it on its level grid; the level is set from
+// now on (State.LevelSet).
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
+func (m *Model) SetTrigLevel(v float64) {
+	m.set(func(s *State) {
+		if s.Trigger.SetLevel(v, len(s.Channels)) == nil {
+			s.LevelSet = true
+		}
+	})
+}
+
 // SetHoldoff stages the running type's holdoff (0: off) and returns it.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetHoldoff(sec float64) float64 {
@@ -321,7 +348,18 @@ func (m *Model) SetAcqMode(md int) {
 	if md < 0 || md >= len(acqModes) {
 		md = 0
 	}
-	m.set(func(s *State) { s.Mode = acqModes[md] })
+	m.set(func(s *State) { s.Mode, s.Precision = acqModes[md], md == acqPrecision })
+}
+
+// SetPrecisionRate keeps the precision words' rate, as the board resolved
+// it (a positive finite rate; anything else leaves it), and returns it.
+// TRLC-LINKS: REQ-DSO-012
+func (m *Model) SetPrecisionRate(hz float64) float64 {
+	if !(hz > 0) || math.IsInf(hz, 0) {
+		return m.State().PrecisionRateHz
+	}
+	m.set(func(s *State) { s.PrecisionRateHz = hz })
+	return hz
 }
 
 // SetAvgCount sets the average's frame count.
