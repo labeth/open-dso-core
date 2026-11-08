@@ -931,3 +931,39 @@ decisions:
   decision: 'otactl sends the image''s size and SHA-256; the agent verifies them after writing and before making the slot current, and refuses a mismatch. This guards against corruption in transfer or storage; it is not signing and proves nothing about who built the image.'
   consequences:
   - 'One hash over the image per update; to confirm with the owner that this falls outside the excluded security features.'
+
+- id: ADR-DEMO-ONE-COMPOSITION
+  title: 'The demo is a device main''s composition plus host bits'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The demo composed its own display engine, product name and web lists.'
+  decision: 'scopeapp.Describe records each scope''s device composition in the core; TestCompositionsAgree fails on any demo difference not listed with a reason in simdemo.Differences.'
+  consequences:
+  - 'A scope''s composition change re-runs its demotest to rewrite the core fixture.'
+
+- id: ADR-HAL-VERTICAL-LISTS
+  title: 'Probe and bandwidth lists are profile data'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The web''s probe and bandwidth lists lived in scope web code the demo cannot reach.'
+  decision: 'hal.Profile.Vertical holds them and scopeweb defaults to them.'
+  consequences:
+  - 'The SDS800X HD device main lost its own web builder.'
+
+- id: ADR-PANEL-KEY-TABLE
+  title: 'A board publishes its panel''s key table'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The demo panel was hand-written and could send keys the real panel never does.'
+  decision: 'hal/keytable is each board''s table of panel names, UI names, release reporting, channel selection and knob step shape; the simulated board makes events through it and the demo layout is checked against it both ways.'
+  consequences:
+  - 'The SDS800X HD''s profile input names became core names; a demo turn of n detents on a ladder knob arrives as n events, as on the real panel.'
+
+- id: ADR-DEMO-REPLAY-VERBATIM
+  title: 'A replayed capture is the record word for word'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The same data through the same code must give the same results.'
+  decision: 'At the capture''s sample interval the simulated record is the capture with its format, scale and trigger; elsewhere a repeating signal. Captures carry the scope''s v2 raw frame and its reported fields, compared exactly.'
+  consequences:
+  - 'Bench captures from the real CML are the evidence of agreement; replay across code formats is refused.'
