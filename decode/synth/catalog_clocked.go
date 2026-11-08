@@ -57,7 +57,22 @@ func makePS2(c *ctx) error {
 	for _, v := range d {
 		PS2Frame(l, v, false, false, 80e-6, 300e-6)
 	}
-	c.done("PS/2", 1e6, Truth{Bytes: d}, l.A, l.B)
+	// the messages are a key's scan codes: a make code, or F0 and the
+	// code (its break)
+	var msgs []string
+	brk := false
+	for _, v := range d {
+		if v == 0xF0 {
+			brk = true
+			continue
+		}
+		m := fmt.Sprintf("%02X", v)
+		if brk {
+			m = "F0 " + m
+		}
+		msgs, brk = append(msgs, m), false
+	}
+	c.done("PS/2", 1e6, Truth{Bytes: d, Messages: msgs}, l.A, l.B)
 	return nil
 }
 
