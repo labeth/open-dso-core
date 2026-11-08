@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/labeth/open-dso-core/decode/synth"
+	"github.com/labeth/open-dso-core/siggen"
 )
 
 // synthBus is the bus s asks for at sr samples a second (0: its natural
@@ -248,5 +249,33 @@ func TestStepperFeatureIsItsPulse(t *testing.T) {
 	r := Stepper(step, dir, 1/sr, ClockedCfg{})
 	if want := 50e-6 * sr; !r.OK || r.Feature < 0.9*want || r.Feature > 1.1*want {
 		t.Errorf("feature %g samples, want the STEP pulse's %g", r.Feature, want)
+	}
+}
+
+// An I2C bus read at a few samples a bit is no Manchester bus: its SDA
+// line's bursts between idles read as frames of one word each ("00 | 00 |
+// 00 | 00", the demo scope's 200 kHz source on a 2048-sample record of 5
+// ms), and a Manchester frame is a preamble and data.
+// TRLC-LINKS: REQ-DSO-018
+func TestAutodetectI2CBurstsAreNoManchester(t *testing.T) {
+	sda, err := siggen.Parse("i2c.sda,200e3,3.3,1.65,addr=0x24,rw=w,data=55aa0ff0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	scl, err := siggen.Parse("i2c.scl,200e3,3.3,1.65,addr=0x24,rw=w,data=55aa0ff0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code := func(v float64) uint8 { return uint8(46 + v/3.3*165) }
+	const n, dt = 2048, 5e-3 / 2048
+	for k := range 32 {
+		a, b := make([]uint8, n), make([]uint8, n)
+		for i := range a {
+			at := float64(k)*13e-6 + float64(i)*dt
+			a[i], b[i] = code(sda.V(at)), code(scl.V(at))
+		}
+		if r, _ := AutodetectFast(a, b, dt, "hex"); r.Proto == protoManchester {
+			t.Errorf("start %d: %s %q", k, r.Proto, r.Text)
+		}
 	}
 }

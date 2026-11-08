@@ -280,6 +280,12 @@ func scoreResult(r Result) float64 { //nolint:gocyclo // one self-contained rule
 			return -1e9
 		}
 		c := kinds(kindStart, kindFrameError)
+		// A frame is a preamble and data: frames of one word each, between
+		// idles, are a line's bursts read at a few samples a half bit (an
+		// I2C SDA line at two samples a bit read "00 | 00 | 00 | 00")
+		if c[0] >= 2 && len(r.Bytes) <= c[0] {
+			return -1e9
+		}
 		return float64(len(r.Bytes)*8 + c[0]*10 - c[1]*30)
 	case protoSENT:
 		// OK already gates on >=1 CRC-4-valid frame; score by validated frames.
