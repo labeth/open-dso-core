@@ -789,8 +789,8 @@ const (
 // bus's shortest feature (readableFeature samples), up to messageRecords
 // new records at each; the timebase goes back
 // after, messageTimebase choosing the fastest that shows the message. m
-// when no step measures one. idle asks for a record that also shows the
-// idle between two messages (uartIdle reads it).
+// when no step measures one. idle asks for a record that also shows a
+// UART's idle between two messages (uartIdle).
 // TRLC-LINKS: REQ-DSO-223
 func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMsgs {
 	if len(c.tdivs) == 0 || !(featureS > 0) {
@@ -845,7 +845,7 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMs
 			// a screen of slow frames takes its own time to capture
 			l := c.detectWith(true, true, accept, decodeAt, decimatedWait+time.Duration(20*at*float64(time.Second)))
 			if l.found && l.sampleS > 0 {
-				if got := msgsOf(l.res, l.sampleS, valid); got.longest > 0 && (!idle || got.idle > 0) {
+				if got := msgsOf(l.res, l.sampleS, valid); got.longest > 0 && (!idle || uartIdle(got) > 0) {
 					got.startPulse(line, anaPackets(l.res, valid), l.sampleS)
 					return got
 				}
@@ -892,11 +892,13 @@ func sessionOf(res decode.Result, sampleS float64) float64 {
 func (c *Controller) frameBus(featureS float64, auto bool, session float64) string {
 	m := c.measureMsgs()
 	// A UART's frame start is the idle between its messages: a screen that
-	// holds a message and no idle between two (where the trigger fell in a
-	// message shorter than the screen) is read again slower, one that shows
-	// it, so the trigger AUTO chooses does not hang on where the record
-	// started (the idle trigger one AUTO, the edge the next).
-	uartNoIdle := c.snap().decProto == framecalc.ProtoUART && m.longest > 0 && m.idle == 0
+	// does not show it as longer than a message's own high times (no idle
+	// between two messages where the trigger fell in one shorter than the
+	// screen, or a record too coarse to tell the idle from a character's
+	// stop bits) is read again slower, until one shows it, so the trigger
+	// AUTO chooses does not hang on which record it measured (the idle
+	// trigger one AUTO, the edge the next).
+	uartNoIdle := c.snap().decProto == framecalc.ProtoUART && m.longest > 0 && uartIdle(m) == 0
 	if auto && (m.longest == 0 || uartNoIdle) {
 		m = c.measureSlower(m, featureS, uartNoIdle)
 	}
