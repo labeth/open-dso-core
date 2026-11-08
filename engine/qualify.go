@@ -350,29 +350,13 @@ func QualOf(p TrigParams) TrigQual {
 	return TrigQual{VideoStd: p.VideoStd, VideoLine: p.VideoLine, VideoNeg: p.VideoNeg, PulseLvl: p.PulseLvlFrac, PulseMinNs: p.PulseWMinNs, PulseMaxNs: p.PulseWMaxNs, PulseCond: p.PulseCond, SlopeLo: p.SlopeLoFrac, SlopeHi: p.SlopeHiFrac, SlopeMinNs: p.SlopeTMinNs, SlopeMaxNs: p.SlopeTMaxNs, SlopeCond: p.SlopeCond}
 }
 
-// OrderPair reads a qualifier's two limits as a range whichever way round
-// they came: an inverted pair (W max under W min, slope High under Low, from
-// the web or SCPI) would never trigger. A zero limit is "unset"
-// (e.g. T max under "<min") and is left where it is.
+// OrderPair is instrument.OrderPair.
 // TRLC-LINKS: REQ-DSO-011
-func OrderPair(lo, hi float64) (float64, float64) {
-	if lo > hi && hi > 0 {
-		return hi, lo
-	}
-	return lo, hi
-}
+func OrderPair(lo, hi float64) (float64, float64) { return instrument.OrderPair(lo, hi) }
 
-// ClampFrac clamps a level fraction to [0, 1].
+// ClampFrac is instrument.ClampFrac.
 // TRLC-LINKS: REQ-DSO-011
-func ClampFrac(f float64) float64 {
-	if f < 0 {
-		return 0
-	}
-	if f > 1 {
-		return 1
-	}
-	return f
-}
+func ClampFrac(f float64) float64 { return instrument.ClampFrac(f) }
 
 // QualExtent is what the captures taught about each channel's code range.
 type QualExtent struct {

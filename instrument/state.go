@@ -33,8 +33,17 @@ type State struct {
 	Mode     hal.AcqMode
 	Averages int // the average's frame count (Mode Average)
 	EresLen  int // the high-resolution filter's length (Mode HighRes)
-	ETS      bool
-	Trigger  Trigger
+	// Precision is Mode HighRes from the board's precision words (a
+	// hardware filter at PrecisionRateHz), not the boxcar of EresLen; the
+	// rate is kept whatever the mode, as the user set it (0: the board's).
+	Precision       bool
+	PrecisionRateHz float64
+	ETS             bool
+	Trigger         Trigger
+	// LevelSet says the trigger level was set: until then a board may keep
+	// the level it powered up with (the SDS1000CML+'s boot comparator),
+	// which Trigger's level does not name.
+	LevelSet bool
 	// Qual is the UI model's pulse, slope and video settings: levels as
 	// fractions of the source's swing, which the owner places on the swing
 	// it learns from the records, for a type whose configuration says so
@@ -71,8 +80,9 @@ func (s State) Equal(o State) bool {
 		}
 	}
 	return s.TimeDivS == o.TimeDivS && s.DelayS == o.DelayS && s.Depth == o.Depth && s.Mode == o.Mode &&
-		s.Averages == o.Averages && s.EresLen == o.EresLen && s.ETS == o.ETS &&
-		s.Trigger.Equal(o.Trigger) && s.Qual == o.Qual && s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running &&
+		s.Averages == o.Averages && s.EresLen == o.EresLen && s.Precision == o.Precision &&
+		s.PrecisionRateHz == o.PrecisionRateHz && s.ETS == o.ETS &&
+		s.Trigger.Equal(o.Trigger) && s.LevelSet == o.LevelSet && s.Qual == o.Qual && s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running &&
 		s.SerialMode == o.SerialMode && s.Serial.Equal(&o.Serial)
 }
 
