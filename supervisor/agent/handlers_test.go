@@ -399,3 +399,27 @@ func TestAppLifecycleHandlersDriveSupervisor(t *testing.T) {
 		t.Fatalf("app.restart: %s", resp.Err)
 	}
 }
+
+// An update without its checksum, or with the wrong one, is refused and the
+// active slot stays as it was.
+// TRLC-LINKS: REQ-DSO-118
+func TestAppUpdateNeedsItsChecksum(t *testing.T) {
+	a := testAgent(t)
+	_ = a.store.Init()
+	src := filepath.Join(t.TempDir(), "newapp")
+	if err := os.WriteFile(src, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range []string{
+		fmt.Sprintf(`{"src":%q}`, src),
+		fmt.Sprintf(`{"src":%q,"sha256":"%064d"}`, src, 0),
+	} {
+		resp := a.Dispatch([]byte(`{"cmd":"app.update","args":` + args + `}`))
+		if resp.OK {
+			t.Errorf("app.update %s was taken", args)
+		}
+		if got := a.store.Active(); got != slots.SlotA {
+			t.Errorf("after %s active = %s, want A", args, got)
+		}
+	}
+}

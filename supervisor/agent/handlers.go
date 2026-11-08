@@ -273,18 +273,17 @@ func hAppUpdate(a *Agent, args json.RawMessage) (any, error) {
 	if p.Src == "" {
 		return nil, errors.New("app.update: src required")
 	}
-	if p.SHA != "" {
-		got, err := slots.FileSHA256(p.Src)
-		if err != nil {
-			return nil, err
-		}
-		if !strings.EqualFold(got, p.SHA) {
-			return nil, fmt.Errorf("app.update: sha256 mismatch (got %s)", got)
-		}
+	if err := checkImage("app.update", p.Src, p.SHA); err != nil {
+		return nil, err
 	}
 	target := slots.Other(a.store.Active())
 	sum, err := a.store.Install(target, p.Src)
 	if err != nil {
+		return nil, err
+	}
+	// The slot copy is read back before it becomes current: a write that
+	// went wrong leaves the active slot as it was.
+	if err := checkImage("app.update", a.store.BinPath(target), p.SHA); err != nil {
 		return nil, err
 	}
 	if err := a.store.SetActive(target); err != nil {
@@ -340,14 +339,8 @@ func hAgentUpdate(a *Agent, args json.RawMessage) (any, error) {
 	if p.Src == "" {
 		return nil, errors.New("agent.update: src required")
 	}
-	if p.SHA != "" {
-		got, err := slots.FileSHA256(p.Src)
-		if err != nil {
-			return nil, err
-		}
-		if !strings.EqualFold(got, p.SHA) {
-			return nil, fmt.Errorf("agent.update: sha256 mismatch (got %s)", got)
-		}
+	if err := checkImage("agent.update", p.Src, p.SHA); err != nil {
+		return nil, err
 	}
 	cur := a.AgentSlot()
 	target, targetPath := "B", a.cfg.AgentB
@@ -356,6 +349,9 @@ func hAgentUpdate(a *Agent, args json.RawMessage) (any, error) {
 	}
 	sum, err := copyExecFile(p.Src, targetPath)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkImage("agent.update", targetPath, p.SHA); err != nil {
 		return nil, err
 	}
 	if err := writeText(a.cfg.AgentActive, target+"\n"); err != nil {
@@ -456,4 +452,24 @@ func writeText(path, s string) error {
 // TRLC-LINKS: REQ-DSO-119
 func (a *Agent) markIntent(kind string) {
 	_ = os.WriteFile(filepath.Join(a.cfg.OTADir, "agent.intent"), []byte(kind+"\n"), 0o600)
+}
+
+// checkImage checks that file has the SHA-256 the update named. The sum is
+// required: an update is installed only as the exact bytes its sender
+// hashed. It guards against a transfer or a write going wrong; it is a plain
+// checksum, the same on every unit, and proves nothing about who built the
+// image.
+// TRLC-LINKS: REQ-DSO-118, REQ-DSO-119
+func checkImage(op, file, want string) error {
+	if want == "" {
+		return fmt.Errorf("%s: sha256 required", op)
+	}
+	got, err := slots.FileSHA256(file)
+	if err != nil {
+		return err
+	}
+	if !strings.EqualFold(got, want) {
+		return fmt.Errorf("%s: sha256 mismatch for %s (got %s)", op, file, got)
+	}
+	return nil
 }
