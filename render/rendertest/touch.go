@@ -84,7 +84,9 @@ func TouchScenes() []Scene {
 		{ID: "key:2", Label: "Delete <"},
 		{ID: "key:3", Label: "OK"},
 		{ID: "key:4", Label: "Cancel"},
-		{ID: "mcur:-1", Label: "< cursor"}, {ID: "mcur:1", Label: "cursor >"}, {ID: "mclear", Label: "Clear all"},
+		{ID: "mcur:-1", Label: "< cursor"},
+		{ID: "mcur:1", Label: "cursor >"},
+		{ID: "mclear", Label: "Clear all"},
 	}})
 	match.HUD.UI.Sheet.Tabs = []wsview.Tab{{Name: "BUS", Own: true, Active: true}}
 
