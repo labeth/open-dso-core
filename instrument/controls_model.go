@@ -15,6 +15,7 @@ var _ Controls = (*Model)(nil)
 type runMemory struct {
 	sweep hal.Sweep
 	set   bool
+	shots uint64 // counts the shots armed: every SINGLE press is one
 }
 
 // The acquisition modes by the number Controls and Stats name them with.
@@ -144,14 +145,18 @@ func (m *Model) SetNorm(on bool) {
 }
 
 // SetSingle arms a single shot in NORMAL, keeping the mode it replaced.
+// Every press is a fresh shot (Shots): a capture whose record was ready
+// before it does not complete it.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (m *Model) SetSingle() {
 	m.runChange(func(s *State, r *runMemory) { arm(s, s.Sweep, r) })
 }
 
-// arm arms a single shot in s; replaced is the trigger mode it replaces.
+// arm arms a single shot in s, a fresh one even when one is armed;
+// replaced is the trigger mode it replaces.
 // TRLC-LINKS: REQ-DSO-011
 func arm(s *State, replaced hal.Sweep, r *runMemory) {
+	r.shots++
 	if !r.set {
 		r.sweep, r.set = replaced, true
 		if replaced == hal.Single {

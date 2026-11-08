@@ -291,9 +291,10 @@ func (c *HALCycle) Running() bool { return c.running }
 // TRLC-LINKS: REQ-DSO-011
 func (c *HALCycle) SingleArmed() bool { return c.running && c.cur.Single }
 
-// SingleGen is the committed generation: a new SINGLE is a new state.
+// SingleGen counts the SINGLE presses: a capture whose record was ready
+// before a press does not complete its shot.
 // TRLC-LINKS: REQ-DSO-011
-func (c *HALCycle) SingleGen() uint64 { return c.gen }
+func (c *HALCycle) SingleGen() uint64 { return c.inst.Shots() }
 
 // TakeForce takes the instrument's pending forced trigger.
 // TRLC-LINKS: REQ-DSO-011
@@ -313,19 +314,20 @@ func (c *HALCycle) StopOnFail() { c.stopRun(false) }
 // TRLC-LINKS: REQ-DSO-011
 func (c *HALCycle) SingleDone(Verdict) { c.stopRun(true) }
 
-// stopRun stops the acquisition and the run, and gives the instrument the
-// stopped state unless a controller changed it meanwhile. A stop that is
-// not the shot's own (a failed mask test) leaves an armed shot armed.
+// stopRun stops the acquisition and the run (OwnerStop: whatever else a
+// controller changed meanwhile stays). A stop that is not the shot's own
+// (a failed mask test) leaves an armed shot armed.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (c *HALCycle) stopRun(spent bool) {
 	_ = c.b.Acquirer().Stop()
-	s := c.cur.Clone()
-	s.Running = false
-	if spent {
-		s.Single = false
+	c.inst.OwnerStop(spent)
+	for _, s := range []*instrument.State{&c.cur, &c.good} {
+		s.Running = false
+		if spent {
+			s.Single = false
+		}
 	}
-	c.cur, c.good, c.running = s, s, false
-	c.inst.Applied(s, c.gen)
+	c.running = false
 }
 
 // commitState commits s, or on a refusal the last state the board took,
@@ -340,6 +342,9 @@ func (c *HALCycle) commitState(s instrument.State, gen uint64) {
 		if applied, err = c.commit(c.good); err != nil {
 			c.cfg.Logf("settings: restoring the last state: %v", err)
 		}
+	}
+	if c.cfg.Mask != nil && applied.Running && !c.cur.Running && !applied.Single {
+		c.cfg.Mask.ResumeRun() // RUN releases a stop-on-fail latch; a SINGLE leaves it shown
 	}
 	c.cur, c.good, c.gen = applied, applied, gen
 	c.running = applied.Running

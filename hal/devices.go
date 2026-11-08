@@ -29,7 +29,9 @@ type ImageSet struct {
 // travels with the frame.
 type FrontEnd interface {
 	// Set stages c, snapped to what the hardware can do, or returns a
-	// *Refusal ("2 mV/div at 10x: below the 20 mV tip floor"). COMMIT.
+	// *Refusal ("2 mV/div at 10x: below the 20 mV tip floor"). What is
+	// staged is applied at the next Arm, or at the owner's next commit
+	// point (Platform.Service) while nothing is armed. COMMIT.
 	Set(ch int, c Channel) (Channel, error)
 	Get(ch int) Channel                // ANY: what is applied
 	Ladder(ch int) []Step              // ANY: for the current identity, probe and rate route

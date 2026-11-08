@@ -114,4 +114,21 @@ func TestFrameMaskStopsTheHALLoop(t *testing.T) {
 	if k := x.Counts(); k.Fail == 0 || !k.Stopped || inst.State().Running {
 		t.Fatalf("counts %+v, running %v", k, inst.State().Running)
 	}
+	// A SINGLE leaves the stop shown; RUN releases it.
+	x.SetMaskMode(MaskOff)
+	x.SetMaskMode(MaskStopFail)
+	x.stopped.Store(true)
+	for _, c := range []struct {
+		press   func()
+		stopped bool
+	}{{inst.SetSingle, true}, {func() { inst.SetRunning(false); inst.SetRunning(true) }, false}} {
+		inst.SetRunning(false)
+		_, cy := NewHALLoop(HALConfig{Board: b, Instrument: inst, Mask: x, IdleWait: time.Millisecond, WaitSlice: time.Millisecond})
+		cy.Plan(context.Background()) // stopped: committed
+		c.press()
+		cy.Plan(context.Background()) // the press committed
+		if x.Counts().Stopped != c.stopped {
+			t.Fatalf("stop-on-fail mark %v, want %v", x.Counts().Stopped, c.stopped)
+		}
+	}
 }

@@ -254,6 +254,39 @@ func (m *Model) Refused(err error) {
 	}
 }
 
+// Shots counts the single shots armed, one a SINGLE press: the owner
+// completes a shot only with a capture that served the newest press.
+// TRLC-LINKS: REQ-DSO-011
+func (m *Model) Shots() uint64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.runMem.shots
+}
+
+// SingleReplaced is the trigger mode an armed or spent single shot
+// replaced, which the next RUN brings back; set false when there is none.
+// TRLC-LINKS: REQ-DSO-011
+func (m *Model) SingleReplaced() (sweep hal.Sweep, set bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.runMem.sweep, m.runMem.set
+}
+
+// OwnerStop is the owner stopping the run itself: a completed shot (spent:
+// the shot is disarmed too) or a failed mask test with stop-on-fail (an
+// armed shot stays armed). Only the run control changes, whatever else a
+// controller changed meanwhile, and no generation moves: the owner knows
+// (OWNER).
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-014
+func (m *Model) OwnerStop(spent bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.want.Running = false
+	if spent {
+		m.want.Single = false
+	}
+}
+
 // SetRun records the acquisition's run state (OWNER).
 // TRLC-LINKS: REQ-DSO-008
 func (m *Model) SetRun(r RunState) {
