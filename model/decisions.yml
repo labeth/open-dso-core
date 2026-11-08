@@ -925,13 +925,13 @@ decisions:
 
 - id: ADR-UPDATE-INTEGRITY
   title: 'An update image is checked for size and digest before its slot becomes current'
-  status: proposed
+  status: accepted
   date: '2026-11-08'
   context: 'The fault bench installed a bit-flipped SDS800X HD image; it ran, stayed healthy and was confirmed. The owner excludes security and authentication features for their overhead.'
   decision: 'otactl sends the image''s size and SHA-256; the agent verifies them after writing and before making the slot current, and refuses a mismatch. This guards against corruption in transfer or storage; it is not signing and proves nothing about who built the image.'
   consequences:
   - 'One hash over the image per update; to confirm with the owner that this falls outside the excluded security features.'
-
+  - 'Implemented on the SDS800X HD: otactl sends size and SHA-256 (flags or a .sha256 manifest), checked as given and as written before the pointer write; each slot records its digest and a launch refuses a damaged app. The CML still accepts an update without a digest; its otactl always sends one.'
 - id: ADR-DEMO-ONE-COMPOSITION
   title: 'The demo is a device main''s composition plus host bits'
   status: accepted
@@ -1039,3 +1039,48 @@ decisions:
   decision: 'Recorded as a scope limit: such Morse is set by hand, not found by AUTO.'
   consequences:
   - 'The SDS800X HD decode area skips it with this reason.'
+
+- id: ADR-HD-RESTART-BOUND
+  title: 'The SDS800X HD bounds app restarts and boots'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The fault bench showed unbounded relaunches of a crashing app; SAFETY.txt wants three failed boots and then the vendor firmware.'
+  decision: 'otactl supervise starts a dead app at most three times a boot, then reboots through the board''s counted reboot; after three counted reboots it writes open/disable. A reboot or trial start that cannot be counted is not made: the previous slot runs, else the vendor firmware.'
+  consequences:
+  - 'Nothing on a unit starts the supervisor yet: the launch hook and the install payload need to carry it (owner decision).'
+
+- id: ADR-HD-FREERUN-FORCE-ROW
+  title: 'Free run on the vendor PL is its Force row'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The HAL requires FreeRun; the vendor PL has no untriggered arm.'
+  decision: 'FreeRun programs the Force row (both timeouts 1) and reports every record forced; leaving it restores the timebase''s timeouts.'
+  consequences:
+  - 'Conformance passes on the SDS800X HD with no skips.'
+
+- id: ADR-HD-PL-RELOAD-CHECK
+  title: 'The SDS800X HD notices a PL reload'
+  status: accepted
+  date: '2026-11-08'
+  context: 'A bitstream reload mid-run reset the PL without the firmware noticing.'
+  decision: 'Each arm, at most every 500 ms, reads the image identity and a start-up sentinel register (used only when it read back after start-up, UNVERIFIED on a unit); on a change the board quiesces, reruns its start-up with the last settings and counts it.'
+  consequences:
+  - 'A reload of the same image is caught only through the sentinel.'
+
+- id: ADR-WEB-CHANNEL-TOGGLES
+  title: 'Web channel toggles follow the scope when it reports channel state'
+  status: accepted
+  date: '2026-11-08'
+  context: 'The page''s channel toggles only showed or hid traces.'
+  decision: 'When the status carries on<n>, a toggle sets the channel and follows the status; otherwise it stays display-only.'
+  consequences:
+  - 'The CML page is unchanged (its status has no on<n>); the SDS800X HD''s toggles switch its channels.'
+
+- id: ADR-PROTOCOL-T0-AS-IS
+  title: 'Simulated protocol frames keep their lead before the first edge'
+  status: proposed
+  date: '2026-11-08'
+  context: 'Generator frames start 1.5-2 bit times after t=0 with idle lines; moving t=0 to the first edge breaks the trigger model''s tests and shifts data-match firings.'
+  decision: 'Left as is; since the trigger-firing model cuts the record at the firing edge, a flat autoset window may already be gone.'
+  consequences:
+  - 'To confirm with one simlab e2e rerun; owner to decide if the generator should change.'
