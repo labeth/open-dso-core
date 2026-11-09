@@ -617,8 +617,9 @@ func (c *Controller) frameTriggerAt(m busMsgs) (note string, lead float64, own b
 
 // serialVerdictWait bounds the wait for the board's word on a serial
 // trigger armed (instrument.Stats.SerialBackend): the commit that programs
-// it, a cycle or two.
-const serialVerdictWait = 5 * time.Second
+// it, and the records its levels are learned from (a line just switched on;
+// seconds where records come slowly).
+const serialVerdictWait = 10 * time.Second
 
 // serialRefusal is why the board cannot take the serial trigger just
 // armed, "" when it takes it or the engine says nothing of it (an engine
