@@ -38,6 +38,11 @@ func (h sessionHost) YieldStreams() {
 	}
 }
 
+// Beat advances the cycle's heartbeat: a session's long step (a stream
+// image's load, its drain's waits) beats between its steps.
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-294
+func (h sessionHost) Beat() { h.c.Beat() }
+
 // openSessions attaches the cycle to the board's sessions.
 // TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func (c *HALCycle) openSessions() {

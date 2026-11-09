@@ -36,8 +36,10 @@ type Model struct {
 	trig     trigHealth              // the hardware triggers dropped (NoteTrigger)
 	backends Backends
 	caps     func() hal.TrigCaps
-	busy     busy     // what the owner is busy with, the image (SetBusy, SetImage)
-	sourced  []func() // hear SetTrigSource (OnTrigSource)
+	busy     busy                            // what the owner is busy with, the image (SetBusy, SetImage)
+	sourced  []func()                        // hear SetTrigSource (OnTrigSource)
+	typed    []func(s *State, from TrigType) // project a type change (OnTrigType)
+	sloped   []func(s *State, sl hal.Slope)  // keep a slope the type has no setting for (OnTrigSlope)
 }
 
 // FrameSource gives a reader the newest published frame: the engine's

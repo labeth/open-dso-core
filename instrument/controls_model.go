@@ -246,7 +246,11 @@ func (m *Model) SetTrigSlope(rising bool) {
 		if rising {
 			sl = hal.Rising
 		}
-		_ = s.Trigger.SetSlope(sl, len(s.Channels))
+		if s.Trigger.SetSlope(sl, len(s.Channels)) != nil {
+			for _, fn := range m.sloped {
+				fn(s, sl)
+			}
+		}
 	})
 }
 
@@ -267,7 +271,16 @@ func (m *Model) SetTrigTypeOf(t TrigType) error {
 	if t < 0 || t >= NumTrigTypes {
 		return hal.Refuse("trigger type", "not a trigger type")
 	}
-	return m.Change(func(s *State) error { s.Trigger.Type = t; return nil })
+	return m.Change(func(s *State) error {
+		from := s.Trigger.Type
+		s.Trigger.Type = t
+		if from != t {
+			for _, fn := range m.typed {
+				fn(s, from)
+			}
+		}
+		return nil
+	})
 }
 
 // TrigTypes is every trigger type with whether the trigger's capabilities

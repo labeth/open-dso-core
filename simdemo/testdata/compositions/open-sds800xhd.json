@@ -15,6 +15,7 @@
       "owner": "core",
       "scpi": "scope",
       "settings.analog": "core",
+      "settings.controls": "core",
       "settings.extension": "core",
       "settings.slots": "core",
       "ui": "core",

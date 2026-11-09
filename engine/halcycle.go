@@ -90,6 +90,8 @@ type HALCycle struct {
 	scratch   []uint16    // the conditioning's working buffer
 	running   bool
 
+	beats atomic.Uint64 // the heartbeat (Beats)
+
 	mu       sync.Mutex
 	latest   *sample.Frame // the newest published frame
 	latestAt time.Time     // when it was published (SincePublish)
@@ -141,9 +143,14 @@ func (c *HALCycle) Consume() (*sample.Frame, bool) {
 	return c.latest, fresh
 }
 
-// Open attaches the cycle to the board's own stream sessions.
-// TRLC-LINKS: REQ-DSO-001, REQ-DSO-018
-func (c *HALCycle) Open() { c.openSessions() }
+// Open hands the board the heartbeat its LONG work beats between steps
+// (hal.BeatBoard) and attaches the cycle to the board's own stream
+// sessions.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-018, REQ-DSO-294
+func (c *HALCycle) Open() {
+	hal.HandBeat(c.b, c.Beat)
+	c.openSessions()
+}
 
 // Close ends the audio stream, the decoded stream, the roll view and a
 // board session still running.
@@ -163,17 +170,21 @@ func (c *HALCycle) Close() {
 	}
 }
 
-// Serve is the board's housekeeping and its sessions' requests.
-// TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
+// Serve is the board's sessions' requests, then its housekeeping (the
+// panel plane's staged words), as the SDS1000CML+'s own owner served its
+// decoded requests first. Every commit point beats the heartbeat.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-008, REQ-DSO-294
 func (c *HALCycle) Serve() {
-	c.b.Platform().Service()
+	c.beats.Add(1)
 	c.serveSessions()
+	c.b.Platform().Service()
 }
 
 // Claim runs posted LONG work with the acquisition stopped; the pass goes
 // on to commit the whole state again.
 // TRLC-LINKS: REQ-DSO-008
 func (c *HALCycle) Claim(ctx context.Context) bool {
+	c.inst.SetBusy("") // set again around a read and its processing
 	work := c.inst.TakeWork()
 	if len(work) == 0 {
 		return c.sessionStep(ctx) || c.decodedStep(ctx) || c.soundStep(ctx) || c.rollStep(ctx)
@@ -361,9 +372,12 @@ func (c *HALCycle) read(ctx context.Context, w hal.Window) (*sample.Frame, error
 	for i := range fs {
 		fs[i] = &sample.Frame{}
 	}
+	c.inst.SetBusy("reading") // the loading indicator of a long read (a progress the board reports)
 	if err := c.b.Readout().Read(ctx, hal.ReadRequest{Windows: ws}, fs, c.b.Platform().Service); err != nil {
+		c.inst.SetBusy("")
 		return nil, err
 	}
+	c.inst.SetBusy("processing") // until the pass is done
 	f := fs[0]
 	for _, g := range fs[1:] {
 		f.Traces = append(f.Traces, g.Traces...)
@@ -422,18 +436,27 @@ func (c *HALCycle) Publish(f *sample.Frame, _ Verdict, publish bool) {
 	}
 }
 
-// Done has nothing to note.
-// TRLC-LINKS: REQ-DSO-008
-func (c *HALCycle) Done(time.Time, time.Duration) {}
+// Done ends the pass's loading indicator.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-168
+func (c *HALCycle) Done(time.Time, time.Duration) { c.inst.SetBusy("") }
 
 // Pacing is the display's share of a core the board shares with it
 // (halpace.go); the board holds off itself.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-168
 func (c *HALCycle) Pacing() (holdoff, display time.Duration) { return 0, time.Duration(c.pace.Load()) }
 
-// Beat has no heartbeat to advance.
-// TRLC-LINKS: REQ-DSO-001
-func (c *HALCycle) Beat() {}
+// Beat advances the heartbeat: the loop calls it at every poll of a
+// wait and every slice of a pacing hold, a board's LONG work between its
+// steps (hal.BeatBoard), a board session's long step (its host's Beat).
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-294
+func (c *HALCycle) Beat() { c.beats.Add(1) }
+
+// Beats is the heartbeat: the commit points served (one a pass, one a
+// poll of a wait), the loop's beats and the beats of LONG work. It stands
+// still while nothing progresses: a pass that hangs, a wait that never
+// polls again, LONG work stuck inside a step. ANY.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-294
+func (c *HALCycle) Beats() uint64 { return c.beats.Load() }
 
 // Running reports the committed run.
 // TRLC-LINKS: REQ-DSO-008
