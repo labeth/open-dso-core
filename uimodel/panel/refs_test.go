@@ -128,6 +128,27 @@ func TestRefsExportForTheWeb(t *testing.T) {
 	}
 }
 
+// A reference stored from a trace on another 8-bit view (a 12-bit
+// converter's, 30 codes a division) reaches the web at its 25 a division:
+// the page's volts per code are the V/div over 25, so a stored square reads
+// the volts the live trace does.
+// TRLC-LINKS: REQ-DSO-218, REQ-DSO-227
+func TestRefsExportAtTheWebsCodesPerDiv(t *testing.T) {
+	c, eng, _ := newC(t)
+	eng.stats.TdivS = 100e-6
+	n := 4096
+	f := &sample.Frame{WinPoints: 2048, TriggerAt: 2048, Traces: []sample.Trace{{Codes8: make([]uint8, n), Valid: n, CodesPerDiv: 30}, {Ch: 1, Codes8: make([]uint8, n), Valid: n, CodesPerDiv: 30}}}
+	for i := range f.Codes8(0) {
+		f.Codes8(0)[i], f.Codes8(1)[i] = 128+90, 128-30 // 3 and -1 divisions
+	}
+	c.SetFrameSource(func(fn func(*sample.Frame)) { fn(f) })
+	c.captureRef(0)
+	a := c.RefsExport()[0]
+	if !a.Has || a.C1[0] != 128+75 || a.C2[0] != 128-25 {
+		t.Fatalf("codes %v, %v at 25 a division: want 203, 103", a.C1[0], a.C2[0])
+	}
+}
+
 // A web page's REF A/B are the scope's: it stores, hides and deletes a slot
 // as the phone's COMPARE rows do, the status names each store so a page reads
 // it again, the export carries the probes and the setup it was stored at,
