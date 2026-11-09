@@ -1291,7 +1291,8 @@ decisions:
     board streams at (Timebase.RollFromS, else the first of the ladder its planner takes in RollMode), starts
     the board''s stream of codes on the first two channels on, and keeps both lanes in Q8.8 in the sound ring
     at the rate the board delivers (hal.StreamBlock gains SampleS, the time between a block''s samples as
-    delivered; 0: the StreamSpec''s). A commit, posted work, STOP or RUN restarts it after a gap; the board''s
+    delivered; 0: the StreamSpec''s). Posted work, STOP or RUN restarts it after a gap, a commit too on a board
+    whose stream takes no commits (ADR-HAL-COMMITS-WHILE-STREAMING); the board''s
     lost blocks are counted. The board marks no crossings: marks and takes stay the CML''s.'
   consequences:
   - 'The SDS800X HD''s SOUND view and page stream; its rate is the roll stream''s.'
@@ -1350,9 +1351,9 @@ decisions:
     timebase.roll_from_s, the cycle rolls a committed state running AUTO at or past that timebase on a plain edge
     trigger with nothing that needs triggered records (NORMAL, a single shot, averaging, a protocol or zone
     trigger, a mask test, a Bode sweep, a leased record need, SOUND or a decoded stream each keep the captures):
-    it plans the state in the board''s roll mode at its own timebase, streams the channels on and publishes the
-    newest screen about every 40 ms (Roll, untriggered, uncovered samples held; the run state Rolling). A board
-    that refuses the roll plan captures until the next commit.'
+    it plans the state in the board''s roll mode at its own timebase, streams the channels its plan names and
+    publishes the newest screen of the channels on about every 40 ms (Roll, untriggered, uncovered samples held;
+    the run state Rolling). A board that refuses the roll plan captures until the next commit.'
   consequences:
   - 'A profile without roll_from_s keeps capturing: the SDS800X HD''s and the demo''s behaviour is unchanged.'
   - 'The SDS1000CML+ profile states 10 ms/div, the timebase its engine rolls from (RollMinTdiv); its profile
@@ -1389,12 +1390,13 @@ decisions:
     (ADR-HAL-STREAM-MARKS): STOP keeps the newest seconds as a take, NORMAL and SINGLE arm on the trigger''s
     marks (or SOUND''s gate) and keep the stretch around the mark that fires, SINGLE then stops the run. The
     audio stream asks the planner for a Stream plan with the "sound" feature first (the board''s audio rate),
-    else the fastest roll plan as before. A commit while SOUND holds is made in its step and the stream
-    starts again after a gap; no capture runs in between. The lanes are the plan''s first two channels.'
+    else the fastest roll plan as before. A commit while SOUND holds is made in its step, the stream going on
+    on a board whose stream takes commits (ADR-HAL-COMMITS-WHILE-STREAMING) and starting again after a gap on
+    any other; no capture runs in between. The lanes are the plan''s first two channels.'
   consequences:
   - 'The SDS800X HD gains STOP takes; its triggered takes say its stream marks nothing.'
-  - 'The SDS1000CML+ applies front-end settings while SOUND streams, without a gap; the HAL cycle restarts
-    the stream behind a gap: settled when the SDS1000CML+ runs the cycle, with the bench.'
+  - 'The SDS1000CML+ applies front-end settings while SOUND streams, without a gap; its board takes commits
+    while it streams, so the HAL cycle does the same there (ADR-HAL-COMMITS-WHILE-STREAMING).'
   - 'A lane choice from the tuner''s channel on a board with more channels than lanes is open.'
 
   - 'The SDS1000CML+ profile states 100 ms/div while its engine rolls from 10 ms/div (RollMinTdiv): the profile
@@ -1668,3 +1670,64 @@ decisions:
     CML can drop its hud.go at the switch.'
   - 'On the SDS800X HD and the demos the screen now says when a NORMAL capture waits and the BODE view arms its
     sweep and draws its curve (HALScope''s engine has the cycle''s publish age and the sweep).'
+
+- id: ADR-HAL-COMMITS-WHILE-STREAMING
+  title: 'A board whose stream takes commits keeps streaming through a setting; its blocks state their scale'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ applies settings while its roll and its audio stream run: each roll chunk is armed on
+    the trigger set then, its relays switch between chunks or stream words, data captured across a change of a
+    channel''s scale or in the front end''s settle after one is dropped and held over, its roll view is kept in
+    volts and drawn again at the new V/div, and its audio stream follows the front end block by block. The HAL
+    cycle stopped the board''s stream at every commit and started it again: the roll view emptied and SOUND
+    had a gap. A block carried codes without the scale they were captured at, so a view kept across a change
+    could not convert them.'
+  decision: 'hal.CommitStreamer is optional on a Streamer (TakesCommits): the board takes the front end and the
+    trigger committed while it streams, writing the front end between its blocks or chunks, arming each chunk
+    on the trigger staged then, and dropping (or marking Held) data captured across a scale change or in its
+    settle. hal.StreamBlock gains Scales, each channel''s volts of its codes as the front end stood when they
+    were captured. On such a board the HAL cycle commits a setting made while the roll view or SOUND streams in
+    its step, the stream going on, while the committed state streams under the same plan (the roll: the same
+    timebase, sample spacing, screen, content and channels; SOUND: the same lanes and rate); any other change
+    starts the stream again, as on a board that takes no commits. The roll view keeps its samples in volts,
+    each block converted at the scale it states (else the committed state''s), and is drawn at each channel''s
+    newest scale; SOUND''s lanes take each block''s scale. A roll stream started again under the same roll plan
+    (a loss, posted work) keeps the view, its first samples placed by the host clock after the newest ones and
+    the time between held at the last value, a peak view at its last (min, max) pair; a view leaves only with
+    the roll or a new roll plan. A lease that fails before its deadline is a loss: the stream starts again after
+    100 ms.'
+  consequences:
+  - 'The SDS1000CML+ board takes commits (its chunked roll, its peak roll on the stream image and its audio
+    stream); the SDS800X HD''s, the demo''s and the simulated board''s streams do not, and start again behind a
+    commit as before.'
+  - 'A stream loss on the HAL path now starts the stream again: the lease''s own deadline had been read after
+    its cancel, so every failure looked like the end of a drain and the stream stayed stopped.'
+  - 'The SDS1000CML+''s roll streams both channels whatever is on and its roll frames carry the channels on, so a
+    channel turned on in roll shows its history, as its own roll does.'
+
+- id: ADR-CML-ROLL-ON-BOARD
+  title: 'The SDS1000CML+''s roll stream, its roll-stream preference and its tuning knobs are its board''s'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ rolls in short chunks on any image or, with its roll-stream preference on, gap-free
+    on the stream image''s peak words; both, the preference and the debug route''s tuning knobs lived in its
+    engine, and its stacking route took its engine''s session. On the core''s cycle there is no engine.'
+  decision: 'The board rolls either way as its engine does: its planner answers a roll request with the
+    preference''s roll (acq.PlanRollPeak, peak pairs, both channels, the engine''s geometry, held equal by
+    TestBoardRollPlanIsTheEngines), Start loads the stream image (or the general one for chunks after it) and
+    streams, Lease turns the peak words into ordered view samples with the interleave offsets removed, groups
+    words past the largest bucket, and drops what a scale change or its 250 ms settle catches, placing what
+    follows by the host clock. The preference is the board''s (SetRollStream, RollStream); the engine''s setter
+    and status read it, and the HAL scope''s engine forwards it (panel.RollStreamer) and reports it in its
+    snapshot. A rolling state loads no trigger image and a STOP from roll keeps the image the roll ran on
+    (RUN rolls again without a load); an image load due on an image the board is already on is dropped. The
+    tuning knobs are the board''s (acq.Tuning; the engine reads them); the web''s tune route takes the board''s,
+    its stacking route the source it is given (the HAL scope''s engine, which posts the board''s session as
+    LONG work), else the engine''s; its status takes the DAC codes from the levels, so over the model alone the
+    codes, the level''s volts and the offsets read as over the engine.'
+  consequences:
+  - 'The device on its engine is unchanged: the same preference, the same knobs and defaults, the same routes
+    and bytes.'
+  - 'At the switch the composition passes the HAL scope''s engine with WithStacker; the roll stream, the knobs and
+    the status codes need nothing more.'
+

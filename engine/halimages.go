@@ -87,8 +87,8 @@ func (c *HALCycle) loadDueImage(ctx context.Context) bool {
 	want := c.img.due
 	c.img.due = nil
 	im, _, ok := c.images()
-	if want == nil || !ok {
-		return false
+	if want == nil || !ok || sameFeatures(want, im.Current().Features) {
+		return false // none due, or the board is on it already (a stream loaded it)
 	}
 	name := imageName(im, want)
 	c.stopArmed()

@@ -342,6 +342,9 @@ func (c *Controller) setZoomOff(f float64) error {
 // TRLC-LINKS: REQ-DSO-212
 func (c *Controller) setRollStream(on bool) error {
 	e, ok := c.eng.(rollStreamer)
+	if rs, has := c.eng.(interface{ RollStreams() bool }); has && !rs.RollStreams() {
+		ok = false // a HAL scope whose board rolls one way only
+	}
 	if !ok {
 		return errors.New("no roll stream in this engine")
 	}

@@ -149,10 +149,14 @@ func (e halEngine) ClearMaskFails() {
 }
 
 // Snapshot is the Model's with the mask test's counts, the frequency
-// response's state and what the board's converter checks found.
+// response's state, the board's roll-stream preference and what the
+// board's converter checks found.
 // TRLC-LINKS: REQ-DSO-135, REQ-DSO-014, REQ-DSO-066, REQ-DSO-231
 func (e halEngine) Snapshot() instrument.Stats {
 	st := e.Model.Snapshot()
+	if rs, ok := e.b.(RollStreamer); ok {
+		st.RollStream = rs.RollStream()
+	}
 	fillConverterHealth(e.b, &st)
 	fillSessionStatus(e.session(), &st)
 	if e.bode != nil {

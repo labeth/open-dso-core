@@ -28,6 +28,18 @@ type Streamer interface {
 	Faults() StreamFaults  // ANY
 }
 
+// CommitStreamer is optional on a Streamer: the board takes the front end
+// and trigger committed while it streams (Set and Program stage as ever),
+// writing the front end between its blocks or chunks and arming each chunk
+// on the trigger staged then, and every block states the scale its codes
+// were captured at (StreamBlock.Scales); data captured across a change of a
+// channel's scale, or in the front end's settle after one, it drops or
+// marks Held. The cycle then commits a setting while the stream goes on
+// instead of starting it again. ANY.
+type CommitStreamer interface {
+	TakesCommits() bool
+}
+
 // RingRecorder is optional on a Streamer: the stream runs while the record
 // memory keeps a ring of the same signal, and Freeze stops the ring at a
 // stream position so Readout can show it as a record. OWNER.
@@ -74,6 +86,12 @@ type StreamBlock struct {
 	// SampleS is the time between the block's samples as the board
 	// delivers them (PayloadCodes, PayloadChunks); 0: the StreamSpec's.
 	SampleS float64
+	// Scales are the volts of each channel's codes as its front end stood
+	// when they were captured (PayloadCodes, PayloadChunks; per channel,
+	// as Formats): a setting committed while the stream runs reaches the
+	// blocks captured after the board applied it. nil, or a channel's zero
+	// PerCode: the committed state's scale.
+	Scales []Scale
 }
 
 // Mark is a position the board flagged in a stream: where a setting
