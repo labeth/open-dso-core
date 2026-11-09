@@ -1607,3 +1607,64 @@ decisions:
   consequences:
   - 'The CML board''s FPGAStack takes the staged depth (or the request''s record words) as its engine''s session
     does; the web''s stacking route uses it once its source is the HAL scope''s engine.'
+
+- id: ADR-CML-LEVELS-OVER-MODEL
+  title: 'The SDS1000CML+ keeps its level and offsets as DAC codes beside the instrument model'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s trigger level and offsets are its DACs'' codes: the code stays where it is when the
+    source, its V/div or its probe changes and its volts move, a level knob step is one DAC step, and the settings
+    file keeps the code (level_code). Its levels (board.Levels) took the codes from its engine''s snapshot; on the
+    core''s cycle there is no engine. HALScope''s own levels and front end keep volts on the model''s terms (a level
+    on a float grid, an offset not clamped to the attenuator''s tier, a V/div snapped to the nearest step where the
+    CML refuses one off its ladder), so their read-backs differ from the CML''s.'
+  decision: 'Over the instrument model alone the SDS1000CML+''s levels run over board.ModelCodes, which keeps the
+    comparator''s and the offsets'' codes as the engine keeps them; Levels converts and keeps exactly what it does
+    over the engine, and projects the comparator''s level into the model at every level write, every change of a
+    channel (its front end''s projection) and every change of the trigger source (instrument.Model.OnTrigSource).
+    The board stages the comparator''s code from the model''s level with Levels.LevelCode, an exact round trip. The
+    CML''s own front end (projected into the model) and levels stay the controllers'' Analog and Levels (the UI
+    model, SCPI, the web and the settings) beside HALScope''s engine; board.PowerOn is the model''s power-on state,
+    the engine''s.'
+  consequences:
+  - 'The SCPI dialect, the settings file and the core''s HUD answer the same over the model alone as over the
+    engine (tests TestDialectOverTheModel, TestSettingsFileOverTheModel, TestCoreHUDOverTheModel).'
+  - 'At the switch the composition builds its levels over ModelCodes (the front end''s offset hook to the codes)
+    and passes HALScope''s engine with its own front end and levels to the panel, SCPI, the web and the settings;
+    the board''s trigger takes the comparator''s code from the model''s level.'
+  - 'The model keeps a slope and a source per trigger type; the SDS1000CML+ has one comparator source and slope
+    for every type. Settings restore the type first (ADR-SETTINGS-TYPE-FIRST), but a type picked on the panel or
+    over SCPI after a source still leaves the new type on its own source on the model: open for the switch.'
+
+- id: ADR-SETTINGS-TYPE-FIRST
+  title: 'A setup restores the trigger type before its slope and source'
+  status: proposed
+  date: '2026-11-09'
+  context: 'settings.Apply set the slope and the source and then the type. On a scope that keeps one slope and
+    source for every type (the SDS1000CML+''s engine) the order did not matter; on the instrument model, which keeps
+    them per type, the saved slope and source went to the type running at the restore and the saved type came up
+    with its own, so a setup saved on a pulse trigger on C2 came back on C1.'
+  decision: 'Apply sets the type first, then its slope and source.'
+  consequences:
+  - 'The SDS1000CML+ on its engine is unchanged; a HAL scope (the SDS800X HD, the demos) restores a setup''s slope
+    and source on its saved type.'
+
+- id: ADR-HAL-HUD-PARTS
+  title: 'The core''s HUD fills what the SDS1000CML+''s own HUD fills, from optional parts'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ draws its LCD from its own HUD (over its engine, front end and levels); the core''s HUD
+    over the instrument state lacked the wait for a trigger the hardware decides, the serial match, the display
+    invert, the zones and mask drawn, the BODE view''s arming and curve, the detents'' zoom and the level marker of
+    a comparator never set, so the CML could not draw from it.'
+  decision: 'Controller.HUD takes each from an optional part where the engine, front end or levels has it:
+    SincePublish (Waiting after a second or 2.5 screens without a frame, in NORMAL or on a serial, zone or
+    qualified trigger), SerialConfig (SerialMatchText), the panel''s Inverter, Zones and MaskEnvelope, SetBodeMode
+    and BodePoints (armed while the BODE view shows, disarmed as it is left when the view armed it), Zoom, and
+    TrigLevelBNCIn (the marker from the comparator''s code at the BNC, none while it was never set). The display
+    gives the HUD its address (Display.URL).'
+  consequences:
+  - 'Over the SDS1000CML+''s controls the core''s HUD is its own field by field (TestCoreHUDIsTheDevicesHUD); the
+    CML can drop its hud.go at the switch.'
+  - 'On the SDS800X HD and the demos the screen now says when a NORMAL capture waits and the BODE view arms its
+    sweep and draws its curve (HALScope''s engine has the cycle''s publish age and the sweep).'

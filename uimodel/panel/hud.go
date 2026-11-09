@@ -75,7 +75,9 @@ func (c *Controller) HUD(chans int) render.HUD {
 		for ch := range min(hud.NumChans, c.nch) {
 			k := &hud.Ch[ch]
 			k.VdivV, k.Probe, k.Cpl = c.fe.VdivV(ch), c.fe.ProbeFactor(ch), c.fe.Coupling(ch)
-			if v := k.VdivV; v > 0 {
+			if z, ok := c.fe.(hudZoom); ok {
+				k.Zoom = z.Zoom(ch)
+			} else if v := k.VdivV; v > 0 {
 				k.Zoom = max(1, int(math.Round(c.fe.RangeV(ch)/v))) // a step drawn zoomed from its analog range
 			}
 			if k.Cpl != dsp.CoupleAC { // AC removes the DC in software: the ground marker sits at centre
@@ -83,18 +85,16 @@ func (c *Controller) HUD(chans int) render.HUD {
 			}
 		}
 	}
-	if src := st.TrigSource; src >= 0 && src < hud.NumChans && hud.Ch[src].VdivV > 0 {
-		v := c.lv.TrigLevelOrIn(st, 0, src)
-		probe := max(hud.Ch[src].Probe, 1)
-		hud.TrigLvlV = v
-		hud.TrigLvlDiv = (v/probe + hud.Ch[src].OffV) / hud.Ch[src].VdivV
-	}
+	c.fillHUDLevel(&hud, st)
 	if st.Busy != "" && st.BusyMs >= 150 {
 		hud.Busy, hud.BusyPct, hud.BusyPhase = st.Busy, st.BusyPct, int(st.BusyMs/250)
 	}
 	hud.MaskMode, hud.MaskPass, hud.MaskFail, hud.MaskSkip = st.MaskMode, st.MaskPass, st.MaskFail, st.MaskSkip
 	hud.MaskStopped = st.MaskStopped
+	c.fillHUDWait(&hud, st)
 	c.FillStreamHUD(&hud)
 	c.FillHUD(&hud)
+	c.fillHUDOverlays(&hud, st)
+	c.fillHUDBode(&hud, st)
 	return hud
 }
