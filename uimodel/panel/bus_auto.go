@@ -245,6 +245,9 @@ type busMsgs struct {
 	// where a pulse trigger fires (startPulse). startW 0: none seen.
 	startW, startLead float64
 	startHigh         bool
+	// featureS is the bus's shortest feature, which a slower look must
+	// still resolve (0: no slower look)
+	featureS float64
 }
 
 // measureMsgs measures the bus's messages on a sampled record decoded with
@@ -603,6 +606,14 @@ func (c *Controller) frameTriggerAt(m busMsgs) (note string, lead float64, own b
 	if refused == "" {
 		return "TRIG: edge (no frame-start trigger for " + protoName(s.decProto) + ")", 0, false
 	}
+	// a screen of one message shows no pulse that starts the next: a
+	// slower one does (an SD card's command and response in a screen of
+	// half their period)
+	if m.startW == 0 && m.featureS > 0 {
+		if g := c.measureSlower(m, m.featureS, func(g busMsgs) bool { return g.startW > 0 }); g.startW > 0 {
+			m.startW, m.startLead, m.startHigh = g.startW, g.startLead, g.startHigh
+		}
+	}
 	if w := m.startW; w > 0 {
 		c.idleTrigger(s.decChA, w, m.startHigh)
 		level := "low"
@@ -790,10 +801,12 @@ const (
 // bus's shortest feature (readableFeature samples), up to messageRecords
 // new records at each; the timebase goes back
 // after, messageTimebase choosing the fastest that shows the message. m
-// when no step measures one. idle asks for a record that also shows a
-// UART's idle between two messages (uartIdle).
+// when no step measures one. want, when set, asks for a record that also
+// shows what the trigger is chosen by (a UART's idle between two messages,
+// the pulse that starts a bus's messages); the first message measured stands
+// when none does.
 // TRLC-LINKS: REQ-DSO-223
-func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMsgs {
+func (c *Controller) measureSlower(m busMsgs, featureS float64, want func(busMsgs) bool) busMsgs {
 	if len(c.tdivs) == 0 || !(featureS > 0) {
 		return m
 	}
@@ -846,7 +859,7 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMs
 			}
 			// a screen of slow frames takes its own time to capture
 			wait := decimatedWait + time.Duration(20*at*float64(time.Second))
-			if idle {
+			if want != nil {
 				// the bus is known to run (a message was measured): its next
 				// record comes, however slowly the board serves them, and a
 				// look given up on left the trigger to chance
@@ -856,7 +869,7 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMs
 			if l.found && l.sampleS > 0 {
 				if got := msgsOf(l.res, l.sampleS, valid); got.longest > 0 {
 					got.startPulse(line, anaPackets(l.res, valid), l.sampleS)
-					if !idle || uartIdle(got) > 0 {
+					if want == nil || want(got) {
 						return got
 					}
 					if first.longest == 0 {
@@ -869,8 +882,8 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMs
 			}
 		}
 	}
-	if idle {
-		c.logf("panel: bus auto: no slower record shows the UART's idle between two messages")
+	if want != nil {
+		c.logf("panel: bus auto: no slower record shows where the bus's messages start")
 	}
 	if m.longest == 0 && first.longest > 0 {
 		return first
@@ -922,9 +935,15 @@ func (c *Controller) frameBus(featureS float64, auto bool, session float64) stri
 	// stop bits) is read again slower, until one shows it, so the trigger
 	// AUTO chooses does not hang on which record it measured (the idle
 	// trigger one AUTO, the edge the next).
-	uartNoIdle := c.snap().decProto == framecalc.ProtoUART && uartIdle(m) == 0
-	if auto && (m.longest == 0 || uartNoIdle) {
-		m = c.measureSlower(m, featureS, uartNoIdle)
+	var want func(busMsgs) bool
+	if c.snap().decProto == framecalc.ProtoUART && uartIdle(m) == 0 {
+		want = func(g busMsgs) bool { return uartIdle(g) > 0 }
+	}
+	if auto && (m.longest == 0 || want != nil) {
+		m = c.measureSlower(m, featureS, want)
+	}
+	if auto {
+		m.featureS = featureS
 	}
 	m.longest = max(m.longest, session)
 	note, lead, own := c.frameTriggerAt(m)
