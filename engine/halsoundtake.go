@@ -321,6 +321,7 @@ func (c *HALCycle) soundTrigStep(single bool) {
 	t.nextArm = t.trigAt + postN
 	if single {
 		c.inst.OwnerStop(true)
+		c.want.ok = false
 	}
 }
 

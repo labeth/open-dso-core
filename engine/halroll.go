@@ -110,7 +110,7 @@ func (c *HALCycle) rollWanted() bool {
 // TRLC-LINKS: REQ-DSO-010
 func (c *HALCycle) rollStep(ctx context.Context) bool {
 	r := &c.roll
-	s, gen := c.inst.Wanted()
+	s, gen := c.wanted()
 	need := c.inst.RecordNeed()
 	if r.running && (gen != c.gen || need != c.need) && (!takesCommits(r.st) || !c.rollCommit(s, gen, need)) {
 		c.rollStop() // the pass commits first; a roll it still wants starts again

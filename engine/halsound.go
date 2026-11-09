@@ -180,7 +180,7 @@ func (c *HALCycle) soundStep(ctx context.Context) bool {
 		return false
 	}
 	s.st = st
-	want, gen := c.inst.Wanted()
+	want, gen := c.wanted()
 	if !want.Running {
 		c.soundFreeze()
 		s.set(func(in *SoundInfo) { in.Mode = "stopped" })
@@ -195,7 +195,7 @@ func (c *HALCycle) soundStep(ctx context.Context) bool {
 	}
 	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need {
 		c.soundCommit(want, gen, need)
-		want, _ = c.inst.Wanted()
+		want, _ = c.wanted()
 		if !want.Running {
 			return true
 		}

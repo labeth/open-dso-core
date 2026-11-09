@@ -93,7 +93,7 @@ func (c *HALCycle) sessionStep(ctx context.Context) bool {
 	// SDS1000CML+'s owner applies its settings while its streams run: staged
 	// on the board, the front end's relays written at the commit point with
 	// nothing armed (ADR-HAL-FRONTEND-IDLE-COMMIT), no capture armed.
-	if s, gen := c.inst.Wanted(); c.gen != 0 && gen != c.gen {
+	if s, gen := c.wanted(); c.gen != 0 && gen != c.gen {
 		c.commitState(s, gen) // a state committed before: the first commit is the pass's
 	}
 	return c.sess.Step(ctx)

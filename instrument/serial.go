@@ -3,6 +3,8 @@
 package instrument
 
 import (
+	"slices"
+
 	"github.com/labeth/open-dso-core/hal/prototrig"
 )
 
@@ -27,7 +29,11 @@ func (m *Model) SetSerialParams(p prototrig.SerialParams) {
 // SerialConfig is the serial trigger's bus and match.
 // TRLC-LINKS: REQ-DSO-013
 func (m *Model) SerialConfig() prototrig.SerialParams {
-	return m.State().Serial
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	p := m.want.Serial // the request alone: the state's other parts stay uncopied
+	p.Bytes, p.Pattern = slices.Clone(p.Bytes), slices.Clone(p.Pattern)
+	return p
 }
 
 // Backends says what decides the trigger the state asks for (OWNER): for a

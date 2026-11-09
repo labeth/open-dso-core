@@ -130,6 +130,15 @@ func (m *Model) commitLocked(s State, r runMemory) error {
 	return nil
 }
 
+// Depth is the wanted record depth (State.Depth), read without copying
+// the state.
+// TRLC-LINKS: REQ-DSO-008
+func (m *Model) Depth() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.want.Depth
+}
+
 // Generation moves with every change of the wanted state.
 // TRLC-LINKS: REQ-DSO-008
 func (m *Model) Generation() uint64 {

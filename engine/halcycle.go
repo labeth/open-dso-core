@@ -93,6 +93,13 @@ type HALCycle struct {
 
 	beats atomic.Uint64 // the heartbeat (Beats)
 	times passTimes     // this pass's stage times (Done)
+	// the instrument's wanted state of generation gen, cloned once a
+	// generation (wanted): the owner looks at it several times a pass
+	want struct {
+		s   instrument.State
+		gen uint64
+		ok  bool
+	}
 	// the protocol trigger's match counter when the capture was armed
 	symbolsAt struct {
 		n  uint64
@@ -216,7 +223,7 @@ func (c *HALCycle) Claim(ctx context.Context) bool {
 // Plan commits a changed state and plans a capture while running.
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-1001
 func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
-	s, gen := c.inst.Wanted()
+	s, gen := c.wanted()
 	committed, wasRunning := false, c.running
 	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need || c.replace || c.img.again.Swap(false) {
 		c.stopArmed()
@@ -316,7 +323,7 @@ func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Fram
 		_ = c.b.Acquirer().Stop()
 		return nil, Verdict{}, false
 	}
-	if s, _ := c.inst.Wanted(); c.keepsRecords() && c.stopOnly(s) {
+	if s, _ := c.wanted(); c.keepsRecords() && c.stopOnly(s) {
 		c.stopped.due = true // the STOP landed in this capture: it shows whole
 		return c.stoppedFrame(ctx)
 	}
@@ -574,6 +581,7 @@ func (c *HALCycle) SingleDone(Verdict) { c.stopRun(true) }
 func (c *HALCycle) stopRun(spent bool) {
 	_ = c.b.Acquirer().Stop()
 	c.inst.OwnerStop(spent)
+	c.want.ok = false // OwnerStop wrote the wanted state without a new generation
 	for _, s := range []*instrument.State{&c.cur, &c.good} {
 		s.Running = false
 		if spent {
@@ -608,6 +616,7 @@ func (c *HALCycle) commitState(s instrument.State, gen uint64) {
 	c.cur, c.good, c.gen = applied, applied, gen
 	c.running = applied.Running
 	c.inst.Applied(applied, gen)
+	c.want.ok = false // Applied wrote the wanted state without a new generation
 	c.inst.SetRun(instrument.Armed)
 }
 
@@ -780,4 +789,18 @@ func (c *HALCycle) armSymbols() {
 	if m, ok := c.b.Trigger().Matches(); ok {
 		c.symbolsAt.n, c.symbolsAt.ok = m.Matches, true
 	}
+}
+
+// wanted is the instrument's wanted state and its generation, cloned once
+// a generation: a generation moves with every controller's change, and the
+// owner's own writes without one (Applied, OwnerStop) drop the copy. The
+// state is shared: a caller clones it before changing it.
+// TRLC-LINKS: REQ-DSO-008
+func (c *HALCycle) wanted() (instrument.State, uint64) {
+	if g := c.inst.Generation(); c.want.ok && g == c.want.gen {
+		return c.want.s, g
+	}
+	s, g := c.inst.Wanted()
+	c.want.s, c.want.gen, c.want.ok = s, g, true
+	return s, g
 }
