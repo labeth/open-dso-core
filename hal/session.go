@@ -30,6 +30,10 @@ type Session interface {
 	// now holds as its stored record (Readout shows it whole as the stopped
 	// record). OWNER.
 	TakeRecord() bool
+	// HoldsImage reports a session that keeps the board's image for itself:
+	// a stream that is starting, or one started again soon (the owner loads
+	// no other image meanwhile). OWNER.
+	HoldsImage() bool
 	// Close ends a running session as the owner stops. OWNER.
 	Close()
 }

@@ -79,15 +79,16 @@ type HALCycle struct {
 	quiet    sync.RWMutex // held while the owner reads a record, on such a board
 	pace     atomic.Int64 // the display's pace, ns (SetDisplayPace)
 
-	snd     halSound    // the audio stream on the board's stream (halsound.go)
-	dec     halDecoded  // the decoded stream on the board's stream (haldecoded.go)
-	roll    halRoll     // the roll view on the board's stream (halroll.go)
-	sess    hal.Session // the board's own stream sessions (halsession.go); nil: none
-	sessOn  bool        // a session held the acquisition at the last pass
-	img     halImages   // the FPGA image the trigger runs on (halimages.go)
-	ser     halSerial   // the serial request's measured rates (halserial.go)
-	scratch []uint16    // the conditioning's working buffer
-	running bool
+	snd       halSound    // the audio stream on the board's stream (halsound.go)
+	dec       halDecoded  // the decoded stream on the board's stream (haldecoded.go)
+	roll      halRoll     // the roll view on the board's stream (halroll.go)
+	sess      hal.Session // the board's own stream sessions (halsession.go); nil: none
+	sessOn    bool        // a session held the acquisition at the last pass
+	sessShown bool        // the stopped record shown is the one a session ended on
+	img       halImages   // the FPGA image the trigger runs on (halimages.go)
+	ser       halSerial   // the serial request's measured rates (halserial.go)
+	scratch   []uint16    // the conditioning's working buffer
+	running   bool
 
 	mu       sync.Mutex
 	latest   *sample.Frame // the newest published frame
@@ -203,9 +204,11 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 		c.stopArmed()
 		c.need, c.replace = need, false
 		c.commitState(s, gen)
-		if c.loadDueImage(ctx) { // the trigger's image, between acquisitions
-			c.commitState(s, gen)
-		}
+		committed = true
+	}
+	// the trigger's image, between acquisitions, unless a session keeps its own
+	if !c.sessionHoldsImage() && c.loadDueImage(ctx) {
+		c.commitState(s, gen)
 		committed = true
 	}
 	if !c.running {
@@ -216,6 +219,7 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 		c.idle(ctx)
 		return Capture{}, false
 	}
+	c.sessShown = false // the run captures: a session's record is no longer shown
 	if c.rollWanted() {
 		return Capture{}, false // the next pass rolls (halroll.go)
 	}

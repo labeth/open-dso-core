@@ -69,6 +69,7 @@ func (c *HALCycle) sessionStep(ctx context.Context) bool {
 	}
 	if c.sess.TakeRecord() {
 		c.stopped = stoppedRecord{content: c.stopped.content, due: true}
+		c.sessShown = true
 	}
 	if !c.sess.Active() {
 		if c.sessOn {
@@ -91,4 +92,16 @@ func (c *HALCycle) sessionStep(ctx context.Context) bool {
 		c.commitState(s, gen)
 	}
 	return c.sess.Step(ctx)
+}
+
+// sessionHoldsImage reports the board's image stays for a session: one
+// holds it (starting, or started again soon), or the stopped record shown
+// is the one a session ended on (a load would drop it, and the stream
+// started again needs that image back).
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-018, REQ-DSO-228
+func (c *HALCycle) sessionHoldsImage() bool {
+	if c.sess == nil {
+		return false
+	}
+	return c.sess.Active() || c.sess.HoldsImage() || (c.sessShown && !c.running)
 }

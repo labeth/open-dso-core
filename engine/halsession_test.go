@@ -23,6 +23,7 @@ func (s *fakeSession) Serve()                    { s.serves++ }
 func (s *fakeSession) Step(context.Context) bool { s.steps++; return s.active }
 func (s *fakeSession) Active() bool              { return s.active }
 func (s *fakeSession) Close()                    { s.closed = true }
+func (s *fakeSession) HoldsImage() bool          { return false }
 func (s *fakeSession) TakeRecord() (taken bool)  { taken, s.record = s.record, false; return }
 
 // sessionBoard is the fake board with a session of its own.
@@ -38,7 +39,7 @@ func (b sessionBoard) Session() (hal.Session, bool) { return b.s, true }
 // acquisition (a waiting capture leaves it), with the settings made
 // meanwhile committed as they come and the whole state again once it ends;
 // its stop goes through the instrument; the record it ended on is read
-// whole; the cycle's close ends it.
+// whole, its image kept while it is shown; the cycle's close ends it.
 // TRLC-LINKS: REQ-DSO-013, REQ-DSO-018
 func TestHALCycleRunsTheBoardsSession(t *testing.T) {
 	fs := &fakeSession{}
@@ -84,6 +85,9 @@ func TestHALCycleRunsTheBoardsSession(t *testing.T) {
 	}
 	if c.gen != 0 || !c.stopped.due {
 		t.Fatalf("after the session: gen %d (want a fresh commit), stopped record due %v", c.gen, c.stopped.due)
+	}
+	if !c.sessionHoldsImage() {
+		t.Fatal("stopped on the session's record, the cycle would load another image over it")
 	}
 	c.Close()
 	if !fs.closed {
