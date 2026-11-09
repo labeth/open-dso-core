@@ -46,6 +46,7 @@ type halSound struct {
 	q       [2][]uint16   // a block's lanes in Q8.8
 	last    *sample.Frame // the newest frame read, whose traces give the lanes' scale
 	retryAt time.Time
+	rate    float64 // the stream's samples a second
 }
 
 // soundStreamer is the board's stream of sample codes, false when it has
@@ -186,6 +187,7 @@ func (c *HALCycle) soundStep(ctx context.Context) bool {
 			return true
 		}
 		if err := c.soundStart(); err != nil {
+			c.cfg.Logf("sound: %v", err)
 			s.set(func(in *SoundInfo) { in.State, in.Active, in.Err = "error", false, err.Error() })
 			s.retryAt = time.Now().Add(time.Second)
 			c.gen = 0 // the state is committed again for the captures
@@ -203,13 +205,7 @@ func (c *HALCycle) soundStart() error {
 	s := &c.snd
 	s.set(func(in *SoundInfo) { in.State, in.Err = "starting", "" })
 	c.stopArmed()
-	r := c.cur.Request()
-	r.Mode = hal.RollMode
-	if from := c.b.Profile().Timebase.RollFromS; from > 0 {
-		r.TimePerDivS = from
-	}
-	r.TimePerDivS = max(r.TimePerDivS, c.cur.TimeDivS)
-	plan, err := c.b.Planner().Plan(r)
+	r, plan, err := c.streamPlan()
 	if err != nil {
 		return err
 	}
@@ -230,14 +226,40 @@ func (c *HALCycle) soundStart() error {
 		return err
 	}
 	s.running, s.gap = true, true
-	rate := 0.0
+	s.rate = 0
 	if plan.SampleS > 0 {
-		rate = 1 / plan.SampleS
+		s.rate = 1 / plan.SampleS // until a block says what the board delivers
 	}
 	s.set(func(in *SoundInfo) {
-		in.State, in.Active, in.RateHz, in.Started, in.Mode = "streaming", true, rate, time.Now(), "live"
+		in.State, in.Active, in.RateHz, in.Started, in.Mode = "streaming", true, s.rate, time.Now(), "live"
 	})
 	return nil
+}
+
+// streamPlan is the committed state's request in the board's stream mode
+// at the fastest timebase the board streams at (the profile's roll
+// timebase, else the first of its ladder the planner takes), and its plan.
+// TRLC-LINKS: REQ-DSO-265
+func (c *HALCycle) streamPlan() (hal.Request, hal.Plan, error) {
+	r := c.cur.Request()
+	r.Mode = hal.RollMode
+	tb := c.b.Profile().Timebase
+	tdivs := []float64{tb.RollFromS}
+	if tb.RollFromS <= 0 {
+		tdivs = slices.Sorted(slices.Values(tb.TdivS))
+	}
+	var err error
+	for _, t := range tdivs {
+		r.TimePerDivS = t
+		var plan hal.Plan
+		if plan, err = c.b.Planner().Plan(r); err == nil {
+			return r, plan, nil
+		}
+	}
+	if err == nil {
+		err = hal.Refuse("SOUND", "the board names no timebase it streams at")
+	}
+	return r, hal.Plan{}, err
 }
 
 // soundDrain moves the stream's blocks into the ring for up to
@@ -257,6 +279,10 @@ func (c *HALCycle) soundDrain(ctx context.Context) {
 				s.set(func(in *SoundInfo) { in.Losses++; in.Err = err.Error() })
 			}
 			return
+		}
+		if b.SampleS > 0 && s.rate != 1/b.SampleS {
+			s.rate = 1 / b.SampleS // the rate the board delivers at
+			s.set(func(in *SoundInfo) { in.RateHz = s.rate })
 		}
 		s.push(ring, b)
 		s.st.Release(b)

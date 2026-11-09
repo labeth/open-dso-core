@@ -71,6 +71,9 @@ type StreamBlock struct {
 	Marks   []Mark
 	First   uint64 // sequence number of the first item; a jump is a recorded fault
 	Ring    int    // ring slot, for Release
+	// SampleS is the time between the block's samples as the board
+	// delivers them (PayloadCodes, PayloadChunks); 0: the StreamSpec's.
+	SampleS float64
 }
 
 // Mark is a position the board flagged in a stream: where a setting
