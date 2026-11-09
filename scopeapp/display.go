@@ -176,6 +176,10 @@ type display struct {
 	// RENDER work). capturing says the loop serves them.
 	shots     chan chan []byte
 	capturing atomic.Bool
+	// lease is the engine the display's zoom leases its view window from,
+	// on the core's own UI over a HAL scope (zoomlease.go); nil where the
+	// scope's display hook leases it (Display.OnFrame) or nothing can.
+	lease viewLeaser
 }
 
 // newDisplay is the display of env with cfg.
@@ -184,6 +188,11 @@ func newDisplay(env *Env, cfg Display) *display {
 	d := &display{
 		env: env, cfg: cfg, eng: cfg.Engine, spect: render.NewSpectrogram(), chans: env.Board.Profile().Channels,
 		hw: newHWView(env), shots: make(chan chan []byte),
+	}
+	if cfg.OnFrame == nil && env.HALScope != nil {
+		if l, ok := env.HALScope.Engine().(viewLeaser); ok {
+			d.lease = l
+		}
 	}
 	if d.eng == nil {
 		var owner QuietPacer
@@ -630,6 +639,8 @@ func (d *display) run(stop <-chan struct{}, scr Screen) { //nolint:gocyclo // th
 				hud.SampleS = f.SampleS
 				if d.cfg.OnFrame != nil {
 					d.cfg.OnFrame(f, &hud)
+				} else {
+					d.zoomLease(f, &hud)
 				}
 				// Spectrogram: each fresh per-sample frame's spectrum of the
 				// FFT source is a new waterfall row while the SPECTROGRAM
