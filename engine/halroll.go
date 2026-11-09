@@ -48,7 +48,7 @@ type halRoll struct {
 
 // rollPayload is the board's roll stream payload: captured chunks, else a
 // gap-free stream of codes; false when it has neither.
-// TRLC-LINKS: REQ-DSO-010, REQ-DSO-035
+// TRLC-LINKS: REQ-DSO-010
 func (c *HALCycle) rollPayload() (hal.Streamer, hal.Payload, bool) {
 	st, ok := c.b.Streamer()
 	if !ok {
@@ -91,7 +91,7 @@ func (c *HALCycle) rollWanted() bool {
 
 // rollStep runs the roll view one step on the owner; false when the state
 // does not roll (the stream stopped) and the pass goes on with captures.
-// TRLC-LINKS: REQ-DSO-010, REQ-DSO-035
+// TRLC-LINKS: REQ-DSO-010
 func (c *HALCycle) rollStep(ctx context.Context) bool {
 	r := &c.roll
 	if _, gen := c.inst.Wanted(); gen != c.gen || c.inst.RecordNeed() != c.need || !c.rollWanted() {
@@ -125,7 +125,7 @@ func (c *HALCycle) rollStep(ctx context.Context) bool {
 // rollStart plans the committed state in the board's roll mode at its own
 // timebase and starts the board's stream of the channels on, the view
 // empty (every sample held).
-// TRLC-LINKS: REQ-DSO-010, REQ-DSO-035
+// TRLC-LINKS: REQ-DSO-010
 func (c *HALCycle) rollStart() error {
 	r := &c.roll
 	st, payload, _ := c.rollPayload()
@@ -163,7 +163,7 @@ func (c *HALCycle) rollStart() error {
 
 // rollDrain moves the stream's blocks into the view for up to
 // rollPublishEvery.
-// TRLC-LINKS: REQ-DSO-010, REQ-DSO-035
+// TRLC-LINKS: REQ-DSO-010
 func (c *HALCycle) rollDrain(ctx context.Context) {
 	r := &c.roll
 	end := time.Now().Add(rollPublishEvery)
@@ -187,7 +187,7 @@ func (c *HALCycle) rollDrain(ctx context.Context) {
 }
 
 // add appends a block's samples to the view, keeping the newest screen.
-// TRLC-LINKS: REQ-DSO-010, REQ-DSO-035
+// TRLC-LINKS: REQ-DSO-010
 func (r *halRoll) add(b hal.StreamBlock) {
 	n := 0
 	for i := range min(len(b.Formats), len(r.codes)) {
@@ -225,7 +225,7 @@ func trimTo[T any](s []T, n int) []T {
 }
 
 // rollPublish publishes the view's newest screen as a roll frame.
-// TRLC-LINKS: REQ-DSO-010, REQ-DSO-035
+// TRLC-LINKS: REQ-DSO-010
 func (c *HALCycle) rollPublish() {
 	r := &c.roll
 	f := &sample.Frame{
@@ -286,7 +286,7 @@ func (c *HALCycle) rollScale(ch int, fm sample.CodeFormat) (sample.Scale, float6
 
 // rollStop stops the board's stream; the state is committed again for the
 // captures.
-// TRLC-LINKS: REQ-DSO-010, REQ-DSO-035
+// TRLC-LINKS: REQ-DSO-010
 func (c *HALCycle) rollStop() {
 	r := &c.roll
 	if r.st != nil {

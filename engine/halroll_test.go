@@ -23,7 +23,7 @@ func (b rollBoard) Profile() hal.Profile {
 // AUTO at a roll timebase scrolls the board's stream: frames flagged Roll,
 // untriggered, a screen of the stream's newest codes; NORMAL captures again
 // and the stream stops.
-// TRLC-LINKS: REQ-DSO-010, REQ-DSO-035
+// TRLC-LINKS: REQ-DSO-010
 func TestHALRollOverTheStream(t *testing.T) {
 	st := &fakeStream{}
 	b := rollBoard{streamBoard{halfake.New(halfake.Config{}), st}}
