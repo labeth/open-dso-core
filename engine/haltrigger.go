@@ -220,6 +220,10 @@ func (c *HALCycle) programTrigger(s instrument.State) error {
 	}
 	var be instrument.Backends
 	clear(c.placed)
+	c.gate = nil
+	if hasZones(spec) {
+		c.gate = &c.gates[1]
+	}
 	var want hal.TrigStage
 	what, why := "", ""
 	switch t := s.Trigger.Type; {
@@ -253,6 +257,9 @@ func (c *HALCycle) programTrigger(s instrument.State) error {
 		ws.Stages = []hal.TrigStage{want}
 		err := tr.Program(ws)
 		if err == nil {
+			if what == "serial" {
+				c.gate = &c.gates[0]
+			}
 			setBackend(&be, what, "hardware")
 			c.inst.SetBackends(be)
 			return nil
@@ -292,4 +299,15 @@ func setBackend(b *instrument.Backends, what, v string) {
 	} else {
 		b.Trigger = v
 	}
+}
+
+// hasZones reports a trigger whose stages the zones qualify.
+// TRLC-LINKS: REQ-DSO-014
+func hasZones(spec hal.TriggerSpec) bool {
+	for _, st := range spec.Stages {
+		if len(st.Zones) > 0 {
+			return true
+		}
+	}
+	return false
 }

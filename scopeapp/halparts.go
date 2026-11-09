@@ -50,6 +50,13 @@ func (l halLeases) Lease(n webserver.Need) bool {
 		if x, ok := e.(interface{ LeaseSearchView(time.Duration) }); ok {
 			return lease(x.LeaseSearchView)
 		}
+	case webserver.NeedView:
+		if x, ok := e.(interface {
+			LeaseViewWindow(engine.ViewSurface, float64, float64, int, time.Duration)
+		}); ok {
+			x.LeaseViewWindow(engine.ViewWeb, n.View.A, n.View.B, n.View.Cols, n.Hold)
+			return true
+		}
 	}
 	return false
 }

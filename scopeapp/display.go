@@ -79,23 +79,38 @@ type PacedBoard interface {
 	SetDisplayPace(d time.Duration)
 }
 
+// QuietPacer is an owner loop that gives the display its share of a core
+// it shares with the board's acquisition (engine.HALCycle on a board with
+// Budget.QuietAcquire): the pace of its captures, and the quiet lock.
+type QuietPacer interface {
+	PacedBoard
+	QuietRLock()
+	QuietRUnlock()
+}
+
 // boardEngine is the display's view of a HAL board's acquisition: the
 // profile's fixed display cadence (Budget.DisplayHz; none: hudPeriod), and
-// the pace handed to a PacedBoard.
+// the pace handed to a PacedBoard, or to the owner loop with the quiet lock
+// on a board that shares its core.
 type boardEngine struct {
 	period time.Duration
 	pace   PacedBoard // nil: a board that shares no core with the display
+	quiet  QuietPacer // nil: no quiet lock
 }
 
-// boardEngineOf is the display engine of board b.
+// boardEngineOf is the display engine of board b, whose owner loop is
+// owner (nil: none yet).
 // TRLC-LINKS: REQ-DSO-168
-func boardEngineOf(b hal.Board) boardEngine {
+func boardEngineOf(b hal.Board, owner QuietPacer) boardEngine {
 	e := boardEngine{period: hudPeriod}
 	if hz := b.Profile().Budget.DisplayHz; hz > 0 {
 		e.period = time.Duration(float64(time.Second) / hz)
 	}
 	if p, ok := b.(PacedBoard); ok {
 		e.pace = p
+	}
+	if owner != nil && b.Profile().Budget.QuietAcquire {
+		e.pace, e.quiet = owner, owner
 	}
 	return e
 }
@@ -111,10 +126,18 @@ func (e boardEngine) SetDisplayPace(d time.Duration) {
 }
 
 // TRLC-LINKS: REQ-DSO-168
-func (boardEngine) QuietRLock() {}
+func (e boardEngine) QuietRLock() {
+	if e.quiet != nil {
+		e.quiet.QuietRLock()
+	}
+}
 
 // TRLC-LINKS: REQ-DSO-168
-func (boardEngine) QuietRUnlock() {}
+func (e boardEngine) QuietRUnlock() {
+	if e.quiet != nil {
+		e.quiet.QuietRUnlock()
+	}
+}
 
 // TRLC-LINKS: REQ-DSO-168
 func (boardEngine) NoteLCDFrame() {}
@@ -152,7 +175,11 @@ func newDisplay(env *Env, cfg Display) *display {
 		hw: newHWView(env), shots: make(chan chan []byte),
 	}
 	if d.eng == nil {
-		d.eng = boardEngineOf(env.Board)
+		var owner QuietPacer
+		if env.cycle != nil {
+			owner = env.cycle
+		}
+		d.eng = boardEngineOf(env.Board, owner)
 	}
 	return d
 }

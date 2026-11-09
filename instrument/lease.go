@@ -3,6 +3,7 @@
 package instrument
 
 import (
+	"math"
 	"time"
 )
 
@@ -75,4 +76,56 @@ func (m *Model) RecordNeed() RecordNeed {
 		n = n.merge(l.need)
 	}
 	return n
+}
+
+// ViewSurfaces is how many surfaces lease view windows (engine.ViewSurfaces:
+// the scope's zoom, the web page's).
+const ViewSurfaces = 2
+
+// ViewWindow is a surface's view window request: the stretch A..B, in
+// screen widths from the trigger (the screen's middle on an untriggered
+// frame), shown over Cols display columns.
+type ViewWindow struct {
+	A, B float64
+	Cols int
+}
+
+// viewLease is a surface's request and until when it holds.
+type viewLease struct {
+	w   ViewWindow
+	end time.Time
+}
+
+// LeaseView asks, for surface s, for the stretch w of the live frames at
+// full detail for d from now (the owner reads it beside each live
+// envelope); d <= 0, an empty stretch or fewer than two columns end the
+// request. A surface's newest request wins.
+// TRLC-LINKS: REQ-DSO-010, REQ-DSO-021
+func (m *Model) LeaseView(s int, w ViewWindow, d time.Duration) {
+	if s < 0 || s >= ViewSurfaces {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if d <= 0 || !(w.B > w.A) || math.IsInf(w.B-w.A, 0) || w.Cols < 2 {
+		m.views[s] = viewLease{}
+		return
+	}
+	m.views[s] = viewLease{w: w, end: time.Now().Add(min(d, maxLease))}
+}
+
+// ViewLease is surface s's current view window request (OWNER); false when
+// none holds.
+// TRLC-LINKS: REQ-DSO-010, REQ-DSO-021
+func (m *Model) ViewLease(s int) (ViewWindow, bool) {
+	if s < 0 || s >= ViewSurfaces {
+		return ViewWindow{}, false
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	v := m.views[s]
+	if v.end.IsZero() || !time.Now().Before(v.end) {
+		return ViewWindow{}, false
+	}
+	return v.w, true
 }

@@ -22,7 +22,7 @@ type HALScope struct {
 	b       hal.Board
 	product string
 	mask    *engine.FrameMask
-	bode    *engine.Bode // the frequency response, measured beside the owner loop (Watch)
+	bode    *engine.Bode // the frequency response the owner loop measures (engine.HALConfig.Bode)
 }
 
 // NewHALScope is the UI model's view of board b through instrument state
@@ -30,6 +30,14 @@ type HALScope struct {
 // TRLC-LINKS: REQ-DSO-135, REQ-DSO-008
 func NewHALScope(m *instrument.Model, b hal.Board, product string) *HALScope {
 	return &HALScope{m: m, b: b, product: product, bode: engine.NewBode()}
+}
+
+// WithBode gives the UI model the frequency-response sweep the owner
+// measures on its captures (engine.HALConfig.Bode).
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-066
+func (s *HALScope) WithBode(b *engine.Bode) *HALScope {
+	s.bode = b
+	return s
 }
 
 // WithMask gives the UI model the mask test the owner runs on the frames
@@ -161,6 +169,14 @@ func (e halEngine) LeaseBusSamples(sampleS float64, d time.Duration) {
 // TRLC-LINKS: REQ-DSO-215, REQ-DSO-010
 func (e halEngine) LeaseRawFor(holder string, d time.Duration) {
 	e.Lease("raw "+holder, instrument.RecordNeed{FullRate: true}, d)
+}
+
+// LeaseViewWindow asks, for surface sf, for the stretch a..b (screen
+// widths from the trigger) of the live frames at full detail, drawn over
+// cols columns, for d; d <= 0 ends it.
+// TRLC-LINKS: REQ-DSO-010, REQ-DSO-021
+func (e halEngine) LeaseViewWindow(sf engine.ViewSurface, a, b float64, cols int, d time.Duration) {
+	e.LeaseView(int(sf), instrument.ViewWindow{A: a, B: b, Cols: cols}, d)
 }
 
 // LeaseDecodeView is the shared full-rate lease.

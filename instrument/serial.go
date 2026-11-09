@@ -45,3 +45,34 @@ func (m *Model) SetBackends(b Backends) {
 	m.backends = b
 	m.mu.Unlock()
 }
+
+// trigHealth counts the hardware edge triggers whose record had no
+// crossing at the index, and their recent share.
+type trigHealth struct {
+	falses uint64
+	share  float64
+}
+
+// NoteTrigger counts a hardware edge trigger checked on its record (OWNER):
+// noise, it had no crossing at the index and was dropped. The share is an
+// average over about the last twenty triggers (Stats.NoiseTriggers).
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-016
+func (m *Model) NoteTrigger(noise bool) {
+	x := 0.0
+	m.mu.Lock()
+	if noise {
+		x = 1
+		m.trig.falses++
+	}
+	m.trig.share += (x - m.trig.share) / 20
+	m.mu.Unlock()
+}
+
+// ClearNoiseTriggers forgets the share (OWNER): the trigger, the timebase or
+// the mode changed, and the next triggers say anew.
+// TRLC-LINKS: REQ-DSO-011
+func (m *Model) ClearNoiseTriggers() {
+	m.mu.Lock()
+	m.trig.share = 0
+	m.mu.Unlock()
+}

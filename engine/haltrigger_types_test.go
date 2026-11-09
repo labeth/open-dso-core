@@ -102,7 +102,9 @@ func (t refuseBus) Program(s hal.TriggerSpec) error {
 
 type refuseBusBoard struct{ recBoard }
 
-func (b refuseBusBoard) Trigger() hal.Trigger { return refuseBus{b.recBoard.Trigger().(recTrig)} }
+func (b refuseBusBoard) Trigger() hal.Trigger {
+	return refuseBus{recTrig{b.Board.Trigger(), b.mu, b.specs}}
+}
 
 // acceptBus takes every protocol stage.
 type acceptBus struct{ recTrig }
@@ -119,7 +121,9 @@ func (t acceptBus) Program(s hal.TriggerSpec) error {
 
 type acceptBusBoard struct{ recBoard }
 
-func (b acceptBusBoard) Trigger() hal.Trigger { return acceptBus{b.recBoard.Trigger().(recTrig)} }
+func (b acceptBusBoard) Trigger() hal.Trigger {
+	return acceptBus{recTrig{b.Board.Trigger(), b.mu, b.specs}}
+}
 
 // A serial trigger the board refuses is reported with the board's reason
 // while the bus's levels are still being learned: the board is asked
@@ -153,5 +157,55 @@ func TestHALSerialRefusedBeforeLevels(t *testing.T) {
 	}
 	if got := inst.Snapshot().SerialBackend; !strings.HasPrefix(got, "none: learning the signal levels") {
 		t.Fatalf("serial backend %q on a board that takes the bus, want the levels learned first", got)
+	}
+}
+
+// A serial trigger the board runs holds AUTO's forced captures, one going
+// through every SerialFallback holds or once AutoLiveMax has passed since
+// the last publish; one running free shows every capture.
+// TRLC-LINKS: REQ-DSO-013
+func TestHALSerialLiveness(t *testing.T) {
+	var mu sync.Mutex
+	var specs []hal.TriggerSpec
+	s := loopState(hal.Auto)
+	s.Trigger.Configs[instrument.TrigEdge] = instrument.DefaultTrigConfig(instrument.TrigEdge, 2)
+	inst := instrument.New(s, nil)
+	c := &HALCycle{b: refuseBusBoard{recBoard{halfake.New(halfake.Config{}), &mu, &specs}}, inst: inst, ext: make([]extent, 2), placed: make([]bool, 2)}
+	busy := make([]uint8, 200)
+	for i := range busy {
+		busy[i] = 28
+		if i%20 < 10 {
+			busy[i] = 228
+		}
+	}
+	c.learn(extentFrame(busy))
+	s.SerialMode = 1
+	s.Serial.Proto, s.Serial.ChA, s.Serial.ChB = 2, 0, 1
+	if err := c.programTrigger(s); err != nil {
+		t.Fatal(err)
+	}
+	c.pubAt = time.Now()
+	if !c.Liveness() {
+		t.Fatal("a serial trigger running free held a capture")
+	}
+	c.b = acceptBusBoard{recBoard{halfake.New(halfake.Config{}), &mu, &specs}}
+	if err := c.programTrigger(s); err != nil {
+		t.Fatal(err)
+	}
+	if got := inst.Snapshot().SerialBackend; got != "hardware" {
+		t.Fatalf("serial backend %q", got)
+	}
+	shown := 0
+	for range SerialFallback {
+		if c.Liveness() {
+			shown++
+		}
+	}
+	if shown != 1 {
+		t.Fatalf("%d of %d forced captures shown, want one", shown, SerialFallback)
+	}
+	c.pubAt = time.Now().Add(-AutoLiveMax)
+	if !c.Liveness() {
+		t.Fatal("no capture shown a second after the last publish")
 	}
 }

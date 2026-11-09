@@ -27,6 +27,12 @@ type Profile struct {
 	Stage    int               `yaml:"stage"` // 1: vendor bitstream, 2: open bitstream
 	Timebase TimebaseSpec      `yaml:"timebase"`
 	Limits   Limits            `yaml:"limits"`
+	// TriggerIndex is the samples between the places a hardware edge
+	// trigger's index can name (2: a record word of two samples); above 1
+	// the core places an edge trigger on its level crossing in the record
+	// and drops one whose record has no crossing near the index (the raw
+	// codes firing on converter noise). 0 or 1: the index is the crossing.
+	TriggerIndex int `yaml:"trigger_index"`
 }
 
 // Identity is what bring-up reads from the unit. Profile variants match on
