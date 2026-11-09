@@ -20,6 +20,12 @@ behavior:
     from: FG-DSO-ACQUISITION
     to: FU-DSO-STREAMWIRE
   - type: contains
+    from: FG-DSO-ACQUISITION
+    to: FU-DSO-DECODEDLINES
+  - type: contains
+    from: FG-DSO-ACQUISITION
+    to: FU-DSO-STREAMVIEW
+  - type: contains
     from: FG-DSO-ANALYSIS
     to: FU-DSO-DECODE
   - type: contains

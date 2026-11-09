@@ -94,6 +94,7 @@ func (c *Controller) HUD(chans int) render.HUD {
 	}
 	hud.MaskMode, hud.MaskPass, hud.MaskFail, hud.MaskSkip = st.MaskMode, st.MaskPass, st.MaskFail, st.MaskSkip
 	hud.MaskStopped = st.MaskStopped
+	c.FillStreamHUD(&hud)
 	c.FillHUD(&hud)
 	return hud
 }

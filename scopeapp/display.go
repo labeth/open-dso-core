@@ -14,7 +14,6 @@ import (
 	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/render"
 	"github.com/labeth/open-dso-core/sample"
-	"github.com/labeth/open-dso-core/streamwire"
 	"github.com/labeth/open-dso-core/uimodel/panel"
 	"github.com/labeth/open-dso-core/uimodel/wsview"
 	"github.com/labeth/open-dso-core/webserver"
@@ -931,11 +930,6 @@ func busyDraw(mode int, st instrument.Stats, back render.Canvas, url string) boo
 }
 
 // StreamSlot is a quarter-second counter while a decoded stream runs (0
-// otherwise): the display's 4 Hz transcript refresh.
+// otherwise): the display's 4 Hz transcript refresh (panel.StreamSlot).
 // TRLC-LINKS: REQ-DSO-018
-func StreamSlot(hud render.HUD) int64 {
-	if hud.StreamOn && (hud.Stream.State == streamwire.Streaming || hud.Stream.State == streamwire.Starting) {
-		return time.Now().UnixMilli() / 250
-	}
-	return 0
-}
+func StreamSlot(hud render.HUD) int64 { return panel.StreamSlot(hud) }

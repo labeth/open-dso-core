@@ -196,6 +196,9 @@ type Controller struct {
 	decValue int         // StreamOnValue unit
 	kb       matchEditor // SERIAL trigger match editor (full-screen keyboard)
 	stream   Stream
+	// streamPage is the LCD's transcript page with what it was formatted for
+	// (FillStreamHUD).
+	streamPage atomic.Pointer[cachedStreamPage]
 	// a stopped stream's screen: transcript list or the record's waveform
 	streamList bool
 	streamTop  int // list's first line; -1 follows the newest
