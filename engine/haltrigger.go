@@ -219,6 +219,9 @@ func (c *HALCycle) busStage(s instrument.State, base hal.TrigStage) (hal.TrigSta
 		}
 		p = pr
 	}
+	// the levels are the request's thresholds: the one it named, or the
+	// middle of the learned swing (or the screen centre while learning)
+	p.HaveThr, p.HaveThrB = true, true
 	st := base
 	st.Node = hal.NodeProtocol
 	st.Source = hal.Source{Kind: hal.Analog, Index: p.ChA}

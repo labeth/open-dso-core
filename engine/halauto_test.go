@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/hal/prototrig"
 	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 )
@@ -192,5 +193,21 @@ func TestHALPlacesTheMatchStart(t *testing.T) {
 		if d := f.TriggerAt - want; d < -2 || d > 2 {
 			t.Fatalf("fires at the end %v: the trigger at %v, want the 0x90's %v", atEnd, f.TriggerAt, want)
 		}
+	}
+}
+
+// A bus trigger's levels are its thresholds (prototrig.Bus): a threshold
+// the request leaves to the decoder is the learned swing's middle, and the
+// request says it is set, so a board slices at the levels.
+// TRLC-LINKS: REQ-DSO-013
+func TestHALBusLevelsAreSet(t *testing.T) {
+	s := loopState(hal.Auto)
+	s.SerialMode, s.Serial = SerialTrigger, SerialParams{Proto: SerUART, Baud: 31250, Bits: 8, Bytes: []int{0x90}, Addr: -1, RW: 2}
+	_, c := NewHALLoop(HALConfig{Board: newWholeBoard(false), Instrument: instrument.New(s, nil)})
+	c.ext[0] = extent{lo: 0, hi: 3.3, have: true, vdiv: 1, voltsCode8: .04, zero8: 128}
+	st, why := c.busStage(s, hal.TrigStage{})
+	bus, ok := st.Proto.(*prototrig.Bus)
+	if why != "" || !ok || !bus.Request.HaveThr || !bus.Request.HaveThrB || bus.Levels[0] != 1.65 {
+		t.Fatalf("why %q, bus %+v", why, st.Proto)
 	}
 }
