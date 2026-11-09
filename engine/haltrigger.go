@@ -63,6 +63,15 @@ func (c *HALCycle) learn(f *sample.Frame) {
 		e.voltsCode8 = u * t.Scale.PerCode
 		e.zero8 = 128 + (t.Scale.Word(0)-float64(t.Format.Mid))/u
 		was := c.ext[t.Ch]
+		// A record of the line at rest inside the swing learned before (a
+		// sparse bus's idle between its frames: a caliper's 30 ms, an IR
+		// remote's 40) says nothing new of its levels: the extent stays, or
+		// a trigger placed on it would be refused for no swing and run free,
+		// and its records stay the idle ones.
+		if was.have && was.vdiv == e.vdiv && was.hi-was.lo >= minSwingDivs*was.vdiv && e.hi-e.lo < minSwingDivs*e.vdiv &&
+			e.lo >= was.lo-extentMove*was.vdiv && e.hi <= was.hi+extentMove*was.vdiv {
+			continue
+		}
 		c.ext[t.Ch] = e
 		if !c.placed[t.Ch] {
 			continue

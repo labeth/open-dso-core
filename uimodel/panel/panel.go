@@ -186,6 +186,10 @@ type Controller struct {
 	// how the detection under way frames the bus: 0 not, busFrameEntry for
 	// BUS's own detection, busFrameAuto for AUTO in BUS
 	busFrameNext int
+	// lookTook is how long a bus search's sampled records took to come, the
+	// decimated ones' [1] and the full-rate ones' [0], guarded by mu
+	// (captureWait)
+	lookTook [2]time.Duration
 	// Decoded streaming (ADR-PANEL-DECODED-STREAM), guarded by mu.
 	decMode  int         // decModeView / decModeStream
 	decTrig  int         // index into decTrigNames

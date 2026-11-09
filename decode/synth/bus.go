@@ -60,6 +60,12 @@ type Truth struct {
 	// Layer is the application layer the bus carries, the one a layer
 	// detection must name ("" none).
 	Layer string
+	// Mirrored is what the decoder's Result.Bytes holds for this bus read
+	// with its two lines the other way round, when that reads as the same
+	// bus (nil: it does not): a quadrature encoder's direction is which of
+	// its lines is called A, so a detection may call either and read the
+	// steps backwards.
+	Mirrored []int
 	// Messages are the bus's messages as the decode's text shows each, for
 	// a bus of several: a record framed to one message (AUTO in BUS frames
 	// the longest) holds a whole one of them and maybe not the rest.

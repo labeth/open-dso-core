@@ -300,6 +300,13 @@ func scoreResult(r Result) float64 { //nolint:gocyclo // one self-contained rule
 		if c[0] == 0 || c[0]*4 < c[3]-1 || c[2] > c[1] {
 			return -1e9
 		}
+		// A sensor's nibbles fall in their 12..27 ticks: a frame of every
+		// third pulse out of range is another line's edges read as SENT (a
+		// 9600 Bd UART's "Hello, world!" at 20ms/div: "SYNC D !F !F 4 !F C 4
+		// C", its frames' CRCs passing by chance).
+		if c[2]*3 > c[1] {
+			return -1e9
+		}
 		// The evidence is the distinct valid frames: a repeated message's frames
 		// are one frame's chance. A UART repeating "Hi U" read as SENT had one
 		// frame of two pass its CRC (C2: SYNC B 4 4 3 4 3 C 4) over 16 clean
