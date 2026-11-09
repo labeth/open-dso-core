@@ -33,6 +33,12 @@ type Profile struct {
 	// and drops one whose record has no crossing near the index (the raw
 	// codes firing on converter noise). 0 or 1: the index is the crossing.
 	TriggerIndex int `yaml:"trigger_index"`
+	// StatusBand is the band word every capture's status reports
+	// (Stats.BandKind) on a scope whose records are all one kind: "sram",
+	// the record memory read in screen windows, which the UI model reads
+	// as frame-confirmed triggers, no equivalent-time or decimated-depth
+	// rows, and the precision mode. Empty: none.
+	StatusBand string `yaml:"status_band"`
 }
 
 // Identity is what bring-up reads from the unit. Profile variants match on

@@ -73,6 +73,9 @@ func fpgaLevel(sig []uint8) (level, hysteresis uint8, ok bool) {
 // TRLC-LINKS: REQ-DSO-141
 func (c *Controller) srFPGARun() {
 	fs, ok := c.eng.(fpgaStacker)
+	if h, has := c.eng.(interface{ FPGAStacks() bool }); has && !h.FPGAStacks() {
+		ok = false // a HAL scope over a board that stacks nothing
+	}
 	if !ok || c.frameFn == nil {
 		c.srSetStatus("FPGA stacking unavailable")
 		return

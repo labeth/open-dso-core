@@ -5,17 +5,13 @@ package engine
 import (
 	"sync"
 	"time"
+
+	"github.com/labeth/open-dso-core/instrument"
 )
 
-// Zone is one qualification rectangle. Times are SECONDS RELATIVE TO THE
-// TRIGGER EDGE (portable across bands); codes are display codes (0..255).
-// TRLC-LINKS: REQ-DSO-014
-type Zone struct {
-	DtLoS, DtHiS   float64
-	CodeLo, CodeHi int
-	Avoid          bool // true: the frame must NOT enter the zone
-	Ch             int  // 0 = C1, 1 = C2
-}
+// Zone is one qualification rectangle: the instrument state's
+// (instrument.Zone).
+type Zone = instrument.Zone
 
 // Mask is a per-display-column envelope: a frame FAILS if any sample in
 // column j falls outside [Lo[j], Hi[j]]. Columns are the same edge-anchored
@@ -42,8 +38,8 @@ type Mask struct {
 
 // zone/mask modes
 const (
-	ZoneOff     = 0
-	ZoneTrigger = 1
+	ZoneOff     = instrument.ZoneOff
+	ZoneTrigger = instrument.ZoneTrigger
 
 	MaskOff      = 0
 	MaskTest     = 1

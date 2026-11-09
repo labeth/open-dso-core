@@ -17,8 +17,22 @@ type Images interface {
 	Load(ctx context.Context, features []string) error
 }
 
+// ImageChooser is optional on Images: the board names the image a trigger
+// needs, which only it knows (which image's receivers take a bus request
+// at its rates, which serve a pulse trigger or the zones). The owner loads
+// it (Images.Load) between acquisitions when it is not the current one,
+// and programs the trigger after.
+type ImageChooser interface {
+	// Choose is the features of the image trigger t runs on, nil for the
+	// base image. keep asks to stay on the current image while it serves
+	// t (a caller about to come back to a trigger only it serves); the
+	// board says which images keep. ANY: pure, no hardware access.
+	Choose(t TriggerSpec, keep bool) []string
+}
+
 // ImageSet is one loadable image as the core sees it.
 type ImageSet struct {
+	Name       string        // the image as the scope names it on screen ("qualifier")
 	Features   []string      // "general", "stack", "bits-stream", ...
 	Triggers   TrigCaps      // the nodes this image implements
 	Needs      []string      // parts it needs fitted ("sram"); offered only then

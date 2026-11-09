@@ -20,6 +20,9 @@ type Request struct {
 	PretrigRoom int
 	Segments    int // 0 or 1: one record
 	Need        []Feature
+	// ETS asks for equivalent-time sampling where the board has it; the
+	// plan's ETSFactor says whether it does (1: real time).
+	ETS bool
 }
 
 // Feature names a core consumer and the content it accepts, so the engine

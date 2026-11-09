@@ -364,7 +364,9 @@
         "addr": 0,
         "rw": 0,
         "bytes": null
-      }
+      },
+      "ZoneMode": 0,
+      "Zones": null
     },
     "ui": {
       "tdivs": [
