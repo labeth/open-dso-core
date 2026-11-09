@@ -79,8 +79,10 @@ type HALCycle struct {
 	quiet    sync.RWMutex // held while the owner reads a record, on such a board
 	pace     atomic.Int64 // the display's pace, ns (SetDisplayPace)
 
-	snd     halSound // the audio stream on the board's stream (halsound.go)
-	scratch []uint16 // the conditioning's working buffer
+	snd     halSound   // the audio stream on the board's stream (halsound.go)
+	dec     halDecoded // the decoded stream on the board's stream (haldecoded.go)
+	roll    halRoll    // the roll view on the board's stream (halroll.go)
+	scratch []uint16   // the conditioning's working buffer
 	running bool
 
 	mu     sync.Mutex
@@ -133,11 +135,18 @@ func (c *HALCycle) Consume() (*sample.Frame, bool) {
 // TRLC-LINKS: REQ-DSO-001
 func (c *HALCycle) Open() {}
 
-// Close ends the audio stream still running.
+// Close ends the audio stream, the decoded stream and the roll view still
+// running.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-265
 func (c *HALCycle) Close() {
 	if c.snd.running {
 		c.soundStop()
+	}
+	if c.dec.active {
+		c.decodedEnd(errors.New("the scope stopped"))
+	}
+	if c.roll.running {
+		c.rollStop()
 	}
 }
 
@@ -151,10 +160,16 @@ func (c *HALCycle) Serve() { c.b.Platform().Service() }
 func (c *HALCycle) Claim(ctx context.Context) bool {
 	work := c.inst.TakeWork()
 	if len(work) == 0 {
-		return c.soundStep(ctx)
+		return c.decodedStep(ctx) || c.soundStep(ctx) || c.rollStep(ctx)
 	}
 	if c.snd.running {
 		c.soundStop()
+	}
+	if c.roll.running {
+		c.rollStop()
+	}
+	if c.dec.running {
+		c.decodedHalt() // started again after the work, after a gap
 	}
 	c.stopArmed()
 	for _, w := range work {
@@ -183,6 +198,9 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 		c.idle(ctx)
 		return Capture{}, false
 	}
+	if c.rollWanted() {
+		return Capture{}, false // the next pass rolls (halroll.go)
+	}
 	c.livePlan()
 	return Capture{Normal: true, Norm: c.cur.Sweep != hal.Auto}, true
 }
@@ -192,6 +210,9 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 // a board that shows its stopped record whole (halstopped.go).
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (c *HALCycle) Watch(bool) Interrupt {
+	if c.decodedWanted() {
+		return Abort // a decoded stream starts or stops
+	}
 	if gen := c.inst.Generation(); gen != c.gen || c.inst.HasWork() || c.inst.RecordNeed() != c.need || c.replace {
 		if gen != c.gen && c.watchStop() {
 			return Continue

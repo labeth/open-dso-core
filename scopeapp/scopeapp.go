@@ -28,6 +28,7 @@ import (
 	"github.com/labeth/open-dso-core/scopeweb"
 	scpihost "github.com/labeth/open-dso-core/scpi/host"
 	"github.com/labeth/open-dso-core/settings"
+	"github.com/labeth/open-dso-core/streamview"
 	"github.com/labeth/open-dso-core/uimodel/panel"
 	"github.com/labeth/open-dso-core/webserver"
 	"github.com/labeth/open-dso-core/webserver/wire"
@@ -403,6 +404,15 @@ func startSCPI(ctx context.Context, env *Env, o Options) error {
 	return nil
 }
 
+// halStream gives the UI model of a HAL scope whose board streams codes
+// BUS's Stream view over that stream (ADR-HAL-DECODED-STREAM-OVER-CODES).
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
+func halStream(env *Env) {
+	if env.cycle != nil && env.cycle.DecodesStreams() {
+		env.UI.SetDecodeStream(streamview.New(streamview.HALSource{C: env.cycle}, env.Logf))
+	}
+}
+
 // buildUI builds the UI model and wires it to the frames and the screen.
 // TRLC-LINKS: REQ-DSO-295
 func buildUI(env *Env, o Options) error {
@@ -423,6 +433,7 @@ func buildUI(env *Env, o Options) error {
 		env.Model.SetTimebases(s.Tdivs())
 		env.HALScope = s
 		env.UI = panel.New(s.Engine(), s.Analog(), s.Levels(), s.Hardware(), s.Tdivs(), env.Model.State().TimeDivS, env.Logf)
+		halStream(env)
 	}
 	pc := env.UI
 	pc.SetFrameSource(env.Frames.WithFrame)
