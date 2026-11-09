@@ -1308,3 +1308,48 @@ decisions:
     record shown again) on its 8-bit view; the UI model and the web drive the same sweep.'
   consequences:
   - 'HALScope.Watch is gone; the sweep sees captures AUTO does not publish.'
+
+- id: ADR-HAL-DECODED-STREAM-OVER-CODES
+  title: 'The HAL cycle decodes a board''s stream of codes in software for BUS''s Stream view'
+  status: proposed
+  date: '2026-11-09'
+  context: 'BUS''s Stream view and its page follow a decoded stream. The SDS1000CML+ decodes its stream image''s
+    continuous stream in software for the protocols no FPGA receiver decodes (ADR-STREAM-SOFT-DECODE); the HAL
+    cycle had no decoded stream, so the SDS800X HD, the simulated board and the demo refused the view. The
+    transcript (decodedlines) and the stream''s controller (streamview) were the SDS1000CML+''s own.'
+  decision: 'The transcript and the controller move to the core (decodedlines, streamview: a source in the
+    core''s terms, the SDS1000CML+ engine behind an adapter). On a board whose stream carries codes the HAL cycle
+    is a source: a start stops the run (as on the SDS1000CML+), streams the channels on at the board''s fastest
+    stream plan, puts the bus''s lines on the 8-bit view and decodes them as they arrive (decode.StreamDecoder,
+    the SDS1000CML+''s gap-free sizes); a lost block or a restart is a LOST line. A bus whose shortest feature
+    holds fewer than three and a half of the stream''s samples, or a stream above the SDS1000CML+''s 4 M
+    samples a second, is refused with the rates, before the start (the UI model asks the stream) and at it. A
+    stop on a value ends the transcript at the frame that holds it (software is the trigger on a gap-free decoded
+    stream) and shows no record: the board keeps no history ring. A stop on a decode error runs until stopped by
+    hand, as the SDS1000CML+''s software streams do. The protocols are the SDS1000CML+''s software-decoded ones
+    and MIDI.'
+  consequences:
+  - 'The SDS800X HD''s Stream view runs over its roll stream for buses its 41.7 kSa/s resolves (DALI, LIN at
+    9600 Bd, ...); MIDI''s 32 us bit needs 9.1 us samples and is refused with the rates.'
+  - 'A page''s client decode (the digital stream''s words decoded in the browser) stays the SDS1000CML+''s: it
+    needs a stream of sliced bits (PayloadBits), which no HAL board streams yet.'
+  - 'A board with a hal.RingRecorder could show the stop''s record; that is for when the SDS1000CML+ runs the
+    cycle.'
+
+- id: ADR-HAL-ROLL-OVER-STREAM
+  title: 'The HAL cycle rolls over a board''s stream from the profile''s roll timebase'
+  status: proposed
+  date: '2026-11-09'
+  context: 'At slow timebases the SDS1000CML+ scrolls a continuous view in AUTO instead of waiting out a
+    triggered screen (ADR-SRAM-ROLL); the HAL cycle captured at every timebase.'
+  decision: 'On a board with a stream (captured chunks, else codes) and a profile that states
+    timebase.roll_from_s, the cycle rolls a committed state running AUTO at or past that timebase on a plain edge
+    trigger with nothing that needs triggered records (NORMAL, a single shot, averaging, a protocol or zone
+    trigger, a mask test, a Bode sweep, a leased record need, SOUND or a decoded stream each keep the captures):
+    it plans the state in the board''s roll mode at its own timebase, streams the channels on and publishes the
+    newest screen about every 40 ms (Roll, untriggered, uncovered samples held; the run state Rolling). A board
+    that refuses the roll plan captures until the next commit.'
+  consequences:
+  - 'A profile without roll_from_s keeps capturing: the SDS800X HD''s and the demo''s behaviour is unchanged.'
+  - 'The SDS1000CML+ profile states 100 ms/div while its engine rolls from 10 ms/div (RollMinTdiv): the profile
+    must state 10e-3 when its board runs the cycle, or the CML rolls from a slower timebase.'
