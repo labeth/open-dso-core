@@ -346,11 +346,10 @@ func (c *HALCycle) decodedStep(ctx context.Context) bool {
 	s := &c.dec
 	s.mu.Lock()
 	st, stop := s.pending, s.stopReq
-	_, gen := c.inst.Wanted()
-	if gen == c.gen {
+	if len(c.cur.Channels) > 0 {
 		s.pending = nil
 	} else {
-		st = nil // the pass commits the state first; the start waits for the next
+		st = nil // nothing committed yet: the pass commits the state first
 	}
 	s.mu.Unlock()
 	if st != nil {
@@ -378,12 +377,6 @@ func (c *HALCycle) decodedStep(ctx context.Context) bool {
 		return false
 	}
 	if !s.active {
-		return false
-	}
-	if _, gen := c.inst.Wanted(); gen != c.gen {
-		if s.running {
-			c.decodedHalt() // a commit: the stream starts again after it, after a gap
-		}
 		return false
 	}
 	if !s.running {
@@ -450,7 +443,39 @@ func (c *HALCycle) decodedBegin(st *decodedStart) error {
 	s.sampleS, s.ordAt, s.ordFrom = 0, 0, 0
 	s.active, s.running, s.gap = true, false, false
 	c.decodedTiming(plan.SampleS)
+	if err := c.decodedFirst(); err != nil {
+		c.decodedEnd(err)
+		return err
+	}
 	c.cfg.Logf("decoded stream: %s: %s", d.Name, s.mode)
+	return nil
+}
+
+// decodedFirstWait bounds the wait for a started stream's first block.
+const decodedFirstWait = 2 * time.Second
+
+// decodedFirst starts the board's stream and takes its first block: the
+// rate the board delivers (StreamBlock.SampleS, which a plan need not
+// state) is the start's verdict.
+// TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
+func (c *HALCycle) decodedFirst() error {
+	s := &c.dec
+	if err := c.decodedRun(); err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), decodedFirstWait)
+	b, err := s.st.Lease(ctx)
+	cancel()
+	if err != nil {
+		return nil // no block yet: the drain takes the first one and checks its rate
+	}
+	defer s.st.Release(b)
+	if b.SampleS > 0 && math.Abs(b.SampleS-s.sampleS) > 1e-6*s.sampleS {
+		if err := c.decodedRate(s.decoder.Name, s.p.Baud, b.SampleS, s.feature, s.twoLine); err != nil {
+			return err
+		}
+	}
+	c.decodedBlock(b)
 	return nil
 }
 
@@ -551,7 +576,7 @@ func (c *HALCycle) decodedRun() error {
 	return nil
 }
 
-// decodedHalt stops the board's stream for a commit; the stream starts
+// decodedHalt stops the board's stream for posted work; the stream starts
 // again after a gap, and the captures' state is committed first.
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func (c *HALCycle) decodedHalt() {

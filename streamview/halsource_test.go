@@ -88,7 +88,8 @@ func (s *midiStream) Stop() error {
 func (s *midiStream) Faults() hal.StreamFaults { return hal.StreamFaults{} }
 
 // midiBoard is the fake with a stream of codes whose fastest stream plan
-// samples every microsecond.
+// samples every microsecond (it rolls from 100 us/div: the rig's state
+// captures).
 type midiBoard struct {
 	*halfake.Board
 	st *midiStream
@@ -112,7 +113,7 @@ func midiRig(t *testing.T) (*engine.HALCycle, *midiStream, *instrument.Model) {
 	}
 	st := &midiStream{bits: bus.Lines[0].Bits}
 	ch := hal.Channel{On: true, VoltsDiv: 1, Probe: 1, Impedance: 1e6}
-	inst := instrument.New(instrument.State{Channels: []hal.Channel{ch, ch}, TimeDivS: 1e-3, Sweep: hal.Auto, Running: true}, nil)
+	inst := instrument.New(instrument.State{Channels: []hal.Channel{ch, ch}, TimeDivS: 10e-6, Sweep: hal.Auto, Running: true}, nil)
 	l, c := engine.NewHALLoop(engine.HALConfig{Board: midiBoard{halfake.New(halfake.Config{}), st}, Instrument: inst, IdleWait: time.Millisecond, WaitSlice: time.Millisecond})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -166,7 +167,7 @@ func TestHALDecodedStreamManual(t *testing.T) {
 		t.Fatalf("transcript units %q, want the bus's bytes", text)
 	}
 	if !lost {
-		t.Fatal("the lost block is not marked")
+		t.Fatalf("the lost block is not marked: %d lines, first %+v", len(p.Lines), p.Lines[:min(3, len(p.Lines))])
 	}
 	ctl.Stop()
 	if got := ctl.Snapshot(); got.State != Stopped || got.RecordAvailable {

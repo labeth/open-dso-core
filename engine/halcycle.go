@@ -176,7 +176,7 @@ func (c *HALCycle) Claim(ctx context.Context) bool {
 		w(ctx)
 	}
 	c.gen = 0
-	return false
+	return c.decodedStep(ctx) // a decoded stream goes on (or starts) after the work
 }
 
 // Plan commits a changed state and plans a capture while running.
