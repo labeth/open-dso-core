@@ -595,7 +595,7 @@ func WebParts(env *Env) scopeweb.Parts {
 	}
 	p.Masks = env.MaskTest()
 	if env.cycle != nil && env.cycle.Streams() {
-		p.Sound = env.cycle
+		p.Sound, p.SoundTakes = env.cycle, env.cycle
 	}
 	return p
 }

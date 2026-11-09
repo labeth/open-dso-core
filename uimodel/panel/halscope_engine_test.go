@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/labeth/open-dso-core/engine"
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/hal/halfake"
 	"github.com/labeth/open-dso-core/instrument"
@@ -100,5 +101,17 @@ func TestHALScopeConverterHealth(t *testing.T) {
 	got := NewHALScope(instrument.New(st, nil), mb, "t").Engine().Snapshot()
 	if got.ADCFault != h.Fault || got.ADCRecoveries != h.Recoveries || got.ADCRecovery != h.Recovery || got.ADCCheckMs != h.CheckMs {
 		t.Fatalf("snapshot %q %d %q %g", got.ADCFault, got.ADCRecoveries, got.ADCRecovery, got.ADCCheckMs)
+	}
+}
+
+// A HAL scope over the cycle's audio stream controls its takes.
+// TRLC-LINKS: REQ-DSO-275
+func TestHALScopeSoundTakes(t *testing.T) {
+	var _ soundTaker = (*engine.HALCycle)(nil)
+	inst := instrument.New(instrument.State{Channels: make([]hal.Channel, 2), Running: true}, nil)
+	_, c := engine.NewHALLoop(engine.HALConfig{Board: halfake.New(halfake.Config{}), Instrument: inst})
+	s := NewHALScope(inst, halfake.New(halfake.Config{}), "test").WithSound(c)
+	if _, ok := s.Engine().(soundTaker); !ok {
+		t.Fatal("the engine has no SOUND takes")
 	}
 }

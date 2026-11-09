@@ -74,6 +74,9 @@ func (s *HALScope) WithMask(x *engine.FrameMask) *HALScope {
 func (s *HALScope) Engine() Engine {
 	e := halEngine{Model: s.m, mask: s.mask, bode: s.bode, b: s.b, cycle: s.cycle}
 	if s.sound != nil {
+		if t, ok := s.sound.(soundTaker); ok {
+			return halTakeEngine{halSoundEngine{e, s.sound}, t}
+		}
 		return halSoundEngine{e, s.sound}
 	}
 	return e
@@ -83,6 +86,13 @@ func (s *HALScope) Engine() Engine {
 type halSoundEngine struct {
 	halEngine
 	SoundSource
+}
+
+// halTakeEngine is the HAL engine with the audio stream's takes
+// (engine.HALCycle: STOP's take, NORMAL and SINGLE on the board's marks).
+type halTakeEngine struct {
+	halSoundEngine
+	soundTaker
 }
 
 // Analog is the front end through the Model.
