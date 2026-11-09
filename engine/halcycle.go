@@ -85,9 +85,10 @@ type HALCycle struct {
 	scratch []uint16   // the conditioning's working buffer
 	running bool
 
-	mu     sync.Mutex
-	latest *sample.Frame // the newest published frame
-	fresh  bool          // published since the last Consume
+	mu       sync.Mutex
+	latest   *sample.Frame // the newest published frame
+	latestAt time.Time     // when it was published (SincePublish)
+	fresh    bool          // published since the last Consume
 }
 
 var _ Cycle = (*HALCycle)(nil)
@@ -384,7 +385,7 @@ func (c *HALCycle) Publish(f *sample.Frame, _ Verdict, publish bool) {
 	f.Seq = c.seq
 	c.pubAt = time.Now()
 	c.mu.Lock()
-	c.latest, c.fresh = f, true
+	c.latest, c.fresh, c.latestAt = f, true, c.pubAt
 	c.mu.Unlock()
 	c.inst.Published(f)
 	if c.cfg.Publish != nil {

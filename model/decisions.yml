@@ -1430,3 +1430,39 @@ decisions:
   consequences:
   - 'No profile in use asks for it on the HAL path yet (the SDS1000CML+ runs its own owner; the demo''s board
     paces itself), so nothing changes until the SDS1000CML+ runs the cycle.'
+
+- id: ADR-HAL-CONVERTER-HEALTH
+  title: 'A board that checks its converters reports what it found through its Platform'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ finds converter cores that stopped converting after a configuration, brings them
+    back and says on screen when it cannot; the status carried the finding only from its own engine. The UI
+    model''s HAL engine had no way to read a board''s finding, so the notice would be lost once the scope runs
+    the core''s cycle.'
+  decision: 'hal.ConverterMonitor is optional on a Platform: ConverterHealth reports the fault the screen
+    shows, the recoveries and the last check''s time, ANY. HALScope''s Snapshot fills Stats.ADCFault,
+    ADCRecoveries, ADCRecovery and ADCCheckMs from it; a board without it leaves them empty.'
+  consequences:
+  - 'The SDS1000CML+ board''s platform reports its converter checks; the SDS800X HD, the simulated board and
+    the demo report none and show no notice, as before.'
+  - 'Where and when the checks run on the HAL cycle (the CML runs them between acquisitions and after each
+    image load) is the board''s scheduling, decided with the image switching.'
+
+- id: ADR-CML-EXTENSIONS-ON-BOARD
+  title: 'The SDS1000CML+''s own web routes are its board''s extensions'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The core''s web server serves a scope''s own routes from Board.Extensions (ADR-HAL-WEB-ON-CORE); the
+    SDS1000CML+ passed them to it as routes of its web adapter, built over its engine. Its decoded capture,
+    FPGA stacking session and tuning knobs are its engine''s until its engine is the core''s cycle; its panel
+    scan is the board''s.'
+  decision: 'The web adapter groups its routes into one hal.Extension a feature and attaches them to the board
+    it is given (Board.SetExtensions); the core''s web server serves them as the board''s. The panel scan''s
+    route reads the board''s scan; the decoded capture, the stacking session and the tuning knobs stay over the
+    engine until the cycle serves them. Without a board (tests of the adapter alone) they are the adapter''s
+    routes, the same set.'
+  consequences:
+  - 'Served routes, their features and the capabilities document are unchanged (route goldens).'
+  - 'When the CML runs the core''s cycle the engine-backed extensions need their sources over the board and the
+    cycle: the decoded capture over the board''s decoded events, the stacking session over hal.Stacker, the
+    tuning knobs over the cycle''s pacing.'

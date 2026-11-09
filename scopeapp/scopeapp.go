@@ -426,10 +426,7 @@ func buildUI(env *Env, o Options) error {
 		if env.Model == nil {
 			return errors.New("scopeapp: a scope with its own owner builds its UI model")
 		}
-		s := panel.NewHALScope(env.Model, env.Board, env.Product).WithMask(env.Mask).WithBode(env.Bode)
-		if env.cycle != nil && env.cycle.Streams() {
-			s.WithSound(env.cycle)
-		}
+		s := halScope(env)
 		env.Model.SetTimebases(s.Tdivs())
 		env.HALScope = s
 		env.UI = panel.New(s.Engine(), s.Analog(), s.Levels(), s.Hardware(), s.Tdivs(), env.Model.State().TimeDivS, env.Logf)
@@ -615,4 +612,19 @@ func (w WebSetups) SetupSlots() []wire.SetupSlot {
 		out = append(out, wire.SetupSlot{Slot: s.Slot, Used: s.Used, Summary: s.Summary})
 	}
 	return out
+}
+
+// halScope is the UI model's view of env's board through its instrument
+// state, with the owner loop's mask test, frequency response, cycle and,
+// where the board streams, audio stream.
+// TRLC-LINKS: REQ-DSO-135
+func halScope(env *Env) *panel.HALScope {
+	s := panel.NewHALScope(env.Model, env.Board, env.Product).WithMask(env.Mask).WithBode(env.Bode)
+	if env.cycle != nil {
+		s.WithCycle(env.cycle)
+		if env.cycle.Streams() {
+			s.WithSound(env.cycle)
+		}
+	}
+	return s
 }
