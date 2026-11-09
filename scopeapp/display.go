@@ -90,8 +90,8 @@ type QuietPacer interface {
 
 // boardEngine is the display's view of a HAL board's acquisition: the
 // profile's fixed display cadence (Budget.DisplayHz; none: hudPeriod), and
-// the pace handed to a PacedBoard, or to the owner loop with the quiet lock
-// on a board that shares its core.
+// the pace handed to a PacedBoard, or else to the owner loop with the quiet
+// lock on a board that shares its core.
 type boardEngine struct {
 	period time.Duration
 	pace   PacedBoard // nil: a board that shares no core with the display
@@ -107,7 +107,8 @@ func boardEngineOf(b hal.Board, owner QuietPacer) boardEngine {
 		e.period = time.Duration(float64(time.Second) / hz)
 	}
 	if p, ok := b.(PacedBoard); ok {
-		e.pace = p
+		e.pace = p // the board paces its records itself (the simulated board)
+		return e
 	}
 	if owner != nil && b.Profile().Budget.QuietAcquire {
 		e.pace, e.quiet = owner, owner
