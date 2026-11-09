@@ -80,6 +80,7 @@ let worker = null;
 
 // TRLC-LINKS: REQ-DSO-298
 async function startWasm() {
+  await onDeployedVersion();
   const reg = await registerWorker();
   const [profile, demoText] = await Promise.all([
     fetch('scope/profile.yaml').then((r) => r.text()),
@@ -130,6 +131,26 @@ function engineRequest(method, url, headers, body) {
     enginePending.set(id, res);
     enginePort.postMessage({ id, method, url, headers, body }, body ? [body.buffer] : []);
   });
+}
+
+// onDeployedVersion moves a page the browser kept from an earlier deploy onto
+// the one deployed now, once: the site cannot clear a browser's stored copy,
+// so the page asks for the deployed page past every cache and compares the
+// builds.
+// TRLC-LINKS: REQ-DSO-298
+async function onDeployedVersion() {
+  if (!built) return;
+  let now;
+  try {
+    const page = await (await fetch(location.pathname, { cache: 'no-store' })).text();
+    now = page.match(/name="demo-version" content="([0-9a-f]+)"/)?.[1];
+  } catch { return; }
+  if (!now || now === built) return;
+  let moved = false;
+  try { moved = sessionStorage.getItem('demo-version-move') === now; sessionStorage.setItem('demo-version-move', now); } catch { moved = true; }
+  if (moved) return;
+  location.replace(`${location.pathname}?v=${now}`);
+  await new Promise(() => {});
 }
 
 // registerWorker starts the service worker that serves the web UI from the
