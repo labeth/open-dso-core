@@ -20,10 +20,12 @@ import (
 // TRLC-LINKS: REQ-DSO-163
 func (s *Scope) Frames() webserver.Frames {
 	fr := frames{s}
-	if !s.v1Wire() {
+	switch {
+	case !s.v1Wire() && s.cfg.Quiet != nil:
+		return quietFramesV2Only{framesV2Only{fr}}
+	case !s.v1Wire():
 		return framesV2Only{fr}
-	}
-	if s.cfg.Quiet != nil {
+	case s.cfg.Quiet != nil:
 		return quietFrames{fr}
 	}
 	return fr
@@ -41,6 +43,16 @@ func (q quietFrames) QuietRLock() { q.s.cfg.Quiet.QuietRLock() }
 
 // TRLC-LINKS: REQ-DSO-163
 func (q quietFrames) QuietRUnlock() { q.s.cfg.Quiet.QuietRUnlock() }
+
+// quietFramesV2Only are frames v1 cannot carry whose serialisation waits
+// out the acquisition's load-sensitive windows.
+type quietFramesV2Only struct{ framesV2Only }
+
+// TRLC-LINKS: REQ-DSO-163
+func (q quietFramesV2Only) QuietRLock() { q.s.cfg.Quiet.QuietRLock() }
+
+// TRLC-LINKS: REQ-DSO-163
+func (q quietFramesV2Only) QuietRUnlock() { q.s.cfg.Quiet.QuietRUnlock() }
 
 // framesV2Only are the frames of a scope v1 cannot carry.
 type framesV2Only struct{ frames }
