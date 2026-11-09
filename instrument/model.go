@@ -36,6 +36,7 @@ type Model struct {
 	trig     trigHealth              // the hardware triggers dropped (NoteTrigger)
 	backends Backends
 	caps     func() hal.TrigCaps
+	sourced  []func() // hear SetTrigSource (OnTrigSource)
 }
 
 // FrameSource gives a reader the newest published frame: the engine's

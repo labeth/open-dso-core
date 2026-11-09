@@ -208,9 +208,11 @@ func applyEngine(s Settings, eng Engine, ext Extension, logf func(string, ...any
 		}
 	}
 	eng.SetNorm(s.Trigger.Norm)
+	// The type first: a scope that keeps a slope and a source per trigger
+	// type (the instrument model) gives the saved ones to the saved type.
+	eng.SetTrigType(s.Trigger.Type) // clamps to edge on out-of-range
 	eng.SetTrigSlope(s.Trigger.Rising)
 	eng.SetTrigSource(s.Trigger.Source) // clamps to the scope's channels
-	eng.SetTrigType(s.Trigger.Type)     // clamps to edge on out-of-range
 	if ext != nil {
 		ext.ApplyTrigger(s.Trigger)
 	}

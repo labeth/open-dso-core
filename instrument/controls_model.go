@@ -228,6 +228,12 @@ func (m *Model) SetTrigSource(ch int) {
 			_ = s.Trigger.SetSource(hal.Source{Kind: hal.Analog, Index: ch}, len(s.Channels))
 		}
 	})
+	m.mu.Lock()
+	hear := m.sourced
+	m.mu.Unlock()
+	for _, fn := range hear {
+		fn()
+	}
 }
 
 // SetTrigSlope picks the rising or the falling edge of the running type.
