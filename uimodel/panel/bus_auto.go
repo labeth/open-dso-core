@@ -371,78 +371,18 @@ func (m *busMsgs) startPulse(codes []uint8, ps []Packet, sampleS float64) {
 		return
 	}
 	q := (hi - lo) / 4
-	type run struct {
-		i0, i1 int
-		high   bool
-	}
-	var runs []run
+	var runs []lineRun
 	state, start := int(codes[0]) > (lo+hi)/2, 0
 	for i, v := range codes {
 		if (!state && int(v) >= hi-q) || (state && int(v) <= lo+q) {
-			runs = append(runs, run{start, i, state})
+			runs = append(runs, lineRun{start, i, state})
 			state, start = !state, i
 		}
 	}
-	runs = append(runs, run{start, len(codes), state})
-	type found struct {
-		w, lead float64
-		ok      bool
-	}
-	var best [2]found
+	runs = append(runs, lineRun{start, len(codes), state})
+	var best [2]startRun
 	for k, high := range []bool{false, true} {
-		// a packet's start run: the longest at the level from the end of the
-		// packet before (the record's start for the first) to its own start
-		// (a preamble may lie between the idle and the packet: Qi's ones, USB
-		// PD's, MDIO's clocks)
-		starts := map[int]int{} // run index → the packet it starts
-		first := 0              // the first run that may reach past the packet before (the packets in order)
-		for j, p := range ps {
-			if p.I0 <= 0 {
-				continue
-			}
-			slack := max(2, (p.I1-p.I0)/100)
-			from := 0
-			if j > 0 {
-				from = ps[j-1].I1 - slack
-			}
-			for first < len(runs) && runs[first].i1 <= from {
-				first++
-			}
-			at := -1
-			for i := first; i < len(runs); i++ {
-				r := runs[i]
-				if r.i0 > p.I0+slack {
-					break
-				}
-				if r.high == high && r.i1 > from && (at < 0 || r.i1-r.i0 > runs[at].i1-runs[at].i0) {
-					at = i
-				}
-			}
-			if _, dup := starts[at]; at >= 0 && !dup {
-				starts[at] = j
-			}
-		}
-		other := 0
-		for i, r := range runs {
-			if _, isStart := starts[i]; r.high == high && !isStart && r.i0 > 0 && r.i1 < len(codes) {
-				other = max(other, r.i1-r.i0)
-			}
-		}
-		least, lead := 0, 0
-		for i, j := range starts {
-			r := runs[i]
-			if r.i1 >= len(codes) || float64(r.i1-r.i0) <= 1.5*float64(other) {
-				continue // its end not in the record, or no longer than another run
-			}
-			if least == 0 || r.i1-r.i0 < least {
-				least = r.i1 - r.i0
-			}
-			lead = max(lead, r.i1-ps[j].I0)
-		}
-		if least == 0 || other == 0 {
-			continue
-		}
-		best[k] = found{w: float64(other+least) / 2 * sampleS, lead: float64(max(lead, 0)) * sampleS, ok: true}
+		best[k] = startRunAt(runs, ps, len(codes), high, sampleS)
 	}
 	k := -1
 	switch {
@@ -457,6 +397,78 @@ func (m *busMsgs) startPulse(codes []uint8, ps []Packet, sampleS float64) {
 		return
 	}
 	m.startW, m.startLead, m.startHigh = best[k].w, best[k].lead, k == 1
+}
+
+// lineRun is a run of a line's samples at one level: samples i0 … i1-1.
+type lineRun struct {
+	i0, i1 int
+	high   bool
+}
+
+// startRun is the pulse at one level that starts the messages: its width
+// threshold and how far past a message's start it ends; ok false: none.
+type startRun struct {
+	w, lead float64
+	ok      bool
+}
+
+// startRunAt is startPulse's search at one level (high) of the line's runs
+// over a record of n samples sampleS apart, against the decode's packets ps.
+// TRLC-LINKS: REQ-DSO-223
+func startRunAt(runs []lineRun, ps []Packet, n int, high bool, sampleS float64) startRun {
+	// a packet's start run: the longest at the level from the end of the
+	// packet before (the record's start for the first) to its own start
+	// (a preamble may lie between the idle and the packet: Qi's ones, USB
+	// PD's, MDIO's clocks)
+	starts := map[int]int{} // run index → the packet it starts
+	first := 0              // the first run that may reach past the packet before (the packets in order)
+	for j, p := range ps {
+		if p.I0 <= 0 {
+			continue
+		}
+		slack := max(2, (p.I1-p.I0)/100)
+		from := 0
+		if j > 0 {
+			from = ps[j-1].I1 - slack
+		}
+		for first < len(runs) && runs[first].i1 <= from {
+			first++
+		}
+		at := -1
+		for i := first; i < len(runs); i++ {
+			r := runs[i]
+			if r.i0 > p.I0+slack {
+				break
+			}
+			if r.high == high && r.i1 > from && (at < 0 || r.i1-r.i0 > runs[at].i1-runs[at].i0) {
+				at = i
+			}
+		}
+		if _, dup := starts[at]; at >= 0 && !dup {
+			starts[at] = j
+		}
+	}
+	other := 0
+	for i, r := range runs {
+		if _, isStart := starts[i]; r.high == high && !isStart && r.i0 > 0 && r.i1 < n {
+			other = max(other, r.i1-r.i0)
+		}
+	}
+	least, lead := 0, 0
+	for i, j := range starts {
+		r := runs[i]
+		if r.i1 >= n || float64(r.i1-r.i0) <= 1.5*float64(other) {
+			continue // its end not in the record, or no longer than another run
+		}
+		if least == 0 || r.i1-r.i0 < least {
+			least = r.i1 - r.i0
+		}
+		lead = max(lead, r.i1-ps[j].I0)
+	}
+	if least == 0 || other == 0 {
+		return startRun{}
+	}
+	return startRun{w: float64(other+least) / 2 * sampleS, lead: float64(max(lead, 0)) * sampleS, ok: true}
 }
 
 // sofThenUnit reports a bus whose frame-start trigger is a frame start and
@@ -581,18 +593,9 @@ func (c *Controller) frameTrigger(m busMsgs) string {
 // TRLC-LINKS: REQ-DSO-223, REQ-DSO-013
 func (c *Controller) frameTriggerAt(m busMsgs) (note string, lead float64, own bool) {
 	s := c.snap()
-	refused := ""
-	if se := c.serialTrig(); se != nil {
-		p := se.SerialConfig()
-		user := !defaultMatch(p) && !(s.decProto == framecalc.ProtoUART && s.decLayer == "sbus" && sbusStart(p))
-		if msg, ok := c.serialFrameTrigger(s, p); ok {
-			if user {
-				return msg, 0, false
-			}
-			if refused = c.serialRefusal(); refused == "" {
-				return msg, 0, false
-			}
-		}
+	msg, refused, armed := c.serialFrameStart(s)
+	if armed {
+		return msg, 0, false
 	}
 	if s.decProto == framecalc.ProtoUART {
 		if w := uartIdle(m); w > 0 {
@@ -616,14 +619,37 @@ func (c *Controller) frameTriggerAt(m busMsgs) (note string, lead float64, own b
 	}
 	if w := m.startW; w > 0 {
 		c.idleTrigger(s.decChA, w, m.startHigh)
-		level := "low"
-		if m.startHigh {
-			level = "high"
-		}
+		level := map[bool]string{false: "low", true: "high"}[m.startHigh]
 		return fmt.Sprintf("TRIG: %s frame start (%s > %s; the board's trigger has no %s receiver)", protoName(s.decProto), level, si(w, "s"), protoName(s.decProto)), m.startLead, true
 	}
 	c.edgeTrigger(s.decChA)
 	return "TRIG: edge (the board's trigger has no " + protoName(s.decProto) + " receiver, and the bus no pulse to start on)", 0, true
+}
+
+// serialFrameStart arms the serial trigger on the bus's frame start (or the
+// user's match) where the bus has a frame-start matcher: armed when it is
+// the trigger, with the note; refused is the board's reason when it cannot
+// take the frame start AUTO chose ("" when it takes it, or nothing was
+// armed).
+// TRLC-LINKS: REQ-DSO-223, REQ-DSO-013
+func (c *Controller) serialFrameStart(s *sv) (note, refused string, armed bool) {
+	se := c.serialTrig()
+	if se == nil {
+		return "", "", false
+	}
+	p := se.SerialConfig()
+	user := !defaultMatch(p) && (s.decProto != framecalc.ProtoUART || s.decLayer != "sbus" || !sbusStart(p))
+	msg, ok := c.serialFrameTrigger(s, p)
+	if !ok {
+		return "", "", false
+	}
+	if user {
+		return msg, "", true
+	}
+	if refused = c.serialRefusal(); refused == "" {
+		return msg, "", true
+	}
+	return "", refused, false
 }
 
 // serialVerdictWait bounds the wait for the board's word on a serial
@@ -866,15 +892,17 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64, want func(busMsg
 				wait = max(wait, idleLookWait)
 			}
 			l := c.detectWith(true, true, accept, decodeAt, wait)
+			var got busMsgs
 			if l.found && l.sampleS > 0 {
-				if got := msgsOf(l.res, l.sampleS, valid); got.longest > 0 {
-					got.startPulse(line, anaPackets(l.res, valid), l.sampleS)
-					if want == nil || want(got) {
-						return got
-					}
-					if first.longest == 0 {
-						first = got // the message, should no record show the idle
-					}
+				got = msgsOf(l.res, l.sampleS, valid)
+			}
+			if got.longest > 0 {
+				got.startPulse(line, anaPackets(l.res, valid), l.sampleS)
+				if want == nil || want(got) {
+					return got
+				}
+				if first.longest == 0 {
+					first = got // the message, should no record show the idle
 				}
 			}
 			if seen == after {

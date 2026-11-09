@@ -1223,7 +1223,7 @@ func twoDutyPWM(res decode.Result) bool {
 		return false
 	}
 	var duties []float64
-	for _, tok := range strings.Fields(res.Text) {
+	for tok := range strings.FieldsSeq(res.Text) {
 		v, err := strconv.ParseFloat(strings.TrimSuffix(tok, "%"), 64)
 		if err != nil || !strings.HasSuffix(tok, "%") {
 			continue

@@ -25,7 +25,7 @@ func TestSynthBusLine(t *testing.T) {
 	}
 	sda := b.Lines[1].Wave(b.Period * 1.1)
 	for _, at := range []float64{0, b.Period / 3, b.Period / 2, b.Period * 1.05} {
-		want := 1.65 - 1.65 + 3.3*sda.At(at)
+		want := 3.3 * sda.At(at) // the signal swings 0 … 3.3 V about its 1.65 V offset
 		if v := s.V(at + b.Period*1.1); v < want-0.01 || v > want+0.01 {
 			t.Fatalf("at %g s: %g V, want %g", at, v, want)
 		}

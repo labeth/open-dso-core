@@ -88,8 +88,8 @@ func soundRows() []*row {
 	a4.def = func(c *Controller) error { return a4.setN(c, 440) }
 	rng := sndEnum("snd.range", "Range", "The tuner's search: auto 25 Hz-5 kHz, bass 20-600 Hz, high 200 Hz-12 kHz.",
 		[]opt{{0, labelAuto}, {1, "Bass"}, {2, "High"}},
-		func(s SoundSettings) int { return map[string]int{"": 0, "bass": 1, "high": 2}[s.Range] },
-		func(s *SoundSettings, v int) { s.Range = []string{"", "bass", "high"}[clampInt(v, 0, 2)] })
+		func(s SoundSettings) int { return map[string]int{"": 0, "bass": 1, soundRangeHigh: 2}[s.Range] },
+		func(s *SoundSettings, v int) { s.Range = []string{"", "bass", soundRangeHigh}[clampInt(v, 0, 2)] })
 	slow := sndEnum("snd.slow", "Smoothing", "Fast follows the pitch (three readings); slow holds it steadier (nine).",
 		[]opt{{0, "Fast"}, {1, "Slow"}}, func(s SoundSettings) int { return b2ic(s.Slow) }, func(s *SoundSettings, v int) { s.Slow = v == 1 })
 	ref := sndEnum("snd.ref", "Meter 0 dB", "What the meters read as 0 dB: dBu (0.775 V), dBV (1 V), a Eurorack 10 Vpp sine, +4 dBu, -10 dBV, a guitar's 100 mV.",
