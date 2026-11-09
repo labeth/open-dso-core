@@ -538,10 +538,31 @@ func (c *Controller) setStreamMode(on bool) error {
 		return errors.New(noStreamWhy)
 	case on && !bus:
 		return errors.New("a stream needs a bus: set Protocol (Auto finds it)")
-	case on || inView:
+	case on:
+		if err := c.streamCheck(); err != nil {
+			return err
+		}
+		c.showBusView(on)
+	case inView:
 		c.showBusView(on)
 	}
 	return nil
+}
+
+// streamCheck is the stream's refusal of the decoder settings' bus before
+// it starts, when it checks one ahead (a board whose stream is too slow
+// for the bus).
+// TRLC-LINKS: REQ-DSO-018
+func (c *Controller) streamCheck() error {
+	c.mu.Lock()
+	ck, ok := c.stream.(interface {
+		Check(engine.SerialParams) error
+	})
+	c.mu.Unlock()
+	if !ok {
+		return nil
+	}
+	return ck.Check(c.serialBus(engine.SerialParams{Addr: -1, RW: 2}))
 }
 
 // StreamMode reports the BUS sheet's Stream on, for the HUD.

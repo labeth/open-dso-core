@@ -46,6 +46,7 @@ let site = { mode: 'wasm', ui: 'ui/' };
 // The build's version (BuildSite stamps it): the workers and the module load
 // with it, so no file kept from an earlier deploy runs beside this one.
 const built = document.querySelector('meta[name="demo-version"]')?.content;
+// TRLC-LINKS: REQ-DSO-298
 const ver = (f) => (built ? `${f}?v=${built}` : f);
 let demo = {};
 let channels = 2;

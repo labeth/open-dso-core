@@ -69,6 +69,18 @@ architecture:
     prose: 'The decoded stream''s transcript as served: the list window and the lines as data.'
     tags:
     - package:streamwire
+  - id: FU-DSO-DECODEDLINES
+    name: Decoded stream lines
+    group: FG-DSO-ACQUISITION
+    prose: 'The decoded stream''s hexdump lines built from decoded events, in the UI process or a scope''s acquisition worker, and their batch encoding.'
+    tags:
+    - package:decodedlines
+  - id: FU-DSO-STREAMVIEW
+    name: Decoded stream controller
+    group: FG-DSO-ACQUISITION
+    prose: 'The scope-side decoded stream the UI model starts and stops: it follows one stream''s events or lines into a transcript and ends it on its trigger or by hand.'
+    tags:
+    - package:streamview
   - id: FU-DSO-DECODE
     name: Protocol decoders
     group: FG-DSO-ANALYSIS
