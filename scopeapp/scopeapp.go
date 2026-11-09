@@ -157,8 +157,13 @@ type Env struct {
 	// Mask is the software mask test the owner loop runs (nil without
 	// Options.SoftwareMask): the UI model, SCPI and the web drive it.
 	Mask *engine.FrameMask
-	UI   *panel.Controller
-	SCPI SCPI
+	// Bode is the frequency-response sweep the HAL owner loop measures on
+	// its captures; nil beside a scope's own owner.
+	Bode *engine.Bode
+	// cycle is the HAL owner loop's cycle (nil beside a scope's own owner).
+	cycle *engine.HALCycle
+	UI    *panel.Controller
+	SCPI  SCPI
 	// Setups is the setup memory the panel, SCPI and the web share (set
 	// after the settings are restored).
 	Setups *panel.SharedSetups
@@ -249,6 +254,7 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		if o.SoftwareMask {
 			env.Mask = engine.NewFrameMask()
 		}
+		env.Bode = engine.NewBode()
 		h.snap = m.Snapshot
 		h.beats = func() uint64 { return m.Snapshot().Published }
 	}
@@ -259,7 +265,8 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		go o.Owner.Run()
 		go env.Frames.Run(o.Owner, stop)
 	} else {
-		loop, cycle := engine.NewHALLoop(engine.HALConfig{Board: b, Instrument: env.Model, Logf: logf, Publish: o.Publish, Mask: env.Mask})
+		loop, cycle := engine.NewHALLoop(engine.HALConfig{Board: b, Instrument: env.Model, Logf: logf, Publish: o.Publish, Mask: env.Mask, Bode: env.Bode})
+		env.cycle = cycle
 		env.Model.SetFrames(env.Frames)
 		go env.Frames.Run(cycle, stop)
 		go loop.Run(ctx)
@@ -268,9 +275,6 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 	// The UI model over the front panel.
 	if err := buildUI(env, o); err != nil {
 		return err
-	}
-	if env.HALScope != nil {
-		go env.HALScope.Watch(env.Frames, stop)
 	}
 	if env.Model != nil { // the board's refusals of a commit on the screen
 		env.Model.OnRefused(env.UI.Refused)
@@ -412,7 +416,10 @@ func buildUI(env *Env, o Options) error {
 		if env.Model == nil {
 			return errors.New("scopeapp: a scope with its own owner builds its UI model")
 		}
-		s := panel.NewHALScope(env.Model, env.Board, env.Product).WithMask(env.Mask)
+		s := panel.NewHALScope(env.Model, env.Board, env.Product).WithMask(env.Mask).WithBode(env.Bode)
+		if env.cycle != nil && env.cycle.Streams() {
+			s.WithSound(env.cycle)
+		}
 		env.Model.SetTimebases(s.Tdivs())
 		env.HALScope = s
 		env.UI = panel.New(s.Engine(), s.Analog(), s.Levels(), s.Hardware(), s.Tdivs(), env.Model.State().TimeDivS, env.Logf)
@@ -571,6 +578,9 @@ func WebParts(env *Env) scopeweb.Parts {
 		p.Serial = halSerial{env.Model}
 	}
 	p.Masks = env.MaskTest()
+	if env.cycle != nil && env.cycle.Streams() {
+		p.Sound = env.cycle
+	}
 	return p
 }
 

@@ -160,7 +160,11 @@ func (c *HALCycle) qualStage(s instrument.State, base hal.TrigStage) (hal.TrigSt
 // busStage is state s's serial trigger as the board's protocol trigger on
 // the bus's first line: the request whole (prototrig.Bus), its thresholds
 // in volts, each line sliced at the middle of its learned extent unless
-// the request names a threshold.
+// the request names a threshold. While a line's levels are not known
+// (still learned, or no swing yet) the stage is returned all the same,
+// sliced at the screen centre, with why: the board is asked whether it
+// takes the request at all (programTrigger), so a refusal is told at once
+// and not only once the levels are learned.
 // TRLC-LINKS: REQ-DSO-013
 func (c *HALCycle) busStage(s instrument.State, base hal.TrigStage) (hal.TrigStage, string) {
 	p := s.Serial
@@ -178,11 +182,11 @@ func (c *HALCycle) busStage(s instrument.State, base hal.TrigStage) (hal.TrigSta
 		return (e.lo + e.hi) / 2, ""
 	}
 	a, why := level(p.ChA, p.HaveThr, p.Threshold)
-	if why != "" {
-		return base, why
+	if why != "" && p.ChA >= 0 && p.ChA < len(s.Channels) {
+		a = -s.Channels[p.ChA].OffsetV // the screen centre: a level the board takes
 	}
 	b := a
-	if p.ChB != p.ChA && p.ChB >= 0 && p.ChB < len(c.ext) {
+	if why == "" && p.ChB != p.ChA && p.ChB >= 0 && p.ChB < len(c.ext) {
 		// a second line silent (a UART's unused role) keeps the first's level
 		if lb, whyB := level(p.ChB, p.HaveThrB, p.ThresholdB); whyB == "" {
 			b = lb
@@ -193,14 +197,16 @@ func (c *HALCycle) busStage(s instrument.State, base hal.TrigStage) (hal.TrigSta
 	st.Source = hal.Source{Kind: hal.Analog, Index: p.ChA}
 	st.Levels.High = a
 	st.Proto = &prototrig.Bus{Request: p, Levels: [2]float64{a, b}}
-	return st, ""
+	return st, why
 }
 
 // programTrigger programs state s's trigger: the serial trigger, else the
 // running type. A pulse, slope or video type the UI model set (its
 // configuration Placed) is placed on the learned swing; one the board
-// cannot serve yet runs free, and the backends say why; a board that runs
-// nothing free is left on the edge trigger, with the reason said. A type
+// cannot serve yet runs free, and the backends say why; a serial request
+// whose levels are not known yet is put to the board first, so its refusal
+// is what they say; a board that runs nothing free is left on the edge
+// trigger, with the reason said. A type
 // set in its own levels and limits (a host interface's) is programmed as
 // it is: the board takes it or refuses it with the reason, which the
 // commit reports.
@@ -214,6 +220,10 @@ func (c *HALCycle) programTrigger(s instrument.State) error {
 	}
 	var be instrument.Backends
 	clear(c.placed)
+	c.gate = nil
+	if hasZones(spec) {
+		c.gate = &c.gates[1]
+	}
 	var want hal.TrigStage
 	what, why := "", ""
 	switch t := s.Trigger.Type; {
@@ -234,11 +244,22 @@ func (c *HALCycle) programTrigger(s instrument.State) error {
 	}
 	edgeSpec := s.Trigger.Spec(spec.Sweep)
 	edgeSpec.Coupling, edgeSpec.NoiseReject, edgeSpec.HoldoffS = edge.Coupling, edge.NoiseReject, edge.HoldoffS
+	if why != "" && what == "serial" && want.Node == hal.NodeProtocol {
+		// the levels are not known yet: does the board take the request?
+		ws := spec
+		ws.Stages = []hal.TrigStage{want}
+		if r, ok := hal.AsRefusal(tr.Program(ws)); ok {
+			why = r.Reason
+		}
+	}
 	if why == "" {
 		ws := spec
 		ws.Stages = []hal.TrigStage{want}
 		err := tr.Program(ws)
 		if err == nil {
+			if what == "serial" {
+				c.gate = &c.gates[0]
+			}
 			setBackend(&be, what, "hardware")
 			c.inst.SetBackends(be)
 			return nil
@@ -278,4 +299,15 @@ func setBackend(b *instrument.Backends, what, v string) {
 	} else {
 		b.Trigger = v
 	}
+}
+
+// hasZones reports a trigger whose stages the zones qualify.
+// TRLC-LINKS: REQ-DSO-014
+func hasZones(spec hal.TriggerSpec) bool {
+	for _, st := range spec.Stages {
+		if len(st.Zones) > 0 {
+			return true
+		}
+	}
+	return false
 }

@@ -56,7 +56,7 @@ func cleanSoundSettings(s SoundSettings, nch int) SoundSettings {
 	if sound.PresetByID(s.Ref).ID != s.Ref {
 		s.Ref = "dbu"
 	}
-	if s.Range != "bass" && s.Range != "high" {
+	if s.Range != "bass" && s.Range != soundRangeHigh {
 		s.Range = ""
 	}
 	s.Page = ((s.Page % numSoundPages) + numSoundPages) % numSoundPages
@@ -73,6 +73,9 @@ func cleanSoundSettings(s SoundSettings, nch int) SoundSettings {
 	s.PreS, s.PostS = math.Round(s.PreS*1000)/1000, math.Round(s.PostS*1000)/1000
 	return s
 }
+
+// soundRangeHigh is the SOUND range that shows the treble.
+const soundRangeHigh = "high"
 
 // soundEngine is the engine's audio stream (engine/sound_stream.go).
 type soundEngine interface {

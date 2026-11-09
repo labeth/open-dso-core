@@ -162,7 +162,7 @@ func Describe(b hal.Board, o Options) Composition {
 		}
 	}
 	if o.Display.Engine == nil {
-		e := boardEngineOf(b)
+		e := boardEngineOf(b, nil)
 		c.Display = &DisplayFacts{PeriodMS: float64(e.period) / float64(time.Millisecond), Paced: e.pace != nil}
 	}
 	if o.Web == nil && c.Parts["web"] != "none" {

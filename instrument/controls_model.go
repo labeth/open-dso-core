@@ -55,6 +55,7 @@ func (m *Model) SetTimebases(tdivs []float64) {
 func (m *Model) Snapshot() Stats {
 	m.mu.Lock()
 	s, run, last, be := m.want, m.run, m.last, m.backends
+	trig := m.trig
 	m.mu.Unlock()
 	st := Stats{
 		Running: s.Running, Norm: s.Sweep == hal.NormalSweep || s.Sweep == hal.Single, Single: s.Single,
@@ -66,6 +67,7 @@ func (m *Model) Snapshot() Stats {
 		Roll:       run == Rolling,
 		SerialMode: s.SerialMode, SerialSet: len(s.Serial.Bytes) > 0 || len(s.Serial.Pattern) > 0,
 		TriggerBackend: be.Trigger, SerialBackend: be.Serial,
+		FalseTriggers: trig.falses, NoiseTriggers: trig.share,
 	}
 	if last != nil {
 		st.Seq, st.Published = last.Seq, last.Seq

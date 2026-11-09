@@ -195,6 +195,40 @@ func (r *SoundRing) PushWords(raw []byte, sc SoundScale, gap bool, now time.Time
 	r.Mu.Unlock()
 }
 
+// PushQ appends samples q1, q2 (each lane's Q8.8 codes, as many as each)
+// at scale sc; gap says samples were lost before them.
+// TRLC-LINKS: REQ-DSO-265
+func (r *SoundRing) PushQ(q1, q2 []uint16, sc SoundScale, gap bool, now time.Time) {
+	n := min(len(q1), len(q2))
+	if n == 0 && !gap {
+		return
+	}
+	r.Mu.Lock()
+	if len(r.Q[0]) == 0 {
+		r.Q = [2][]uint16{make([]uint16, r.size), make([]uint16, r.size)}
+	}
+	mask := uint64(len(r.Q[0]) - 1) //nolint:gosec // G115: the ring is a non-empty power of two
+	if gap && r.Next > 0 && (len(r.Gaps) == 0 || r.Gaps[len(r.Gaps)-1] != r.Next) {
+		r.Gaps = append(r.Gaps, r.Next)
+	}
+	if k := len(r.scales); k == 0 || r.scales[k-1].VdivV != sc.VdivV || r.scales[k-1].OffV != sc.OffV || !slices.Equal(r.scales[k-1].Chans, sc.Chans) {
+		sc.From = r.Next
+		r.scales = append(r.scales, sc)
+	}
+	for i := range n {
+		j := (r.Next + uint64(i)) & mask
+		r.Q[0][j], r.Q[1][j] = q1[i], q2[i]
+	}
+	r.Next += uint64(n)
+	r.trimLocked()
+	if n > 0 {
+		r.Last = now
+	}
+	close(r.wake)
+	r.wake = make(chan struct{})
+	r.Mu.Unlock()
+}
+
 // AddMarks records marks (ordinals already in the stream's sample count).
 // TRLC-LINKS: REQ-DSO-272
 func (r *SoundRing) AddMarks(ms []SoundMark) {

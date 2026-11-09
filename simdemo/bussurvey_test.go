@@ -3,6 +3,7 @@ package simdemo_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -289,7 +290,7 @@ func (u *rig) rawFrame() (*sample.Frame, error) {
 		n = max(n, t.Codes.Len())
 	}
 	if n == 0 {
-		return nil, fmt.Errorf("no samples")
+		return nil, errors.New("no samples")
 	}
 	f.Traces = make([]sample.Trace, 4)
 	for i := range f.Traces {

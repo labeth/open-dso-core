@@ -31,8 +31,9 @@ type stoppedRecord struct {
 	due     bool          // the last live frame's record awaits its whole read
 	held    *sample.Frame // the stopped record read whole, shown again at a new setting
 	replay  bool          // this pass shows the held record again
-	content uint64        // the ContentID the cycle gives a record read whole
+	content uint64        // the ContentIDs the cycle has given (newContent)
 	stopAt  time.Time     // when a STOP landed in the waiting capture; zero: none
+	cond    heldCond      // the held record as read, and the filter its shown copy has (haleres.go)
 }
 
 // recordReader is the board's readout as a ScreenReader, when it places
@@ -122,17 +123,26 @@ func (c *HALCycle) stopForceDue() bool {
 func (c *HALCycle) stoppedFrame(ctx context.Context) (*sample.Frame, Verdict, bool) {
 	r := &c.stopped
 	if r.replay {
-		g := *r.held // a published frame never changes: the copy is numbered anew
+		g := *c.reconditioned(r) // a published frame never changes: the copy is numbered anew
 		return &g, Verdict{FullRecall: true}, true
 	}
 	r.due = false
+	release := c.quietRead()
 	f, ok := c.readWhole(ctx)
+	release()
 	if !ok {
 		return nil, Verdict{}, false
 	}
+	c.placeEdge(f, true)
+	r.cond = heldCond{raw: f}
+	if c.eresLen > 1 {
+		raw := &sample.Frame{}
+		raw.CopyFrom(f)
+		r.cond = heldCond{raw: raw, length: c.eresLen}
+		c.condition(f)
+	}
 	if f.ContentID == 0 {
-		r.content++
-		f.ContentID = r.content
+		f.ContentID = r.newContent()
 	}
 	r.held = f
 	return f, Verdict{FullRecall: true}, true
@@ -154,4 +164,15 @@ func (c *HALCycle) readWhole(ctx context.Context) (*sample.Frame, bool) {
 		return nil, false
 	}
 	return f, true
+}
+
+// cycleContent marks the ContentIDs the cycle gives, apart from a board's.
+const cycleContent = 1 << 63
+
+// newContent is a ContentID the cycle gives a record it read whole or
+// filtered again: never one a board gave.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-012
+func (r *stoppedRecord) newContent() uint64 {
+	r.content++
+	return cycleContent | r.content
 }

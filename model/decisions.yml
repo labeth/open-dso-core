@@ -1220,3 +1220,91 @@ decisions:
     HALCycle.'
   - 'The CML waits 100 ms plus the record''s pretrigger time before forcing; the HAL cycle does not know the
     pretrigger time and waits 100 ms from the STOP.'
+
+- id: ADR-HAL-SERIAL-ASKED-FIRST
+  title: 'A serial trigger whose levels are not known yet is put to the board'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The HAL cycle places a serial request''s thresholds on each line''s learned extent; until a record
+    showed the line swing, its verdict was "learning the signal levels", and AUTO''s frame-start fallback
+    (ADR-AUTO-FRAME-START-FALLBACK) waited out its verdict wait on a board that refuses the request whatever
+    the levels.'
+  decision: 'While a line''s levels are not known the cycle programs the request sliced at the screen centre
+    to ask the board whether it takes it at all: a refusal is the verdict at once; a board that takes it runs
+    free until the levels are learned, as before.'
+  consequences:
+  - 'One extra Program call per commit while the levels are learned; the free-running edge spec programmed
+    after it replaces what it staged.'
+
+- id: ADR-HAL-CYCLE-FRESH-FRAMES
+  title: 'The HAL cycle publishes a fresh frame each pass'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ owner drains into an arena''s write slot and publishes by a swap; its consumers copy
+    what they keep. The HAL cycle''s consumers (the instrument model, the fan-out, the web, the UI model) hold
+    the published frame, and "a published frame never changes" is their contract.'
+  decision: 'The HAL cycle allocates its frames (and their detail windows) per pass and never reuses a
+    published one. The arena comes when the CML''s consumers move onto the cycle and copy as the CML''s do.'
+  consequences:
+  - 'A frame''s buffers are garbage per pass on the HAL path; the CML''s owner keeps its arena until it runs
+    the cycle.'
+
+- id: ADR-HAL-TRIGGER-INDEX
+  title: 'A board says how finely its edge trigger index places the trigger'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s FPGA names its trigger to a record word of two samples, and its comparator on
+    raw interleaved codes can fire on converter noise; its engine checks the trigger on the calibrated record,
+    places it on the level crossing and drops one with no crossing near the index. Other boards interpolate
+    their trigger themselves.'
+  decision: 'hal.Profile gains TriggerIndex, the samples between the places the index can name. Above 1 the HAL
+    cycle checks a hardware edge trigger on the record (ConfirmTriggerEdge), places it on the crossing
+    (RefineTriggerEdge) and drops one without, counted in Stats.FalseTriggers and NoiseTriggers; a decimated
+    record keeps the board''s index; an envelope is checked, not placed; a stopped record read whole is
+    placed, never dropped. 0 or 1 leaves the board''s index.'
+  consequences:
+  - 'The SDS800X HD and the simulated board keep their index; the SDS1000CML+ profile states 2 when it runs
+    the cycle.'
+  - 'Qualifier and zone trigger points are the board''s to place (Readout''s TriggerAt).'
+
+- id: ADR-HAL-ERES-ON-FRAMES
+  title: 'ERES on a board that filters nothing is math on the frames'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s ERES is a boxcar on its records in software; the SDS800X HD and the simulated
+    board refuse hal.HighRes, so the HAL cycle refused the mode.'
+  decision: 'When the board refuses HighRes (not precision words) the cycle asks for normal records, reads
+    them raw and filters each trace with the centred boxcar of EresLen points before anything reads it. A
+    stopped record keeps its filtered copy while the length stays and is filtered again from the record read
+    when it changes, under a new ContentID the cycle gives (apart from a board''s), without a board read.'
+  consequences:
+  - 'The SDS800X HD gains ERES as the CML has it.'
+
+- id: ADR-HAL-SOUND-OVER-STREAM
+  title: 'SOUND runs over the board''s stream of codes'
+  status: proposed
+  date: '2026-11-09'
+  context: 'SOUND needs a gap-free stream; the SDS1000CML+ streams decimated Q8.8 words from its stream image,
+    and the HAL''s Streamer streams codes (the SDS800X HD''s roll stream). The core engine had no consumer of
+    hal.Streamer, so SOUND was refused on the HAL path.'
+  decision: 'While a SOUND lease holds the HAL cycle stages the committed state at the fastest timebase the
+    board streams at (Timebase.RollFromS, else the first of the ladder its planner takes in RollMode), starts
+    the board''s stream of codes on the first two channels on, and keeps both lanes in Q8.8 in the sound ring
+    at the rate the board delivers (hal.StreamBlock gains SampleS, the time between a block''s samples as
+    delivered; 0: the StreamSpec''s). A commit, posted work, STOP or RUN restarts it after a gap; the board''s
+    lost blocks are counted. The board marks no crossings: marks and takes stay the CML''s.'
+  consequences:
+  - 'The SDS800X HD''s SOUND view and page stream; its rate is the roll stream''s.'
+  - 'A SOUND tuner on a channel past the two lanes hears nothing; a lane choice from SOUND''s settings is open.'
+
+- id: ADR-HAL-BODE-ON-OWNER
+  title: 'The HAL cycle measures the frequency response on every capture'
+  status: proposed
+  date: '2026-11-09'
+  context: 'On the HAL path Bode ran beside the owner on the published frames and skipped untriggered ones; the
+    SDS1000CML+ measures every capture, triggered or not (a ratio of two channels sampled together needs no
+    trigger, and asking for one stopped the sweep, unsaid, with the level off the signal).'
+  decision: 'HALConfig.Bode: the owner measures every capture it reads (not an envelope, a roll or a stopped
+    record shown again) on its 8-bit view; the UI model and the web drive the same sweep.'
+  consequences:
+  - 'HALScope.Watch is gone; the sweep sees captures AUTO does not publish.'

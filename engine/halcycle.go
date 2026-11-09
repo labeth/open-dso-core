@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/labeth/open-dso-core/hal"
@@ -37,6 +38,9 @@ type HALConfig struct {
 	// Mask is the mask test run on every frame read (a board without mask
 	// hardware tests in software); nil: none.
 	Mask *FrameMask
+	// Bode is the frequency-response sweep measured on every capture read
+	// (not a stopped record shown again); nil: none.
+	Bode *Bode
 	Logf func(format string, a ...any)
 }
 
@@ -64,6 +68,19 @@ type HALCycle struct {
 	replace bool                  // a placing extent moved: the trigger is placed again
 	avg     average               // the average of a board that runs none (halaverage.go)
 	stopped stoppedRecord         // the stopped record shown whole (halstopped.go)
+	plan    hal.Plan              // the plan committed last
+	edges   edgeCarry             // the edge windows read last, carried to the frames between reads (haldetail.go)
+	eresLen int                   // the boxcar a board that filters nothing gets in software (haleres.go)
+	gate    *Liveness             // AUTO's rule for a protocol or zone trigger the board runs; nil: none (Liveness)
+	gates   [2]Liveness           // the protocol trigger's, the zones'
+	pubAt   time.Time             // when the newest frame was published
+
+	quietAcq bool         // the board shares its core with the display (halpace.go)
+	quiet    sync.RWMutex // held while the owner reads a record, on such a board
+	pace     atomic.Int64 // the display's pace, ns (SetDisplayPace)
+
+	snd     halSound // the audio stream on the board's stream (halsound.go)
+	scratch []uint16 // the conditioning's working buffer
 	running bool
 
 	mu     sync.Mutex
@@ -88,7 +105,7 @@ func NewHALLoop(cfg HALConfig) (*Loop, *HALCycle) {
 	n := cfg.Board.Profile().Channels
 	c := &HALCycle{
 		cfg: cfg, b: cfg.Board, inst: cfg.Instrument, good: cfg.Instrument.State(),
-		ext: make([]extent, n), placed: make([]bool, n),
+		ext: make([]extent, n), placed: make([]bool, n), quietAcq: cfg.Board.Profile().Budget.QuietAcquire,
 	}
 	return NewLoop(LoopConfig{
 		Acquirer:  cfg.Board.Acquirer(),
@@ -116,9 +133,13 @@ func (c *HALCycle) Consume() (*sample.Frame, bool) {
 // TRLC-LINKS: REQ-DSO-001
 func (c *HALCycle) Open() {}
 
-// Close has nothing to end.
-// TRLC-LINKS: REQ-DSO-001
-func (c *HALCycle) Close() {}
+// Close ends the audio stream still running.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-265
+func (c *HALCycle) Close() {
+	if c.snd.running {
+		c.soundStop()
+	}
+}
 
 // Serve is the board's housekeeping.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
@@ -130,7 +151,10 @@ func (c *HALCycle) Serve() { c.b.Platform().Service() }
 func (c *HALCycle) Claim(ctx context.Context) bool {
 	work := c.inst.TakeWork()
 	if len(work) == 0 {
-		return false
+		return c.soundStep(ctx)
+	}
+	if c.snd.running {
+		c.soundStop()
 	}
 	c.stopArmed()
 	for _, w := range work {
@@ -223,30 +247,44 @@ func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Fram
 	w := hal.Window{Role: hal.Main}
 	if sr, ok := c.recordReader(); ok {
 		var err error
-		// a peak envelope of the screen, unless a lease needs the samples
-		if w, err = sr.ScreenWindow(hal.ScreenRequest{PosFrac: c.posFrac(), Envelope: c.need == (instrument.RecordNeed{})}); err != nil {
+		// a peak envelope of the screen, unless a lease or the filter needs the samples
+		env := c.need == (instrument.RecordNeed{}) && c.eresLen <= 1 // a filter needs the samples
+		if w, err = sr.ScreenWindow(hal.ScreenRequest{PosFrac: c.posFrac(), Envelope: env}); err != nil {
 			c.cfg.Logf("readout: %v", err)
 			_ = c.b.Acquirer().Stop()
 			return nil, Verdict{}, false
 		}
 	}
+	release := c.quietRead()
 	f, err := c.read(ctx, w)
 	if err != nil {
+		release()
 		c.cfg.Logf("readout: %v", err)
 		_ = c.b.Acquirer().Stop()
 		return nil, Verdict{}, false
 	}
 	c.stopped.due = c.keepsRecords()
-	c.learn(f)
-	if c.avg.on {
-		c.avg.add(f)
-	}
+	c.snd.last = f
 	// A FORCE press the wait had no time to take is this frame's: shown
 	// even in NORMAL.
 	forced := st.Forced || a.UserForced || c.inst.TakeForce()
-	v := Verdict{Qualified: st.Triggered && !forced, Complete: true, UserForced: forced}
+	c.details(ctx, f, st.Triggered && !forced)
+	release()
+	c.condition(f)
+	c.learn(f)
+	placed := forced || c.placeEdge(f, false)
+	if c.avg.on {
+		c.avg.add(f)
+	}
+	v := Verdict{Qualified: st.Triggered && !forced && placed, Complete: true, UserForced: forced}
+	if v.Qualified && c.gate != nil {
+		c.gate.Reset()
+	}
 	if c.cfg.Mask != nil {
 		_, v.MaskStop = c.cfg.Mask.Test(f, c.posFrac(), c.cur.Mode == hal.Average)
+	}
+	if b := c.cfg.Bode; b != nil && b.Armed() {
+		b.Frame(sample.View8Frame(f), c.voltsDiv)
 	}
 	return f, v, true
 }
@@ -296,9 +334,22 @@ func (c *HALCycle) posFrac() float64 {
 	return .5 - c.cur.DelayS/(divs*c.cur.TimeDivS)
 }
 
-// Liveness shows every frame: the board's AUTO has no gate of its own.
-// TRLC-LINKS: REQ-DSO-011
-func (c *HALCycle) Liveness() bool { return true }
+// Liveness is AUTO's rule for the captures a protocol or zone trigger the
+// board runs did not qualify (the board's AUTO forced them): held, but one
+// goes through every fallback holds or once AutoLiveMax has passed since
+// the last publish, so an AUTO display never freezes on a bus that does
+// not match. Every other trigger, and one running free, shows each frame.
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-013, REQ-DSO-014
+func (c *HALCycle) Liveness() bool {
+	if c.gate == nil {
+		return true
+	}
+	fallback := SerialFallback
+	if c.gate == &c.gates[1] {
+		fallback = ZoneFallback
+	}
+	return c.gate.Due(fallback, func() time.Time { return c.pubAt }, time.Now)
+}
 
 // Publish numbers a shown frame (Frame.Seq, from 1: a consumer waits for
 // the frame after the one it holds) and hands it to the instrument, the
@@ -310,6 +361,7 @@ func (c *HALCycle) Publish(f *sample.Frame, _ Verdict, publish bool) {
 	}
 	c.seq++
 	f.Seq = c.seq
+	c.pubAt = time.Now()
 	c.mu.Lock()
 	c.latest, c.fresh = f, true
 	c.mu.Unlock()
@@ -323,9 +375,10 @@ func (c *HALCycle) Publish(f *sample.Frame, _ Verdict, publish bool) {
 // TRLC-LINKS: REQ-DSO-008
 func (c *HALCycle) Done(time.Time, time.Duration) {}
 
-// Pacing is none: the board holds off itself and draws its own display.
-// TRLC-LINKS: REQ-DSO-008
-func (c *HALCycle) Pacing() (holdoff, display time.Duration) { return 0, 0 }
+// Pacing is the display's share of a core the board shares with it
+// (halpace.go); the board holds off itself.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-168
+func (c *HALCycle) Pacing() (holdoff, display time.Duration) { return 0, time.Duration(c.pace.Load()) }
 
 // Beat has no heartbeat to advance.
 // TRLC-LINKS: REQ-DSO-001
@@ -395,6 +448,9 @@ func (c *HALCycle) commitState(s instrument.State, gen uint64) {
 	if c.cfg.Mask != nil && applied.Running && !c.cur.Running && !applied.Single {
 		c.cfg.Mask.ResumeRun() // RUN releases a stop-on-fail latch; a SINGLE leaves it shown
 	}
+	if !applied.Trigger.Equal(c.cur.Trigger) || applied.TimeDivS != c.cur.TimeDivS || applied.Mode != c.cur.Mode {
+		c.inst.ClearNoiseTriggers()
+	}
 	c.cur, c.good, c.gen = applied, applied, gen
 	c.running = applied.Running
 	c.inst.Applied(applied, gen)
@@ -420,6 +476,7 @@ func (c *HALCycle) commit(s instrument.State) (instrument.State, error) {
 	if err := c.b.Acquirer().Configure(plan); err != nil {
 		return s, err
 	}
+	c.plan = plan
 	return s, c.programTrigger(s)
 }
 
@@ -434,6 +491,7 @@ func (c *HALCycle) request(s instrument.State) hal.Request {
 		c.avg.reset()
 	}
 	c.avg.on = avg
+	r, c.eresLen = c.eresed(r, s)
 	n := c.need
 	p := c.b.Profile()
 	deepest := p.MaxDepth
@@ -494,4 +552,14 @@ func (c *HALCycle) idle(ctx context.Context) {
 	case <-ctx.Done():
 	case <-t.C:
 	}
+}
+
+// voltsDiv is channel ch's V/div at the probe tip in the committed state
+// (1 past the scope's channels), as the frequency response compares gains.
+// TRLC-LINKS: REQ-DSO-066
+func (c *HALCycle) voltsDiv(ch int) float64 {
+	if ch >= 0 && ch < len(c.cur.Channels) && c.cur.Channels[ch].VoltsDiv > 0 {
+		return c.cur.Channels[ch].VoltsDiv
+	}
+	return 1
 }

@@ -103,7 +103,7 @@ func (c *Controller) soundPane() *wsview.SoundPane {
 	switch set.Range {
 	case "":
 		rng = "auto"
-	case "bass", "high":
+	case "bass", soundRangeHigh:
 		rng = set.Range
 	}
 	p.Sub = "A4 = " + strconv.FormatFloat(set.A4, 'g', -1, 64) + " Hz  " + rng // %g

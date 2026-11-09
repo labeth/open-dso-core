@@ -32,6 +32,8 @@ type Model struct {
 	runMem   runMemory // the trigger mode an armed single shot replaced
 	tdivs    []float64 // the timebase ladder SetTdiv snaps to
 	leases   map[string]lease
+	views    [ViewSurfaces]viewLease // each surface's view window lease (LeaseView)
+	trig     trigHealth              // the hardware triggers dropped (NoteTrigger)
 	backends Backends
 	caps     func() hal.TrigCaps
 }

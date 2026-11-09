@@ -282,9 +282,8 @@ func (b *BodeState) Fill(st *instrument.Stats) {
 	st.BodeWhy = b.Why
 }
 
-// Bode is a frequency-response sweep an owner loop without its own runs
-// beside its frames: armed or not, and the accumulated state. Feed it each
-// new published frame.
+// Bode is a frequency-response sweep the owner loop runs on its captures
+// (HALConfig.Bode): armed or not, and the accumulated state.
 type Bode struct {
 	BodeState
 	on atomic.Bool
@@ -326,15 +325,13 @@ func (b *Bode) FillStats(st *instrument.Stats) {
 	b.Fill(st)
 }
 
-// Frame measures a locked frame (its 8-bit view) while armed; a frame with
-// no trigger (forced, free-running, a roll) gives no point.
+// Frame measures a capture (its 8-bit view) while armed, triggered or
+// not: its gain and phase are the ratio of two channels sampled together,
+// and asking for a trigger would stop the sweep, unsaid, with the level off
+// the signal. An envelope or a roll gives no point.
 // TRLC-LINKS: REQ-DSO-066
 func (b *Bode) Frame(f *sample.Frame, vdiv func(int) float64) {
-	if !b.on.Load() || f == nil || f.Flags.Has(sample.Envelope) {
-		return
-	}
-	if f.TrigKind == sample.Forced || f.TrigKind == sample.Untriggered || f.Flags.Has(sample.Roll) {
-		b.Invalidate("no trigger: put the trigger on the reference")
+	if !b.on.Load() || f == nil || f.Flags.Has(sample.Envelope) || f.Content == sample.PeakPairs || f.Flags.Has(sample.Roll) {
 		return
 	}
 	valid := min(f.Len(), f.Codes8Len())
