@@ -36,6 +36,7 @@ type Model struct {
 	trig     trigHealth              // the hardware triggers dropped (NoteTrigger)
 	backends Backends
 	caps     func() hal.TrigCaps
+	busy     busy // what the owner is busy with, the image (SetBusy, SetImage)
 }
 
 // FrameSource gives a reader the newest published frame: the engine's

@@ -592,6 +592,9 @@ func WebParts(env *Env) scopeweb.Parts {
 	}
 	if env.Model != nil && env.HALScope != nil {
 		p.Serial = halSerial{env.Model}
+		if env.Board.Profile().Triggers.Has(hal.NodeZone) { // the zones in the instrument state
+			p.Zones = env.Model
+		}
 	}
 	p.Masks = env.MaskTest()
 	if env.cycle != nil && env.cycle.Streams() {

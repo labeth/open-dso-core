@@ -5,6 +5,7 @@ package engine
 import (
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/hal/prototrig"
@@ -192,25 +193,35 @@ func (c *HALCycle) busStage(s instrument.State, base hal.TrigStage) (hal.TrigSta
 			b = lb
 		}
 	}
+	if why == "" {
+		// the rates the request leaves to the decoder, as the records
+		// measured them: until they are known the edge runs free
+		pr, whyRate := c.planRates(p)
+		if whyRate != "" {
+			return base, whyRate
+		}
+		p = pr
+	}
 	st := base
 	st.Node = hal.NodeProtocol
 	st.Source = hal.Source{Kind: hal.Analog, Index: p.ChA}
 	st.Levels.High = a
-	st.Proto = &prototrig.Bus{Request: p, Levels: [2]float64{a, b}}
+	st.Proto = &prototrig.Bus{Request: p, Levels: [2]float64{a, b}, ARINCSlicer: c.arincSlicer(p)}
 	return st, why
 }
 
 // programTrigger programs state s's trigger: the serial trigger, else the
-// running type. A pulse, slope or video type the UI model set (its
-// configuration Placed) is placed on the learned swing; one the board
-// cannot serve yet runs free, and the backends say why; a serial request
-// whose levels are not known yet is put to the board first, so its refusal
-// is what they say; a board that runs nothing free is left on the edge
-// trigger, with the reason said. A type
-// set in its own levels and limits (a host interface's) is programmed as
-// it is: the board takes it or refuses it with the reason, which the
-// commit reports.
-// TRLC-LINKS: REQ-DSO-011, REQ-DSO-013
+// running type, with the zones armed (not under a serial trigger). A pulse,
+// slope or video type the UI model set (its configuration Placed) is placed
+// on the learned swing; one the board cannot serve yet runs free, and the
+// backends say why; a serial request whose levels are not known yet is put
+// to the board first, so its refusal is what they say; a board that runs
+// nothing free is left on the edge trigger, with the reason said. A
+// trigger on an image the board is not on waits for its load (halimages.go)
+// on the trigger it has free. A type set in its own levels and limits (a
+// host interface's) is programmed as it is: the board takes it or refuses
+// it with the reason, which the commit reports.
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-013, REQ-DSO-014
 func (c *HALCycle) programTrigger(s instrument.State) error {
 	spec := s.TriggerSpec()
 	edge := s.Trigger.Configs[instrument.TrigEdge]
@@ -221,7 +232,9 @@ func (c *HALCycle) programTrigger(s instrument.State) error {
 	var be instrument.Backends
 	clear(c.placed)
 	c.gate = nil
-	if hasZones(spec) {
+	c.img.due = nil
+	zones := s.SerialMode == 0 && s.ZonesArmed() && len(spec.Stages) > 0
+	if hasZones(spec) || zones {
 		c.gate = &c.gates[1]
 	}
 	var want hal.TrigStage
@@ -239,8 +252,7 @@ func (c *HALCycle) programTrigger(s instrument.State) error {
 	}
 	tr := c.b.Trigger()
 	if what == "" {
-		c.inst.SetBackends(be)
-		return tr.Program(spec)
+		return c.programPlain(s, spec, zones, &be)
 	}
 	edgeSpec := s.Trigger.Spec(spec.Sweep)
 	edgeSpec.Coupling, edgeSpec.NoiseReject, edgeSpec.HoldoffS = edge.Coupling, edge.NoiseReject, edge.HoldoffS
@@ -248,36 +260,105 @@ func (c *HALCycle) programTrigger(s instrument.State) error {
 		// the levels are not known yet: does the board take the request?
 		ws := spec
 		ws.Stages = []hal.TrigStage{want}
-		if r, ok := hal.AsRefusal(tr.Program(ws)); ok {
-			why = r.Reason
+		if c.onImageFor(ws) { // another image's receivers would be asked once the levels are known
+			if r, ok := hal.AsRefusal(tr.Program(ws)); ok {
+				why = r.Reason
+			}
 		}
 	}
+	learning := why != "" // the stage waits on its levels, not on the board
 	if why == "" {
-		ws := spec
-		ws.Stages = []hal.TrigStage{want}
-		err := tr.Program(ws)
-		if err == nil {
-			if what == "serial" {
-				c.gate = &c.gates[0]
-			}
-			setBackend(&be, what, "hardware")
-			c.inst.SetBackends(be)
-			return nil
+		var zs []hal.Zone
+		if zones {
+			zs = s.HALZones()
 		}
-		why = err.Error()
-		if r, ok := hal.AsRefusal(err); ok {
-			why = r.Reason
+		if why = c.programWanted(spec, want, zs, what, be); why == "" {
+			return nil
 		}
 	}
 	setBackend(&be, what, "none: "+why)
+	if zones {
+		be.Zone = "none: " + why
+	}
 	c.inst.SetBackends(be)
 	edgeSpec.Stages = []hal.TrigStage{fallback}
+	if learning {
+		// the trigger waits on its levels or a rate: the image the edge runs
+		// on, the current one kept while a served clock is measured again
+		c.imageDue(edgeSpec, why == SPIMeasuring)
+	}
 	edgeSpec.FreeRun = true
 	if err := tr.Program(edgeSpec); err != nil {
 		edgeSpec.FreeRun = false
 		return tr.Program(edgeSpec)
 	}
 	return nil
+}
+
+// programWanted programs want (with zones zs) in place of spec's stages
+// and records its backends; it says why it does not run ("" when it does).
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-013, REQ-DSO-014
+func (c *HALCycle) programWanted(spec hal.TriggerSpec, want hal.TrigStage, zs []hal.Zone, what string, be instrument.Backends) string {
+	ws := spec
+	ws.Stages = []hal.TrigStage{want}
+	if zs != nil {
+		ws.Stages[0].Zones = zs
+	}
+	why := c.tryProgram(ws)
+	if why != "" {
+		return why
+	}
+	if what == "serial" {
+		c.gate = &c.gates[0]
+	}
+	setBackend(&be, what, "hardware")
+	if zs != nil {
+		be.Zone = "hardware"
+	}
+	c.inst.SetBackends(be)
+	return ""
+}
+
+// programPlain programs state s's running type as it is (spec), with the
+// zones when they are armed; zones the board cannot serve leave the type
+// running without them, and the backends say why.
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-014
+func (c *HALCycle) programPlain(s instrument.State, spec hal.TriggerSpec, zones bool, be *instrument.Backends) error {
+	if zones {
+		zs := spec
+		zs.Stages = slices.Clone(spec.Stages)
+		zs.Stages[0].Zones = s.HALZones()
+		why := c.tryProgram(zs)
+		if why == "" {
+			be.Zone = "hardware"
+			c.inst.SetBackends(*be)
+			return nil
+		}
+		be.Zone = "none: " + why
+	}
+	c.inst.SetBackends(*be)
+	if !zones { // the zones chose their image
+		c.imageDue(spec, false)
+	}
+	return c.b.Trigger().Program(spec)
+}
+
+// tryProgram programs ws when the board is on the image it runs on and
+// says why it does not run: the image's load (due at the next pass), the
+// board's refusal, or its error.
+// TRLC-LINKS: REQ-DSO-011
+func (c *HALCycle) tryProgram(ws hal.TriggerSpec) string {
+	if name, due := c.imageDue(ws, false); due {
+		return "loading the " + name + " FPGA image"
+	}
+	err := c.b.Trigger().Program(ws)
+	if err == nil {
+		return ""
+	}
+	if r, ok := hal.AsRefusal(err); ok {
+		return r.Reason
+	}
+	return err.Error()
 }
 
 // placeOn marks the channels whose learned extent places the trigger: a

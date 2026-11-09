@@ -56,6 +56,11 @@ type State struct {
 	// place of the trigger type; 0: off.
 	SerialMode int
 	Serial     prototrig.SerialParams
+	// ZoneMode arms the zone trigger (ZoneTrigger) on Zones: the running
+	// trigger then fires only where the zones say; ZoneOff leaves Zones
+	// installed, untested.
+	ZoneMode int
+	Zones    []Zone
 }
 
 // Clone is s with its own Channels and trigger stages.
@@ -65,6 +70,7 @@ func (s State) Clone() State {
 	s.Trigger = s.Trigger.Clone()
 	s.Serial.Bytes = slices.Clone(s.Serial.Bytes)
 	s.Serial.Pattern = slices.Clone(s.Serial.Pattern)
+	s.Zones = slices.Clone(s.Zones)
 	return s
 }
 
@@ -83,7 +89,7 @@ func (s State) Equal(o State) bool {
 		s.Averages == o.Averages && s.EresLen == o.EresLen && s.Precision == o.Precision &&
 		s.PrecisionRateHz == o.PrecisionRateHz && s.ETS == o.ETS &&
 		s.Trigger.Equal(o.Trigger) && s.LevelSet == o.LevelSet && s.Qual == o.Qual && s.Sweep == o.Sweep && s.Single == o.Single && s.Running == o.Running &&
-		s.SerialMode == o.SerialMode && s.Serial.Equal(&o.Serial)
+		s.SerialMode == o.SerialMode && s.Serial.Equal(&o.Serial) && s.ZoneMode == o.ZoneMode && slices.Equal(s.Zones, o.Zones)
 }
 
 // Request is what the planner is asked for in state s: the channels that
@@ -96,7 +102,7 @@ func (s State) Request() hal.Request {
 			on = append(on, c)
 		}
 	}
-	return hal.Request{Channels: on, TimePerDivS: s.TimeDivS, DelayS: s.DelayS, Depth: s.Depth, Mode: s.Mode}
+	return hal.Request{Channels: on, TimePerDivS: s.TimeDivS, DelayS: s.DelayS, Depth: s.Depth, Mode: s.Mode, ETS: s.ETS}
 }
 
 // TriggerSpec is the running trigger type of state s in the HAL's terms,

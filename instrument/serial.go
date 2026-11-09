@@ -36,6 +36,9 @@ func (m *Model) SerialConfig() prototrig.SerialParams {
 // captures run untriggered; "" when the state asks for neither.
 type Backends struct {
 	Trigger, Serial string
+	// Zone is the zone trigger's decider, as Trigger's, "" while no zones
+	// are armed.
+	Zone string
 }
 
 // SetBackends records what decides the trigger (OWNER).

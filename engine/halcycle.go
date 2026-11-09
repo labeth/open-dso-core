@@ -82,6 +82,8 @@ type HALCycle struct {
 	snd     halSound   // the audio stream on the board's stream (halsound.go)
 	dec     halDecoded // the decoded stream on the board's stream (haldecoded.go)
 	roll    halRoll    // the roll view on the board's stream (halroll.go)
+	img     halImages  // the FPGA image the trigger runs on (halimages.go)
+	ser     halSerial  // the serial request's measured rates (halserial.go)
 	scratch []uint16   // the conditioning's working buffer
 	running bool
 
@@ -109,6 +111,10 @@ func NewHALLoop(cfg HALConfig) (*Loop, *HALCycle) {
 	c := &HALCycle{
 		cfg: cfg, b: cfg.Board, inst: cfg.Instrument, good: cfg.Instrument.State(),
 		ext: make([]extent, n), placed: make([]bool, n), quietAcq: cfg.Board.Profile().Budget.QuietAcquire,
+	}
+	cfg.Instrument.SetBand(cfg.Board.Profile().StatusBand)
+	if im, ok := cfg.Board.Images(); ok {
+		cfg.Instrument.SetImage(im.Current().Name)
 	}
 	return NewLoop(LoopConfig{
 		Acquirer:  cfg.Board.Acquirer(),
@@ -185,10 +191,13 @@ func (c *HALCycle) Claim(ctx context.Context) bool {
 func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 	s, gen := c.inst.Wanted()
 	committed, wasRunning := false, c.running
-	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need || c.replace {
+	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need || c.replace || c.img.again.Swap(false) {
 		c.stopArmed()
 		c.need, c.replace = need, false
 		c.commitState(s, gen)
+		if c.loadDueImage(ctx) { // the trigger's image, between acquisitions
+			c.commitState(s, gen)
+		}
 		committed = true
 	}
 	if !c.running {
@@ -201,6 +210,9 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 	}
 	if c.rollWanted() {
 		return Capture{}, false // the next pass rolls (halroll.go)
+	}
+	if c.checkConverters(ctx) { // a recovery loaded the image again
+		c.commitState(s, gen)
 	}
 	c.livePlan()
 	return Capture{Normal: true, Norm: c.cur.Sweep != hal.Auto}, true
@@ -294,6 +306,7 @@ func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Fram
 	release()
 	c.condition(f)
 	c.learn(f)
+	c.learnSerial(f, st.Triggered && !forced)
 	placed := forced || c.placeEdge(f, false)
 	if c.avg.on {
 		c.avg.add(f)
@@ -499,6 +512,7 @@ func (c *HALCycle) commit(s instrument.State) (instrument.State, error) {
 		return s, err
 	}
 	c.plan = plan
+	s.ETS = s.ETS && plan.ETSFactor > 1 // the plan says whether the board samples in equivalent time
 	return s, c.programTrigger(s)
 }
 
