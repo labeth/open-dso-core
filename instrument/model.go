@@ -37,6 +37,7 @@ type Model struct {
 	backends Backends
 	caps     func() hal.TrigCaps
 	busy     busy                            // what the owner is busy with, the image (SetBusy, SetImage)
+	count    counters                        // the frames read, held and matched, the pass's stages (CountFrame)
 	sourced  []func()                        // hear SetTrigSource (OnTrigSource)
 	typed    []func(s *State, from TrigType) // project a type change (OnTrigType)
 	sloped   []func(s *State, sl hal.Slope)  // keep a slope the type has no setting for (OnTrigSlope)

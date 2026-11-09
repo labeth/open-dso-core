@@ -4,6 +4,7 @@ package instrument
 
 import (
 	"math"
+	"time"
 
 	"github.com/labeth/open-dso-core/hal"
 )
@@ -55,7 +56,7 @@ func (m *Model) SetTimebases(tdivs []float64) {
 func (m *Model) Snapshot() Stats {
 	m.mu.Lock()
 	s, run, last, be := m.want, m.run, m.last, m.backends
-	trig, bz := m.trig, m.busy
+	trig, bz, count := m.trig, m.busy, m.count
 	m.mu.Unlock()
 	st := Stats{
 		Running: s.Running, Norm: s.Sweep == hal.NormalSweep || s.Sweep == hal.Single, Single: s.Single,
@@ -74,6 +75,7 @@ func (m *Model) Snapshot() Stats {
 		st.Seq, st.Published = last.Seq, last.Seq
 	}
 	bz.fill(&st)
+	count.fill(&st, time.Now())
 	return st
 }
 

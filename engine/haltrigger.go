@@ -54,11 +54,8 @@ func (c *HALCycle) learn(f *sample.Frame) {
 		if words := len(t.Codes8) + len(t.Codes16); words < t.Valid {
 			continue // an envelope's pairs: the next record's samples tell
 		}
-		lo, hi := math.Inf(1), math.Inf(-1)
-		for k := range t.Valid {
-			v := t.Volts(k)
-			lo, hi = min(lo, v), max(hi, v)
-		}
+		wlo, whi := wordExtent(t)
+		lo, hi := t.Scale.Volts(float64(wlo)), t.Scale.Volts(float64(whi)) // volts rise with the word (PerCode > 0)
 		u := t.Format.Unit8()
 		e := extent{lo: lo, hi: hi, have: true, vdiv: t.Scale.PerCode * t.CodesPerDiv}
 		e.voltsCode8 = u * t.Scale.PerCode
@@ -82,6 +79,26 @@ func (c *HALCycle) learn(f *sample.Frame) {
 			c.replace = true
 		}
 	}
+}
+
+// wordExtent is trace t's least and greatest word over its valid samples:
+// an integer scan, as a frame a pass is learned from holds thousands.
+// TRLC-LINKS: REQ-DSO-011
+func wordExtent(t *sample.Trace) (lo, hi uint32) {
+	if t.Format.Storage == sample.U16 {
+		w := t.Codes16[:t.Valid]
+		l, h := w[0], w[0]
+		for _, v := range w {
+			l, h = min(l, v), max(h, v)
+		}
+		return uint32(l), uint32(h)
+	}
+	w := t.Codes8[:t.Valid]
+	l, h := w[0], w[0]
+	for _, v := range w {
+		l, h = min(l, v), max(h, v)
+	}
+	return uint32(l), uint32(h)
 }
 
 // swing is channel ch's learned extent when it holds a signal, why it does

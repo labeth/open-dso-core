@@ -52,7 +52,8 @@ type HALConfig struct {
 // one channel a window) and publishes every frame read. A refused commit
 // goes back to the last state the board took and is reported to the
 // instrument's listeners; a single shot stops the run once its frame is
-// published. The board sweeps AUTO and holds off itself.
+// published. The board holds off itself and sweeps AUTO, or the loop
+// forces AUTO's capture after the board's wait (hal.AutoWaiter).
 type HALCycle struct {
 	cfg  HALConfig
 	b    hal.Board
@@ -91,6 +92,12 @@ type HALCycle struct {
 	running   bool
 
 	beats atomic.Uint64 // the heartbeat (Beats)
+	times passTimes     // this pass's stage times (Done)
+	// the protocol trigger's match counter when the capture was armed
+	symbolsAt struct {
+		n  uint64
+		ok bool
+	}
 
 	mu       sync.Mutex
 	latest   *sample.Frame // the newest published frame
@@ -239,7 +246,12 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 		c.commitState(s, gen)
 	}
 	c.livePlan()
-	return Capture{Normal: true, Norm: c.cur.Sweep != hal.Auto}, true
+	c.armSymbols()
+	cp := Capture{Normal: true, Norm: c.cur.Sweep != hal.Auto}
+	if aw, ok := c.b.Acquirer().(hal.AutoWaiter); ok {
+		cp.AutoWait = aw.AutoWait() // the board does not sweep AUTO: the loop forces
+	}
+	return cp, true
 }
 
 // Watch aborts a waiting capture when the state or the leased record need
@@ -287,9 +299,12 @@ func (c *HALCycle) Fault(err, haltErr error) {
 // (halstopped.go).
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-1003
 func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Frame, Verdict, bool) {
+	c.times = passTimes{arm: a.ArmAt, armed: a.ArmedAt, ready: time.Now()}
 	if cp.Replay {
+		c.times.arm, c.times.armed = c.times.ready, c.times.ready
 		return c.stoppedFrame(ctx)
 	}
+	c.noteSymbols(c.times.ready.Sub(a.ArmedAt))
 	st := a.Status
 	if st.Triggered && !st.Forced {
 		c.inst.SetRun(instrument.Triggered)
@@ -310,7 +325,7 @@ func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Fram
 		var err error
 		// a peak envelope of the screen, unless a lease or the filter needs the samples
 		env := c.need == (instrument.RecordNeed{}) && c.eresLen <= 1 // a filter needs the samples
-		if w, err = sr.ScreenWindow(hal.ScreenRequest{PosFrac: c.posFrac(), Envelope: env}); err != nil {
+		if w, err = sr.ScreenWindow(hal.ScreenRequest{PosFrac: c.posFrac(), PreRoom: c.preRoom(), Envelope: env}); err != nil {
 			c.cfg.Logf("readout: %v", err)
 			_ = c.b.Acquirer().Stop()
 			return nil, Verdict{}, false
@@ -324,21 +339,28 @@ func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Fram
 		_ = c.b.Acquirer().Stop()
 		return nil, Verdict{}, false
 	}
+	c.times.read = time.Now()
 	c.stopped.due = c.keepsRecords()
 	c.snd.last = f
 	// A FORCE press the wait had no time to take is this frame's: shown
-	// even in NORMAL.
-	forced := st.Forced || a.UserForced || c.inst.TakeForce()
+	// even in NORMAL. AUTO's own forced trigger is no user's: its frame
+	// passes AUTO's gate like any untriggered one.
+	user := a.UserForced || c.inst.TakeForce()
+	forced := st.Forced || user
 	c.details(ctx, f, st.Triggered && !forced)
+	c.times.detail = time.Now()
 	release()
 	c.condition(f)
 	c.learn(f)
 	c.learnSerial(f, st.Triggered && !forced)
 	placed := forced || c.placeEdge(f, false)
+	if st.Triggered && !forced {
+		c.placeMatchStart(f)
+	}
 	if c.avg.on {
 		c.avg.add(f)
 	}
-	v := Verdict{Qualified: st.Triggered && !forced && placed, Complete: true, UserForced: forced}
+	v := Verdict{Qualified: st.Triggered && !forced && placed, Complete: true, UserForced: user}
 	if v.Qualified && c.gate != nil {
 		c.gate.Reset()
 	}
@@ -348,6 +370,7 @@ func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Fram
 	if b := c.cfg.Bode; b != nil && b.Armed() {
 		b.Frame(sample.View8Frame(f), c.voltsDiv)
 	}
+	c.times.proc = time.Now()
 	return f, v, true
 }
 
@@ -388,16 +411,66 @@ func (c *HALCycle) read(ctx context.Context, w hal.Window) (*sample.Frame, error
 // posFrac is the trigger's place across the screen in the committed
 // state: the screen centre sits DelayS after it.
 // TRLC-LINKS: REQ-DSO-014
-func (c *HALCycle) posFrac() float64 {
-	divs := 10.0
-	if d := c.b.Profile().Display.DivsH; d > 0 {
-		divs = float64(d)
-	}
-	if !(c.cur.TimeDivS > 0) {
+func (c *HALCycle) posFrac() float64 { return posFracOf(c.cur, divsH(c.b.Profile())) }
+
+// posFracOf is the trigger's place across a screen of divs divisions in
+// state s.
+// TRLC-LINKS: REQ-DSO-014
+func posFracOf(s instrument.State, divs int) float64 {
+	if !(s.TimeDivS > 0) {
 		return .5
 	}
-	return .5 - c.cur.DelayS/(divs*c.cur.TimeDivS)
+	return .5 - s.DelayS/(float64(divs)*s.TimeDivS)
 }
+
+// serialRoom is the samples a record planned as plan holds before the
+// trigger beyond the screen's share, for state s's serial trigger: the
+// FPGA's matcher fires at the match's end, so the record holds the match
+// (its units, at most half the record) before it; 0 without a serial
+// trigger.
+// TRLC-LINKS: REQ-DSO-013
+func serialRoom(s instrument.State, plan hal.Plan) int {
+	if s.SerialMode == 0 || s.Serial.Proto <= 0 || !(plan.SampleS > 0) || plan.WinSamples <= 0 {
+		return 0
+	}
+	unit := SerialUnitSamples(s.Serial, plan.SampleS, float64(s.Serial.SPIClockHz))
+	if unit <= 0 {
+		return 0
+	}
+	return min(max(1, len(PatternOf(s.Serial)))*unit, max(plan.Depth/2, 0))
+}
+
+// serialWindowRoom is the samples the screen's window reads before the
+// screen's share for state s's serial trigger: the match and two units
+// more, at least a sixteenth of the screen, at most two screens (a quarter
+// screen when a unit is not known); the record's start bounds it, and the
+// window keeps its length after the trigger then.
+// TRLC-LINKS: REQ-DSO-013
+func serialWindowRoom(s instrument.State, plan hal.Plan) int {
+	screen := plan.WinSamples
+	unit := SerialUnitSamples(s.Serial, plan.SampleS, float64(s.Serial.SPIClockHz))
+	if unit <= 0 {
+		return screen / 4
+	}
+	return min(2*screen, max(screen/16, (max(1, len(PatternOf(s.Serial)))+2)*unit))
+}
+
+// preRoom is the samples the screen's window reads before the screen's
+// share: the room the record holds for the serial trigger running on the
+// board, a video line's sync before the line the qualifier fired on.
+// TRLC-LINKS: REQ-DSO-013, REQ-DSO-011
+func (c *HALCycle) preRoom() int {
+	switch {
+	case c.cur.SerialMode != 0 && c.gate == &c.gates[0] && c.plan.SampleS > 0 && c.plan.WinSamples > 0:
+		return serialWindowRoom(c.cur, c.plan)
+	case c.cur.SerialMode == 0 && c.cur.Trigger.Type == instrument.TrigVideo && c.plan.SampleS > 0:
+		return int(videoSyncS / c.plan.SampleS)
+	}
+	return 0
+}
+
+// videoSyncS is a video line sync's width, read before the line.
+const videoSyncS = 8e-6
 
 // Liveness is AUTO's rule for the captures a protocol or zone trigger the
 // board runs did not qualify (the board's AUTO forced them): held, but one
@@ -420,7 +493,8 @@ func (c *HALCycle) Liveness() bool {
 // the frame after the one it holds) and hands it to the instrument, the
 // cycle's consumer and the Publish hook.
 // TRLC-LINKS: REQ-DSO-007, REQ-DSO-020
-func (c *HALCycle) Publish(f *sample.Frame, _ Verdict, publish bool) {
+func (c *HALCycle) Publish(f *sample.Frame, v Verdict, publish bool) {
+	c.inst.CountFrame(publish, publish && v.Qualified && c.cur.SerialMode != 0, time.Now())
 	if !publish {
 		return
 	}
@@ -436,9 +510,12 @@ func (c *HALCycle) Publish(f *sample.Frame, _ Verdict, publish bool) {
 	}
 }
 
-// Done ends the pass's loading indicator.
-// TRLC-LINKS: REQ-DSO-008, REQ-DSO-168
-func (c *HALCycle) Done(time.Time, time.Duration) { c.inst.SetBusy("") }
+// Done ends the pass's loading indicator and states its stage times.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-127, REQ-DSO-168
+func (c *HALCycle) Done(doneAt time.Time, prevPace time.Duration) {
+	c.inst.SetBusy("")
+	c.inst.SetFrameStages(c.times.stages(doneAt, prevPace))
+}
 
 // Pacing is the display's share of a core the board shares with it
 // (halpace.go); the board holds off itself.
@@ -525,6 +602,9 @@ func (c *HALCycle) commitState(s instrument.State, gen uint64) {
 	if !applied.Trigger.Equal(c.cur.Trigger) || applied.TimeDivS != c.cur.TimeDivS || applied.Mode != c.cur.Mode {
 		c.inst.ClearNoiseTriggers()
 	}
+	if applied.SerialMode != 0 && c.cur.SerialMode == 0 {
+		c.inst.ResetSerialMatches() // the serial trigger armed anew
+	}
 	c.cur, c.good, c.gen = applied, applied, gen
 	c.running = applied.Running
 	c.inst.Applied(applied, gen)
@@ -543,9 +623,18 @@ func (c *HALCycle) commit(s instrument.State) (instrument.State, error) {
 		}
 		s.Channels[ch] = got
 	}
-	plan, err := c.b.Planner().Plan(c.request(s))
+	req := c.request(s)
+	plan, err := c.b.Planner().Plan(req)
 	if err != nil {
 		return s, err
+	}
+	if room := serialRoom(s, plan); room > 0 {
+		// a serial trigger fires at its match's end: the record holds the
+		// match before it, where the board takes such room
+		req.PretrigRoom = room
+		if p, err := c.b.Planner().Plan(req); err == nil {
+			plan = p
+		}
 	}
 	if err := c.b.Acquirer().Configure(plan); err != nil {
 		return s, err
@@ -567,6 +656,7 @@ func (c *HALCycle) request(s instrument.State) hal.Request {
 	}
 	c.avg.on = avg
 	r, c.eresLen = c.eresed(r, s)
+	r.PretrigFrac = min(1, max(0, posFracOf(s, divsH(c.b.Profile())))) // the record's share before the trigger is the screen's
 	n := c.need
 	p := c.b.Profile()
 	deepest := p.MaxDepth
@@ -637,4 +727,57 @@ func (c *HALCycle) voltsDiv(ch int) float64 {
 		return c.cur.Channels[ch].VoltsDiv
 	}
 	return 1
+}
+
+// passTimes are a pass's stage boundaries: its arm, the capture armed,
+// the record ready, read, its detail windows read, its processing done.
+type passTimes struct {
+	arm, armed, ready, read, detail, proc time.Time
+}
+
+// stages is the pass's stage times, ending at doneAt; a stage the pass
+// did not reach (a stopped record shown again: no arm, no wait) is 0.
+// TRLC-LINKS: REQ-DSO-127
+func (t passTimes) stages(doneAt time.Time, prevPace time.Duration) instrument.FrameStages {
+	span := func(a, b time.Time) time.Duration {
+		if a.IsZero() || b.IsZero() || b.Before(a) {
+			return 0
+		}
+		return b.Sub(a)
+	}
+	read, detail, proc := t.read, t.detail, t.proc
+	if read.IsZero() { // a stopped record shown again: its read is the pass
+		read, detail = proc, proc
+	}
+	return instrument.FrameStages{
+		Arm: span(t.arm, t.armed), Wait: span(t.armed, t.ready), Read: span(t.ready, read),
+		Detail: span(read, detail), Proc: span(detail, proc), Post: span(proc, doneAt), PrevPace: prevPace,
+	}
+}
+
+// noteSymbols states the protocol trigger's matches during the record
+// just ready, from the board's match counter (-1: no counter, or no
+// serial trigger armed), and how long it was armed.
+// TRLC-LINKS: REQ-DSO-013
+func (c *HALCycle) noteSymbols(armed time.Duration) {
+	n := int64(-1)
+	if c.symbolsAt.ok {
+		if m, ok := c.b.Trigger().Matches(); ok {
+			n = int64((m.Matches - c.symbolsAt.n) & 0xffff)
+		}
+	}
+	c.inst.SetSymbolMatches(n, armed)
+}
+
+// armSymbols reads the protocol trigger's match counter before a capture
+// with the serial trigger armed (noteSymbols).
+// TRLC-LINKS: REQ-DSO-013
+func (c *HALCycle) armSymbols() {
+	c.symbolsAt.ok = false
+	if c.cur.SerialMode == 0 {
+		return
+	}
+	if m, ok := c.b.Trigger().Matches(); ok {
+		c.symbolsAt.n, c.symbolsAt.ok = m.Matches, true
+	}
 }

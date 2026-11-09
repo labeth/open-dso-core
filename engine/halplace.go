@@ -19,6 +19,10 @@ import (
 // board's index. An envelope is checked, not placed: its buckets hold
 // extremes, not samples in time order.
 
+// placeSpan is the samples either side of the hardware index placeEdge
+// reads: beyond the span the check and the placement look at.
+const placeSpan = triggerRefineSpan + 4
+
 // placeEdge checks and places frame f's hardware edge trigger; false: the
 // record has no crossing at the index, and f is now untriggered. whole: a
 // stopped record read whole, whose capture was shown already: placed,
@@ -43,22 +47,30 @@ func (c *HALCycle) placeEdge(f *sample.Frame, whole bool) bool {
 	if t == nil || t.Valid < 2 || !(t.Scale.PerCode > 0) {
 		return true
 	}
+	// the samples about the index, the only ones the check and the
+	// placement look at (triggerRefineSpan)
 	n := t.Valid
-	disc := make([]uint8, n)
-	q := t.Precision
-	if len(q) < n {
-		q = make([]uint16, n)
-		for k := range n {
-			q[k] = t.Format.Q88(t.Word(k))
+	if !(f.TriggerAt < float64(n)) {
+		n = 0 // an index past the record: no crossing
+	}
+	lo := max(0, min(int(f.TriggerAt)-placeSpan, n))
+	hi := min(n, int(f.TriggerAt)+placeSpan+1)
+	var discBuf [2*placeSpan + 1]uint8
+	var qBuf [2*placeSpan + 1]uint16
+	disc, q := discBuf[:hi-lo], qBuf[:hi-lo]
+	for k := range disc {
+		w := t.Word(lo + k)
+		disc[k] = t.Format.Code8(w)
+		q[k] = t.Format.Q88(w)
+		if len(t.Precision) >= n {
+			q[k] = t.Precision[lo+k]
 		}
 	}
-	for k := range n {
-		disc[k] = t.Format.Code8(t.Word(k))
-	}
+	at := f.TriggerAt - float64(lo)
 	level := 128 + (t.Scale.Word(st.Levels.High)-float64(t.Format.Mid))/t.Format.Unit8()
 	rising := st.Levels.Slope != hal.Falling
 	envelope := f.Content == sample.PeakPairs || f.Flags.Has(sample.Envelope)
-	confirmed := ConfirmTriggerEdge(disc, q, n, f.TriggerAt, level, rising, envelope)
+	confirmed := ConfirmTriggerEdge(disc, q, hi-lo, at, level, rising, envelope)
 	if !confirmed && f.AcqDecim > 1 {
 		c.inst.NoteTrigger(false)
 		return true
@@ -67,7 +79,7 @@ func (c *HALCycle) placeEdge(f *sample.Frame, whole bool) bool {
 		c.inst.NoteTrigger(!confirmed)
 	}
 	if confirmed && !envelope {
-		f.TriggerAt = RefineTriggerEdge(disc, q, n, f.TriggerAt, level, rising)
+		f.TriggerAt = float64(lo) + RefineTriggerEdge(disc, q, hi-lo, at, level, rising)
 	}
 	if confirmed || whole {
 		return true
