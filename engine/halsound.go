@@ -22,8 +22,11 @@ import (
 // image. It is gap-free: a block the board lost, or a restart (a setting
 // committed, a STOP and RUN), is a gap the ring records, so playback and
 // analysis start afresh there. Captures stop while it runs: the stream owns
-// the board's transfer path (ADR-HAL-STREAM-GOROUTINE). The board marks no
-// level crossings: SOUND's marks and takes are the stream's own.
+// the board's transfer path (ADR-HAL-STREAM-GOROUTINE). A board that marks
+// level crossings on its stream gives SOUND its marks and triggered takes
+// (halsoundtake.go). The stream's rate is the board's audio stream's where
+// its planner has one (a Stream plan for the "sound" feature), else its
+// fastest roll stream's.
 
 // soundBlockWait bounds one pass's wait for the stream's next block: the
 // owner's commit point comes round at least this often.
@@ -47,6 +50,7 @@ type halSound struct {
 	last    *sample.Frame // the newest frame read, whose traces give the lanes' scale
 	retryAt time.Time
 	rate    float64 // the stream's samples a second
+	tk      halTake // the marks and takes (halsoundtake.go)
 }
 
 // soundStreamer is the board's stream of sample codes, false when it has
@@ -87,9 +91,20 @@ func (c *HALCycle) SoundInfo() SoundInfo {
 	s := &c.snd
 	s.mu.Lock()
 	in := s.info
+	if !in.Active {
+		in.MarkCfg = s.tk.markCfg // while streaming, the marks in force
+	}
 	s.mu.Unlock()
 	if in.State == "" {
 		in.State = "off"
+	}
+	if in.Mode == "" {
+		in.Mode = "live"
+	}
+	in.PreS, in.PostS = s.tk.takeTimes()
+	in.TrigGate = s.tk.gateCfg.Load() != nil
+	if t := s.tk.take.Load(); t != nil {
+		in.Take = t.ID
 	}
 	if r := s.ring; r != nil {
 		r.Mu.Lock()
@@ -119,15 +134,6 @@ func (c *HALCycle) SoundWait(after uint64, timeout time.Duration) uint64 {
 	return c.soundRing().Wait(after, timeout)
 }
 
-// SetSoundMarks is refused in silence: the board's stream marks no level
-// crossings (SoundInfo.Marks stays false).
-// TRLC-LINKS: REQ-DSO-272
-func (c *HALCycle) SetSoundMarks(SoundMarkConfig) {}
-
-// SoundMarksSince is none: the board's stream marks no level crossings.
-// TRLC-LINKS: REQ-DSO-272
-func (c *HALCycle) SoundMarksSince(uint64) []SoundMark { return nil }
-
 // soundRing is the ring, made on first use.
 // TRLC-LINKS: REQ-DSO-265
 func (c *HALCycle) soundRing() *SoundRing {
@@ -150,9 +156,10 @@ func (s *halSound) set(fn func(in *SoundInfo)) {
 
 // soundStep runs the audio stream one step on the owner; false when no
 // lease holds (the stream stopped) and the pass goes on with captures.
-// TRLC-LINKS: REQ-DSO-265
+// TRLC-LINKS: REQ-DSO-265, REQ-DSO-275
 func (c *HALCycle) soundStep(ctx context.Context) bool {
 	s := &c.snd
+	t := &s.tk
 	if !c.soundWanted() {
 		if s.running {
 			c.soundStop()
@@ -161,6 +168,8 @@ func (c *HALCycle) soundStep(ctx context.Context) bool {
 			s.set(func(in *SoundInfo) { in.State, in.Active, in.Mode = "off", false, "" })
 			c.soundRing().Release()
 		}
+		t.take.Store(nil)
+		t.frozen, t.armed, t.pending = false, false, false
 		return false
 	}
 	st, ok := c.soundStreamer()
@@ -170,16 +179,42 @@ func (c *HALCycle) soundStep(ctx context.Context) bool {
 	}
 	s.st = st
 	want, gen := c.inst.Wanted()
-	if gen != c.gen || c.inst.HasWork() || (s.running && !want.Running) {
-		if s.running {
-			c.soundStop() // a commit, posted work or a STOP: the stream starts again after it
-		}
-		return false // the pass commits the state first
-	}
 	if !want.Running {
+		c.soundFreeze()
 		s.set(func(in *SoundInfo) { in.Mode = "stopped" })
 		c.idle(ctx)
 		return true
+	}
+	if c.inst.HasWork() {
+		if s.running {
+			c.soundStop() // posted work: the stream starts again after it
+		}
+		return false // the pass runs it first
+	}
+	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need {
+		// A commit: the stream starts again after it, at a gap; no capture
+		// runs in between (a SINGLE is the stream's take, not a record's).
+		if s.running {
+			c.soundStop()
+		}
+		c.stopArmed()
+		c.need = need
+		c.commitState(want, gen)
+		want, _ = c.inst.Wanted()
+		if !want.Running {
+			return true
+		}
+	}
+	trig := want.Sweep == hal.NormalSweep || want.Single
+	if t.frozen || trig != t.trigMode {
+		t.frozen, t.armed, t.pending, t.nextArm = false, false, false, 0
+		if !trig {
+			t.take.Store(nil)
+		}
+	}
+	t.trigMode = trig
+	if !trig {
+		s.set(func(in *SoundInfo) { in.Mode = "live" })
 	}
 	if !s.running {
 		if time.Now().Before(s.retryAt) {
@@ -194,7 +229,11 @@ func (c *HALCycle) soundStep(ctx context.Context) bool {
 			return true
 		}
 	}
+	c.soundMarksAsk()
 	c.soundDrain(ctx)
+	if t.trigMode && s.running {
+		c.soundTrigStep(want.Single)
+	}
 	return true
 }
 
@@ -205,7 +244,7 @@ func (c *HALCycle) soundStart() error {
 	s := &c.snd
 	s.set(func(in *SoundInfo) { in.State, in.Err = "starting", "" })
 	c.stopArmed()
-	r, plan, err := c.streamPlan()
+	_, plan, err := c.soundPlan()
 	if err != nil {
 		return err
 	}
@@ -213,7 +252,7 @@ func (c *HALCycle) soundStart() error {
 		return err
 	}
 	s.chans = s.chans[:0]
-	for _, ch := range r.Channels {
+	for _, ch := range plan.Request.Channels {
 		if len(s.chans) < 2 {
 			s.chans = append(s.chans, ch)
 		}
@@ -222,19 +261,52 @@ func (c *HALCycle) soundStart() error {
 		return hal.Refuse("SOUND", "no channel is on")
 	}
 	s.scale = c.soundScale(s.chans)
+	s.tk.marker, _ = s.st.(hal.StreamMarker)
+	c.soundMarksAsk()
 	if err := s.st.Start(hal.StreamSpec{Payload: hal.PayloadCodes, Channels: s.chans, SampleS: plan.SampleS}); err != nil {
 		return err
 	}
 	s.running, s.gap = true, true
+	ring := c.soundRing()
+	ring.Mu.Lock()
+	s.tk.base, s.tk.cfgFrom = ring.Next, ring.Next
+	ring.Mu.Unlock()
+	s.tk.applied, s.tk.marksOn = SoundMarkConfig{}, false
+	if s.tk.marker != nil {
+		m, on := s.tk.marker.Marking()
+		s.tk.marksOn = on
+		if on {
+			s.tk.applied = s.laneMarks(m)
+		}
+	}
 	s.rate = 0
 	if plan.SampleS > 0 {
 		s.rate = 1 / plan.SampleS // until a block says what the board delivers
 	}
 	s.set(func(in *SoundInfo) {
-		in.State, in.Active, in.RateHz, in.Started, in.Mode = "streaming", true, s.rate, time.Now(), "live"
+		in.State, in.Active, in.RateHz, in.Started = "streaming", true, s.rate, time.Now()
+		in.Marks, in.MarkCfg = s.tk.marksOn, s.tk.applied
 	})
 	return nil
 }
+
+// soundPlan is the audio stream's plan: the board's Stream plan for the
+// "sound" feature where it has one, else the fastest stream plan
+// (streamPlan).
+// TRLC-LINKS: REQ-DSO-265
+func (c *HALCycle) soundPlan() (hal.Request, hal.Plan, error) {
+	r := c.cur.Request()
+	sr := r
+	sr.Mode, sr.Need = hal.Stream, append(slices.Clip(r.Need), hal.Feature{Name: SoundFeature})
+	if plan, err := c.b.Planner().Plan(sr); err == nil {
+		return sr, plan, nil
+	}
+	return c.streamPlanOf(r)
+}
+
+// SoundFeature is the hal.Feature an audio stream's request names, so a
+// board with an audio rate of its own plans it.
+const SoundFeature = "sound"
 
 // streamPlan is the committed state's request in the board's stream mode
 // at the fastest timebase the board streams at (the profile's roll
@@ -289,6 +361,7 @@ func (c *HALCycle) soundDrain(ctx context.Context) {
 			s.rate = 1 / b.SampleS // the rate the board delivers at
 			s.set(func(in *SoundInfo) { in.RateHz = s.rate })
 		}
+		c.soundMarksTake(ring, b)
 		s.push(ring, b)
 		s.st.Release(b)
 	}

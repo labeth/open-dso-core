@@ -1263,8 +1263,8 @@ decisions:
     record keeps the board''s index; an envelope is checked, not placed; a stopped record read whole is
     placed, never dropped. 0 or 1 leaves the board''s index.'
   consequences:
-  - 'The SDS800X HD and the simulated board keep their index; the SDS1000CML+ profile states 2 when it runs
-    the cycle.'
+  - 'The SDS800X HD and the simulated board keep their index; the SDS1000CML+ profile states 2 (its demo,
+    which runs the cycle over the simulated board with that profile, checks and places its edge triggers).'
   - 'Qualifier and zone trigger points are the board''s to place (Readout''s TriggerAt).'
 
 - id: ADR-HAL-ERES-ON-FRAMES
@@ -1355,5 +1355,44 @@ decisions:
     that refuses the roll plan captures until the next commit.'
   consequences:
   - 'A profile without roll_from_s keeps capturing: the SDS800X HD''s and the demo''s behaviour is unchanged.'
-  - 'The SDS1000CML+ profile states 100 ms/div while its engine rolls from 10 ms/div (RollMinTdiv): the profile
-    must state 10e-3 when its board runs the cycle, or the CML rolls from a slower timebase.'
+  - 'The SDS1000CML+ profile states 10 ms/div, the timebase its engine rolls from (RollMinTdiv); its profile
+    test holds the two equal.'
+
+- id: ADR-HAL-STREAM-MARKS
+  title: 'A board may mark level crossings in its stream'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s stream image counts the crossings of a level on one channel at the full rate
+    and keeps the stream word of the newest rise and fall; SOUND''s marks, its tuner''s cycle trace and its
+    triggered takes are made of them. A decimated stream cannot place those crossings itself, and the HAL''s
+    stream blocks carried marks only as untyped positions.'
+  decision: 'hal.StreamMarker is optional on a Streamer: SetMarks(MarkSpec) asks for crossings of a level
+    with hysteresis on a channel, rising, falling or both, in the raw converter''s codes, or the committed
+    edge trigger''s source, level and slope as its comparator sees them (FromTrigger); Marking reports what
+    the running stream marks (and whether it marks at all). A block''s Marks carry each kind''s newest
+    crossing (Kind rise or fall, Channel, At the item, Count the crossings since the last mark of that kind).'
+  consequences:
+  - 'The SDS1000CML+ board marks on its stream image; a board without marks streams live and its triggered
+    SOUND modes say so.'
+  - 'A level in codes on the stream''s own interface: SOUND''s mark settings were codes already (its page''s
+    level), and the trigger''s marks stay the board''s through FromTrigger.'
+
+- id: ADR-HAL-SOUND-TAKES
+  title: 'SOUND''s takes and its audio rate on the HAL cycle'
+  status: proposed
+  date: '2026-11-09'
+  context: 'On the SDS1000CML+ STOP freezes the audio stream into a take and NORMAL and SINGLE run it armed on
+    the stream''s marks of the trigger; it streams at 2^13 samples a word whatever the timebase. The HAL cycle''s
+    SOUND streamed live only, at the fastest roll timebase''s rate, and restarted the stream behind a capture
+    at every commit, so a SINGLE was spent on a record.'
+  decision: 'The HAL cycle runs SOUND''s takes as the SDS1000CML+ does over a board''s marks
+    (ADR-HAL-STREAM-MARKS): STOP keeps the newest seconds as a take, NORMAL and SINGLE arm on the trigger''s
+    marks (or SOUND''s gate) and keep the stretch around the mark that fires, SINGLE then stops the run. The
+    audio stream asks the planner for a Stream plan with the "sound" feature first (the board''s audio rate),
+    else the fastest roll plan as before. A commit while SOUND holds is made in its step and the stream
+    starts again after a gap; no capture runs in between. The lanes are the plan''s first two channels.'
+  consequences:
+  - 'The SDS800X HD gains STOP takes; its triggered takes say its stream marks nothing.'
+  - 'The SDS1000CML+ applies front-end settings while SOUND streams, without a gap; the HAL cycle restarts
+    the stream behind a gap: settled when the SDS1000CML+ runs the cycle, with the bench.'
+  - 'A lane choice from the tuner''s channel on a board with more channels than lanes is open.'
