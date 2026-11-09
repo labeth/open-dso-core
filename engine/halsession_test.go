@@ -24,7 +24,11 @@ func (s *fakeSession) Step(context.Context) bool { s.steps++; return s.active }
 func (s *fakeSession) Active() bool              { return s.active }
 func (s *fakeSession) Close()                    { s.closed = true }
 func (s *fakeSession) HoldsImage() bool          { return false }
-func (s *fakeSession) TakeRecord() (taken bool)  { taken, s.record = s.record, false; return }
+func (s *fakeSession) TakeRecord() bool {
+	taken := s.record
+	s.record = false
+	return taken
+}
 
 // sessionBoard is the fake board with a session of its own.
 type sessionBoard struct {
