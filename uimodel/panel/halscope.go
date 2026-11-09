@@ -23,6 +23,18 @@ type HALScope struct {
 	product string
 	mask    *engine.FrameMask
 	bode    *engine.Bode // the frequency response the owner loop measures (engine.HALConfig.Bode)
+	sound   SoundSource  // the owner loop's audio stream; nil: the board streams none
+}
+
+// SoundSource is the owner loop's audio stream over the board's stream
+// (engine.HALCycle on a board with a hal.Streamer of codes).
+type SoundSource interface {
+	LeaseSound(time.Duration)
+	SoundInfo() engine.SoundInfo
+	SoundLatest(n int, q1, q2 []uint16) engine.SoundBlock
+	SoundRead(from uint64, maxN int, q1, q2 []uint16) engine.SoundBlock
+	SetSoundMarks(engine.SoundMarkConfig)
+	SoundMarksSince(from uint64) []engine.SoundMark
 }
 
 // NewHALScope is the UI model's view of board b through instrument state
@@ -40,6 +52,14 @@ func (s *HALScope) WithBode(b *engine.Bode) *HALScope {
 	return s
 }
 
+// WithSound gives the UI model the owner loop's audio stream: SOUND runs
+// over the board's stream.
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-265
+func (s *HALScope) WithSound(x SoundSource) *HALScope {
+	s.sound = x
+	return s
+}
+
 // WithMask gives the UI model the mask test the owner runs on the frames
 // (engine.HALConfig.Mask); without one the mask staging does nothing.
 // TRLC-LINKS: REQ-DSO-135, REQ-DSO-014
@@ -50,7 +70,19 @@ func (s *HALScope) WithMask(x *engine.FrameMask) *HALScope {
 
 // Engine is the Model's controls with the owner's mask test.
 // TRLC-LINKS: REQ-DSO-135
-func (s *HALScope) Engine() Engine { return halEngine{s.m, s.mask, s.bode} }
+func (s *HALScope) Engine() Engine {
+	e := halEngine{s.m, s.mask, s.bode}
+	if s.sound != nil {
+		return halSoundEngine{e, s.sound}
+	}
+	return e
+}
+
+// halSoundEngine is the HAL engine with the owner loop's audio stream.
+type halSoundEngine struct {
+	halEngine
+	SoundSource
+}
 
 // Analog is the front end through the Model.
 // TRLC-LINKS: REQ-DSO-135

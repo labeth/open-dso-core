@@ -417,6 +417,9 @@ func buildUI(env *Env, o Options) error {
 			return errors.New("scopeapp: a scope with its own owner builds its UI model")
 		}
 		s := panel.NewHALScope(env.Model, env.Board, env.Product).WithMask(env.Mask).WithBode(env.Bode)
+		if env.cycle != nil && env.cycle.Streams() {
+			s.WithSound(env.cycle)
+		}
 		env.Model.SetTimebases(s.Tdivs())
 		env.HALScope = s
 		env.UI = panel.New(s.Engine(), s.Analog(), s.Levels(), s.Hardware(), s.Tdivs(), env.Model.State().TimeDivS, env.Logf)
@@ -575,6 +578,9 @@ func WebParts(env *Env) scopeweb.Parts {
 		p.Serial = halSerial{env.Model}
 	}
 	p.Masks = env.MaskTest()
+	if env.cycle != nil && env.cycle.Streams() {
+		p.Sound = env.cycle
+	}
 	return p
 }
 

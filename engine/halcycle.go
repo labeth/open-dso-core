@@ -78,8 +78,10 @@ type HALCycle struct {
 	quietAcq bool         // the board shares its core with the display (halpace.go)
 	quiet    sync.RWMutex // held while the owner reads a record, on such a board
 	pace     atomic.Int64 // the display's pace, ns (SetDisplayPace)
-	scratch  []uint16     // the conditioning's working buffer
-	running  bool
+
+	snd     halSound // the audio stream on the board's stream (halsound.go)
+	scratch []uint16 // the conditioning's working buffer
+	running bool
 
 	mu     sync.Mutex
 	latest *sample.Frame // the newest published frame
@@ -131,9 +133,13 @@ func (c *HALCycle) Consume() (*sample.Frame, bool) {
 // TRLC-LINKS: REQ-DSO-001
 func (c *HALCycle) Open() {}
 
-// Close has nothing to end.
-// TRLC-LINKS: REQ-DSO-001
-func (c *HALCycle) Close() {}
+// Close ends the audio stream still running.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-265
+func (c *HALCycle) Close() {
+	if c.snd.running {
+		c.soundStop()
+	}
+}
 
 // Serve is the board's housekeeping.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
@@ -145,7 +151,10 @@ func (c *HALCycle) Serve() { c.b.Platform().Service() }
 func (c *HALCycle) Claim(ctx context.Context) bool {
 	work := c.inst.TakeWork()
 	if len(work) == 0 {
-		return false
+		return c.soundStep(ctx)
+	}
+	if c.snd.running {
+		c.soundStop()
 	}
 	c.stopArmed()
 	for _, w := range work {
@@ -255,6 +264,7 @@ func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Fram
 		return nil, Verdict{}, false
 	}
 	c.stopped.due = c.keepsRecords()
+	c.snd.last = f
 	// A FORCE press the wait had no time to take is this frame's: shown
 	// even in NORMAL.
 	forced := st.Forced || a.UserForced || c.inst.TakeForce()
