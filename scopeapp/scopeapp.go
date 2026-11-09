@@ -569,10 +569,18 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 	if env.Model == nil {
 		return nil, errors.New("scopeapp: a scope with its own owner builds its web scope")
 	}
-	return scopeweb.New(scopeweb.Config{
+	cfg := scopeweb.Config{
 		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, Product: env.Name, UI: env.UI,
 		Setups: WebSetups{env.Setups}, Parts: WebParts(env), Screen: env.ScreenPNG,
-	}).WithCaps(), nil
+	}
+	// A reply's serialisation waits out the owner's record reads on a board
+	// that shares its core, as a picture does.
+	if env.cycle != nil {
+		if q := quietOf(env.Board, env.cycle); q != nil {
+			cfg.Quiet = q
+		}
+	}
+	return scopeweb.New(cfg).WithCaps(), nil
 }
 
 // WebParts are the parts of the core's own that a HAL scope's web scope

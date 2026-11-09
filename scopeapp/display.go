@@ -109,10 +109,21 @@ func boardEngineOf(b hal.Board, owner QuietPacer) boardEngine {
 		e.pace = p // the board paces its records itself (the simulated board)
 		return e
 	}
-	if owner != nil && b.Profile().Budget.QuietAcquire {
-		e.pace, e.quiet = owner, owner
+	if q := quietOf(b, owner); q != nil {
+		e.pace, e.quiet = q, q
 	}
 	return e
+}
+
+// quietOf is the owner loop whose quiet lock a picture and a web reply
+// take on board b: owner on a board that shares its core with the display
+// (Budget.QuietAcquire) and does not pace its records itself; nil else.
+// TRLC-LINKS: REQ-DSO-168, REQ-DSO-163
+func quietOf(b hal.Board, owner QuietPacer) QuietPacer {
+	if _, paced := b.(PacedBoard); paced || owner == nil || !b.Profile().Budget.QuietAcquire {
+		return nil
+	}
+	return owner
 }
 
 // TRLC-LINKS: REQ-DSO-168
