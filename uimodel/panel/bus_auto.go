@@ -808,6 +808,7 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMs
 	tds := slices.Clone(c.tdivs)
 	slices.Sort(tds)
 	looks := 0
+	var first busMsgs // a slower record's message, without the idle asked for
 	for _, t := range tds {
 		if t <= prev*1.001 {
 			continue
@@ -843,11 +844,23 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMs
 				return res, f.SampleS, res.OK && len(res.Bytes) > 0
 			}
 			// a screen of slow frames takes its own time to capture
-			l := c.detectWith(true, true, accept, decodeAt, decimatedWait+time.Duration(20*at*float64(time.Second)))
+			wait := decimatedWait + time.Duration(20*at*float64(time.Second))
+			if idle {
+				// the bus is known to run (a message was measured): its next
+				// record comes, however slowly the board serves them, and a
+				// look given up on left the trigger to chance
+				wait = max(wait, idleLookWait)
+			}
+			l := c.detectWith(true, true, accept, decodeAt, wait)
 			if l.found && l.sampleS > 0 {
-				if got := msgsOf(l.res, l.sampleS, valid); got.longest > 0 && (!idle || uartIdle(got) > 0) {
+				if got := msgsOf(l.res, l.sampleS, valid); got.longest > 0 {
 					got.startPulse(line, anaPackets(l.res, valid), l.sampleS)
-					return got
+					if !idle || uartIdle(got) > 0 {
+						return got
+					}
+					if first.longest == 0 {
+						first = got // the message, should no record show the idle
+					}
 				}
 			}
 			if seen == after {
@@ -855,8 +868,18 @@ func (c *Controller) measureSlower(m busMsgs, featureS float64, idle bool) busMs
 			}
 		}
 	}
+	if idle {
+		c.logf("panel: bus auto: no slower record shows the UART's idle between two messages")
+	}
+	if m.longest == 0 && first.longest > 0 {
+		return first
+	}
 	return m
 }
+
+// idleLookWait is the least a look for a UART's idle waits for its record
+// (measureSlower).
+const idleLookWait = 4 * time.Second
 
 // sessionProtos are the buses whose later frames read only after the
 // frame that opens their session: a cJTAG escape and its scans (the scan
@@ -898,7 +921,7 @@ func (c *Controller) frameBus(featureS float64, auto bool, session float64) stri
 	// stop bits) is read again slower, until one shows it, so the trigger
 	// AUTO chooses does not hang on which record it measured (the idle
 	// trigger one AUTO, the edge the next).
-	uartNoIdle := c.snap().decProto == framecalc.ProtoUART && m.longest > 0 && uartIdle(m) == 0
+	uartNoIdle := c.snap().decProto == framecalc.ProtoUART && uartIdle(m) == 0
 	if auto && (m.longest == 0 || uartNoIdle) {
 		m = c.measureSlower(m, featureS, uartNoIdle)
 	}
