@@ -1357,3 +1357,34 @@ decisions:
   - 'A profile without roll_from_s keeps capturing: the SDS800X HD''s and the demo''s behaviour is unchanged.'
   - 'The SDS1000CML+ profile states 100 ms/div while its engine rolls from 10 ms/div (RollMinTdiv): the profile
     must state 10e-3 when its board runs the cycle, or the CML rolls from a slower timebase.'
+
+- id: ADR-HAL-DISPLAY-ZOOM-LEASE
+  title: 'The core display leases its zoom''s view window on a HAL scope'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s screen leases the zoomed stretch of the live envelope at full detail (the scope
+    surface''s view window) while its Y-T is zoomed in, through its display hook over its engine; the core''s
+    display over a HAL scope leased nothing, so the HAL cycle read the zoom''s view windows for the web page
+    (NeedView) and never for the screen.'
+  decision: 'On the core''s own UI over a HAL scope (no Display.OnFrame of the scope''s), each picture of a
+    live envelope zoomed in Y-T renews the scope surface''s view window lease (engine.ViewScope) for a second,
+    over the plot''s columns of the profile''s display, in screen widths from the trigger as the SDS1000CML+''s
+    screen computes them. X-Y, an unzoomed picture and a frame of samples lease nothing. A scope whose display
+    hook leases it keeps its own.'
+  consequences:
+  - 'The SDS800X HD and the demos read the zoom''s view window while their screen is zoomed on an envelope,
+    as the page''s zoom already made them; the SDS1000CML+ device is unchanged (its own screen leases it).'
+
+- id: ADR-HAL-WEB-QUIET
+  title: 'The web''s frame replies take the owner''s quiet lock on a board that shares its core'
+  status: proposed
+  date: '2026-11-09'
+  context: 'On a board whose profile says Budget.QuietAcquire the display draws under the owner''s quiet read
+    lock, so no render burst falls into an arm''s settle or a drain; the SDS1000CML+''s web adapter takes its
+    engine''s lock around a frame reply''s serialisation, and the core''s web scope over a HAL scope took none.'
+  decision: 'The web scope the core builds over a HAL owner gets the owner loop as its quiet lock by the
+    display''s rule (Budget.QuietAcquire, a board that does not pace its own records); frame replies are
+    serialised under it, on the v1 wire and on frames v1 cannot carry alike.'
+  consequences:
+  - 'No profile in use asks for it on the HAL path yet (the SDS1000CML+ runs its own owner; the demo''s board
+    paces itself), so nothing changes until the SDS1000CML+ runs the cycle.'
