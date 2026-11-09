@@ -1327,7 +1327,11 @@ decisions:
     stop on a value ends the transcript at the frame that holds it (software is the trigger on a gap-free decoded
     stream) and shows no record: the board keeps no history ring. A stop on a decode error runs until stopped by
     hand, as the SDS1000CML+''s software streams do. The protocols are the SDS1000CML+''s software-decoded ones
-    and MIDI.'
+    and MIDI. The rate the board delivers is known from the stream''s first block (a roll plan need not state
+    it), so a start takes that block before it answers. Settings committed while it streams reach the board when
+    it ends (the board''s stream owns the transfer path; the SDS1000CML+''s stream loops apply them as they
+    come, a difference for when it runs the cycle); posted
+    LONG work pauses it, after which it goes on behind a LOST line.'
   consequences:
   - 'The SDS800X HD''s Stream view runs over its roll stream for buses its 41.7 kSa/s resolves (DALI, LIN at
     9600 Bd, ...); MIDI''s 32 us bit needs 9.1 us samples and is refused with the rates.'
