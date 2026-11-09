@@ -199,6 +199,10 @@ func TestCapsFromHAL(t *testing.T) {
 	if f := caps.Features["mask"]; f.OK || f.Why == "" {
 		t.Fatalf("mask: %+v", f)
 	}
+	// the fake's trigger has no zone node: the profile's reason (here the generic one)
+	if f := caps.Features["zones"]; f.OK || f.Why != "this scope has no zones" {
+		t.Fatalf("zones: %+v", f)
+	}
 	ok := false
 	for _, c := range caps.Controls {
 		ok = ok || (c.Name == "triglevel" && c.Unit == "V")

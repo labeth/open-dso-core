@@ -4,6 +4,7 @@ package panel
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -168,13 +169,23 @@ func screenColumns(sig []uint8, left float64, win int, interp bool) []uint8 {
 // RefsExport is both reference slots for the web app (GET /api/refs).
 // TRLC-LINKS: REQ-DSO-138, REQ-DSO-218
 func (c *Controller) RefsExport() [2]RefExport {
-	ints := func(b []uint8) []int {
+	// the page reads a reference's codes at 25 a division about 128 (its
+	// volts per code are the V/div over 25): a trace stored on another 8-bit
+	// view (a 12-bit converter's, 30 a division) is restated on that one
+	ints := func(b []uint8, cpd float64) []int {
 		if b == nil {
 			return nil
+		}
+		k := 1.0
+		if cpd > 0 && cpd != 25 {
+			k = 25 / cpd
 		}
 		out := make([]int, len(b))
 		for i, v := range b {
 			out[i] = int(v)
+			if k != 1 {
+				out[i] = 128 + int(math.Round((float64(v)-128)*k))
+			}
 		}
 		return out
 	}
@@ -184,8 +195,8 @@ func (c *Controller) RefsExport() [2]RefExport {
 	for i, r := range c.refs {
 		if r.has {
 			e := RefExport{
-				Has: true, Show: r.show, Gen: r.gen, At: r.at.UnixMilli(), Cols: RefCols, C1: ints(r.cs[0]), C2: ints(r.cs[1]),
-				C3: ints(r.cs[2]), C4: ints(r.cs[3]), TdivS: r.tdiv, PosFrac: r.posFrac,
+				Has: true, Show: r.show, Gen: r.gen, At: r.at.UnixMilli(), Cols: RefCols, C1: ints(r.cs[0], r.cpd[0]), C2: ints(r.cs[1], r.cpd[1]),
+				C3: ints(r.cs[2], r.cpd[2]), C4: ints(r.cs[3], r.cpd[3]), TdivS: r.tdiv, PosFrac: r.posFrac,
 			}
 			n := max(c.nch, 2)
 			e.Vdiv, e.Off, e.Probe = make(ChanValues, n), make(ChanValues, n), make(ChanValues, n)

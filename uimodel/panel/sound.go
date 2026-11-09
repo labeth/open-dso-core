@@ -300,6 +300,15 @@ func (s *soundSvc) needed(now time.Time) (anyNeeded, readouts bool) {
 	return anyNeeded, readouts
 }
 
+// soundShown reports whether SOUND shows on the LCD or a page: what keeps
+// the drift log running (step ends it otherwise).
+// TRLC-LINKS: REQ-DSO-273
+func (s *soundSvc) soundShown() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lcdWS || time.Now().Before(s.pageUntil)
+}
+
 // remoteOKLocked reports whether a page may hold the stream: the LCD has not
 // taken the acquisition back, or the LCD shows SOUND itself (the stream runs
 // for it anyway). s.mu held.

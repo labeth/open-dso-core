@@ -112,3 +112,28 @@ func TestPhysicalKeyTakesThePagesStream(t *testing.T) {
 		t.Fatalf("the page leaving a stream the scope took: %+v active %v", res, rs.Active())
 	}
 }
+
+// A scope with no decoded stream (a HAL scope's) refuses the page's stream
+// and the Stream row with that reason, not as if the bus were missing: MIDI
+// is decoded, and the Visual view goes on decoding its captures.
+// TRLC-LINKS: REQ-DSO-228, REQ-DSO-278
+func TestNoDecodedStreamSaysSo(t *testing.T) {
+	c, _, _ := newC(t)
+	if res := c.SheetSet("bus.protocol", nil, "MIDI"); !res.OK {
+		t.Fatalf("MIDI: %+v", res)
+	}
+	res := c.PageStream(true)
+	if res.OK || res.Error != noStreamWhy {
+		t.Fatalf("the page's stream on a scope without one: %+v", res)
+	}
+	for _, tab := range c.Sheets().Tabs {
+		for _, r := range tab.Rows {
+			switch r.ID {
+			case "bus.stream", "bus.stream_trigger", "bus.stream_mode":
+				if r.Available || r.Why != whyDecodedStream {
+					t.Errorf("%s: available %v, needs %q", r.ID, r.Available, r.Why)
+				}
+			}
+		}
+	}
+}

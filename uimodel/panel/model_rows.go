@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -50,6 +51,8 @@ const (
 	tabIDMeas   = "meas"
 	whySlope    = "Type = Slope"
 	whyDecodeOn = "a Protocol (decode on)"
+	// whyDecodedStream: the Stream rows on a scope with no decoded stream
+	whyDecodedStream = "a scope with a decoded stream (this one decodes its captures)"
 )
 
 // Labels several rows, views and tool lines show, and the clear action's id.
@@ -756,7 +759,13 @@ func acqRows() []*row {
 			if isSRAM(s) {
 				return []opt{{s.st.MemDepth, depthText(s.st.MemDepth) + " (auto)"}}
 			}
-			return []opt{{2048, "2k"}, {6144, "6k"}, {14336, "14k"}, {20480, "20k"}}
+			o := []opt{{2048, "2k"}, {6144, "6k"}, {14336, "14k"}, {20480, "20k"}}
+			if !slices.ContainsFunc(o, func(x opt) bool { return x.v == s.memDepth }) && s.memDepth > 0 {
+				// a depth the scope started with (or SCPI set) is shown and can
+				// be picked back
+				o = append(o, opt{s.memDepth, depthText(s.memDepth)})
+			}
+			return o
 		},
 		get: func(s *sv) int {
 			if isSRAM(s) {
@@ -911,10 +920,11 @@ func superResRows() []*row {
 		get:  func(s *sv) int { return b2ic(s.srFocus == 3) },
 		set: func(c *Controller, v int) error {
 			c.mu.Lock()
-			if c.srActive {
-				c.srFocus = 3 * (v & 1)
+			defer c.mu.Unlock()
+			if !c.srActive {
+				return errors.New("super-res is off")
 			}
-			c.mu.Unlock()
+			c.srFocus = 3 * (v & 1)
 			return nil
 		},
 	}
@@ -1867,6 +1877,13 @@ func parityRow() *row {
 // TRLC-LINKS: REQ-DSO-214, REQ-DSO-228
 func streamRows() []*row {
 	isAuto := func(s *sv) bool { return serialProto(s.decProto) && s.hasStream }
+	// a scope with no decoded stream: the rows wait for none of the settings
+	noStream := func(s *sv) string {
+		if !s.hasStream {
+			return whyDecodedStream
+		}
+		return ""
+	}
 	stream := &row{
 		id: "bus.stream", label: labelStream, kind: wsview.Enum,
 		help: "Decode the bus continuously into a transcript (Stream mode says how), with the settings below: BUS's Stream view, which On shows and Off leaves.",
@@ -1890,6 +1907,7 @@ func streamRows() []*row {
 		},
 	}
 	streamTrig.def = func(c *Controller) error { return streamTrig.set(c, 0) }
+	stream.whyOf, streamTrig.whyOf = noStream, noStream
 	streamMode := &row{
 		id: "bus.stream_mode", label: "Stream mode", kind: wsview.Action,
 		help: "How the bus streams: gap-free from the FPGA's decoded events, gap-free from software decode of the " +
@@ -1911,6 +1929,7 @@ func streamRows() []*row {
 			c.mu.Unlock()
 			return nil
 		}, hexText)
+	streamMode.whyOf = noStream
 	streamVal.help = "The decoded unit that ends a stream (Stream stops = On value): a byte, a MIL-1553, MDIO or Wiegand word, an ARINC 429 word's 19-bit data field, an S/PDIF sample."
 	streamVal.rel, streamVal.why = func(s *sv) bool { return isAuto(s) && s.decTrig == 1 }, "Stream stops = On value"
 	streamVal.def = func(c *Controller) error { return streamVal.setN(c, 0) }
@@ -1922,7 +1941,11 @@ func streamRows() []*row {
 		opts: staticOpts([]opt{{0, "Wave"}, {1, "List"}}),
 		get:  func(s *sv) int { return b2ic(s.streamList) },
 		set: func(c *Controller, v int) error {
-			if b2ic(c.snap().streamList) != v {
+			s := c.snap()
+			if !isAuto(s) || s.decMode != decModeStream || !s.streamStopped {
+				return errors.New("only a stopped stream shows its list: stream a bus and stop it first")
+			}
+			if b2ic(s.streamList) != v {
 				c.toggleStreamList()
 			}
 			return nil

@@ -382,7 +382,6 @@ func (c *Controller) stackStatus() (n, of, src int, ok bool) {
 func (c *Controller) stackFinish(f *sample.Frame) {
 	c.mu.Lock()
 	st := c.stack
-	c.stack = nil
 	c.mu.Unlock()
 	if st == nil {
 		return
@@ -392,6 +391,13 @@ func (c *Controller) stackFinish(f *sample.Frame) {
 	c.eng.SetAcqMode(st.prevMode)
 	c.eng.SetAvgCount(st.prevAvg)
 	c.mu.Lock()
+	if c.stack != st { // cancelled meanwhile
+		c.mu.Unlock()
+		return
+	}
+	// the stack ends with its master in place: a page reading the row sees
+	// "stacking" until it reads the master, never "none" between
+	c.stack = nil
 	c.ui.hasMaster, c.ui.masterN, c.ui.masterSrc, c.ui.masterT = true, st.n, st.src, c.now()
 	c.ui.cmpRow = cmpMask
 	msg := fmt.Sprintf("Master in REF A (%d captures) - building its mask from live captures", st.n)

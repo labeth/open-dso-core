@@ -272,6 +272,9 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 	if env.HALScope != nil {
 		go env.HALScope.Watch(env.Frames, stop)
 	}
+	if env.Model != nil { // the board's refusals of a commit on the screen
+		env.Model.OnRefused(env.UI.Refused)
+	}
 	in := o.Input
 	if in == nil {
 		in = b.Input()

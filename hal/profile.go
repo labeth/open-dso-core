@@ -20,7 +20,7 @@ type Profile struct {
 	Supervisor SupervisorSpec `yaml:"supervisor"`
 	Options    OptSet         `yaml:"options"` // optional hardware fitted
 	// Absent gives the reason for each optional part this scope lacks,
-	// keyed by part name (OptionalParts), so a feature that needs it is
+	// keyed by part name (OptionalParts, TriggerParts), so a feature that needs it is
 	// refused with the scope's own words.
 	Absent   map[string]string `yaml:"absent"`
 	Budget   Budget            `yaml:"budget"`
@@ -165,6 +165,10 @@ type Limits struct {
 // OptionalParts names the optional parts, as Board's optional accessors and
 // Profile.Absent name them.
 var OptionalParts = []string{"streamer", "images", "stacker", "segments", "counter", "logic-probe", "generator"}
+
+// TriggerParts names the trigger's optional parts a profile may also give
+// an absent reason for: "zones", the zone qualifier (NodeZone).
+var TriggerParts = []string{"zones"}
 
 // AbsentReason is why part is absent on this scope: the profile's reason,
 // or a generic one when the profile gives none.
