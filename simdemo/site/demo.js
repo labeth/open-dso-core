@@ -20,8 +20,20 @@ const h = (tag, attrs = {}, ...kids) => {
   return e;
 };
 
+// api asks the firmware: in this tab's engine directly (mode "wasm"), or the
+// local demo server (mode "native").
 // TRLC-LINKS: REQ-DSO-298
 async function api(path, body) {
+  if (site.mode === 'wasm') {
+    await engineUp;
+    const data = body === undefined ? null : new TextEncoder().encode(JSON.stringify(body));
+    const r = await engineRequest(data ? 'POST' : 'GET', path, data ? [['content-type', 'application/json']] : [], data);
+    if (r.error) return { ok: false, err: r.error };
+    let j;
+    try { j = JSON.parse(new TextDecoder().decode(r.body)); } catch { j = { ok: false, err: `status ${r.status}` }; }
+    if (r.status >= 400 && j.ok !== false) j.ok = false;
+    return j;
+  }
   const r = await fetch(path, body === undefined ? {} : {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   });
@@ -64,33 +76,7 @@ let worker = null;
 
 // TRLC-LINKS: REQ-DSO-298
 async function startWasm() {
-  if (!('serviceWorker' in navigator)) throw new Error('this browser has no service workers: the web UI cannot reach the firmware');
-  const reg = await navigator.serviceWorker.register('sw.js');
-  await navigator.serviceWorker.ready;
-  if (!navigator.serviceWorker.controller) {
-    // A first visit is taken over as the worker activates. A hard reload
-    // (Shift+Reload) loads the page past an active worker, and nothing takes
-    // it over: a plain reload brings the worker back, once.
-    const claimed = await Promise.race([
-      new Promise((res) => navigator.serviceWorker.addEventListener('controllerchange', () => res(true), { once: true })),
-      new Promise((res) => setTimeout(() => res(false), 3000)),
-    ]);
-    if (!claimed && !navigator.serviceWorker.controller) {
-      if (!sessionStorage.getItem('demo-sw-reload')) {
-        sessionStorage.setItem('demo-sw-reload', '1');
-        location.reload();
-        return new Promise(() => {});
-      }
-      throw new Error('the service worker does not serve this page: reload it (not a hard reload)');
-    }
-  }
-  sessionStorage.removeItem('demo-sw-reload');
-  // onmessage, not addEventListener: a client's messages from its service
-  // worker queue until onmessage is set (or startMessages runs), and a
-  // service worker that lost its port (restarted, or asked before the first
-  // port arrived) waits for this answer.
-  // TRLC-LINKS: REQ-DSO-298
-  navigator.serviceWorker.onmessage = (e) => { if (e.data?.type === 'need-port' && worker) handPort(); };
+  const reg = await registerWorker();
   const [profile, demoText] = await Promise.all([
     fetch('scope/profile.yaml').then((r) => r.text()),
     fetch('scope/demo.json').then((r) => r.text()),
@@ -113,16 +99,71 @@ async function startWasm() {
   });
   worker.postMessage({ type: 'start', wasm: 'dsodemo.wasm', profile, demo: demoText, stored: loadStored() });
   await ready;
-  handPort();
+  const ch = new MessageChannel();
+  worker.postMessage({ type: 'port' }, [ch.port1]);
+  enginePort = ch.port2;
+  // TRLC-LINKS: REQ-DSO-298
+  enginePort.onmessage = (e) => {
+    const f = enginePending.get(e.data.id);
+    if (!f) return;
+    enginePending.delete(e.data.id);
+    f(e.data);
+  };
+  engineStarted();
   return reg;
 }
 
-// handPort gives the service worker a fresh port to the engine.
+// The engine answers requests on the page's own port.
+let enginePort = null;
+const enginePending = new Map();
+let engineNext = 1;
+let engineStarted;
+const engineUp = new Promise((res) => { engineStarted = res; });
 // TRLC-LINKS: REQ-DSO-298
-function handPort() {
-  const ch = new MessageChannel();
-  worker.postMessage({ type: 'port' }, [ch.port1]);
-  navigator.serviceWorker.controller?.postMessage({ type: 'port' }, [ch.port2]);
+function engineRequest(method, url, headers, body) {
+  const id = engineNext++;
+  return new Promise((res) => {
+    enginePending.set(id, res);
+    enginePort.postMessage({ id, method, url, headers, body }, body ? [body.buffer] : []);
+  });
+}
+
+// registerWorker starts the service worker that serves the web UI from the
+// engine, and relays its requests: it posts each to this page, which answers
+// from the engine. The bench page itself needs no service worker. A hard
+// reload (Shift+Reload) loads the page past an active worker and nothing takes
+// it over, so the page reloads once, plainly, to be served again.
+// TRLC-LINKS: REQ-DSO-298
+async function registerWorker() {
+  if (!('serviceWorker' in navigator)) return null;
+  // onmessage, not addEventListener: a client's messages from its service
+  // worker queue until onmessage is set (or startMessages runs).
+  // TRLC-LINKS: REQ-DSO-298
+  navigator.serviceWorker.onmessage = async (e) => {
+    const m = e.data;
+    if (m?.type !== 'request') return;
+    await engineUp;
+    const r = await engineRequest(m.method, m.url, m.headers, m.body);
+    e.source?.postMessage({ ...r, type: 'answer', id: m.id }, r.body ? [r.body.buffer] : []);
+  };
+  let reg;
+  try { reg = await navigator.serviceWorker.register('sw.js'); } catch { return null; }
+  await navigator.serviceWorker.ready;
+  if (!navigator.serviceWorker.controller) {
+    const claimed = await Promise.race([
+      new Promise((res) => navigator.serviceWorker.addEventListener('controllerchange', () => res(true), { once: true })),
+      new Promise((res) => setTimeout(() => res(false), 3000)),
+    ]);
+    let reloaded = false;
+    try { reloaded = !!sessionStorage.getItem('demo-sw-reload'); } catch { reloaded = true; }
+    if (!claimed && !navigator.serviceWorker.controller && !reloaded) {
+      try { sessionStorage.setItem('demo-sw-reload', '1'); } catch { /* reload once regardless */ }
+      location.reload();
+      return new Promise(() => {});
+    }
+  }
+  try { sessionStorage.removeItem('demo-sw-reload'); } catch { /* none kept */ }
+  return reg;
 }
 
 // The native server's screen: the next picture by long poll.

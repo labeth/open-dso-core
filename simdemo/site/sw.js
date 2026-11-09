@@ -2,48 +2,44 @@
 // by the demo running as WebAssembly in the bench page's worker, so the web UI
 // runs unchanged. A request for /api/… (the web UI asks by absolute path) or
 // for anything under ui/ (the web UI's own page and scripts) goes to the
-// engine over a MessagePort the bench page hands over; everything else (the
+// engine through the bench page, which owns it; everything else (the
 // bench page, the module, the scope's data) is the static site.
 'use strict';
 
 const base = new URL(self.registration.scope).pathname; // "/" or "/open-dso/cml/"
-let port = null;
-let portWaiters = [];
 let nextId = 1;
 const pending = new Map();
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
+// The bench page answers each request from its engine and posts the answer
+// back here. Messages, not a port handed over: a port passed into a service
+// worker does not carry the engine's answers back in every browser.
+// TRLC-LINKS: REQ-DSO-298
 self.addEventListener('message', (e) => {
-  if (e.data?.type !== 'port' || !e.ports[0]) return;
-  // Every port keeps its listener: a request sent on an earlier port (a
-  // second one arrives when the page answers a need-port that crossed the
-  // first) is answered on that port.
-  port = e.ports[0];
-  // TRLC-LINKS: REQ-DSO-298
-  port.onmessage = (m) => {
-    const r = m.data;
-    const p = pending.get(r.id);
-    if (!p) return;
-    pending.delete(r.id);
-    p(r);
-  };
-  for (const w of portWaiters) w(port);
-  portWaiters = [];
+  const r = e.data;
+  if (r?.type !== 'answer') return;
+  const p = pending.get(r.id);
+  if (!p) return;
+  pending.delete(r.id);
+  p(r);
 });
 
-// enginePort is the port to the engine, asked of the bench page when there is
-// none yet (a service worker the browser restarted forgets it).
+// benchPage is the window that runs the engine: the bench page, not the web
+// UI it frames (whose pages are under ui/).
 // TRLC-LINKS: REQ-DSO-298
-async function enginePort() {
-  if (port) return port;
-  const got = new Promise((res) => portWaiters.push(res));
-  for (const c of await self.clients.matchAll({ type: 'window', includeUncontrolled: true })) {
-    c.postMessage({ type: 'need-port' });
+async function benchPage() {
+  for (let i = 0; i < 60; i++) {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const page = all.find((c) => {
+      const p = new URL(c.url).pathname;
+      return p === base || p === base + 'index.html';
+    });
+    if (page) return page;
+    await new Promise((res) => setTimeout(res, 250));
   }
-  const timeout = new Promise((res) => setTimeout(() => res(null), 15000));
-  return Promise.race([got, timeout]);
+  return null;
 }
 
 // target is the engine's path for a request, or null for the static site.
@@ -68,14 +64,14 @@ self.addEventListener('fetch', (e) => {
 async function forward(req, path) {
   // The engine's replies are never compressed: a Response built here is not
   // decoded again, so the request asks for none (accept-encoding is dropped).
-  const p = await enginePort();
-  if (!p) {
+  const page = await benchPage();
+  if (!page) {
     return new Response('The demo engine is not running: open the demo page first.', { status: 503, headers: { 'Content-Type': 'text/plain' } });
   }
   const body = req.method === 'GET' || req.method === 'HEAD' ? null : new Uint8Array(await req.arrayBuffer());
   const id = nextId++;
   const reply = new Promise((res) => pending.set(id, res));
-  p.postMessage({ id, method: req.method, url: path, headers: [...req.headers].filter(([k]) => k !== 'accept-encoding'), body }, body ? [body.buffer] : []);
+  page.postMessage({ type: 'request', id, method: req.method, url: path, headers: [...req.headers].filter(([k]) => k !== 'accept-encoding'), body }, body ? [body.buffer] : []);
   const r = await reply;
   if (r.error) return new Response(r.error, { status: 502, headers: { 'Content-Type': 'text/plain' } });
   const h = new Headers();
