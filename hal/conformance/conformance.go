@@ -52,7 +52,7 @@ type Options struct {
 var Clauses = []string{
 	"profile", "devices", "planner", "need-refusal", "stage-commit", "stage-idle", "unchanged-noop",
 	"record", "wait-poll", "wait-timeout", "wait-cancel", "force", "freerun",
-	"readout", "readout-windows", "readout-refusal", "stopped-record",
+	"readout", "readout-windows", "readout-refusal", "stopped-record", "screen-record",
 	"trigger-refusal", "trigger-default", "frontend-snap", "input", "storage", "optional-parts",
 }
 
@@ -92,7 +92,7 @@ func Run(t *testing.T, b hal.Board, o Options) {
 		"stage-commit": s.stageCommit, "stage-idle": s.stageIdle, "unchanged-noop": s.unchangedNoop, "record": s.record,
 		"wait-poll": s.waitPoll, "wait-timeout": s.waitTimeout, "wait-cancel": s.waitCancel,
 		"force": s.force, "freerun": s.freeRun, "readout": s.readout, "readout-windows": s.readoutWindows,
-		"readout-refusal": s.readoutRefusal, "stopped-record": s.stoppedRecord,
+		"readout-refusal": s.readoutRefusal, "stopped-record": s.stoppedRecord, "screen-record": s.screenRecord,
 		"trigger-refusal": s.triggerRefusal, "trigger-default": s.triggerDefault,
 		"frontend-snap": s.frontEndSnap, "input": s.input, "storage": s.storage, "optional-parts": s.optionalParts,
 	}

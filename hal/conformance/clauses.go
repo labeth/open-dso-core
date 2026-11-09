@@ -798,6 +798,84 @@ func (s *suite) stoppedRecord(t *testing.T) {
 	}
 }
 
+// screenRecord: on a readout that places its screen window
+// (hal.ScreenReader), a Record request is the whole stored record, raw:
+// readable once the acquisition stopped (Idle with a stored record), never
+// a peak envelope or a display envelope whatever else the request asks,
+// at least as long as the live screen window, and the same record each
+// time it is read.
+// TRLC-LINKS: REQ-DSO-1001, REQ-DSO-1003
+func (s *suite) screenRecord(t *testing.T) {
+	t.Helper()
+	sr, ok := s.b.Readout().(hal.ScreenReader)
+	if !ok {
+		t.Skip("the readout places no screen window: the engine reads its main window")
+	}
+	spec, err := s.edge(hal.Auto)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, st, err := s.acquire(t.Context(), spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	live, err := sr.ScreenWindow(hal.ScreenRequest{PosFrac: .5})
+	if err != nil {
+		t.Fatalf("ScreenWindow of the live screen: %v", err)
+	}
+	screen, err := s.windowRead(t.Context(), st.Record, live)
+	if err != nil {
+		t.Fatalf("Read of the live screen window: %v", err)
+	}
+	if err := s.b.Acquirer().Stop(); err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
+	read := func() *sample.Frame {
+		w, err := sr.ScreenWindow(hal.ScreenRequest{PosFrac: .2, PreRoom: 100, Envelope: true, Record: true})
+		if err != nil {
+			t.Fatalf("ScreenWindow of the stopped record: %v", err)
+		}
+		fs, err := s.windowRead(t.Context(), st.Record, w)
+		if err != nil {
+			t.Fatalf("Read of the stopped record's window: %v", err)
+		}
+		return fs[0]
+	}
+	a, b := read(), read()
+	if a.Content == sample.PeakPairs || a.Flags.Has(sample.Envelope) {
+		t.Errorf("the whole record came as %v (flags %b): a Record window is raw", a.Content, a.Flags)
+	}
+	if a.Len() < screen[0].Len() {
+		t.Errorf("the whole record holds %d samples, the live screen window %d", a.Len(), screen[0].Len())
+	}
+	if !sameWords(a, b) {
+		t.Error("the stopped record read twice differs")
+	}
+}
+
+// windowRead reads window w of every requested channel as the engine does:
+// one window, or one a channel when the board reads one at a time.
+// TRLC-LINKS: REQ-DSO-1001
+func (s *suite) windowRead(ctx context.Context, rec hal.RecordID, w hal.Window) ([]*sample.Frame, error) {
+	var ws []hal.Window
+	if s.b.Readout().Limits().ChannelsPerWindow == 1 {
+		for _, ch := range s.req.Channels {
+			x := w
+			x.Channels = []int{ch}
+			ws = append(ws, x)
+		}
+	} else {
+		w.Channels = s.req.Channels
+		ws = []hal.Window{w}
+	}
+	fs := make([]*sample.Frame, len(ws))
+	for i := range fs {
+		fs[i] = &sample.Frame{}
+	}
+	err := s.b.Readout().Read(ctx, hal.ReadRequest{Record: rec, Segments: [2]int{0, 1}, Windows: ws}, fs, s.b.Platform().Service)
+	return fs, err
+}
+
 // sameWords reports whether a and b hold the same samples.
 // TRLC-LINKS: REQ-DSO-1001
 func sameWords(a, b *sample.Frame) bool {
