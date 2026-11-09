@@ -1466,3 +1466,32 @@ decisions:
   - 'When the CML runs the core''s cycle the engine-backed extensions need their sources over the board and the
     cycle: the decoded capture over the board''s decoded events, the stacking session over hal.Stacker, the
     tuning knobs over the cycle''s pacing.'
+
+- id: ADR-HAL-BOARD-SESSIONS
+  title: 'A board''s own decoded streams run on the core''s cycle as a session the cycle serves and steps'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s decoded streams are its fabric''s: the FPGA decoders'' events with the bus
+    worker building the transcript lines, the software decode of the stream image''s peak words and of the
+    digital stream image''s sliced bits with its quiet-line skipping, zero-copy reads of the worker''s ring,
+    the history ring frozen on the stop frame, the captures mode on the symbol trigger, a web page''s own
+    decoded capture and a page decoding the digital stream itself. The plan was hal.Streamer payloads
+    (PayloadEvents, PayloadBits) with the decode in the core''s cycle; the transcript, its timing and the
+    cost on the Cortex-A8 depend on how each of these meets the fabric, and a rewrite over leased blocks
+    would change both.'
+  decision: 'hal.Session is optional on a board (hal.SessionOf): the board''s own stream sessions, whose
+    controller side is the board''s and whose requests wait for the owner. The HAL cycle attaches itself as
+    their owner (SessionHost: the run state, its own streams) when it opens, serves them at every commit
+    point (Serve), gives them the pass while one holds the acquisition (Step, ahead of the audio stream and
+    the roll view, which end first), leaves a waiting capture to a session that took the acquisition and
+    reads the record a session ended on whole as the stopped record (TakeRecord). The UI model''s decoded
+    stream, the web''s client decode and a HALScope''s web-capture and image-hold calls go to the session
+    when it offers them. The SDS1000CML+''s decoded streams are one value (DecodedStreams) the engine''s
+    owner steps today and the cycle steps over the board alone (NewBoardStreams); the code is the same.'
+  consequences:
+  - 'Transcripts, their timing and their cost stay the SDS1000CML+''s 1.2 behaviour when it runs the cycle.'
+  - 'The core''s decoded stream over a stream of codes stays for boards without a session (the SDS800X HD).'
+  - 'Folding the SDS1000CML+''s streams into the core''s decode over stream payloads is open for when a second
+    scope has such a fabric.'
+  - 'Over the board alone a stream has no ARINC 429 levels learned from records (the engine''s), and its
+    health beat is the cycle''s frames: both to settle at the switch.'

@@ -79,10 +79,12 @@ type HALCycle struct {
 	quiet    sync.RWMutex // held while the owner reads a record, on such a board
 	pace     atomic.Int64 // the display's pace, ns (SetDisplayPace)
 
-	snd     halSound   // the audio stream on the board's stream (halsound.go)
-	dec     halDecoded // the decoded stream on the board's stream (haldecoded.go)
-	roll    halRoll    // the roll view on the board's stream (halroll.go)
-	scratch []uint16   // the conditioning's working buffer
+	snd     halSound    // the audio stream on the board's stream (halsound.go)
+	dec     halDecoded  // the decoded stream on the board's stream (haldecoded.go)
+	roll    halRoll     // the roll view on the board's stream (halroll.go)
+	sess    hal.Session // the board's own stream sessions (halsession.go); nil: none
+	sessOn  bool        // a session held the acquisition at the last pass
+	scratch []uint16    // the conditioning's working buffer
 	running bool
 
 	mu       sync.Mutex
@@ -132,12 +134,12 @@ func (c *HALCycle) Consume() (*sample.Frame, bool) {
 	return c.latest, fresh
 }
 
-// Open has nothing to start.
-// TRLC-LINKS: REQ-DSO-001
-func (c *HALCycle) Open() {}
+// Open attaches the cycle to the board's own stream sessions.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-018
+func (c *HALCycle) Open() { c.openSessions() }
 
-// Close ends the audio stream, the decoded stream and the roll view still
-// running.
+// Close ends the audio stream, the decoded stream, the roll view and a
+// board session still running.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-265
 func (c *HALCycle) Close() {
 	if c.snd.running {
@@ -149,11 +151,17 @@ func (c *HALCycle) Close() {
 	if c.roll.running {
 		c.rollStop()
 	}
+	if c.sess != nil {
+		c.sess.Close()
+	}
 }
 
-// Serve is the board's housekeeping.
+// Serve is the board's housekeeping and its sessions' requests.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
-func (c *HALCycle) Serve() { c.b.Platform().Service() }
+func (c *HALCycle) Serve() {
+	c.b.Platform().Service()
+	c.serveSessions()
+}
 
 // Claim runs posted LONG work with the acquisition stopped; the pass goes
 // on to commit the whole state again.
@@ -161,7 +169,7 @@ func (c *HALCycle) Serve() { c.b.Platform().Service() }
 func (c *HALCycle) Claim(ctx context.Context) bool {
 	work := c.inst.TakeWork()
 	if len(work) == 0 {
-		return c.decodedStep(ctx) || c.soundStep(ctx) || c.rollStep(ctx)
+		return c.sessionStep(ctx) || c.decodedStep(ctx) || c.soundStep(ctx) || c.rollStep(ctx)
 	}
 	if c.snd.running {
 		c.soundStop()
@@ -211,6 +219,9 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 // a board that shows its stopped record whole (halstopped.go).
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (c *HALCycle) Watch(bool) Interrupt {
+	if c.sessionActive() {
+		return Leave // a board session took the acquisition
+	}
 	if c.decodedWanted() {
 		return Abort // a decoded stream starts or stops
 	}

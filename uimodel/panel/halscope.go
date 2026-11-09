@@ -154,6 +154,7 @@ func (e halEngine) ClearMaskFails() {
 func (e halEngine) Snapshot() instrument.Stats {
 	st := e.Model.Snapshot()
 	fillConverterHealth(e.b, &st)
+	fillSessionStatus(e.session(), &st)
 	if e.bode != nil {
 		e.bode.FillStats(&st)
 	}
