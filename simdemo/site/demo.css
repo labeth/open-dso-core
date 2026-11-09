@@ -94,3 +94,16 @@ button.key.lit-ring { box-shadow: 0 0 0 1px var(--lamp), 0 0 10px -2px var(--lam
 #web { background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 8px; }
 .webhead { display: flex; align-items: center; gap: 8px; margin: 0 2px 8px; }
 #webframe { width: 100%; height: 760px; border: 1px solid var(--edge); border-radius: 6px; background: var(--bg); }
+
+/* ---- phone width: the panel goes under the screen and shrinks to the page ---- */
+@media (max-width: 760px) {
+  #top { height: auto; min-height: 44px; flex-wrap: wrap; row-gap: 4px; padding-top: 6px; padding-bottom: 6px; }
+  #runinfo { display: none; }
+  #lab { padding: 8px; gap: 8px; }
+  .bezel { flex-wrap: wrap; padding: 10px; gap: 10px; }
+  .screenwrap { min-width: 0; flex: 1 1 100%; }
+  .softkeys { flex: 1 1 100%; flex-direction: row; padding: 0; }
+  .controls { flex: 1 1 100%; grid-template-columns: repeat(var(--cols, 7), minmax(0, 46px)); justify-content: center; }
+  .webhead { flex-wrap: wrap; }
+  #webframe { height: 1100px; }
+}
