@@ -70,3 +70,31 @@ func TestHALScopeStacksOnTheBoard(t *testing.T) {
 		t.Fatal("a stack on a board without one")
 	}
 }
+
+type rollStreamBoard struct {
+	*halfake.Board
+	on bool
+}
+
+func (b *rollStreamBoard) SetRollStream(on bool) { b.on = on }
+func (b *rollStreamBoard) RollStream() bool      { return b.on }
+
+// The roll-stream preference is the board's: a HAL scope forwards it and
+// reports it in its snapshot; over a board that rolls one way only the
+// panel says so.
+// TRLC-LINKS: REQ-DSO-010, REQ-DSO-212
+func TestHALScopeRollStreamIsTheBoards(t *testing.T) {
+	m := instrument.New(instrument.State{Channels: make([]hal.Channel, 2)}, nil)
+	rb := &rollStreamBoard{Board: halfake.New(halfake.Config{})}
+	c := &Controller{eng: NewHALScope(m, rb, "test").Engine()}
+	if err := c.setRollStream(true); err != nil || !rb.on || !c.eng.Snapshot().RollStream {
+		t.Fatalf("roll stream on: %v, board %v, snapshot %v", err, rb.on, c.eng.Snapshot().RollStream)
+	}
+	if err := c.setRollStream(false); err != nil || rb.on {
+		t.Fatalf("roll stream off: %v, board %v", err, rb.on)
+	}
+	plain := &Controller{eng: NewHALScope(m, halfake.New(halfake.Config{}), "test").Engine()}
+	if err := plain.setRollStream(true); err == nil {
+		t.Fatal("a board without a roll stream took the preference")
+	}
+}
