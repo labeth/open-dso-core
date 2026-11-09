@@ -41,7 +41,8 @@ func TestHALScopeSincePublish(t *testing.T) {
 		t.Fatalf("without a cycle: ok %v", ok)
 	}
 	s.WithCycle(fixedCycle(3 * time.Second))
-	if got := s.Engine().(interface{ SincePublish() time.Duration }).SincePublish(); got != 3*time.Second {
+	sp, ok = s.Engine().(interface{ SincePublish() time.Duration })
+	if got := sp.SincePublish(); !ok || got != 3*time.Second {
 		t.Fatalf("with a cycle: %v", got)
 	}
 }
@@ -55,7 +56,10 @@ func TestHALScopeChannelState(t *testing.T) {
 		{On: true, VoltsDiv: 10, Probe: 10, OffsetV: -3, Coupling: hal.AC, BWLimit: 20e6, Impedance: 1e6},
 	}}
 	s := NewHALScope(instrument.New(st, nil), b, "t")
-	a := s.Analog().(halAnalog)
+	a, ok := s.Analog().(halAnalog)
+	if !ok {
+		t.Fatal("the HAL front end is not halAnalog")
+	}
 	for ch := range 2 {
 		off, cpl, p, bwl := a.ChannelState(ch)
 		if off != a.OffsetReqV(ch) || cpl != a.Coupling(ch) || p != a.ProbeFactor(ch) || bwl != a.BWL(ch) {
