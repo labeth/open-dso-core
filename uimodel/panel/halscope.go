@@ -24,6 +24,7 @@ type HALScope struct {
 	mask    *engine.FrameMask
 	bode    *engine.Bode // the frequency response the owner loop measures (engine.HALConfig.Bode)
 	sound   SoundSource  // the owner loop's audio stream; nil: the board streams none
+	cycle   CycleSource  // the owner loop's cycle; nil: none attached
 }
 
 // SoundSource is the owner loop's audio stream over the board's stream
@@ -71,8 +72,11 @@ func (s *HALScope) WithMask(x *engine.FrameMask) *HALScope {
 // Engine is the Model's controls with the owner's mask test.
 // TRLC-LINKS: REQ-DSO-135
 func (s *HALScope) Engine() Engine {
-	e := halEngine{s.m, s.mask, s.bode}
+	e := halEngine{Model: s.m, mask: s.mask, bode: s.bode, b: s.b, cycle: s.cycle}
 	if s.sound != nil {
+		if t, ok := s.sound.(soundTaker); ok {
+			return halTakeEngine{halSoundEngine{e, s.sound}, t}
+		}
 		return halSoundEngine{e, s.sound}
 	}
 	return e
@@ -82,6 +86,13 @@ func (s *HALScope) Engine() Engine {
 type halSoundEngine struct {
 	halEngine
 	SoundSource
+}
+
+// halTakeEngine is the HAL engine with the audio stream's takes
+// (engine.HALCycle: STOP's take, NORMAL and SINGLE on the board's marks).
+type halTakeEngine struct {
+	halSoundEngine
+	soundTaker
 }
 
 // Analog is the front end through the Model.
@@ -110,8 +121,10 @@ func (s *HALScope) Tdivs() []float64 { return s.b.Profile().Timebase.TdivS }
 // staging does nothing) and the frequency response measured beside it.
 type halEngine struct {
 	*instrument.Model
-	mask *engine.FrameMask
-	bode *engine.Bode
+	mask  *engine.FrameMask
+	bode  *engine.Bode
+	b     hal.Board
+	cycle CycleSource
 }
 
 // TRLC-LINKS: REQ-DSO-014
@@ -135,11 +148,12 @@ func (e halEngine) ClearMaskFails() {
 	}
 }
 
-// Snapshot is the Model's with the mask test's counts and the frequency
-// response's state.
-// TRLC-LINKS: REQ-DSO-135, REQ-DSO-014, REQ-DSO-066
+// Snapshot is the Model's with the mask test's counts, the frequency
+// response's state and what the board's converter checks found.
+// TRLC-LINKS: REQ-DSO-135, REQ-DSO-014, REQ-DSO-066, REQ-DSO-231
 func (e halEngine) Snapshot() instrument.Stats {
 	st := e.Model.Snapshot()
+	fillConverterHealth(e.b, &st)
 	if e.bode != nil {
 		e.bode.FillStats(&st)
 	}

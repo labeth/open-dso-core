@@ -426,10 +426,7 @@ func buildUI(env *Env, o Options) error {
 		if env.Model == nil {
 			return errors.New("scopeapp: a scope with its own owner builds its UI model")
 		}
-		s := panel.NewHALScope(env.Model, env.Board, env.Product).WithMask(env.Mask).WithBode(env.Bode)
-		if env.cycle != nil && env.cycle.Streams() {
-			s.WithSound(env.cycle)
-		}
+		s := halScope(env)
 		env.Model.SetTimebases(s.Tdivs())
 		env.HALScope = s
 		env.UI = panel.New(s.Engine(), s.Analog(), s.Levels(), s.Hardware(), s.Tdivs(), env.Model.State().TimeDivS, env.Logf)
@@ -569,10 +566,18 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 	if env.Model == nil {
 		return nil, errors.New("scopeapp: a scope with its own owner builds its web scope")
 	}
-	return scopeweb.New(scopeweb.Config{
+	cfg := scopeweb.Config{
 		Board: env.Board, Instrument: env.Model, Frames: env.Frames, Version: env.Version, Product: env.Name, UI: env.UI,
 		Setups: WebSetups{env.Setups}, Parts: WebParts(env), Screen: env.ScreenPNG,
-	}).WithCaps(), nil
+	}
+	// A reply's serialisation waits out the owner's record reads on a board
+	// that shares its core, as a picture does.
+	if env.cycle != nil {
+		if q := quietOf(env.Board, env.cycle); q != nil {
+			cfg.Quiet = q
+		}
+	}
+	return scopeweb.New(cfg).WithCaps(), nil
 }
 
 // WebParts are the parts of the core's own that a HAL scope's web scope
@@ -590,7 +595,7 @@ func WebParts(env *Env) scopeweb.Parts {
 	}
 	p.Masks = env.MaskTest()
 	if env.cycle != nil && env.cycle.Streams() {
-		p.Sound = env.cycle
+		p.Sound, p.SoundTakes = env.cycle, env.cycle
 	}
 	return p
 }
@@ -607,4 +612,19 @@ func (w WebSetups) SetupSlots() []wire.SetupSlot {
 		out = append(out, wire.SetupSlot{Slot: s.Slot, Used: s.Used, Summary: s.Summary})
 	}
 	return out
+}
+
+// halScope is the UI model's view of env's board through its instrument
+// state, with the owner loop's mask test, frequency response, cycle and,
+// where the board streams, audio stream.
+// TRLC-LINKS: REQ-DSO-135
+func halScope(env *Env) *panel.HALScope {
+	s := panel.NewHALScope(env.Model, env.Board, env.Product).WithMask(env.Mask).WithBode(env.Bode)
+	if env.cycle != nil {
+		s.WithCycle(env.cycle)
+		if env.cycle.Streams() {
+			s.WithSound(env.cycle)
+		}
+	}
+	return s
 }

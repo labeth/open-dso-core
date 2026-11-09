@@ -77,10 +77,47 @@ type StreamBlock struct {
 }
 
 // Mark is a position the board flagged in a stream: where a setting
-// changed or a capture began.
+// changed, a capture began, or a channel's codes crossed the StreamMarker's
+// level (Kind MarkRise or MarkFall; At the newest such crossing, Count the
+// crossings of that kind since the last mark of it).
 type Mark struct {
-	At   uint64 // item sequence number
-	Kind string
+	At      uint64 // item sequence number
+	Kind    string
+	Channel int // the channel a crossing was on
+	Count   int // crossings this mark stands for (0: one)
+}
+
+// The kinds of a level-crossing mark.
+const (
+	MarkRise = "rise"
+	MarkFall = "fall"
+)
+
+// StreamMarker is optional on a Streamer: the board's hardware flags where
+// a channel's samples cross a level, at the full rate (a crossing the
+// stream's decimation would blur), and the stream's blocks carry them as
+// Marks. A board that lacks it marks nothing.
+type StreamMarker interface {
+	// SetMarks sets what the board marks; a running stream takes it at its
+	// next block. ANY.
+	SetMarks(m MarkSpec) error
+	// Marking is what the running stream marks now, FromTrigger resolved;
+	// on is false when the stream marks no crossings at all (an image
+	// without the marks, no stream running). ANY.
+	Marking() (m MarkSpec, on bool)
+}
+
+// MarkSpec is the level crossings a StreamMarker flags: on Channel, through
+// Level with Hyst of hysteresis, both in the raw converter's codes
+// (Profile.Format), rising, falling or both; neither marks nothing.
+// FromTrigger marks the committed edge trigger's source, level and slope
+// instead, as the trigger's comparator sees them (the other fields are
+// ignored).
+type MarkSpec struct {
+	Channel     int
+	Level, Hyst uint32
+	Rise, Fall  bool
+	FromTrigger bool
 }
 
 // StreamFaults are a stream's losses, counted since Start.

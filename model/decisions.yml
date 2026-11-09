@@ -1263,8 +1263,8 @@ decisions:
     record keeps the board''s index; an envelope is checked, not placed; a stopped record read whole is
     placed, never dropped. 0 or 1 leaves the board''s index.'
   consequences:
-  - 'The SDS800X HD and the simulated board keep their index; the SDS1000CML+ profile states 2 when it runs
-    the cycle.'
+  - 'The SDS800X HD and the simulated board keep their index; the SDS1000CML+ profile states 2 (its demo,
+    which runs the cycle over the simulated board with that profile, checks and places its edge triggers).'
   - 'Qualifier and zone trigger points are the board''s to place (Readout''s TriggerAt).'
 
 - id: ADR-HAL-ERES-ON-FRAMES
@@ -1355,5 +1355,114 @@ decisions:
     that refuses the roll plan captures until the next commit.'
   consequences:
   - 'A profile without roll_from_s keeps capturing: the SDS800X HD''s and the demo''s behaviour is unchanged.'
+  - 'The SDS1000CML+ profile states 10 ms/div, the timebase its engine rolls from (RollMinTdiv); its profile
+    test holds the two equal.'
+
+- id: ADR-HAL-STREAM-MARKS
+  title: 'A board may mark level crossings in its stream'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s stream image counts the crossings of a level on one channel at the full rate
+    and keeps the stream word of the newest rise and fall; SOUND''s marks, its tuner''s cycle trace and its
+    triggered takes are made of them. A decimated stream cannot place those crossings itself, and the HAL''s
+    stream blocks carried marks only as untyped positions.'
+  decision: 'hal.StreamMarker is optional on a Streamer: SetMarks(MarkSpec) asks for crossings of a level
+    with hysteresis on a channel, rising, falling or both, in the raw converter''s codes, or the committed
+    edge trigger''s source, level and slope as its comparator sees them (FromTrigger); Marking reports what
+    the running stream marks (and whether it marks at all). A block''s Marks carry each kind''s newest
+    crossing (Kind rise or fall, Channel, At the item, Count the crossings since the last mark of that kind).'
+  consequences:
+  - 'The SDS1000CML+ board marks on its stream image; a board without marks streams live and its triggered
+    SOUND modes say so.'
+  - 'A level in codes on the stream''s own interface: SOUND''s mark settings were codes already (its page''s
+    level), and the trigger''s marks stay the board''s through FromTrigger.'
+
+- id: ADR-HAL-SOUND-TAKES
+  title: 'SOUND''s takes and its audio rate on the HAL cycle'
+  status: proposed
+  date: '2026-11-09'
+  context: 'On the SDS1000CML+ STOP freezes the audio stream into a take and NORMAL and SINGLE run it armed on
+    the stream''s marks of the trigger; it streams at 2^13 samples a word whatever the timebase. The HAL cycle''s
+    SOUND streamed live only, at the fastest roll timebase''s rate, and restarted the stream behind a capture
+    at every commit, so a SINGLE was spent on a record.'
+  decision: 'The HAL cycle runs SOUND''s takes as the SDS1000CML+ does over a board''s marks
+    (ADR-HAL-STREAM-MARKS): STOP keeps the newest seconds as a take, NORMAL and SINGLE arm on the trigger''s
+    marks (or SOUND''s gate) and keep the stretch around the mark that fires, SINGLE then stops the run. The
+    audio stream asks the planner for a Stream plan with the "sound" feature first (the board''s audio rate),
+    else the fastest roll plan as before. A commit while SOUND holds is made in its step and the stream
+    starts again after a gap; no capture runs in between. The lanes are the plan''s first two channels.'
+  consequences:
+  - 'The SDS800X HD gains STOP takes; its triggered takes say its stream marks nothing.'
+  - 'The SDS1000CML+ applies front-end settings while SOUND streams, without a gap; the HAL cycle restarts
+    the stream behind a gap: settled when the SDS1000CML+ runs the cycle, with the bench.'
+  - 'A lane choice from the tuner''s channel on a board with more channels than lanes is open.'
+
   - 'The SDS1000CML+ profile states 100 ms/div while its engine rolls from 10 ms/div (RollMinTdiv): the profile
     must state 10e-3 when its board runs the cycle, or the CML rolls from a slower timebase.'
+
+- id: ADR-HAL-DISPLAY-ZOOM-LEASE
+  title: 'The core display leases its zoom''s view window on a HAL scope'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s screen leases the zoomed stretch of the live envelope at full detail (the scope
+    surface''s view window) while its Y-T is zoomed in, through its display hook over its engine; the core''s
+    display over a HAL scope leased nothing, so the HAL cycle read the zoom''s view windows for the web page
+    (NeedView) and never for the screen.'
+  decision: 'On the core''s own UI over a HAL scope (no Display.OnFrame of the scope''s), each picture of a
+    live envelope zoomed in Y-T renews the scope surface''s view window lease (engine.ViewScope) for a second,
+    over the plot''s columns of the profile''s display, in screen widths from the trigger as the SDS1000CML+''s
+    screen computes them. X-Y, an unzoomed picture and a frame of samples lease nothing. A scope whose display
+    hook leases it keeps its own.'
+  consequences:
+  - 'The SDS800X HD and the demos read the zoom''s view window while their screen is zoomed on an envelope,
+    as the page''s zoom already made them; the SDS1000CML+ device is unchanged (its own screen leases it).'
+
+- id: ADR-HAL-WEB-QUIET
+  title: 'The web''s frame replies take the owner''s quiet lock on a board that shares its core'
+  status: proposed
+  date: '2026-11-09'
+  context: 'On a board whose profile says Budget.QuietAcquire the display draws under the owner''s quiet read
+    lock, so no render burst falls into an arm''s settle or a drain; the SDS1000CML+''s web adapter takes its
+    engine''s lock around a frame reply''s serialisation, and the core''s web scope over a HAL scope took none.'
+  decision: 'The web scope the core builds over a HAL owner gets the owner loop as its quiet lock by the
+    display''s rule (Budget.QuietAcquire, a board that does not pace its own records); frame replies are
+    serialised under it, on the v1 wire and on frames v1 cannot carry alike.'
+  consequences:
+  - 'No profile in use asks for it on the HAL path yet (the SDS1000CML+ runs its own owner; the demo''s board
+    paces itself), so nothing changes until the SDS1000CML+ runs the cycle.'
+
+- id: ADR-HAL-CONVERTER-HEALTH
+  title: 'A board that checks its converters reports what it found through its Platform'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ finds converter cores that stopped converting after a configuration, brings them
+    back and says on screen when it cannot; the status carried the finding only from its own engine. The UI
+    model''s HAL engine had no way to read a board''s finding, so the notice would be lost once the scope runs
+    the core''s cycle.'
+  decision: 'hal.ConverterMonitor is optional on a Platform: ConverterHealth reports the fault the screen
+    shows, the recoveries and the last check''s time, ANY. HALScope''s Snapshot fills Stats.ADCFault,
+    ADCRecoveries, ADCRecovery and ADCCheckMs from it; a board without it leaves them empty.'
+  consequences:
+  - 'The SDS1000CML+ board''s platform reports its converter checks; the SDS800X HD, the simulated board and
+    the demo report none and show no notice, as before.'
+  - 'Where and when the checks run on the HAL cycle (the CML runs them between acquisitions and after each
+    image load) is the board''s scheduling, decided with the image switching.'
+
+- id: ADR-CML-EXTENSIONS-ON-BOARD
+  title: 'The SDS1000CML+''s own web routes are its board''s extensions'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The core''s web server serves a scope''s own routes from Board.Extensions (ADR-HAL-WEB-ON-CORE); the
+    SDS1000CML+ passed them to it as routes of its web adapter, built over its engine. Its decoded capture,
+    FPGA stacking session and tuning knobs are its engine''s until its engine is the core''s cycle; its panel
+    scan is the board''s.'
+  decision: 'The web adapter groups its routes into one hal.Extension a feature and attaches them to the board
+    it is given (Board.SetExtensions); the core''s web server serves them as the board''s. The panel scan''s
+    route reads the board''s scan; the decoded capture, the stacking session and the tuning knobs stay over the
+    engine until the cycle serves them. Without a board (tests of the adapter alone) they are the adapter''s
+    routes, the same set.'
+  consequences:
+  - 'Served routes, their features and the capabilities document are unchanged (route goldens).'
+  - 'When the CML runs the core''s cycle the engine-backed extensions need their sources over the board and the
+    cycle: the decoded capture over the board''s decoded events, the stacking session over hal.Stacker, the
+    tuning knobs over the cycle''s pacing.'

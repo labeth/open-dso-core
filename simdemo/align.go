@@ -43,7 +43,6 @@ var Differences = map[string]string{
 	"web":                      ownOwner,
 	"ui.streams":               "the scope's own engine streams decoded buses gap-free; the simulated board has no streamer, so the core's UI model streams none",
 	"ui.records":               "the scope's own record memory plans each timebase; the simulated board plans with the profile's rates and the demo file's record depth and screens (a board difference, compared by the sessions)",
-	"ui.roll_min_tdiv_s":       "the scope's own engine rolls from its roll timebase; the simulated board has no roll stream and takes the whole record",
 }
 
 // ownOwner is the reason for the parts a scope with its own acquisition
