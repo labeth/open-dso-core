@@ -80,7 +80,7 @@ func (c *HALCycle) rollWanted() bool {
 		return false
 	case c.cfg.Bode != nil && c.cfg.Bode.Armed():
 		return false
-	case c.need != (instrument.RecordNeed{}) || c.soundWanted() || c.dec.active:
+	case c.need != (instrument.RecordNeed{}) || c.soundWanted() || c.dec.active || c.sessionActive():
 		return false
 	case c.roll.refused != 0 && c.roll.refused == c.gen:
 		return false

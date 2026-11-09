@@ -79,11 +79,16 @@ type HALCycle struct {
 	quiet    sync.RWMutex // held while the owner reads a record, on such a board
 	pace     atomic.Int64 // the display's pace, ns (SetDisplayPace)
 
-	snd     halSound   // the audio stream on the board's stream (halsound.go)
-	dec     halDecoded // the decoded stream on the board's stream (haldecoded.go)
-	roll    halRoll    // the roll view on the board's stream (halroll.go)
-	scratch []uint16   // the conditioning's working buffer
-	running bool
+	snd       halSound    // the audio stream on the board's stream (halsound.go)
+	dec       halDecoded  // the decoded stream on the board's stream (haldecoded.go)
+	roll      halRoll     // the roll view on the board's stream (halroll.go)
+	sess      hal.Session // the board's own stream sessions (halsession.go); nil: none
+	sessOn    bool        // a session held the acquisition at the last pass
+	sessShown bool        // the stopped record shown is the one a session ended on
+	img       halImages   // the FPGA image the trigger runs on (halimages.go)
+	ser       halSerial   // the serial request's measured rates (halserial.go)
+	scratch   []uint16    // the conditioning's working buffer
+	running   bool
 
 	mu       sync.Mutex
 	latest   *sample.Frame // the newest published frame
@@ -110,6 +115,10 @@ func NewHALLoop(cfg HALConfig) (*Loop, *HALCycle) {
 		cfg: cfg, b: cfg.Board, inst: cfg.Instrument, good: cfg.Instrument.State(),
 		ext: make([]extent, n), placed: make([]bool, n), quietAcq: cfg.Board.Profile().Budget.QuietAcquire,
 	}
+	cfg.Instrument.SetBand(cfg.Board.Profile().StatusBand)
+	if im, ok := cfg.Board.Images(); ok {
+		cfg.Instrument.SetImage(im.Current().Name)
+	}
 	return NewLoop(LoopConfig{
 		Acquirer:  cfg.Board.Acquirer(),
 		Cycle:     c,
@@ -132,12 +141,12 @@ func (c *HALCycle) Consume() (*sample.Frame, bool) {
 	return c.latest, fresh
 }
 
-// Open has nothing to start.
-// TRLC-LINKS: REQ-DSO-001
-func (c *HALCycle) Open() {}
+// Open attaches the cycle to the board's own stream sessions.
+// TRLC-LINKS: REQ-DSO-001, REQ-DSO-018
+func (c *HALCycle) Open() { c.openSessions() }
 
-// Close ends the audio stream, the decoded stream and the roll view still
-// running.
+// Close ends the audio stream, the decoded stream, the roll view and a
+// board session still running.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-265
 func (c *HALCycle) Close() {
 	if c.snd.running {
@@ -149,11 +158,17 @@ func (c *HALCycle) Close() {
 	if c.roll.running {
 		c.rollStop()
 	}
+	if c.sess != nil {
+		c.sess.Close()
+	}
 }
 
-// Serve is the board's housekeeping.
+// Serve is the board's housekeeping and its sessions' requests.
 // TRLC-LINKS: REQ-DSO-001, REQ-DSO-008
-func (c *HALCycle) Serve() { c.b.Platform().Service() }
+func (c *HALCycle) Serve() {
+	c.b.Platform().Service()
+	c.serveSessions()
+}
 
 // Claim runs posted LONG work with the acquisition stopped; the pass goes
 // on to commit the whole state again.
@@ -161,7 +176,7 @@ func (c *HALCycle) Serve() { c.b.Platform().Service() }
 func (c *HALCycle) Claim(ctx context.Context) bool {
 	work := c.inst.TakeWork()
 	if len(work) == 0 {
-		return c.decodedStep(ctx) || c.soundStep(ctx) || c.rollStep(ctx)
+		return c.sessionStep(ctx) || c.decodedStep(ctx) || c.soundStep(ctx) || c.rollStep(ctx)
 	}
 	if c.snd.running {
 		c.soundStop()
@@ -185,9 +200,14 @@ func (c *HALCycle) Claim(ctx context.Context) bool {
 func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 	s, gen := c.inst.Wanted()
 	committed, wasRunning := false, c.running
-	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need || c.replace {
+	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need || c.replace || c.img.again.Swap(false) {
 		c.stopArmed()
 		c.need, c.replace = need, false
+		c.commitState(s, gen)
+		committed = true
+	}
+	// the trigger's image, between acquisitions, unless a session keeps its own
+	if !c.sessionHoldsImage() && c.loadDueImage(ctx) {
 		c.commitState(s, gen)
 		committed = true
 	}
@@ -199,8 +219,12 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 		c.idle(ctx)
 		return Capture{}, false
 	}
+	c.sessShown = false // the run captures: a session's record is no longer shown
 	if c.rollWanted() {
 		return Capture{}, false // the next pass rolls (halroll.go)
+	}
+	if c.checkConverters(ctx) { // a recovery loaded the image again
+		c.commitState(s, gen)
 	}
 	c.livePlan()
 	return Capture{Normal: true, Norm: c.cur.Sweep != hal.Auto}, true
@@ -211,6 +235,9 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 // a board that shows its stopped record whole (halstopped.go).
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-011
 func (c *HALCycle) Watch(bool) Interrupt {
+	if c.sessionActive() {
+		return Leave // a board session took the acquisition
+	}
 	if c.decodedWanted() {
 		return Abort // a decoded stream starts or stops
 	}
@@ -294,6 +321,7 @@ func (c *HALCycle) Frame(ctx context.Context, cp Capture, a Armed) (*sample.Fram
 	release()
 	c.condition(f)
 	c.learn(f)
+	c.learnSerial(f, st.Triggered && !forced)
 	placed := forced || c.placeEdge(f, false)
 	if c.avg.on {
 		c.avg.add(f)
@@ -499,6 +527,7 @@ func (c *HALCycle) commit(s instrument.State) (instrument.State, error) {
 		return s, err
 	}
 	c.plan = plan
+	s.ETS = s.ETS && plan.ETSFactor > 1 // the plan says whether the board samples in equivalent time
 	return s, c.programTrigger(s)
 }
 

@@ -213,6 +213,7 @@ func (d *display) hud() render.HUD {
 		hud = d.cfg.HUD()
 	case d.env.UI != nil:
 		hud = d.env.UI.HUD(d.chans)
+		hud.URL = d.url() // the address the screen shows (the busy indicator's, the status line's)
 	}
 	if hud.Spect == nil {
 		hud.Spect = d.spect

@@ -404,10 +404,17 @@ func startSCPI(ctx context.Context, env *Env, o Options) error {
 	return nil
 }
 
-// halStream gives the UI model of a HAL scope whose board streams codes
-// BUS's Stream view over that stream (ADR-HAL-DECODED-STREAM-OVER-CODES).
+// halStream gives the UI model of a HAL scope BUS's Stream view: over the
+// board's own decoded streams (hal.Session, ADR-HAL-BOARD-SESSIONS), else
+// over the board's stream of codes (ADR-HAL-DECODED-STREAM-OVER-CODES).
 // TRLC-LINKS: REQ-DSO-018, REQ-DSO-240
 func halStream(env *Env) {
+	if s, ok := hal.SessionOf(env.Board); ok {
+		if x, ok := s.(interface{ StreamSource() streamview.Source }); ok {
+			env.UI.SetDecodeStream(streamview.New(x.StreamSource(), env.Logf))
+			return
+		}
+	}
 	if env.cycle != nil && env.cycle.DecodesStreams() {
 		env.UI.SetDecodeStream(streamview.New(streamview.HALSource{C: env.cycle}, env.Logf))
 	}
@@ -582,7 +589,7 @@ func buildWeb(env *Env, o Options) (webserver.Scope, error) {
 
 // WebParts are the parts of the core's own that a HAL scope's web scope
 // serves beside the board: the frequency response measured beside the
-// owner loop.
+// owner loop, and the client decode of the board's own decoded streams.
 // TRLC-LINKS: REQ-DSO-295
 func WebParts(env *Env) scopeweb.Parts {
 	var p scopeweb.Parts
@@ -592,10 +599,18 @@ func WebParts(env *Env) scopeweb.Parts {
 	}
 	if env.Model != nil && env.HALScope != nil {
 		p.Serial = halSerial{env.Model}
+		if env.Board.Profile().Triggers.Has(hal.NodeZone) { // the zones in the instrument state
+			p.Zones = env.Model
+		}
 	}
 	p.Masks = env.MaskTest()
 	if env.cycle != nil && env.cycle.Streams() {
 		p.Sound, p.SoundTakes = env.cycle, env.cycle
+	}
+	if s, ok := hal.SessionOf(env.Board); ok {
+		if cd, ok := s.(scopeweb.ClientDecoder); ok { // a page decodes the board's digital stream
+			p.ClientDecode = cd
+		}
 	}
 	return p
 }

@@ -1466,3 +1466,205 @@ decisions:
   - 'When the CML runs the core''s cycle the engine-backed extensions need their sources over the board and the
     cycle: the decoded capture over the board''s decoded events, the stacking session over hal.Stacker, the
     tuning knobs over the cycle''s pacing.'
+
+- id: ADR-HAL-BOARD-SESSIONS
+  title: 'A board''s own decoded streams run on the core''s cycle as a session the cycle serves and steps'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s decoded streams are its fabric''s: the FPGA decoders'' events with the bus
+    worker building the transcript lines, the software decode of the stream image''s peak words and of the
+    digital stream image''s sliced bits with its quiet-line skipping, zero-copy reads of the worker''s ring,
+    the history ring frozen on the stop frame, the captures mode on the symbol trigger, a web page''s own
+    decoded capture and a page decoding the digital stream itself. The plan was hal.Streamer payloads
+    (PayloadEvents, PayloadBits) with the decode in the core''s cycle; the transcript, its timing and the
+    cost on the Cortex-A8 depend on how each of these meets the fabric, and a rewrite over leased blocks
+    would change both.'
+  decision: 'hal.Session is optional on a board (hal.SessionOf): the board''s own stream sessions, whose
+    controller side is the board''s and whose requests wait for the owner. The HAL cycle attaches itself as
+    their owner (SessionHost: the run state, its own streams) when it opens, serves them at every commit
+    point (Serve), gives them the pass while one holds the acquisition (Step, ahead of the audio stream and
+    the roll view, which end first), leaves a waiting capture to a session that took the acquisition and
+    reads the record a session ended on whole as the stopped record (TakeRecord). The UI model''s decoded
+    stream, the web''s client decode and a HALScope''s web-capture and image-hold calls go to the session
+    when it offers them. The SDS1000CML+''s decoded streams are one value (DecodedStreams) the engine''s
+    owner steps today and the cycle steps over the board alone (NewBoardStreams); the code is the same.'
+  consequences:
+  - 'Transcripts, their timing and their cost stay the SDS1000CML+''s 1.2 behaviour when it runs the cycle.'
+  - 'The core''s decoded stream over a stream of codes stays for boards without a session (the SDS800X HD).'
+  - 'Folding the SDS1000CML+''s streams into the core''s decode over stream payloads is open for when a second
+    scope has such a fabric.'
+  - 'Over the board alone a stream has no ARINC 429 levels learned from records (the engine''s), and its
+    health beat is the cycle''s frames: both to settle at the switch.'
+
+- id: ADR-HAL-IMAGE-CHOICE
+  title: 'The board names the FPGA image a trigger runs on; the HAL cycle loads it between acquisitions'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ has nine FPGA images and its engine picks the one a trigger needs (a bus on its
+    protocol image once its threshold is known, a pulse, slope, video or zone trigger on the qualifier image, an
+    edge on the general one), keeping the qualifier image while AUTO in BUS holds it and the fast image while an
+    SPI clock is measured again. hal.Images loaded by features, but nothing said which features a trigger needs,
+    and the HAL cycle switched no images.'
+  decision: 'hal.ImageChooser is optional on Images: Choose(trigger, keep) names the features of the image the
+    trigger runs on (keep: stay on the current image while it serves it, the board saying which images keep).
+    At each commit the HAL cycle asks for the trigger it wants to run; while that image is not the current one
+    the trigger runs free with "loading the <image> FPGA image" as its backend, and the next pass, between
+    acquisitions, loads it (Images.Load, the board''s fresh load: halt, configure, probe, panel scan,
+    converters), says so on screen (Stats.Busy) and commits the whole state again. A trigger that waits on its
+    levels or a rate runs on the image its edge does (kept while a served SPI clock is measured again). A failed
+    load goes back to the base image (Images.Load with no features) and is not tried again until the choice
+    changes. HoldImage holds the current image for the UI model (HALScope.HoldQualifyImage). ImageSet gains Name,
+    the image as the scope names it, and Stats.Image follows the current one.'
+  consequences:
+  - 'The SDS1000CML+ board chooses as its engine does; its engine keeps its own switch until it runs the cycle,
+    loading images alone (Board.LoadImage) since Images.Load now makes the fresh load.'
+  - 'A board without images (the SDS800X HD, the simulated board, the fake) is unchanged.'
+  - 'A load on the HAL cycle stops the captures for its seconds; the health token''s beats on the HAL path are
+    published frames, which a load does not move (to be decided at the switch with the agent''s timeout).'
+
+- id: ADR-HAL-SERIAL-RATES
+  title: 'The HAL cycle measures the rates a serial request leaves to the decoder'
+  status: proposed
+  date: '2026-11-09'
+  context: 'A bus request from the scope names no SPI or I2C clock, a page''s UART may ask for auto baud, a SENT
+    request names no tick; the SDS1000CML+ engine measures them on the bus''s first line from the records and
+    programs its matcher with them (joined into the matcher''s units, with ARINC 429''s slicer from a sampled
+    record). The HAL cycle sent the request as it was.'
+  decision: 'The HAL cycle measures each missing rate on the records it reads (ClockRate, UARTBaud, SentShape, as
+    the CML: an SPI clock that has not triggered for SPIQuietNs is measured again), fills it into the bus
+    request with its bytes joined into the matcher''s units (JoinUnits) and the ARINC 429 slicer in volts
+    (decode.ARINC429Levels, leasing a sampled record when the frames are envelopes or too coarse); until a rate
+    is known the edge runs free and the backend says what is measured. A measured rate that moves more than 1 %
+    programs the trigger again.'
+  consequences:
+  - 'The SDS1000CML+ board programs what its engine programs, but for a rate that moved under 1 % (its engine
+    took every measurement); the SDS800X HD and the demo now run a bus request that leaves its rate to the decoder.'
+
+- id: ADR-HAL-ZONES-IN-STATE
+  title: 'The zone trigger is instrument state'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The zone trigger''s rectangles and mode lived in the SDS1000CML+ engine only: zones in display codes and
+    times from the trigger, staying where they were drawn when a V/div changes; the HAL path had no zone state, so
+    the UI model''s SetZoneMode and the web''s zones did nothing on it.'
+  decision: 'instrument.State gains ZoneMode (off, trigger) and Zones (instrument.Zone, the codes and times the
+    engine kept; engine.Zone is it). The HAL cycle arms the running trigger with the zones in volts at each
+    channel''s V/div and offset (State.HALZones) when no serial trigger runs; zones the board cannot serve leave the
+    trigger without them and Stats.ZoneBackend says why. The web''s zones reach the state on a scope whose
+    profile has the zone node.'
+  consequences:
+  - 'The SDS1000CML+ board plans the zones its engine plans; the settings file and the status keep their bytes
+    (zone_mode, zone_count).'
+
+- id: ADR-HAL-CONVERTER-CHECK
+  title: 'The HAL cycle runs a board''s periodic converter check between acquisitions'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ engine checks its converter cores every few seconds between acquisitions while it runs
+    and does not roll, reloading the image as the recovery; the HAL cycle had no hook for LONG housekeeping.'
+  decision: 'hal.ConverterChecker is optional on a Platform: CheckDue says a check is due, CheckConverters runs it
+    and says whether its recovery loaded the image again. The HAL cycle runs it in a pass that captures (never in
+    a stream or a roll, which take the pass before), with nothing armed; after a reload it drops the stored record
+    and commits the whole state again.'
+  consequences:
+  - 'The SDS1000CML+ board''s platform implements it over its checks (adc_health.go); others have none.'
+
+- id: ADR-HAL-ETS-IN-THE-PLAN
+  title: 'Equivalent-time sampling is what the board''s plan says'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s SRAM fabric has no equivalent-time mode and its engine snaps ETS off; the instrument
+    state kept ETS on whatever the board did, and the request could not ask for it.'
+  decision: 'hal.Request gains ETS; the committed state keeps ETS only when the plan''s ETSFactor is above 1, so a
+    board that samples in real time snaps it off as the CML does.'
+  consequences:
+  - 'No board in use samples in equivalent time: ETS reads back off everywhere on the HAL path.'
+
+- id: ADR-HAL-STATUS-BAND
+  title: 'A profile names the band word every capture reports'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The UI model branches on Stats.BandKind "sram" (autoset''s trigger check reads the frames, not a
+    capture log; its band wait matches the frame''s timebase; no ETS or decimated-depth rows; the precision mode),
+    a word only the SDS1000CML+ engine sets; its engine keeps no capture log on the SRAM path. Under the HAL cycle
+    the CML would have found no log and judged its trigger dead.'
+  decision: 'hal.Profile.StatusBand is the band word the HAL cycle reports for every capture (the CML profile:
+    sram), so the UI model takes the frame-confirmed trigger check and the CML''s rows as before; the capture log
+    stays empty on the HAL path, as on the CML''s SRAM path.'
+  consequences:
+  - 'The CML demo (the simulated board with the CML profile) reports sram too and takes the same branches.'
+  - 'A HAL board without a StatusBand keeps "" and the capture-log branch (none: autoset scans its level).'
+
+- id: ADR-HAL-BOARD-STACKER
+  title: 'A board that stacks against a template serves the stacking session as LONG work'
+  status: proposed
+  date: '2026-11-09'
+  context: 'hal.Stacker''s record count cannot carry the SDS1000CML+ stacking image''s template (a level, a window,
+    a qualifier), so its UI model''s and web''s FPGA stacking ran on its engine only.'
+  decision: 'panel.BoardStacker (FPGAStack with superres.StackRequest, OWNER, LONG) on a board: the HAL scope''s
+    engine posts the session as LONG work on the owner and waits for it; FPGAStacks tells the UI model whether the
+    board stacks at all. hal.Stacker stays refused on the CML.'
+  consequences:
+  - 'The CML board''s FPGAStack takes the staged depth (or the request''s record words) as its engine''s session
+    does; the web''s stacking route uses it once its source is the HAL scope''s engine.'
+
+- id: ADR-CML-LEVELS-OVER-MODEL
+  title: 'The SDS1000CML+ keeps its level and offsets as DAC codes beside the instrument model'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+''s trigger level and offsets are its DACs'' codes: the code stays where it is when the
+    source, its V/div or its probe changes and its volts move, a level knob step is one DAC step, and the settings
+    file keeps the code (level_code). Its levels (board.Levels) took the codes from its engine''s snapshot; on the
+    core''s cycle there is no engine. HALScope''s own levels and front end keep volts on the model''s terms (a level
+    on a float grid, an offset not clamped to the attenuator''s tier, a V/div snapped to the nearest step where the
+    CML refuses one off its ladder), so their read-backs differ from the CML''s.'
+  decision: 'Over the instrument model alone the SDS1000CML+''s levels run over board.ModelCodes, which keeps the
+    comparator''s and the offsets'' codes as the engine keeps them; Levels converts and keeps exactly what it does
+    over the engine, and projects the comparator''s level into the model at every level write, every change of a
+    channel (its front end''s projection) and every change of the trigger source (instrument.Model.OnTrigSource).
+    The board stages the comparator''s code from the model''s level with Levels.LevelCode, an exact round trip. The
+    CML''s own front end (projected into the model) and levels stay the controllers'' Analog and Levels (the UI
+    model, SCPI, the web and the settings) beside HALScope''s engine; board.PowerOn is the model''s power-on state,
+    the engine''s.'
+  consequences:
+  - 'The SCPI dialect, the settings file and the core''s HUD answer the same over the model alone as over the
+    engine (tests TestDialectOverTheModel, TestSettingsFileOverTheModel, TestCoreHUDOverTheModel).'
+  - 'At the switch the composition builds its levels over ModelCodes (the front end''s offset hook to the codes)
+    and passes HALScope''s engine with its own front end and levels to the panel, SCPI, the web and the settings;
+    the board''s trigger takes the comparator''s code from the model''s level.'
+  - 'The model keeps a slope and a source per trigger type; the SDS1000CML+ has one comparator source and slope
+    for every type. Settings restore the type first (ADR-SETTINGS-TYPE-FIRST), but a type picked on the panel or
+    over SCPI after a source still leaves the new type on its own source on the model: open for the switch.'
+
+- id: ADR-SETTINGS-TYPE-FIRST
+  title: 'A setup restores the trigger type before its slope and source'
+  status: proposed
+  date: '2026-11-09'
+  context: 'settings.Apply set the slope and the source and then the type. On a scope that keeps one slope and
+    source for every type (the SDS1000CML+''s engine) the order did not matter; on the instrument model, which keeps
+    them per type, the saved slope and source went to the type running at the restore and the saved type came up
+    with its own, so a setup saved on a pulse trigger on C2 came back on C1.'
+  decision: 'Apply sets the type first, then its slope and source.'
+  consequences:
+  - 'The SDS1000CML+ on its engine is unchanged; a HAL scope (the SDS800X HD, the demos) restores a setup''s slope
+    and source on its saved type.'
+
+- id: ADR-HAL-HUD-PARTS
+  title: 'The core''s HUD fills what the SDS1000CML+''s own HUD fills, from optional parts'
+  status: proposed
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ draws its LCD from its own HUD (over its engine, front end and levels); the core''s HUD
+    over the instrument state lacked the wait for a trigger the hardware decides, the serial match, the display
+    invert, the zones and mask drawn, the BODE view''s arming and curve, the detents'' zoom and the level marker of
+    a comparator never set, so the CML could not draw from it.'
+  decision: 'Controller.HUD takes each from an optional part where the engine, front end or levels has it:
+    SincePublish (Waiting after a second or 2.5 screens without a frame, in NORMAL or on a serial, zone or
+    qualified trigger), SerialConfig (SerialMatchText), the panel''s Inverter, Zones and MaskEnvelope, SetBodeMode
+    and BodePoints (armed while the BODE view shows, disarmed as it is left when the view armed it), Zoom, and
+    TrigLevelBNCIn (the marker from the comparator''s code at the BNC, none while it was never set). The display
+    gives the HUD its address (Display.URL).'
+  consequences:
+  - 'Over the SDS1000CML+''s controls the core''s HUD is its own field by field (TestCoreHUDIsTheDevicesHUD); the
+    CML can drop its hud.go at the switch.'
+  - 'On the SDS800X HD and the demos the screen now says when a NORMAL capture waits and the BODE view arms its
+    sweep and draws its curve (HALScope''s engine has the cycle''s publish age and the sweep).'
