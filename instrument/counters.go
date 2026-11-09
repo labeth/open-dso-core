@@ -105,9 +105,7 @@ func (c *counters) fill(st *Stats, now time.Time) {
 			st.FPS = float64(c.fpsN) / dt.Seconds()
 		}
 	}
-	if st.SerialMode != 0 {
-		st.SerialMatches = c.serial
-	}
+	st.SerialMatches = c.serial // kept after the trigger is off, until it is armed anew
 	if c.haveStages {
 		st.FrameStages = c.stages.String()
 	}
