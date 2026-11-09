@@ -2,6 +2,8 @@ package simdemo
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"os"
@@ -60,7 +62,41 @@ func BuildSite(ctx context.Context, profileYAML, demoJSON []byte, out string) er
 	if err := put("wasm_exec.js", glue); err != nil {
 		return err
 	}
-	return buildWasm(ctx, filepath.Join(out, WasmFile))
+	if err := buildWasm(ctx, filepath.Join(out, WasmFile)); err != nil {
+		return err
+	}
+	return stampVersion(out)
+}
+
+// stampVersion names this build in the page: index.html loads its scripts and
+// stylesheet with ?v=<hash of the page's code and module>, and the page loads
+// its workers and the module with the same, so a browser that kept a file
+// from an earlier deploy never runs it beside this one.
+// TRLC-LINKS: REQ-DSO-298
+func stampVersion(out string) error {
+	h := sha256.New()
+	for _, name := range []string{"demo.js", "engine.js", "sw.js", "demo.css", "wasm_exec.js", WasmFile} {
+		b, err := os.ReadFile(filepath.Join(out, name)) //nolint:gosec // G304: the site's own files
+		if err != nil {
+			return err
+		}
+		h.Write(b)
+	}
+	v := hex.EncodeToString(h.Sum(nil))[:12]
+	page := filepath.Join(out, "index.html")
+	b, err := os.ReadFile(page) //nolint:gosec // G304: the site's own page
+	if err != nil {
+		return err
+	}
+	s := string(b)
+	for _, ref := range []string{`src="demo.js"`, `href="demo.css"`, `href="design/tokens.css"`, `href="design/base.css"`} {
+		if !strings.Contains(s, ref) {
+			return fmt.Errorf("index.html: no %s to stamp", ref)
+		}
+		s = strings.Replace(s, ref, strings.TrimSuffix(ref, `"`)+"?v="+v+`"`, 1)
+	}
+	s = strings.Replace(s, "<head>", `<head>`+"\n"+`<meta name="demo-version" content="`+v+`">`, 1)
+	return os.WriteFile(page, []byte(s), 0o644) //nolint:gosec // G306: a site's files are public
 }
 
 // copyFS writes every file of src but its Go sources into dir.

@@ -43,6 +43,10 @@ async function api(path, body) {
 }
 
 let site = { mode: 'wasm', ui: 'ui/' };
+// The build's version (BuildSite stamps it): the workers and the module load
+// with it, so no file kept from an earlier deploy runs beside this one.
+const built = document.querySelector('meta[name="demo-version"]')?.content;
+const ver = (f) => (built ? `${f}?v=${built}` : f);
 let demo = {};
 let channels = 2;
 // TRLC-LINKS: REQ-DSO-298
@@ -81,7 +85,7 @@ async function startWasm() {
     fetch('scope/profile.yaml').then((r) => r.text()),
     fetch('scope/demo.json').then((r) => r.text()),
   ]);
-  worker = new Worker('engine.js');
+  worker = new Worker(ver('engine.js'));
   const ready = new Promise((res, rej) => {
     // TRLC-LINKS: REQ-DSO-298
     worker.onmessage = (e) => {
@@ -97,7 +101,7 @@ async function startWasm() {
       }
     };
   });
-  worker.postMessage({ type: 'start', wasm: 'dsodemo.wasm', profile, demo: demoText, stored: loadStored() });
+  worker.postMessage({ type: 'start', wasm: ver('dsodemo.wasm'), profile, demo: demoText, stored: loadStored() });
   await ready;
   const ch = new MessageChannel();
   worker.postMessage({ type: 'port' }, [ch.port1]);
@@ -147,7 +151,7 @@ async function registerWorker() {
     e.source?.postMessage({ ...r, type: 'answer', id: m.id }, r.body ? [r.body.buffer] : []);
   };
   let reg;
-  try { reg = await navigator.serviceWorker.register('sw.js'); } catch { return null; }
+  try { reg = await navigator.serviceWorker.register(ver('sw.js')); } catch { return null; }
   await navigator.serviceWorker.ready;
   if (!navigator.serviceWorker.controller) {
     const claimed = await Promise.race([
@@ -158,7 +162,9 @@ async function registerWorker() {
     try { reloaded = !!sessionStorage.getItem('demo-sw-reload'); } catch { reloaded = true; }
     if (!claimed && !navigator.serviceWorker.controller && !reloaded) {
       try { sessionStorage.setItem('demo-sw-reload', '1'); } catch { /* reload once regardless */ }
-      location.reload();
+      // A fresh navigation, not location.reload(): a reload can keep the
+      // hard reload's "skip the service worker".
+      location.replace(location.href);
       return new Promise(() => {});
     }
   }
@@ -834,7 +840,14 @@ async function main() {
     return;
   }
   for (const a of ['#weblink', '#weblink2']) $(a).href = site.ui;
-  $('#webframe').src = site.ui;
+  if (site.mode === 'wasm' && !navigator.serviceWorker?.controller) {
+    // The web UI is answered by the service worker; without one serving this
+    // page its requests would reach the static site and fail.
+    $('#webhint').textContent = 'the web UI needs the demo\'s service worker, which this browser did not start for this page: open the page again with a plain load (not Ctrl+Shift+R), or allow site data for this site';
+    for (const a of ['#weblink', '#weblink2']) $(a).hidden = true;
+  } else {
+    $('#webframe').src = site.ui;
+  }
   $('#webreload').addEventListener('click', () => { $('#webframe').src = site.ui; });
   poll();
   setInterval(poll, 1000);

@@ -4,7 +4,7 @@
 // store changes to the page.
 'use strict';
 
-importScripts('wasm_exec.js');
+importScripts('wasm_exec.js' + self.location.search); // the page's build version
 
 let ready = false;
 const ports = [];
