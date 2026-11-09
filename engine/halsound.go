@@ -241,7 +241,12 @@ func (c *HALCycle) soundStart() error {
 // timebase, else the first of its ladder the planner takes), and its plan.
 // TRLC-LINKS: REQ-DSO-265
 func (c *HALCycle) streamPlan() (hal.Request, hal.Plan, error) {
-	r := c.cur.Request()
+	return c.streamPlanOf(c.cur.Request())
+}
+
+// streamPlanOf is streamPlan of request r. ANY: the planner is pure.
+// TRLC-LINKS: REQ-DSO-265, REQ-DSO-018
+func (c *HALCycle) streamPlanOf(r hal.Request) (hal.Request, hal.Plan, error) {
 	r.Mode = hal.RollMode
 	tb := c.b.Profile().Timebase
 	tdivs := []float64{tb.RollFromS}
