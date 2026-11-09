@@ -68,8 +68,23 @@ async function startWasm() {
   const reg = await navigator.serviceWorker.register('sw.js');
   await navigator.serviceWorker.ready;
   if (!navigator.serviceWorker.controller) {
-    await new Promise((res) => navigator.serviceWorker.addEventListener('controllerchange', res, { once: true }));
+    // A first visit is taken over as the worker activates. A hard reload
+    // (Shift+Reload) loads the page past an active worker, and nothing takes
+    // it over: a plain reload brings the worker back, once.
+    const claimed = await Promise.race([
+      new Promise((res) => navigator.serviceWorker.addEventListener('controllerchange', () => res(true), { once: true })),
+      new Promise((res) => setTimeout(() => res(false), 3000)),
+    ]);
+    if (!claimed && !navigator.serviceWorker.controller) {
+      if (!sessionStorage.getItem('demo-sw-reload')) {
+        sessionStorage.setItem('demo-sw-reload', '1');
+        location.reload();
+        return new Promise(() => {});
+      }
+      throw new Error('the service worker does not serve this page: reload it (not a hard reload)');
+    }
   }
+  sessionStorage.removeItem('demo-sw-reload');
   // onmessage, not addEventListener: a client's messages from its service
   // worker queue until onmessage is set (or startMessages runs), and a
   // service worker that lost its port (restarted, or asked before the first
