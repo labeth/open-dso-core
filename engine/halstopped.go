@@ -81,10 +81,12 @@ func (c *HALCycle) stoppedPlan(committed, wasRunning bool) (Capture, bool) {
 	return Capture{}, false
 }
 
-// livePlan forgets the stopped record: a capture is armed over it.
+// livePlan forgets the stopped record and the roll view shown: a capture
+// is armed over them.
 // TRLC-LINKS: REQ-DSO-008
 func (c *HALCycle) livePlan() {
 	c.stopped = stoppedRecord{content: c.stopped.content}
+	c.roll.shown = false
 }
 
 // watchStop lets the waiting capture a STOP lands in finish when the

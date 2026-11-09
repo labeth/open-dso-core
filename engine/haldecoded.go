@@ -618,9 +618,10 @@ func (c *HALCycle) decodedDrain(ctx context.Context) {
 	for time.Now().Before(end) && s.active {
 		lctx, cancel := context.WithDeadline(ctx, end)
 		b, err := s.st.Lease(lctx)
+		ended := lctx.Err() // before cancel: the lease's own deadline, or the loop's end
 		cancel()
 		if err != nil {
-			if ctx.Err() == nil && lctx.Err() == nil {
+			if ctx.Err() == nil && ended == nil {
 				c.decodedHalt() // the stream ended under us: started again, after a gap
 				s.retryAt = time.Now().Add(100 * time.Millisecond)
 			}

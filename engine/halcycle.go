@@ -206,8 +206,9 @@ func (c *HALCycle) Plan(ctx context.Context) (Capture, bool) {
 		c.commitState(s, gen)
 		committed = true
 	}
-	// the trigger's image, between acquisitions, unless a session keeps its own
-	if !c.sessionHoldsImage() && c.loadDueImage(ctx) {
+	// the trigger's image, between acquisitions, unless a session or the
+	// roll view keeps its own
+	if !c.sessionHoldsImage() && !c.rollHoldsImage() && c.loadDueImage(ctx) {
 		c.commitState(s, gen)
 		committed = true
 	}

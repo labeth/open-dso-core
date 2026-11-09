@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/labeth/open-dso-core/hal"
+	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 )
 
@@ -44,8 +45,9 @@ type halSound struct {
 	st      hal.Streamer
 	running bool
 	gap     bool          // the next block follows a gap
+	plan    hal.Plan      // the stream's plan
 	chans   []int         // the scope channels the lanes carry
-	scale   SoundScale    // the lanes' scale at the stream's start
+	scale   SoundScale    // the lanes' scale: the committed state's, else a block's own (blockScale)
 	q       [2][]uint16   // a block's lanes in Q8.8
 	last    *sample.Frame // the newest frame read, whose traces give the lanes' scale
 	retryAt time.Time
@@ -192,14 +194,7 @@ func (c *HALCycle) soundStep(ctx context.Context) bool {
 		return false // the pass runs it first
 	}
 	if need := c.inst.RecordNeed(); gen != c.gen || need != c.need {
-		// A commit: the stream starts again after it, at a gap; no capture
-		// runs in between (a SINGLE is the stream's take, not a record's).
-		if s.running {
-			c.soundStop()
-		}
-		c.stopArmed()
-		c.need = need
-		c.commitState(want, gen)
+		c.soundCommit(want, gen, need)
 		want, _ = c.inst.Wanted()
 		if !want.Running {
 			return true
@@ -251,6 +246,7 @@ func (c *HALCycle) soundStart() error {
 	if err := c.b.Acquirer().Configure(plan); err != nil {
 		return err
 	}
+	s.plan = plan
 	s.chans = s.chans[:0]
 	for _, ch := range plan.Request.Channels {
 		if len(s.chans) < 2 {
@@ -288,6 +284,56 @@ func (c *HALCycle) soundStart() error {
 		in.Marks, in.MarkCfg = s.tk.marksOn, s.tk.applied
 	})
 	return nil
+}
+
+// soundCommit commits state s while SOUND holds: as it comes, the stream
+// going on under the same audio plan on a board whose stream takes commits
+// (it writes its front end between its blocks), as the SDS1000CML+ streams
+// through a V/div step; else the stream starts again after it, at a gap.
+// No capture runs in between (a SINGLE is the stream's take, not a
+// record's).
+// TRLC-LINKS: REQ-DSO-265, REQ-DSO-008
+func (c *HALCycle) soundCommit(s instrument.State, gen uint64, need instrument.RecordNeed) {
+	c.need = need
+	if c.snd.running && takesCommits(c.snd.st) {
+		c.commitState(s, gen)
+		if !c.soundKeeps() {
+			c.soundStop()
+			c.gen = gen // committed: the stream starts again on it
+		}
+		return
+	}
+	if c.snd.running {
+		c.soundStop()
+	}
+	c.stopArmed()
+	c.commitState(s, gen)
+}
+
+// soundKeeps reports the running audio stream goes on after a commit: the
+// committed state streams the same lanes at the same rate. The lanes'
+// scale follows the commit.
+// TRLC-LINKS: REQ-DSO-265
+func (c *HALCycle) soundKeeps() bool {
+	s := &c.snd
+	_, plan, err := c.soundPlan()
+	if err != nil || plan.SampleS != s.plan.SampleS || plan.AcqDecim != s.plan.AcqDecim {
+		return false
+	}
+	var lanes []int
+	for _, ch := range plan.Request.Channels {
+		if len(lanes) < 2 {
+			lanes = append(lanes, ch)
+		}
+	}
+	if !slices.Equal(lanes, s.chans) {
+		return false
+	}
+	if err := c.b.Acquirer().Configure(plan); err != nil {
+		return false
+	}
+	s.scale = c.soundScale(s.chans)
+	return true
 }
 
 // soundPlan is the audio stream's plan: the board's Stream plan for the
@@ -349,9 +395,10 @@ func (c *HALCycle) soundDrain(ctx context.Context) {
 	for time.Now().Before(end) {
 		lctx, cancel := context.WithDeadline(ctx, end)
 		b, err := s.st.Lease(lctx)
+		ended := lctx.Err() // before cancel: the lease's own deadline, or the loop's end
 		cancel()
 		if err != nil {
-			if ctx.Err() == nil && lctx.Err() == nil {
+			if ctx.Err() == nil && ended == nil {
 				c.soundStop() // the stream ended under us: started again, after a gap
 				s.set(func(in *SoundInfo) { in.Losses++; in.Err = err.Error() })
 			}
@@ -362,7 +409,7 @@ func (c *HALCycle) soundDrain(ctx context.Context) {
 			s.set(func(in *SoundInfo) { in.RateHz = s.rate })
 		}
 		c.soundMarksTake(ring, b)
-		s.push(ring, b)
+		s.push(ring, b, c.blockScale(b))
 		s.st.Release(b)
 	}
 	if f := s.st.Faults(); f.LostBlocks+f.SeqJumps > 0 {
@@ -370,9 +417,9 @@ func (c *HALCycle) soundDrain(ctx context.Context) {
 	}
 }
 
-// push puts block b's lanes into the ring as Q8.8 words.
+// push puts block b's lanes into the ring as Q8.8 words at scale sc.
 // TRLC-LINKS: REQ-DSO-265
-func (s *halSound) push(ring *SoundRing, b hal.StreamBlock) {
+func (s *halSound) push(ring *SoundRing, b hal.StreamBlock, sc SoundScale) {
 	for lane := range 2 {
 		s.q[lane] = s.q[lane][:0]
 	}
@@ -391,7 +438,7 @@ func (s *halSound) push(ring *SoundRing, b hal.StreamBlock) {
 	if len(b.Formats) == 1 { // one lane: the second repeats it
 		s.q[1] = append(s.q[1], s.q[0]...)
 	}
-	ring.PushQ(s.q[0], s.q[1], s.scale, s.gap, time.Now())
+	ring.PushQ(s.q[0], s.q[1], sc, s.gap, time.Now())
 	s.gap = false
 }
 
@@ -408,6 +455,38 @@ func (c *HALCycle) soundStop() {
 	s.running = false
 	s.set(func(in *SoundInfo) { in.Active = false })
 	c.gen = 0
+}
+
+// blockScale is the lanes' scale of block b: each lane at the scale the
+// block states for it (the front end as it stood when the block was
+// captured, which the SDS1000CML+'s audio stream follows block by block),
+// else the stream's.
+// TRLC-LINKS: REQ-DSO-265
+func (c *HALCycle) blockScale(b hal.StreamBlock) SoundScale {
+	s := &c.snd
+	sc := s.scale
+	for lane := range min(len(b.Scales), len(b.Formats), len(s.chans), 2) {
+		if b.Scales[lane].PerCode > 0 {
+			sc.VdivV[lane], sc.OffV[lane] = c.laneScale(s.chans[lane], b.Formats[lane], b.Scales[lane])
+		}
+	}
+	if len(b.Formats) == 1 && len(b.Scales) == 1 && b.Scales[0].PerCode > 0 { // one lane: the second repeats it
+		sc.VdivV[1], sc.OffV[1] = sc.VdivV[0], sc.OffV[0]
+	}
+	return sc
+}
+
+// laneScale is a lane's V/div and offset at the analog input for channel
+// ch's codes of format fm at scale: a Q8.8 code q of the lane reads
+// (q/256-128)·VdivV/25 - OffV volts, the probe's factor out of the tip's
+// scale.
+// TRLC-LINKS: REQ-DSO-265
+func (c *HALCycle) laneScale(ch int, fm sample.CodeFormat, scale sample.Scale) (vdiv, off float64) {
+	probe := 1.0
+	if ch >= 0 && ch < len(c.cur.Channels) && c.cur.Channels[ch].Probe > 0 {
+		probe = c.cur.Channels[ch].Probe
+	}
+	return 25 * scale.PerCode * fm.Unit8() / probe, (scale.OffsetV - (float64(fm.Mid)-scale.Zero)*scale.PerCode) / probe
 }
 
 // soundScale is the lanes' scale for channels chans: from the newest frame
@@ -440,14 +519,7 @@ func (c *HALCycle) soundScale(chans []int) SoundScale {
 		if !(scale.PerCode > 0) {
 			continue
 		}
-		// a Q8.8 code q of the lane reads (q/256-128)·VdivV/25 - OffV volts
-		// at the analog input: the probe's factor out of the tip's scale
-		probe := hc.Probe
-		if !(probe > 0) {
-			probe = 1
-		}
-		sc.VdivV[lane] = 25 * scale.PerCode * fm.Unit8() / probe
-		sc.OffV[lane] = (scale.OffsetV - (float64(fm.Mid)-scale.Zero)*scale.PerCode) / probe
+		sc.VdivV[lane], sc.OffV[lane] = c.laneScale(ch, fm, scale)
 	}
 	return sc
 }
