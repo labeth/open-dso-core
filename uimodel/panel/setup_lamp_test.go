@@ -52,13 +52,17 @@ func TestSaveRecallLampFollowsTheWholeSetup(t *testing.T) {
 	}
 }
 
-// Between inputs the snapshot is published at most every 150 ms (hashing
-// every row and encoding the snapshot on each 40 ms tick and LCD frame takes
-// a tenth of the CPU), and a change still reaches it.
+// Between inputs, while a remote waits in its long-poll, the snapshot is
+// published at most every 150 ms (hashing every row and encoding the
+// snapshot on each 40 ms tick and LCD frame takes a tenth of the CPU), and
+// a change still reaches it.
 // TRLC-LINKS: REQ-DSO-211
 func TestSyncPublishIsRateLimited(t *testing.T) {
 	c, eng, _ := newC(t)
 	k := withClock(c)
+	c.rmu.Lock()
+	c.remote.waiting = 1 // a remote parked in WaitPanel
+	c.rmu.Unlock()
 	c.SyncLEDs()
 	seq := c.PanelStatus().Seq
 	eng.set(func(st *instrument.Stats) { st.Running = false })
@@ -76,6 +80,27 @@ func TestSyncPublishIsRateLimited(t *testing.T) {
 	c.rmu.Unlock()
 	if got == seq {
 		t.Fatal("a stop never reached the snapshot")
+	}
+}
+
+// With no remote waiting, the lamps' tick publishes nothing (no one is
+// woken by it); a remote's next read still sees the change.
+// TRLC-LINKS: REQ-DSO-211
+func TestSyncPublishesOnlyForAWaitingRemote(t *testing.T) {
+	c, eng, _ := newC(t)
+	k := withClock(c)
+	seq := c.PanelStatus().Seq
+	eng.set(func(st *instrument.Stats) { st.Running = false })
+	k.advance(time.Second)
+	c.SyncLEDs()
+	c.rmu.Lock()
+	got := c.remote.status.Seq
+	c.rmu.Unlock()
+	if got != seq {
+		t.Fatalf("the tick published with no remote waiting: seq %d -> %d", seq, got)
+	}
+	if st := c.PanelStatus(); st.Seq == seq {
+		t.Fatal("the stop never reached the remote's read")
 	}
 }
 
