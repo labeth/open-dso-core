@@ -19,28 +19,32 @@ import (
 // what the board applied, what it refused, the run state and every frame
 // it publishes. Every method is safe for concurrent use.
 type Model struct {
-	mu       sync.Mutex
-	want     State
-	gen      uint64 // bumped by every change of want
-	check    func(State) error
-	run      RunState
-	force    bool
-	posted   []func(ctx context.Context)
-	refused  []func(error)
-	frames   FrameSource
-	last     *sample.Frame
-	runMem   runMemory // the trigger mode an armed single shot replaced
-	tdivs    []float64 // the timebase ladder SetTdiv snaps to
-	leases   map[string]lease
-	views    [ViewSurfaces]viewLease // each surface's view window lease (LeaseView)
-	trig     trigHealth              // the hardware triggers dropped (NoteTrigger)
-	backends Backends
-	caps     func() hal.TrigCaps
-	busy     busy                            // what the owner is busy with, the image (SetBusy, SetImage)
-	count    counters                        // the frames read, held and matched, the pass's stages (CountFrame)
-	sourced  []func()                        // hear SetTrigSource (OnTrigSource)
-	typed    []func(s *State, from TrigType) // project a type change (OnTrigType)
-	sloped   []func(s *State, sl hal.Slope)  // keep a slope the type has no setting for (OnTrigSlope)
+	mu   sync.Mutex
+	want State
+	gen  uint64 // bumped by every change of want
+	// wantStats is Snapshot's part from want while wantOK; every write of
+	// want clears wantOK
+	wantStats Stats
+	wantOK    bool
+	check     func(State) error
+	run       RunState
+	force     bool
+	posted    []func(ctx context.Context)
+	refused   []func(error)
+	frames    FrameSource
+	last      *sample.Frame
+	runMem    runMemory // the trigger mode an armed single shot replaced
+	tdivs     []float64 // the timebase ladder SetTdiv snaps to
+	leases    map[string]lease
+	views     [ViewSurfaces]viewLease // each surface's view window lease (LeaseView)
+	trig      trigHealth              // the hardware triggers dropped (NoteTrigger)
+	backends  Backends
+	caps      func() hal.TrigCaps
+	busy      busy                            // what the owner is busy with, the image (SetBusy, SetImage)
+	count     counters                        // the frames read, held and matched, the pass's stages (CountFrame)
+	sourced   []func()                        // hear SetTrigSource (OnTrigSource)
+	typed     []func(s *State, from TrigType) // project a type change (OnTrigType)
+	sloped    []func(s *State, sl hal.Slope)  // keep a slope the type has no setting for (OnTrigSlope)
 }
 
 // FrameSource gives a reader the newest published frame: the engine's
@@ -126,6 +130,7 @@ func (m *Model) commitLocked(s State, r runMemory) error {
 	if !s.Equal(m.want) {
 		m.want = s
 		m.gen++
+		m.wantOK = false
 	}
 	return nil
 }
@@ -256,6 +261,7 @@ func (m *Model) Applied(s State, gen uint64) {
 	defer m.mu.Unlock()
 	if m.gen == gen {
 		m.want = s.Clone()
+		m.wantOK = false
 	}
 }
 
@@ -298,6 +304,7 @@ func (m *Model) OwnerStop(spent bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.want.Running = false
+	m.wantOK = false
 	if spent {
 		m.want.Single = false
 	}

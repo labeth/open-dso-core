@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/hal/prototrig"
@@ -598,9 +599,27 @@ func pData[P hal.ProtoTrigger](id string, n int, line func(p *P) *prototrig.Line
 	}
 }
 
-// trigParamDefs are type t's settings.
+// paramDefsOf holds each type's settings, built once: a snapshot reads
+// the trigger's source through them many times a second.
+var paramDefsOf = sync.OnceValue(func() (all [NumTrigTypes][]paramDef) {
+	for t := range NumTrigTypes {
+		all[t] = buildTrigParamDefs(t)
+	}
+	return all
+})
+
+// trigParamDefs are type t's settings (shared: never written).
 // TRLC-LINKS: REQ-DSO-011, REQ-DSO-013
 func trigParamDefs(t TrigType) []paramDef {
+	if t < 0 || t >= NumTrigTypes {
+		return nil
+	}
+	return paramDefsOf()[t]
+}
+
+// buildTrigParamDefs builds type t's settings.
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-013
+func buildTrigParamDefs(t TrigType) []paramDef {
 	m := mainStage
 	var out []paramDef
 	switch t { //nolint:exhaustive // default: NumTrigTypes and out of range have no settings

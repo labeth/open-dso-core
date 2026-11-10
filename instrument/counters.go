@@ -17,6 +17,7 @@ type counters struct {
 	fpsAt        time.Time // the start of the published rate's window
 	fpsN         int       // frames published in it
 	stages       FrameStages
+	stagesText   string // stages as the status states them; "" until a snapshot formats it
 	haveStages   bool
 	symbols      int64 // the symbol trigger's matches during the last record; -1 unknown
 	symbolArmedS float64
@@ -80,7 +81,7 @@ func (m *Model) ResetSerialMatches() {
 // TRLC-LINKS: REQ-DSO-127
 func (m *Model) SetFrameStages(s FrameStages) {
 	m.mu.Lock()
-	m.count.stages, m.count.haveStages = s, true
+	m.count.stages, m.count.stagesText, m.count.haveStages = s, "", true
 	m.mu.Unlock()
 }
 
@@ -107,7 +108,7 @@ func (c *counters) fill(st *Stats, now time.Time) {
 	}
 	st.SerialMatches = c.serial // kept after the trigger is off, until it is armed anew
 	if c.haveStages {
-		st.FrameStages = c.stages.String()
+		st.FrameStages = c.stagesText
 	}
 	if c.haveSymbols {
 		st.SymbolMatches, st.SymbolArmedS = c.symbols, c.symbolArmedS
