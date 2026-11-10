@@ -1800,9 +1800,9 @@ decisions:
     scope asks beyond it (the cycle''s quiet lock, the board''s bus errors, lamp lag and the display''s picture
     count, the command notes; no frame period, no stitched stream mode, no capture log), and the scope''s own
     LCD (its afterglow layer and page-flipped copy) with a display tick from the board''s render knob. There is
-    no mode and no fallback to the engine''s owner; the engine''s code stays in the tree, unused by the device,
-    until it is deleted.'
+    no mode and no fallback to a separate CML acquisition owner. The board-support package contains no
+    duplicate engine; its decoded streams and hardware planning remain board services.'
   consequences:
   - 'The bench checks the switched device against 1.2 (the HAL migration''s bench checklist).'
-  - 'The engine (sram_cycle.go and what only it uses) is deleted in the next step, with the parity tests that
-    compare against it.'
+  - 'The CML engine and its private-loop tests are removed. Recorded hardware configurations, HUD and SCPI
+    expectations preserve compatibility without retaining a second acquisition owner.'
