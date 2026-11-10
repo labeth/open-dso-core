@@ -109,6 +109,16 @@ type Acquirer interface {
 	State() AcqState // ANY
 }
 
+// AutoWaiter is an Acquirer whose hardware does not sweep AUTO itself:
+// the owner forces a capture armed in AUTO that has not triggered once
+// AutoWait has passed since its arm (Force between the polls of Wait).
+// An Acquirer without it sweeps AUTO from the trigger's Sweep.
+type AutoWaiter interface {
+	// AutoWait is how long a capture armed with the staged plan and
+	// trigger waits for a trigger before AUTO forces it. OWNER.
+	AutoWait() time.Duration
+}
+
 // AcqState is where the acquisition is.
 type AcqState int
 

@@ -327,6 +327,14 @@ type Trigger interface {
 	Matches() (MatchStats, bool)
 }
 
+// MatchEndTrigger is a Trigger whose protocol receivers fire where the
+// match ends: the owner places the trigger point at the match's start
+// from a decode of the record before it.
+type MatchEndTrigger interface {
+	// FiresAtMatchEnd reports that the receivers fire at a match's end. ANY.
+	FiresAtMatchEnd() bool
+}
+
 // Grid is a setting's hardware step and range, in its unit.
 type Grid struct{ Step, Min, Max float64 }
 

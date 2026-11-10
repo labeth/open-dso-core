@@ -3,6 +3,7 @@ package instrument
 import (
 	"math"
 	"testing"
+	"time"
 
 	"github.com/labeth/open-dso-core/hal"
 )
@@ -194,5 +195,38 @@ func TestTriggerLevelSet(t *testing.T) {
 	m.SetTrigLevel(.25)
 	if s := m.State(); !s.LevelSet || s.Trigger.LevelV() != .25 || m.Generation() == g {
 		t.Fatalf("level %v set %v", s.Trigger.LevelV(), s.LevelSet)
+	}
+}
+
+// The snapshot keeps the wanted state's part between its changes and
+// follows every write of it: a controller's change, the owner's Applied
+// and the owner stopping the run; the stage times follow each pass.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-127
+func TestSnapshotFollowsEveryWrite(t *testing.T) {
+	m := New(twoChannels(), nil)
+	if st := m.Snapshot(); !st.Running || st.TrigSource != 0 || st.TdivS != 1e-3 {
+		t.Fatalf("first snapshot: %+v", st)
+	}
+	m.SetTrigSource(1)
+	if st := m.Snapshot(); st.TrigSource != 1 {
+		t.Fatalf("a changed source: %d", st.TrigSource)
+	}
+	s, gen := m.Wanted()
+	s.TimeDivS = 2e-3 // the board snapped the timebase
+	m.Applied(s, gen)
+	if st := m.Snapshot(); st.TdivS != 2e-3 || st.TrigSource != 1 {
+		t.Fatalf("after Applied: tdiv %g source %d", st.TdivS, st.TrigSource)
+	}
+	m.OwnerStop(false)
+	if st := m.Snapshot(); st.Running {
+		t.Fatal("the owner's stop never reached the snapshot")
+	}
+	m.SetFrameStages(FrameStages{Arm: 2 * time.Millisecond})
+	if st := m.Snapshot(); st.FrameStages != (FrameStages{Arm: 2 * time.Millisecond}).String() {
+		t.Fatalf("stages: %q", st.FrameStages)
+	}
+	m.SetFrameStages(FrameStages{Wait: 7 * time.Millisecond})
+	if st := m.Snapshot(); st.FrameStages != (FrameStages{Wait: 7 * time.Millisecond}).String() {
+		t.Fatalf("the next pass's stages: %q", st.FrameStages)
 	}
 }

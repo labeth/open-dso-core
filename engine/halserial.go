@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/labeth/open-dso-core/decode"
+	"github.com/labeth/open-dso-core/hal"
 	"github.com/labeth/open-dso-core/instrument"
 	"github.com/labeth/open-dso-core/sample"
 )
@@ -201,4 +202,51 @@ func view8Line(f *sample.Frame, ch int) []uint8 {
 		}
 	}
 	return nil
+}
+
+// placeMatchStart moves frame f's trigger point from where the board's
+// protocol receiver fired, at the match's end (hal.MatchEndTrigger), to
+// the start of the match that ends there, found by decoding the request's
+// length of the lines before it; it stays where the receiver fired when the
+// decode finds none. Software only places the trigger the FPGA decided.
+// TRLC-LINKS: REQ-DSO-013
+func (c *HALCycle) placeMatchStart(f *sample.Frame) {
+	me, ok := c.b.Trigger().(hal.MatchEndTrigger)
+	if !ok || !me.FiresAtMatchEnd() || c.cur.SerialMode == 0 || c.gate != &c.gates[0] {
+		return
+	}
+	hw := f.TriggerAt
+	if !(hw >= 0) || hw >= float64(f.Len()) || !(f.SampleS > 0) || (f.Content == sample.PeakPairs && !f.Flags.Has(sample.Ordered)) {
+		return
+	}
+	p, why := c.planRates(c.cur.Serial)
+	if why != "" {
+		p = c.cur.Serial
+	}
+	a, b := view8Line(f, p.ChA), view8Line(f, p.ChB)
+	if b == nil {
+		b = a
+	}
+	if a == nil || len(a) < f.Len() || len(b) < f.Len() {
+		return
+	}
+	at, n := int(hw), f.Len()
+	lo, hi := 0, n
+	unit := min(SerialUnitSamples(p, f.SampleS, c.ser.spiHz), n)
+	if unit > 0 {
+		lo, hi = max(0, at-(max(1, len(PatternOf(p)))+2)*unit), min(n, at+2*unit)
+	}
+	if pat := PatternOf(p); len(pat) == 2 && pat[0].Kind == PatternStart && pat[1].Kind == PatternData && pat[1].Mask == 0 {
+		// the whole frame around it: a decoder drops a frame cut short
+		if unit > 0 {
+			lo, hi = max(0, at-FrameUnitsBefore*unit), min(n, at+FrameUnitsAfter*unit)
+		}
+		if start := FrameUnitStart(a[lo:hi], b[lo:hi], f.SampleS, p, at-lo, lo); start >= 0 {
+			f.TriggerAt = start
+		}
+		return
+	}
+	if ok, start := SerialMatchIn(a[lo:hi], b[lo:hi], f.SampleS, p, AnchorSpan{Target: at - lo, Lo: 0, Hi: at - lo}); ok && start >= 0 && start <= at-lo {
+		f.TriggerAt = float64(lo + start)
+	}
 }

@@ -139,6 +139,7 @@ func Describe(b hal.Board, o Options) Composition {
 	part("settings.analog", o.Settings.Analog != nil, "core")
 	part("settings.extension", o.Settings.Extension != nil, "core")
 	part("settings.slots", o.Settings.SlotKey != nil, "core")
+	part("settings.controls", o.Settings.Controls != nil, "core")
 	if o.Listen == "" && o.Serve == nil {
 		c.Parts["web"] = "none"
 	}

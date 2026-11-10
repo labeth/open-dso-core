@@ -132,9 +132,10 @@ func setupPrint(s *sv) string {
 
 // SyncLEDs refreshes the lamps from the engine and the panel state and
 // re-latches only when the word changed, so the lamps follow a single-shot
-// self-stopping or the web/SCPI toggling run without a key press; it also
-// publishes the panel snapshot for the remote's long-poll, at most every
-// syncPublishEvery (an input publishes at once).
+// self-stopping or the web/SCPI toggling run without a key press; while a
+// remote waits in its long-poll it also publishes the panel snapshot, at
+// most every syncPublishEvery (an input publishes at once; a remote's own
+// read publishes before it reads).
 // TRLC-LINKS: REQ-DSO-135
 func (c *Controller) SyncLEDs() {
 	st := c.eng.Snapshot()
@@ -148,9 +149,9 @@ func (c *Controller) SyncLEDs() {
 	}
 	c.pushLEDs()
 	c.rmu.Lock()
-	at := c.remote.pubAt
+	at, waiting := c.remote.pubAt, c.remote.waiting > 0
 	c.rmu.Unlock()
-	if now := c.now(); at.IsZero() || now.Sub(at) >= syncPublishEvery || now.Before(at) {
+	if now := c.now(); waiting && (at.IsZero() || now.Sub(at) >= syncPublishEvery || now.Before(at)) {
 		c.publish()
 	}
 }

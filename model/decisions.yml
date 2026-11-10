@@ -1495,8 +1495,9 @@ decisions:
   - 'The core''s decoded stream over a stream of codes stays for boards without a session (the SDS800X HD).'
   - 'Folding the SDS1000CML+''s streams into the core''s decode over stream payloads is open for when a second
     scope has such a fabric.'
-  - 'Over the board alone a stream has no ARINC 429 levels learned from records (the engine''s), and its
-    health beat is the cycle''s frames: both to settle at the switch.'
+  - 'Over the board alone a stream takes ARINC 429''s slicer the cycle learned as the board''s bus trigger
+    programmed it, beats the cycle''s heartbeat through its host (ADR-HAL-HEALTH-BEAT), counts its bus errors on
+    the board, and hands the board the record it ended on with its configuration, read at its own rate.'
 
 - id: ADR-HAL-IMAGE-CHOICE
   title: 'The board names the FPGA image a trigger runs on; the HAL cycle loads it between acquisitions'
@@ -1521,8 +1522,11 @@ decisions:
   - 'The SDS1000CML+ board chooses as its engine does; its engine keeps its own switch until it runs the cycle,
     loading images alone (Board.LoadImage) since Images.Load now makes the fresh load.'
   - 'A board without images (the SDS800X HD, the simulated board, the fake) is unchanged.'
-  - 'A load on the HAL cycle stops the captures for its seconds; the health token''s beats on the HAL path are
-    published frames, which a load does not move (to be decided at the switch with the agent''s timeout).'
+  - 'A load on the HAL cycle stops the captures for its seconds and beats between its steps
+    (ADR-HAL-HEALTH-BEAT).'
+  - 'A board may tell the owner''s keeping (a clock measured again) from the user''s hold apart (hal.HeldChooser)
+    and name an image as a trigger waiting for it says it (ImageSet.Called): the SDS1000CML+''s hold keeps the
+    qualifier image only, and its trigger waits for the "qualifier" image, as its engine said.'
 
 - id: ADR-HAL-SERIAL-RATES
   title: 'The HAL cycle measures the rates a serial request leaves to the decoder'
@@ -1731,3 +1735,74 @@ decisions:
   - 'At the switch the composition passes the HAL scope''s engine with WithStacker; the roll stream, the knobs and
     the status codes need nothing more.'
 
+
+- id: ADR-HAL-HEALTH-BEAT
+  title: 'The health token beats on the HAL cycle''s progress, and the board''s LONG work beats between its steps'
+  status: accepted
+  date: '2026-11-09'
+  context: 'The supervisor relaunches the app when the health token stops changing for its timeout (3 s by
+    default). On the HAL path the token''s beats were the published frames; a decoded stream, an image load, a
+    stacking session and a long NORMAL wait publish none, so the agent would restart a scope that is working.
+    The SDS1000CML+''s engine beat through all of them: every pass of its loop, every poll of a wait, its sleeps
+    in slices, its stacking job between records and its image loads.'
+  decision: 'The HAL cycle counts its own heartbeat (HALCycle.Beats): every commit point it serves (one a pass,
+    one a poll of a wait) and every Beat the loop calls (each wait''s poll, each slice of a pacing hold). LONG
+    work beats between its steps through a beat the cycle hands over: a board that runs LONG work for the
+    owner (hal.BeatBoard) takes the cycle''s Beat once at the open, and a board session''s long step beats
+    through its host (the session host''s Beat). scopeapp''s health writer beats from HALCycle.Beats. A beat is
+    the end of a step, never a timer: a pass that hangs, a wait that never polls again or LONG work stuck
+    inside a step beats no more, so a wedge is still caught.'
+  consequences:
+  - 'A stream, an image load, a stacking session and a long NORMAL wait keep the token fresh while they
+    progress, on every HAL board (the SDS800X HD, the simulated board, the SDS1000CML+).'
+  - 'A step of LONG work longer than the agent''s timeout (one image configuration of about a second, one
+    converter check) must stay under it; the SDS1000CML+ beats between a load''s halt, configuration, probes
+    and converter recoveries, and between a stacking session''s tiles.'
+  - 'A scope''s own owner (Options.Owner) keeps its own Beats.'
+
+- id: ADR-CML-ONE-TRIGGER-SOURCE
+  title: 'The SDS1000CML+ keeps one trigger source, slope and level across the trigger types'
+  status: accepted
+  date: '2026-11-09'
+  context: 'The SDS1000CML+ has one trigger comparator: one channel, one level DAC code, one slope, whatever the
+    trigger type, and its engine read them back the same for every type. The instrument model keeps a source, a
+    slope and a level per type, so on the core''s cycle a type picked after a source change would come back on
+    its own source. Of the options (a CML-only projection, a profile flag making the model share them, or the
+    model''s per-type keeping as a behaviour change) the owner chose the CML-only projection, with the core''s
+    trigger semantics unchanged.'
+  decision: 'The model lets a board project a type change and a slope its running type has no setting for,
+    inside the change (Model.OnTrigType, Model.OnTrigSlope); a model without such hooks behaves as before. The
+    SDS1000CML+ composition registers board.ShareTrigger, which gives the type picked the source, the slope and
+    (once set) the level of the type before it, and board.KeepSlope, which keeps the comparator''s slope on the
+    stages of a type without a slope setting (video). Every controller (the panel, SCPI, the web, the settings
+    file) sets the type through the model, so all of them share it. The hooks are in the model rather than in a
+    wrapper of the HAL scope''s engine, which would hide the engine''s optional parts the UI model looks for.'
+  consequences:
+  - 'Read-backs equal the engine''s across type changes (TestOneTriggerSourceAcrossTypes, TestDialectOverTheModel
+    with the projection).'
+  - 'The board programs the video trigger on the shared slope, as the engine did.'
+  - 'Other scopes keep a source, slope and level per type.'
+
+- id: ADR-CML-ON-HAL-CYCLE
+  title: 'The SDS1000CML+ runs the core''s HAL cycle'
+  status: proposed
+  date: '2026-11-09'
+  context: 'Every part the SDS1000CML+''s own acquisition owner (its engine''s sramCycle) did is a board part or
+    core HAL-cycle code: the record, the roll and the audio stream, the decoded streams as the board''s sessions,
+    images by feature, the converter checks, the panel scan, the stacking session, the levels over the model,
+    SCPI and the settings over the model, the core''s HUD.'
+  decision: 'The device main (app/cmd/app) composes the board over the core''s HAL cycle and nothing else: the
+    power-on state board.PowerOn, the DAC codes kept beside the model (board.ModelCodes, attached when the core
+    builds the model: Options.OnModel), the CML front end and levels with the HAL scope''s engine for the UI
+    model, SCPI, the web and the settings, the core''s HUD, the board staging the comparator DAC from the model''s
+    level (Levels.LevelCode), the board''s decoded streams as its session, the board''s stacking session through
+    the HAL scope''s engine (webscope.WithStacker), a web adapter over the HAL scope''s engine for what the web
+    scope asks beyond it (the cycle''s quiet lock, the board''s bus errors, lamp lag and the display''s picture
+    count, the command notes; no frame period, no stitched stream mode, no capture log), and the scope''s own
+    LCD (its afterglow layer and page-flipped copy) with a display tick from the board''s render knob. There is
+    no mode and no fallback to the engine''s owner; the engine''s code stays in the tree, unused by the device,
+    until it is deleted.'
+  consequences:
+  - 'The bench checks the switched device against 1.2 (the HAL migration''s bench checklist).'
+  - 'The engine (sram_cycle.go and what only it uses) is deleted in the next step, with the parity tests that
+    compare against it.'

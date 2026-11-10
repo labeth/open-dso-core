@@ -24,30 +24,33 @@ var Differences = map[string]string{
 	"parts.check":      "a device's state check is its own (its owner's, or its dialect's ranges, which SCPI can ask beyond the panel's ladders and the web's lists); the demo's refuses a timebase that is not positive, and the simulated board refuses at commit",
 	"parts.scpi":       "SCPI is served on LAN transports a browser tab cannot listen on, in the scope's dialect, which is the scope's code; the demo's one module carries none (ADR-DEMO-ONE-MODULE)",
 
-	// A scope that runs its own acquisition owner until it is HAL terms
-	// throughout: the demo runs the core's HAL loop over the simulated
-	// board, with the core's UI model, display, web and settings over it.
-	"parts.owner":              ownOwner,
-	"parts.ui":                 ownOwner,
-	"parts.display.engine":     ownOwner,
-	"parts.display.hud":        ownOwner,
-	"parts.display.onframe":    ownOwner,
-	"parts.display.url":        ownOwner,
-	"parts.display.canvas":     ownOwner,
-	"parts.display.open":       "the scope's own LCD driver opens a framebuffer the board does not carry; the demo's display is the simulated board's",
-	"parts.web":                ownOwner,
-	"parts.settings.analog":    ownOwner,
-	"parts.settings.extension": ownOwner,
+	// A scope whose board runs on the core's HAL cycle with parts of its
+	// own beside it: the demo composes the core's over the simulated board.
+	"parts.ui":                 ownUI,
+	"parts.display.url":        "the scope's LCD shows the unit's own address on its busy indicator; the demo's page has none",
+	"parts.display.canvas":     "the scope's headless pictures are drawn into its LCD's own back buffer; the demo's at the profile's display",
+	"parts.display.open":       "the scope's own LCD driver opens a framebuffer the board does not carry, with its afterglow layer and page-flipped copy; the demo's display is the simulated board's",
+	"parts.display.engine":     ownDisplay,
+	"display":                  ownDisplay,
+	"parts.web":                ownWeb,
+	"web":                      ownWeb,
+	"parts.settings.analog":    "the scope's settings file keeps its front end's own detents and offsets as it always kept them; the demo's keeps the model's channels",
+	"parts.settings.extension": "the scope's settings file keeps the trigger level as its comparator's DAC code (level_code); the demo's keeps the level in volts",
 	"parts.settings.slots":     "the scope's own setup memory names its slots by file name; the simulated board's store keys them by number",
-	"display":                  ownOwner,
-	"web":                      ownOwner,
-	"ui.streams":               "the scope's own engine streams decoded buses gap-free; the simulated board has no streamer, so the core's UI model streams none",
+	"parts.settings.controls":  "the scope's setup is collected through the HAL scope's engine its UI model runs over, so its file keeps the engine's parts (record depth, frequency-response channels, roll stream) as it always did; the demo's through the instrument state",
+	"ui.streams":               "the scope's board streams decoded buses gap-free in its own sessions; the simulated board has no streamer, so the core's UI model streams none",
 	"ui.records":               "the scope's own record memory plans each timebase; the simulated board plans with the profile's rates and the demo file's record depth and screens (a board difference, compared by the sessions)",
 }
 
-// ownOwner is the reason for the parts a scope with its own acquisition
-// owner builds itself.
-const ownOwner = "the scope runs its own acquisition owner over its bus until it is HAL terms throughout; the demo runs the core's HAL loop, UI model, display, web and settings over the simulated board"
+// ownUI is why a scope builds its own UI model over the HAL scope's
+// engine.
+const ownUI = "the scope's UI model runs over the HAL scope's engine with its own front end (its detents, its offset DACs), its levels (the comparator's DAC code) and its hardware facts; the demo's is the core's over the simulated board"
+
+// ownDisplay is why a scope's display asks its own acquisition side.
+const ownDisplay = "the scope's display ticks at its board's render knob (the debug tuning's) and counts the pictures it puts up for the status, over the cycle's pace and quiet lock; the demo's ticks at the profile's display rate"
+
+// ownWeb is why a scope serves its own web scope.
+const ownWeb = "the scope serves its own web scope over the HAL scope's engine (its own routes, its v1 page's DAC codes, its board's counters); the demo serves the core's over the simulated board"
 
 // CompositionFixture is a scope's device composition as the core keeps it
 // for the demo's alignment test: the description its device main's

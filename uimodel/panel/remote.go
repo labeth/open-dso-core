@@ -87,6 +87,7 @@ type remoteState struct {
 	wake         chan struct{}
 	sheetsActive time.Time
 	pubAt        time.Time // the last publish
+	waiting      int       // remotes parked in WaitPanel
 }
 
 // sheetsWindow is how long after a remote's last sheet request the sheet
@@ -591,6 +592,14 @@ func (c *Controller) WaitPanel(seq uint64, timeout time.Duration) Status {
 	c.publish()
 	deadline := time.NewTimer(timeout)
 	defer deadline.Stop()
+	c.rmu.Lock()
+	c.remote.waiting++
+	c.rmu.Unlock()
+	defer func() {
+		c.rmu.Lock()
+		c.remote.waiting--
+		c.rmu.Unlock()
+	}()
 	for {
 		c.rmu.Lock()
 		c.remote.sheetsActive = c.now()

@@ -30,9 +30,20 @@ type ImageChooser interface {
 	Choose(t TriggerSpec, keep bool) []string
 }
 
+// HeldChooser is optional beside ImageChooser: the board tells the two
+// reasons to keep the current image apart. measuring is the owner's own
+// (a served bus clock measured again on the image it ran on); held is the
+// user's hold (HoldImage: AUTO in BUS between a qualifier's idle
+// triggers), which keeps only the images the board says a hold keeps.
+// ANY: pure, no hardware access.
+type HeldChooser interface {
+	ChooseHeld(t TriggerSpec, measuring, held bool) []string
+}
+
 // ImageSet is one loadable image as the core sees it.
 type ImageSet struct {
-	Name       string        // the image as the scope names it on screen ("qualifier")
+	Name       string        // the image as the scope names it (its status, its log)
+	Called     string        // the image as a trigger waiting for it says it ("qualifier"); "": Name
 	Features   []string      // "general", "stack", "bits-stream", ...
 	Triggers   TrigCaps      // the nodes this image implements
 	Needs      []string      // parts it needs fitted ("sram"); offered only then

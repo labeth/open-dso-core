@@ -56,6 +56,11 @@ type Options struct {
 	// Both are the HAL path's: an Owner keeps its own.
 	Defaults func(channels int) instrument.State
 	Check    func(instrument.State) error
+	// OnModel hears the instrument state once it is built, before the
+	// owner loop starts: a scope that keeps state beside it (its DAC
+	// codes, its projections of a setting) attaches to it there. The HAL
+	// path's; nil: none.
+	OnModel func(m *instrument.Model)
 	// Publish hears every frame the core's owner loop publishes.
 	Publish func(*sample.Frame)
 	// SoftwareMask runs the mask test in software on every frame the
@@ -117,6 +122,12 @@ type Settings struct {
 	Extension settings.Extension
 	// SlotKey names slot n in the setups store; nil: its number.
 	SlotKey func(n int) string
+	// Controls is what the setup is collected from and restored through;
+	// nil: the instrument state (Env.Controls). A scope whose UI model
+	// runs over the HAL scope's engine keeps the engine's parts in its
+	// setup (its record depth, its frequency-response channels, its roll
+	// stream) by naming that engine.
+	Controls func(env *Env) instrument.Controls
 }
 
 // Owner is a scope's own acquisition owner: its controls, the frames it
@@ -184,6 +195,17 @@ func (e *Env) MaskTest() scopeweb.MaskTest {
 	return e.Mask
 }
 
+// Quiet is the owner loop's quiet lock on a board that shares its core
+// with the display (Budget.QuietAcquire): a scope's own web scope holds it
+// while it serialises a reply, as the core's does; nil without one.
+// TRLC-LINKS: REQ-DSO-168, REQ-DSO-295
+func (e *Env) Quiet() QuietPacer {
+	if e.cycle == nil {
+		return nil
+	}
+	return quietOf(e.Board, e.cycle)
+}
+
 // Render draws the display's picture headless into dst.
 // TRLC-LINKS: REQ-DSO-168
 func (e *Env) Render(dst render.Canvas) { e.display.Render(dst) }
@@ -248,16 +270,17 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		if o.Defaults == nil {
 			return errors.New("scopeapp: a HAL scope needs its default state")
 		}
-		m := instrument.New(o.Defaults(b.Profile().Channels), o.Check)
-		// A trigger type the board cannot run is refused when it is chosen.
-		m.SetTrigCaps(b.Trigger().Caps)
-		env.Model, env.Controls = m, m
-		if o.SoftwareMask {
-			env.Mask = engine.NewFrameMask()
-		}
-		env.Bode = engine.NewBode()
-		h.snap = m.Snapshot
-		h.beats = func() uint64 { return m.Snapshot().Published }
+		buildModel(env, o)
+		h.snap = env.Model.Snapshot
+	}
+	var loop *engine.Loop
+	loopDone := make(chan struct{}) // closed when the HAL owner loop has ended
+	if o.Owner == nil {
+		loop, env.cycle = engine.NewHALLoop(engine.HALConfig{Board: b, Instrument: env.Model, Logf: logf, Publish: o.Publish, Mask: env.Mask, Bode: env.Bode})
+		// The heartbeat is the cycle's: its passes, its waits' polls and
+		// the steps of its LONG work, so a stream, an image load or a long
+		// NORMAL wait beats while it progresses, and a wedge does not.
+		h.beats = env.cycle.Beats
 	}
 	if tok := b.Platform().Handover().HealthTok; tok != "" && h.beats != nil {
 		go writeHealth(tok, h, stop, logf, mark)
@@ -266,11 +289,12 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		go o.Owner.Run()
 		go env.Frames.Run(o.Owner, stop)
 	} else {
-		loop, cycle := engine.NewHALLoop(engine.HALConfig{Board: b, Instrument: env.Model, Logf: logf, Publish: o.Publish, Mask: env.Mask, Bode: env.Bode})
-		env.cycle = cycle
 		env.Model.SetFrames(env.Frames)
-		go env.Frames.Run(cycle, stop)
-		go loop.Run(ctx)
+		go env.Frames.Run(env.cycle, stop)
+		go func() {
+			defer close(loopDone)
+			loop.Run(ctx)
+		}()
 	}
 
 	// The UI model over the front panel.
@@ -358,6 +382,15 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 	if o.Owner != nil && !o.Owner.Stop(2*time.Second) {
 		logf("WARNING: engine did not stop in time")
 	}
+	if o.Owner == nil {
+		// the cycle's last pass and its sessions' close before a worker
+		// the board reads through goes (OnStop)
+		select {
+		case <-loopDone:
+		case <-time.After(2 * time.Second):
+			logf("WARNING: engine did not stop in time")
+		}
+	}
 	if o.OnStop != nil {
 		o.OnStop()
 	}
@@ -365,6 +398,26 @@ func Run(ctx context.Context, b hal.Board, o Options) error {
 		_ = srv.Close() // the process is ending: parked long polls are cut off, not waited for
 	}
 	return nil
+}
+
+// buildModel builds the HAL path's instrument state from the scope's
+// defaults over the board's trigger and ladder, with the owner's software
+// mask and frequency response, and hands it to the scope (OnModel).
+// TRLC-LINKS: REQ-DSO-295, REQ-DSO-008
+func buildModel(env *Env, o Options) {
+	b := env.Board
+	m := instrument.New(o.Defaults(b.Profile().Channels), o.Check)
+	// A trigger type the board cannot run is refused when it is chosen.
+	m.SetTrigCaps(b.Trigger().Caps)
+	m.SetTimebases(b.Profile().Timebase.TdivS)
+	env.Model, env.Controls = m, m
+	if o.SoftwareMask {
+		env.Mask = engine.NewFrameMask()
+	}
+	env.Bode = engine.NewBode()
+	if o.OnModel != nil {
+		o.OnModel(m)
+	}
 }
 
 // webName is the name the web gives the product.
@@ -423,6 +476,10 @@ func halStream(env *Env) {
 // buildUI builds the UI model and wires it to the frames and the screen.
 // TRLC-LINKS: REQ-DSO-295
 func buildUI(env *Env, o Options) error {
+	if env.Model != nil {
+		// the scope's own UI model, if it builds one, drives the same view
+		env.HALScope = halScope(env)
+	}
 	if o.UI != nil {
 		pc, err := o.UI(env)
 		if err != nil {
@@ -433,9 +490,7 @@ func buildUI(env *Env, o Options) error {
 		if env.Model == nil {
 			return errors.New("scopeapp: a scope with its own owner builds its UI model")
 		}
-		s := halScope(env)
-		env.Model.SetTimebases(s.Tdivs())
-		env.HALScope = s
+		s := env.HALScope
 		env.UI = panel.New(s.Engine(), s.Analog(), s.Levels(), s.Hardware(), s.Tdivs(), env.Model.State().TimeDivS, env.Logf)
 		halStream(env)
 	}
@@ -532,8 +587,12 @@ func restoreSettings(env *Env, o Settings) *settings.Saver {
 	if ext == nil && env.Model != nil {
 		ext = settings.ModelLevel{Model: env.Model}
 	}
-	collect := func() settings.Settings { return settings.Collect(env.Controls, fe, env.UI, ext) }
-	apply := func(s settings.Settings) { settings.Apply(s, env.Controls, fe, env.UI, ext, env.Logf) }
+	ctl := env.Controls
+	if o.Controls != nil {
+		ctl = o.Controls(env)
+	}
+	collect := func() settings.Settings { return settings.Collect(ctl, fe, env.UI, ext) }
+	apply := func(s settings.Settings) { settings.Apply(s, ctl, fe, env.UI, ext, env.Logf) }
 	kv := st.Settings()
 	var saver *settings.Saver
 	if kv != nil {

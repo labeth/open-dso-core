@@ -96,7 +96,7 @@ func (c *HALCycle) watchStop() bool {
 	if !c.keepsRecords() || c.inst.HasWork() || c.inst.RecordNeed() != c.need || c.replace {
 		return false
 	}
-	s, _ := c.inst.Wanted()
+	s, _ := c.wanted()
 	if !c.stopOnly(s) {
 		return false
 	}

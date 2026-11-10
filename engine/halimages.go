@@ -59,7 +59,7 @@ func (c *HALCycle) imageDue(t hal.TriggerSpec, keep bool) (name string, due bool
 	if !ok {
 		return "", false
 	}
-	want := ch.Choose(t, keep || c.img.keep.Load())
+	want := choose(ch, t, keep, c.img.keep.Load())
 	c.img.chosen = want
 	if c.img.failed != nil && !sameFeatures(want, c.img.failed) {
 		c.img.failed = nil
@@ -69,7 +69,7 @@ func (c *HALCycle) imageDue(t hal.TriggerSpec, keep bool) (name string, due bool
 		return "", false
 	}
 	c.img.due = want
-	return imageName(im, want), true
+	return imageCalled(im, want), true
 }
 
 // onImageFor reports the board is on the image trigger t runs on (a board
@@ -77,7 +77,18 @@ func (c *HALCycle) imageDue(t hal.TriggerSpec, keep bool) (name string, due bool
 // TRLC-LINKS: REQ-DSO-011, REQ-DSO-013
 func (c *HALCycle) onImageFor(t hal.TriggerSpec) bool {
 	im, ch, ok := c.images()
-	return !ok || sameFeatures(ch.Choose(t, c.img.keep.Load()), im.Current().Features)
+	return !ok || sameFeatures(choose(ch, t, false, c.img.keep.Load()), im.Current().Features)
+}
+
+// choose is the image ch names for trigger t: kept for the owner's own
+// measuring, or held by the user (HoldImage); a board that tells the two
+// apart (hal.HeldChooser) says which images each keeps.
+// TRLC-LINKS: REQ-DSO-011, REQ-DSO-223
+func choose(ch hal.ImageChooser, t hal.TriggerSpec, measuring, held bool) []string {
+	if hc, ok := ch.(hal.HeldChooser); ok {
+		return hc.ChooseHeld(t, measuring, held)
+	}
+	return ch.Choose(t, measuring || held)
 }
 
 // loadDueImage loads the image a commit found due; false when none was
@@ -112,9 +123,27 @@ func (c *HALCycle) loadDueImage(ctx context.Context) bool {
 // first feature.
 // TRLC-LINKS: REQ-DSO-011
 func imageName(im hal.Images, f []string) string {
+	return imageNamed(im, f, func(s hal.ImageSet) string { return s.Name })
+}
+
+// imageCalled is the image with features f as a trigger waiting for it
+// says it (ImageSet.Called), else as imageName names it.
+// TRLC-LINKS: REQ-DSO-011
+func imageCalled(im hal.Images, f []string) string {
+	return imageNamed(im, f, func(s hal.ImageSet) string {
+		if s.Called != "" {
+			return s.Called
+		}
+		return s.Name
+	})
+}
+
+// imageNamed is the image with features f by name, else its first feature.
+// TRLC-LINKS: REQ-DSO-011
+func imageNamed(im hal.Images, f []string, name func(hal.ImageSet) string) string {
 	for _, s := range im.Provides() {
-		if sameFeatures(s.Features, f) && s.Name != "" {
-			return s.Name
+		if n := name(s); sameFeatures(s.Features, f) && n != "" {
+			return n
 		}
 	}
 	if len(f) == 0 {

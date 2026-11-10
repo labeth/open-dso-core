@@ -4,6 +4,7 @@ package instrument
 
 import (
 	"math"
+	"time"
 
 	"github.com/labeth/open-dso-core/hal"
 )
@@ -54,27 +55,39 @@ func (m *Model) SetTimebases(tdivs []float64) {
 // TRLC-LINKS: REQ-DSO-008, REQ-DSO-009
 func (m *Model) Snapshot() Stats {
 	m.mu.Lock()
-	s, run, last, be := m.want, m.run, m.last, m.backends
-	trig, bz := m.trig, m.busy
-	m.mu.Unlock()
-	st := Stats{
-		Running: s.Running, Norm: s.Sweep == hal.NormalSweep || s.Sweep == hal.Single, Single: s.Single,
-		TdivS: s.TimeDivS, DisplayedS: s.TimeDivS, TrigPosFrac: posFrac(s),
-		TrigRising: s.Trigger.Slope() != hal.Falling, TrigSource: s.Trigger.Source().Index,
-		TrigType: int(s.Trigger.running()), TrigQual: s.Qual, HoldoffS: s.Trigger.Active().HoldoffS,
-		AvgCount: s.Averages, EresLen: s.EresLen, ETS: s.ETS, MemDepth: s.Depth,
-		AcqMode: acqModeNumber(s), PrecisionRateHz: s.PrecisionRateHz,
-		Roll:       run == Rolling,
-		SerialMode: s.SerialMode, SerialSet: len(s.Serial.Bytes) > 0 || len(s.Serial.Pattern) > 0,
-		TriggerBackend: be.Trigger, SerialBackend: be.Serial, ZoneBackend: be.Zone,
-		ZoneMode: s.ZoneMode, ZoneCount: len(s.Zones),
-		FalseTriggers: trig.falses, NoiseTriggers: trig.share,
+	if !m.wantOK { // the wanted state's part, once per change of it
+		m.wantStats, m.wantOK = wantStats(&m.want), true
 	}
+	if m.count.haveStages && m.count.stagesText == "" { // stated once per pass, read many times
+		m.count.stagesText = m.count.stages.String()
+	}
+	st, run, last, be := m.wantStats, m.run, m.last, m.backends
+	trig, bz, count := m.trig, m.busy, m.count
+	m.mu.Unlock()
+	st.Roll = run == Rolling
+	st.TriggerBackend, st.SerialBackend, st.ZoneBackend = be.Trigger, be.Serial, be.Zone
+	st.FalseTriggers, st.NoiseTriggers = trig.falses, trig.share
 	if last != nil {
 		st.Seq, st.Published = last.Seq, last.Seq
 	}
 	bz.fill(&st)
+	count.fill(&st, time.Now())
 	return st
+}
+
+// wantStats is the part of the snapshot the wanted state s alone gives.
+// TRLC-LINKS: REQ-DSO-008, REQ-DSO-009
+func wantStats(s *State) Stats {
+	return Stats{
+		Running: s.Running, Norm: s.Sweep == hal.NormalSweep || s.Sweep == hal.Single, Single: s.Single,
+		TdivS: s.TimeDivS, DisplayedS: s.TimeDivS, TrigPosFrac: posFrac(*s),
+		TrigRising: s.Trigger.Slope() != hal.Falling, TrigSource: s.Trigger.Source().Index,
+		TrigType: int(s.Trigger.running()), TrigQual: s.Qual, HoldoffS: s.Trigger.Active().HoldoffS,
+		AvgCount: s.Averages, EresLen: s.EresLen, ETS: s.ETS, MemDepth: s.Depth,
+		AcqMode: acqModeNumber(*s), PrecisionRateHz: s.PrecisionRateHz,
+		SerialMode: s.SerialMode, SerialSet: len(s.Serial.Bytes) > 0 || len(s.Serial.Pattern) > 0,
+		ZoneMode: s.ZoneMode, ZoneCount: len(s.Zones),
+	}
 }
 
 // posFrac is the trigger's place across the screen in state s: the screen
@@ -246,7 +259,11 @@ func (m *Model) SetTrigSlope(rising bool) {
 		if rising {
 			sl = hal.Rising
 		}
-		_ = s.Trigger.SetSlope(sl, len(s.Channels))
+		if s.Trigger.SetSlope(sl, len(s.Channels)) != nil {
+			for _, fn := range m.sloped {
+				fn(s, sl)
+			}
+		}
 	})
 }
 
@@ -267,7 +284,16 @@ func (m *Model) SetTrigTypeOf(t TrigType) error {
 	if t < 0 || t >= NumTrigTypes {
 		return hal.Refuse("trigger type", "not a trigger type")
 	}
-	return m.Change(func(s *State) error { s.Trigger.Type = t; return nil })
+	return m.Change(func(s *State) error {
+		from := s.Trigger.Type
+		s.Trigger.Type = t
+		if from != t {
+			for _, fn := range m.typed {
+				fn(s, from)
+			}
+		}
+		return nil
+	})
 }
 
 // TrigTypes is every trigger type with whether the trigger's capabilities

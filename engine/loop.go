@@ -272,7 +272,12 @@ func (l *Loop) armAndWait(ctx context.Context, cp Capture, armAt time.Time) (a A
 			}
 		}
 		gen := c.SingleGen() // before the poll: a press seen here precedes the ready record
-		st, werr := l.a.Wait(ctx, l.cfg.WaitSlice)
+		slice := l.cfg.WaitSlice
+		if cp.AutoWait > 0 && cp.Normal && !cp.Norm && !a.Forced && slice > 0 {
+			// the slice ends when AUTO's wait does, so its forced trigger is not late
+			slice = max(0, min(slice, cp.AutoWait-clk.Now().Sub(armAt)))
+		}
+		st, werr := l.a.Wait(ctx, slice)
 		if werr == nil {
 			a.Status = st
 			break
