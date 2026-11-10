@@ -294,3 +294,22 @@ func TestStretch(t *testing.T) {
 		t.Fatal("period 7: want stretched")
 	}
 }
+
+// A counter counts same-polarity edges, including transitions between frames.
+// TRLC-LINKS: REQ-DSO-298
+func TestCounterFrequency(t *testing.T) {
+	for _, tc := range []struct {
+		spec string
+		want float64
+	}{
+		{"sine,1000,2,0", 1000},
+		{"uart,115200,3.3,1.65,data=55", 18000},
+		{"uart,115200,3.3,1.65,data=00", 3600},
+		{"uart,115200,3.3,1.65,data=55,inv=1", 18000},
+		{"uart,115200,3.3,1.65,data=48656c6c6f", 115200.0 * 16 / 72},
+	} {
+		if got := mustSig(t, tc.spec).CounterFrequency(); math.Abs(got-tc.want) > 1e-6 {
+			t.Errorf("%s: got %g want %g", tc.spec, got, tc.want)
+		}
+	}
+}

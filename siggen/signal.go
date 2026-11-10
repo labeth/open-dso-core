@@ -130,6 +130,25 @@ func (w *lineWave) at(t, rise, fall float64) float64 {
 // TRLC-LINKS: REQ-DSO-298
 func (s Signal) IsLine() bool { return s.line != nil && s.BitRate > 0 }
 
+// CounterFrequency returns the ideal mean same-polarity edge rate. Protocol
+// lines can have many edges per packet; their packet repetition rate is not
+// the frequency a gated hardware counter measures. Noise and comparator
+// threshold effects are outside this ideal signal model.
+// TRLC-LINKS: REQ-DSO-298
+func (s Signal) CounterFrequency() float64 {
+	if !s.IsLine() {
+		return s.Freq
+	}
+	rises := 0
+	for i, v := range s.line.lv {
+		prev := s.line.lv[(i+len(s.line.lv)-1)%len(s.line.lv)]
+		if v > prev {
+			rises++
+		}
+	}
+	return float64(rises) / s.line.period
+}
+
 // V returns the voltage at time t (s).
 // TRLC-LINKS: REQ-DSO-298
 func (s Signal) V(t float64) float64 {
@@ -363,7 +382,7 @@ func Parse(v string) (Signal, error) {
 	}
 	s.line = w
 	s.BitRate = s.Freq
-	// a counter and a trigger see the frame repetition rate
+	// Freq records the frame repetition rate, not the wire edge rate.
 	s.Freq = 1 / period
 	switch s.Kind { // the bus wires: recessive (1) at offset, dominant (0) at offset ± vpp/2
 	case "can.h":

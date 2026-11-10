@@ -387,7 +387,7 @@ func (c counter) Source() hal.Source {
 	return st[0].Source
 }
 
-// Read is the trigger source's repetition rate.
+// Read is the trigger source's mean same-polarity edge rate.
 // TRLC-LINKS: REQ-DSO-1001
 func (c counter) Read() (hal.Counters, error) {
 	b := c.b
@@ -401,5 +401,5 @@ func (c counter) Read() (hal.Counters, error) {
 	if s.Freq <= 0 || s.Kind == "dc" || s.Kind == "noise" {
 		return hal.Counters{}, nil
 	}
-	return hal.Counters{FreqHz: s.Freq, Valid: true}, nil
+	return hal.Counters{FreqHz: s.CounterFrequency(), Valid: true}, nil
 }

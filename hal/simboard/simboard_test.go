@@ -386,3 +386,31 @@ func TestFullRateRecordBeyondTheScreen(t *testing.T) {
 		t.Fatalf("content %v, %d samples, %d on the screen, trigger at %g", f.Content, f.Len(), f.WinPoints, f.TriggerAt)
 	}
 }
+
+// Pulse qualification must not turn the counter into a packet or trigger counter.
+// TRLC-LINKS: REQ-DSO-1001
+func TestCounterUARTWithPulseTrigger(t *testing.T) {
+	b := newBoard(t, 4, format12, 7680)
+	if err := b.Signals().Set(2, "uart,115200,3.3,1.65,data=48656c6c6f"); err != nil {
+		t.Fatal(err)
+	}
+	spec := hal.TriggerSpec{Stages: []hal.TrigStage{{Node: hal.NodePulse, Source: hal.Source{Kind: hal.Analog, Index: 2}, Qual: &hal.Qualifier{Op: hal.Longer, MinS: 1e-6}}}}
+	if err := b.Trigger().Program(spec); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := b.Planner().Plan(hal.Request{TimePerDivS: 200e-6, Channels: []int{2}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Acquirer().Configure(plan); err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Acquirer().Arm(); err != nil {
+		t.Fatal(err)
+	}
+	c := counter{b}
+	got, err := c.Read()
+	if err != nil || !got.Valid || math.Abs(got.FreqHz-25600) > 1e-6 || c.Source().Index != 2 {
+		t.Fatalf("UART pulse counter: %+v, %v", got, err)
+	}
+}
