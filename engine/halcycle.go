@@ -91,8 +91,10 @@ type HALCycle struct {
 	scratch   []uint16    // the conditioning's working buffer
 	running   bool
 
-	beats atomic.Uint64 // the heartbeat (Beats)
-	times passTimes     // this pass's stage times (Done)
+	counter   hal.Counter
+	counterAt time.Time
+	beats     atomic.Uint64 // the heartbeat (Beats)
+	times     passTimes     // this pass's stage times (Done)
 	// the instrument's wanted state of generation gen, cloned once a
 	// generation (wanted): the owner looks at it several times a pass
 	want struct {
@@ -130,6 +132,10 @@ func NewHALLoop(cfg HALConfig) (*Loop, *HALCycle) {
 	c := &HALCycle{
 		cfg: cfg, b: cfg.Board, inst: cfg.Instrument, good: cfg.Instrument.State(),
 		ext: make([]extent, n), placed: make([]bool, n), quietAcq: cfg.Board.Profile().Budget.QuietAcquire,
+	}
+	if ctr, ok := cfg.Board.Counter(); ok && ctr != nil {
+		c.counter = ctr
+		cfg.Instrument.SetHardwareCounter(-1, sample.Counters{})
 	}
 	cfg.Instrument.SetBand(cfg.Board.Profile().StatusBand)
 	if im, ok := cfg.Board.Images(); ok {
@@ -192,6 +198,7 @@ func (c *HALCycle) Serve() {
 	c.beats.Add(1)
 	c.serveSessions()
 	c.b.Platform().Service()
+	c.readCounter(time.Now())
 }
 
 // Claim runs posted LONG work with the acquisition stopped; the pass goes
@@ -612,6 +619,10 @@ func (c *HALCycle) commitState(s instrument.State, gen uint64) {
 	}
 	if applied.SerialMode != 0 && c.cur.SerialMode == 0 {
 		c.inst.ResetSerialMatches() // the serial trigger armed anew
+	}
+	if c.counter != nil && (c.gen == 0 || applied.Trigger.Source() != c.cur.Trigger.Source()) {
+		c.counterAt = time.Time{}
+		c.inst.SetHardwareCounter(-1, sample.Counters{})
 	}
 	c.cur, c.good, c.gen = applied, applied, gen
 	c.running = applied.Running

@@ -580,6 +580,9 @@ func drawHUD(sf Canvas, f *sample.Frame, hud HUD) {
 	// the trigger readout (starts ≥ ~670) — clear of the trace band, readouts
 	// and the menu panel in every view. No network → nothing.
 	DrawStatusSlot(sf, hud)
+	if hud.Counter != "" {
+		DrawTextRight(sf, sm.StatusSlotX, 14, hud.Counter, colInfo, 1)
+	}
 	drawBottomReadouts(sf, f, hud)
 }
 

@@ -83,6 +83,14 @@ type Counter interface {
 	Read() (Counters, error) // OWNER
 }
 
+// SourcedCounter identifies the source measured by a counter. It can differ
+// from the wanted trigger source while settings are staged or in special
+// trigger modes. Without this facet the UI labels the reading generically.
+type SourcedCounter interface {
+	Counter
+	Source() Source // OWNER, the source of the latest Read
+}
+
 // LogicProbe is an optional digital probe on the scope's own input.
 type LogicProbe interface {
 	Lines() int                            // ANY: digital lines, also trigger Sources

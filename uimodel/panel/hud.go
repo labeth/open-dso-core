@@ -68,6 +68,9 @@ func (c *Controller) HUD(chans int) render.HUD {
 		TrigPosFrac: st.TrigPosFrac, NumChans: min(max(chans, 1), render.MaxChans),
 		ViewPending: st.ViewPending, Roll: st.Roll,
 	}
+	if st.Counter != nil {
+		hud.Counter = st.Counter.Text()
+	}
 	for ch := range hud.NumChans {
 		hud.Ch[ch] = render.Channel{VdivV: 1, Show: true}
 	}

@@ -107,6 +107,8 @@ type HUD struct {
 	// the board) shown on the top bar so a taken-over scope tells the user
 	// where its web UI lives. Empty (no network) renders nothing.
 	URL string
+	// Counter is the dedicated hardware frequency-counter readout; empty when absent.
+	Counter string
 
 	// UI is the task-workspace UI (ADR-TASK-WORKSPACES): the layout, the
 	// pictogram rail, the workspace's pane, a settings sheet or the byte

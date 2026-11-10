@@ -45,6 +45,9 @@ type Model struct {
 	sourced   []func()                        // hear SetTrigSource (OnTrigSource)
 	typed     []func(s *State, from TrigType) // project a type change (OnTrigType)
 	sloped    []func(s *State, sl hal.Slope)  // keep a slope the type has no setting for (OnTrigSlope)
+
+	hardwareCounter CounterReading
+	haveCounter     bool
 }
 
 // FrameSource gives a reader the newest published frame: the engine's

@@ -11,6 +11,8 @@ package instrument
 // below Frames are the engine's diagnostics.
 // TRLC-LINKS: REQ-DSO-009, REQ-DSO-127
 type Stats struct {
+	Counter *CounterReading `json:"counter,omitempty"`
+
 	Frames        uint64  `json:"frames"`                  // FSM heartbeat: +1 per loop iteration, publish or not
 	Coherent      uint64  `json:"coherent"`                // frames that latched+drained coherently
 	Published     uint64  `json:"published"`               // frames handed to the arena

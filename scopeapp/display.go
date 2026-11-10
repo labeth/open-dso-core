@@ -478,6 +478,7 @@ func hudExtraSig(hud *render.HUD) uint64 {
 	h.add(reflect.ValueOf(&q).Elem())
 	flag(hud.SerialArmed)
 	h.str(hud.SerialMatch)
+	h.str(hud.Counter)
 	flag(hud.ZoneTrig)
 	num(hud.Ch[0].Zoom)
 	num(hud.Ch[1].Zoom)

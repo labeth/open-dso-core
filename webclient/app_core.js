@@ -261,6 +261,12 @@ function upd(o, k, v) { if (o[k] != v) o[k] = v; } // eslint-disable-line eqeqeq
 
 // TRLC-LINKS: REQ-DSO-204
 function applyStatus() {
+  const counter = $("counterReadout");
+  if (counter) {
+    counter.hidden = !st.counter;
+    $("top")?.classList.toggle("has-counter", !!st.counter);
+    if (st.counter) upd(counter, "textContent", st.counter_text || "Counter --");
+  }
   // The button shows the ACTION you can take: running → press to STOP, stopped →
   // press to RUN (green run / red stop). Redundant glyph + word.
   upd($("run"), "textContent", st.running ? "STOP ■" : "RUN ▶");

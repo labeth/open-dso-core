@@ -63,6 +63,10 @@ func (m *Model) Snapshot() Stats {
 	}
 	st, run, last, be := m.wantStats, m.run, m.last, m.backends
 	trig, bz, count := m.trig, m.busy, m.count
+	if m.haveCounter {
+		counter := m.hardwareCounter
+		st.Counter = &counter
+	}
 	m.mu.Unlock()
 	st.Roll = run == Rolling
 	st.TriggerBackend, st.SerialBackend, st.ZoneBackend = be.Trigger, be.Serial, be.Zone

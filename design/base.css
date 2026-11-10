@@ -87,8 +87,19 @@
   button.wstab[aria-selected="true"] kbd { background: var(--focus); border-color: var(--focus); color: var(--screen); }
   .tdot { width: 6px; height: 6px; border-radius: 50%; background: var(--focus); flex: 0 0 auto; margin-left: -2px; }
   .tdot.is-bad { background: var(--err); }
+  #counterReadout { flex: 0 0 auto; white-space: nowrap; font: 11px/1 var(--mono); font-variant-numeric: tabular-nums; }
   #trigChip { font: 700 11px/1 var(--mono); letter-spacing: .06em; padding: 5px 9px; border-radius: 999px; border: 1px solid var(--edge2);
     color: var(--dim); background: var(--well); min-width: 56px; text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* A counter adds a live readout: compact shortcuts on desktop, and
+     give navigation its own row on a tablet instead of clipping controls. */
+  @media (min-width: 1181px) and (max-width: 1600px) {
+    #top.has-counter button.wstab kbd { display: none; }
+  }
+  @media (min-width: 601px) and (max-width: 1180px) {
+    #top.has-counter { flex: 0 0 auto; min-height: 44px; flex-wrap: wrap; row-gap: 2px; padding: 2px 6px; }
+    #top.has-counter .brand, #top.has-counter > .grow { display: none; }
+    #top.has-counter #wstabs { flex: 1 0 100%; height: 38px; overflow-x: auto; }
+  }
   #trigChip[data-state="T'D"] { color: var(--run); border-color: var(--run); }
   #trigChip[data-state="AUTO"], #trigChip[data-state="NORM"], #trigChip[data-state="ROLL"] { color: var(--trigger); border-color: var(--trigger); }
   #trigChip[data-state="WAIT"], #trigChip[data-state="SNGL"] { color: var(--warn); border-color: var(--warn); }

@@ -409,6 +409,9 @@ func (t touchDraw) topBar(f *sample.Frame, hud HUD, live bool) {
 		DrawText(t.sf, r.Min.X+6, r.Min.Y+17, cutText(what, (r.Dx()-12)/6), colTrig, 1)
 	}
 	t.add(image.Rect(r.Min.X, 0, r.Max.X, TouchTopH), "open:trig")
+	if hud.Counter != "" {
+		DrawText(t.sf, r.Max.X+8, 24, cutText(hud.Counter, max(0, (sm.W-100-r.Max.X)/6)), colInfo, 1)
+	}
 	DrawStatusSlot(t.sf, hud)
 	DrawTextRight(t.sf, sm.W-6, 15, wsview.Names[clampI(int(hud.UI.WS), 0, wsview.Count-1)], colTrig, 2)
 }

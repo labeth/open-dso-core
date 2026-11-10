@@ -375,6 +375,18 @@ func (census) Run(ctx context.Context, _ bool) ([]hal.Verdict, error) {
 
 type counter struct{ b *Board }
 
+// Source is the source whose comparator the simulated counter measures.
+// TRLC-LINKS: REQ-DSO-1001
+func (c counter) Source() hal.Source {
+	c.b.mu.Lock()
+	defer c.b.mu.Unlock()
+	st := c.b.applied.trigger.Stages
+	if len(st) == 0 {
+		return hal.Source{Kind: hal.Analog, Index: -1}
+	}
+	return st[0].Source
+}
+
 // Read is the trigger source's repetition rate.
 // TRLC-LINKS: REQ-DSO-1001
 func (c counter) Read() (hal.Counters, error) {

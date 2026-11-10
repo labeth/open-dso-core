@@ -152,6 +152,9 @@ func (s *Scope) status() any {
 	// can yet (the page says so beside the trigger)
 	if s.cfg.Instrument != nil {
 		snap := s.cfg.Instrument.Snapshot()
+		if snap.Counter != nil {
+			out["counter"], out["counter_text"] = snap.Counter, snap.Counter.Text()
+		}
 		out["trigger_backend"], out["serial_backend"] = snap.TriggerBackend, snap.SerialBackend
 		out["serial_mode"], out["serial_set"] = snap.SerialMode, snap.SerialSet
 	}
